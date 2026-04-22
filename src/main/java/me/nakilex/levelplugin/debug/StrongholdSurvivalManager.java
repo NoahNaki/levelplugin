@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -17,16 +18,18 @@ import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -42,6 +45,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.temporal.IsoFields;
 
 /**
  * Lightweight wave survival runtime for stronghold debug worlds.
@@ -63,6 +69,10 @@ public final class StrongholdSurvivalManager implements Listener {
     private static final double BORDER_SHRINK_PER_WAVE = 5.5;
     private static final int BORDER_WARNING_DISTANCE = 12;
     private static final int BASE_SCORE_MAX = 10000;
+    private static final String CHOICE_GUI_TITLE = "Stronghold Path Node";
+    private static final int CHOICE_RISK_SLOT = 11;
+    private static final int CHOICE_BALANCE_SLOT = 15;
+    private static final int OBJECTIVE_WINDOW_SECONDS = 25;
 
     private static final List<String> EARLY_POOL = List.of(
             "rpg_rat", "wild_rooster", "forest_slime", "moss_zombie", "goblin_warrior", "goblin_archer"
@@ -99,6 +109,37 @@ public final class StrongholdSurvivalManager implements Listener {
         }
     }
 
+    private enum PathChoice {
+        RISK("Blood Route", 1.20, 0.10, 0.0),
+        BALANCED("Tactician Route", 1.0, 0.04, 0.07);
+
+        private final String displayName;
+        private final double nextWaveMobScale;
+        private final double scoreBonus;
+        private final double damageMitigation;
+
+        PathChoice(String displayName, double nextWaveMobScale, double scoreBonus, double damageMitigation) {
+            this.displayName = displayName;
+            this.nextWaveMobScale = nextWaveMobScale;
+            this.scoreBonus = scoreBonus;
+            this.damageMitigation = damageMitigation;
+        }
+    }
+
+    private enum WaveObjectiveType {
+        SPEED_CLEAR("Clear this wave quickly", 320),
+        CLEAN_OPEN("Take no damage for 20 seconds", 260),
+        ELITE_RUSH("Slay 2 enemies within 25 seconds", 300);
+
+        private final String displayName;
+        private final int scoreBonus;
+
+        WaveObjectiveType(String displayName, int scoreBonus) {
+            this.displayName = displayName;
+            this.scoreBonus = scoreBonus;
+        }
+    }
+
     public record StageStatus(int wave, int mobsRemaining, int secondsLeft) {
     }
 
@@ -107,6 +148,8 @@ public final class StrongholdSurvivalManager implements Listener {
     private final Map<UUID, Run> runsByPlayer = new HashMap<>();
     private final Map<UUID, Run> runsByWorld = new HashMap<>();
     private final Map<UUID, UUID> mobToOwner = new HashMap<>();
+    private final Map<UUID, Run> pendingChoiceByLeader = new HashMap<>();
+    private final Map<UUID, Long> mobSpawnedAtMs = new HashMap<>();
 
     public StrongholdSurvivalManager(Main plugin) {
         this.plugin = plugin;
@@ -208,6 +251,7 @@ public final class StrongholdSurvivalManager implements Listener {
         List<UUID> memberIds = party.stream().map(Player::getUniqueId).toList();
         Run run = new Run(leader.getUniqueId(), world.getUID(), memberIds, Math.max(50, averageGearScore));
         run.mutator = rollMutator();
+        run.teamplayScoreBonus = Math.max(0.0, (memberIds.size() - 1) * 0.03);
         for (UUID memberId : memberIds) {
             runsByPlayer.put(memberId, run);
         }
@@ -235,6 +279,7 @@ public final class StrongholdSurvivalManager implements Listener {
         for (UUID member : run.members) {
             runsByPlayer.remove(member);
         }
+        pendingChoiceByLeader.remove(run.playerId);
         runsByWorld.remove(run.worldId);
         run.active = false;
         if (run.waveTask != null) {
@@ -266,6 +311,8 @@ public final class StrongholdSurvivalManager implements Listener {
     public void onMobDeath(EntityDeathEvent event) {
         UUID mobId = event.getEntity().getUniqueId();
         UUID ownerId = mobToOwner.remove(mobId);
+        long spawnedAtMs = mobSpawnedAtMs.getOrDefault(mobId, 0L);
+        mobSpawnedAtMs.remove(mobId);
         if (ownerId == null) {
             return;
         }
@@ -275,6 +322,11 @@ public final class StrongholdSurvivalManager implements Listener {
         }
         run.mobIds.remove(mobId);
         run.mobsRemaining = Math.max(0, run.mobsRemaining - 1);
+        if (run.waveObjective == WaveObjectiveType.ELITE_RUSH
+                && spawnedAtMs > 0L
+                && System.currentTimeMillis() - spawnedAtMs <= OBJECTIVE_WINDOW_SECONDS * 1000L) {
+            run.waveObjectiveCounter++;
+        }
         double keyChance = 0.05D + partyEffectBonus(run, PetEffectType.STRONGHOLD_KEY_LUCK);
         if (ThreadLocalRandom.current().nextDouble() <= Math.min(0.30D, keyChance)) {
             event.getDrops().add(createStrongholdDoorKey());
@@ -299,7 +351,12 @@ public final class StrongholdSurvivalManager implements Listener {
         if (run == null || !run.active) {
             return;
         }
-        run.damageTaken += Math.max(0.0, event.getFinalDamage());
+        double mitigated = Math.max(0.0, event.getFinalDamage() * (1.0 - run.damageMitigationBonus));
+        run.damageTaken += mitigated;
+        if (run.waveObjective == WaveObjectiveType.CLEAN_OPEN
+                && System.currentTimeMillis() - run.waveObjectiveStartedAtMs <= 20_000L) {
+            run.waveObjectiveFailed = true;
+        }
     }
 
     @EventHandler
@@ -319,6 +376,59 @@ public final class StrongholdSurvivalManager implements Listener {
         }
     }
 
+    @EventHandler
+    public void onChoiceClick(InventoryClickEvent event) {
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), CHOICE_GUI_TITLE)) {
+            return;
+        }
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        event.setCancelled(true);
+        Run run = pendingChoiceByLeader.get(player.getUniqueId());
+        if (run == null || !run.active) {
+            player.closeInventory();
+            return;
+        }
+        if (event.getRawSlot() == CHOICE_RISK_SLOT) {
+            applyPathChoice(run, PathChoice.RISK, player);
+        } else if (event.getRawSlot() == CHOICE_BALANCE_SLOT) {
+            applyPathChoice(run, PathChoice.BALANCED, player);
+        } else {
+            return;
+        }
+        pendingChoiceByLeader.remove(player.getUniqueId());
+        player.closeInventory();
+        beginWave(run, true);
+    }
+
+    @EventHandler
+    public void onChoiceClose(InventoryCloseEvent event) {
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), CHOICE_GUI_TITLE)) {
+            return;
+        }
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        Run run = pendingChoiceByLeader.get(player.getUniqueId());
+        if (run == null || !run.active) {
+            pendingChoiceByLeader.remove(player.getUniqueId());
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!pendingChoiceByLeader.containsKey(player.getUniqueId())) {
+                return;
+            }
+            if (!player.isOnline()) {
+                pendingChoiceByLeader.remove(player.getUniqueId());
+                applyPathChoice(run, PathChoice.BALANCED, null);
+                beginWave(run, true);
+                return;
+            }
+            openWaveChoice(run);
+        }, 2L);
+    }
+
     private void beginWave(Run run, boolean announceBuff) {
         Player player = resolveAnchor(run);
         if (player == null || !player.isOnline()) {
@@ -334,6 +444,10 @@ public final class StrongholdSurvivalManager implements Listener {
             finishRun(run);
             return;
         }
+        run.waveObjective = pickWaveObjective(run);
+        run.waveObjectiveStartedAtMs = System.currentTimeMillis();
+        run.waveObjectiveCounter = 0;
+        run.waveObjectiveFailed = false;
         run.mobIds.clear();
         run.mobsRemaining = spawnWaveMobs(run, player);
         run.waveDeadlineMs = System.currentTimeMillis() + (runWaveSeconds(run) * 1000L);
@@ -367,6 +481,11 @@ public final class StrongholdSurvivalManager implements Listener {
             online.playSound(online.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.2f);
             if (announceBuff && run.lastBuff != null) {
                 ChatMessageUtil.send(online, ChatMessageUtil.MessageType.SUCCESS, run.lastBuff.message);
+            }
+            if (run.waveObjective != null) {
+                ChatMessageUtil.send(online, ChatMessageUtil.MessageType.INFO,
+                        ChatColor.DARK_GRAY + "Objective: " + ChatColor.WHITE + run.waveObjective.displayName
+                                + ChatColor.DARK_GRAY + " (+" + run.waveObjective.scoreBonus + " score)");
             }
             boolean alertEnabled = plugin.getPetManager() != null
                     && plugin.getPetManager().getActiveEffectValue(online.getUniqueId(), PetEffectType.STRONGHOLD_ALERT) > 0.0;
@@ -439,6 +558,8 @@ public final class StrongholdSurvivalManager implements Listener {
                 ? Math.max(2, (wave / 5) + partyScale - 1)
                 : Math.min(36, 3 + wave + (partyScale * 2));
         count = Math.max(1, (int) Math.round(count * (run.mutator != null ? run.mutator.mobScale : 1.0)));
+        count = Math.max(1, (int) Math.round(count * run.nextWaveMobScaleBonus));
+        run.nextWaveMobScaleBonus = 1.0;
         int level = Math.max(1, (int) Math.round((4 + (wave * 2)) * gearScale));
         String forcedMob = bossWave ? pickAvailableMob(mobManager, BOSS_POOL)
                 : eliteWave ? pickAvailableMob(mobManager, ELITE_POOL)
@@ -458,6 +579,7 @@ public final class StrongholdSurvivalManager implements Listener {
             entity.addScoreboardTag(WAVE_TAG);
             entity.addScoreboardTag(WAVE_TAG + ":" + player.getUniqueId());
             mobToOwner.put(entity.getUniqueId(), player.getUniqueId());
+            mobSpawnedAtMs.put(entity.getUniqueId(), System.currentTimeMillis());
             run.mobIds.add(entity.getUniqueId());
             spawned++;
         }
@@ -480,11 +602,16 @@ public final class StrongholdSurvivalManager implements Listener {
                     ChatColor.GOLD + "Wave " + run.wave + " cleared "
                             + ChatColor.GRAY + "• +" + equalShare + " <glyph:experience_orb_icon> XP");
         }
+        applyObjectiveResult(run);
         if (run.wave >= FINAL_WAVE) {
             finishRun(run);
             return;
         }
         run.lastBuff = grantIntermissionBuff(run, run.wave);
+        if (run.wave % 5 == 0) {
+            openWaveChoice(run);
+            return;
+        }
         beginWave(run, true);
     }
 
@@ -613,6 +740,93 @@ public final class StrongholdSurvivalManager implements Listener {
         return players;
     }
 
+    private WaveObjectiveType pickWaveObjective(Run run) {
+        if (run == null) {
+            return WaveObjectiveType.SPEED_CLEAR;
+        }
+        if (isEliteWave(run.wave)) {
+            return WaveObjectiveType.ELITE_RUSH;
+        }
+        return ThreadLocalRandom.current().nextBoolean() ? WaveObjectiveType.SPEED_CLEAR : WaveObjectiveType.CLEAN_OPEN;
+    }
+
+    private void applyObjectiveResult(Run run) {
+        if (run == null || run.waveObjective == null) {
+            return;
+        }
+        boolean success = switch (run.waveObjective) {
+            case SPEED_CLEAR -> (System.currentTimeMillis() - run.waveObjectiveStartedAtMs)
+                    <= (runWaveSeconds(run) * 600L);
+            case CLEAN_OPEN -> !run.waveObjectiveFailed;
+            case ELITE_RUSH -> run.waveObjectiveCounter >= 2;
+        };
+        if (!success) {
+            return;
+        }
+        run.bonusScoreFlat += run.waveObjective.scoreBonus;
+        for (UUID member : run.members) {
+            Player player = Bukkit.getPlayer(member);
+            if (player != null && player.isOnline()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        ChatColor.GRAY + "Objective complete: " + ChatColor.GOLD + run.waveObjective.displayName
+                                + ChatColor.GRAY + " (+" + run.waveObjective.scoreBonus + " score)");
+            }
+        }
+    }
+
+    private void openWaveChoice(Run run) {
+        Player leader = Bukkit.getPlayer(run.playerId);
+        if (leader == null || !leader.isOnline()) {
+            applyPathChoice(run, PathChoice.BALANCED, null);
+            beginWave(run, true);
+            return;
+        }
+        Inventory inv = Bukkit.createInventory(leader, 27, CHOICE_GUI_TITLE);
+        inv.setItem(CHOICE_RISK_SLOT, createPathChoiceItem(PathChoice.RISK));
+        inv.setItem(CHOICE_BALANCE_SLOT, createPathChoiceItem(PathChoice.BALANCED));
+        pendingChoiceByLeader.put(leader.getUniqueId(), run);
+        leader.openInventory(inv);
+        ChatMessageUtil.send(leader, ChatMessageUtil.MessageType.INFO,
+                ChatColor.GRAY + "Choose the next stronghold route for your party.");
+    }
+
+    private ItemStack createPathChoiceItem(PathChoice choice) {
+        Material material = choice == PathChoice.RISK ? Material.NETHER_STAR : Material.SHIELD;
+        ItemStack stack = new ItemStack(material);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GOLD + choice.displayName);
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Next-wave mob scale: " + ChatColor.WHITE + String.format("x%.2f", choice.nextWaveMobScale));
+            lore.add(ChatColor.GRAY + "Score bonus: " + ChatColor.GREEN + "+" + (int) Math.round(choice.scoreBonus * 100) + "%");
+            if (choice.damageMitigation > 0) {
+                lore.add(ChatColor.GRAY + "Damage taken: " + ChatColor.AQUA + "-" + (int) Math.round(choice.damageMitigation * 100) + "%");
+            }
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to select this route", null));
+            meta.setLore(lore);
+            stack.setItemMeta(meta);
+        }
+        return stack;
+    }
+
+    private void applyPathChoice(Run run, PathChoice choice, Player leader) {
+        if (run == null || choice == null) {
+            return;
+        }
+        run.nextWaveMobScaleBonus = choice.nextWaveMobScale;
+        run.pathScoreBonus += choice.scoreBonus;
+        run.damageMitigationBonus = Math.max(run.damageMitigationBonus, choice.damageMitigation);
+        for (UUID member : run.members) {
+            Player player = Bukkit.getPlayer(member);
+            if (player != null && player.isOnline()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        ChatColor.GRAY + "Path chosen: " + ChatColor.GOLD + choice.displayName
+                                + ChatColor.GRAY + (leader != null ? " by " + ChatColor.YELLOW + leader.getName() : ""));
+            }
+        }
+    }
+
     private int stripStrongholdKeys(Player player) {
         int removed = 0;
         ItemStack[] contents = player.getInventory().getContents();
@@ -633,10 +847,11 @@ public final class StrongholdSurvivalManager implements Listener {
         int damageComponent = Math.max(0, 2600 - (int) Math.round(run.damageTaken * 2.5));
         int chestComponent = Math.min(1600, run.chestsOpened * 180);
         int doorComponent = Math.min(1600, run.doorsOpened * 220);
-        int base = Math.max(0, timeComponent + damageComponent + chestComponent + doorComponent);
+        int base = Math.max(0, timeComponent + damageComponent + chestComponent + doorComponent + run.bonusScoreFlat);
         double petBonus = partyEffectBonus(run, PetEffectType.STRONGHOLD_SCORE_BONUS);
         double mutatorMult = run.mutator != null ? run.mutator.scoreMultiplier : 1.0;
-        int adjusted = (int) Math.round(base * (1.0 + petBonus) * mutatorMult);
+        double teamBonus = run.teamplayScoreBonus + run.pathScoreBonus;
+        int adjusted = (int) Math.round(base * (1.0 + petBonus + teamBonus) * mutatorMult);
         return Math.max(0, Math.min(BASE_SCORE_MAX, adjusted));
     }
 
@@ -706,7 +921,8 @@ public final class StrongholdSurvivalManager implements Listener {
 
     private StrongholdMutator rollMutator() {
         StrongholdMutator[] values = StrongholdMutator.values();
-        return values[ThreadLocalRandom.current().nextInt(values.length)];
+        int week = Instant.now().atZone(ZoneOffset.UTC).get(IsoFields.WEEK_OF_WEEK_BASED_YEAR);
+        return values[Math.floorMod(week, values.length)];
     }
 
     private String formatElapsed(long elapsedMs) {
@@ -831,6 +1047,15 @@ public final class StrongholdSurvivalManager implements Listener {
         private double damageTaken = 0.0;
         private int chestsOpened = 0;
         private int doorsOpened = 0;
+        private int bonusScoreFlat = 0;
+        private double teamplayScoreBonus = 0.0;
+        private double pathScoreBonus = 0.0;
+        private double damageMitigationBonus = 0.0;
+        private double nextWaveMobScaleBonus = 1.0;
+        private WaveObjectiveType waveObjective;
+        private long waveObjectiveStartedAtMs = 0L;
+        private int waveObjectiveCounter = 0;
+        private boolean waveObjectiveFailed = false;
         private StrongholdMutator mutator = StrongholdMutator.NONE;
         private final Set<UUID> mobIds = new HashSet<>();
         private BossBar bossBar;
