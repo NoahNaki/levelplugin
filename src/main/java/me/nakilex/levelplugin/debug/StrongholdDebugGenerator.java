@@ -860,6 +860,7 @@ public final class StrongholdDebugGenerator {
                 + treesPlaced + "/" + rocksPlaced + "/" + ruinsPlaced
                 + ", attempts=" + debugCounter.totalAttempts
                 + ", rejected(noPool)=" + debugCounter.noPoolRejects
+                + ", rejected(chunkUnloaded)=" + debugCounter.unloadedChunkRejects
                 + ", rejected(outsideField)=" + debugCounter.outsideFieldRejects
                 + ", rejected(nonTerrainGround)=" + debugCounter.nonTerrainGroundRejects
                 + ", rejected(overlapMain)=" + debugCounter.mainOverlapRejects
@@ -985,6 +986,7 @@ public final class StrongholdDebugGenerator {
         }
         int attempts = 0;
         int outsideFieldRejects = 0;
+        int unloadedChunkRejects = 0;
         int nonTerrainGroundRejects = 0;
         int mainOverlapRejects = 0;
         int detachedOverlapRejects = 0;
@@ -1002,6 +1004,10 @@ public final class StrongholdDebugGenerator {
             int z = sample.getBlockZ();
             if (!isWithinPlacementField(x, z, field)) {
                 outsideFieldRejects++;
+                continue;
+            }
+            if (!isChunkLoadedAt(runtime.world(), x, z)) {
+                unloadedChunkRejects++;
                 continue;
             }
 
@@ -1027,6 +1033,7 @@ public final class StrongholdDebugGenerator {
                     new AssetPlacement(type, template, origin, rotation),
                     attempts,
                     0,
+                    unloadedChunkRejects,
                     outsideFieldRejects,
                     nonTerrainGroundRejects,
                     mainOverlapRejects,
@@ -1038,6 +1045,7 @@ public final class StrongholdDebugGenerator {
                 null,
                 attempts,
                 0,
+                unloadedChunkRejects,
                 outsideFieldRejects,
                 nonTerrainGroundRejects,
                 mainOverlapRejects,
@@ -1648,6 +1656,8 @@ public final class StrongholdDebugGenerator {
         final int[] placedCount = {0};
         final int[] rockPlacedCount = {0};
         final int[] attempts = {0};
+        final int[] unloadedChunkRejects = {0};
+        final int[] nonTerrainRejects = {0};
         taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             int placedThisTick = 0;
             int attemptsThisTick = 0;
@@ -1659,6 +1669,7 @@ public final class StrongholdDebugGenerator {
                 int x = minX + random.nextInt(Math.max(1, (maxX - minX) + 1));
                 int z = minZ + random.nextInt(Math.max(1, (maxZ - minZ) + 1));
                 if (!isChunkLoadedAt(world, x, z)) {
+                    unloadedChunkRejects[0]++;
                     continue;
                 }
                 double edgeDistance = distanceToBounds2D(footprint, x, z);
@@ -1681,6 +1692,7 @@ public final class StrongholdDebugGenerator {
                 }
                 int y = runtime.safeSurfaceY(x, z);
                 if (!runtime.isNaturalTerrainAt(x, y, z)) {
+                    nonTerrainRejects[0]++;
                     continue;
                 }
                 int rotation = randomDetachedAssetRotation(template.type(), random);
@@ -1715,7 +1727,16 @@ public final class StrongholdDebugGenerator {
                 if (player != null && player.isOnline()) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                             "Organic border forest pass complete (" + placedCount[0] + "/" + targetPlacements + ").");
+                    if (unloadedChunkRejects[0] > 0) {
+                        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                                "Border forest skipped " + unloadedChunkRejects[0]
+                                        + " placement attempts due to unloaded chunks.");
+                    }
                 }
+                logDetachedAssetDebug("Border forest debug -> attempts=" + attempts[0]
+                        + ", placed=" + placedCount[0]
+                        + ", rejected(chunkUnloaded)=" + unloadedChunkRejects[0]
+                        + ", rejected(nonTerrain)=" + nonTerrainRejects[0] + ".");
                 if (onComplete != null) {
                     onComplete.run();
                 }
@@ -5532,18 +5553,20 @@ public final class StrongholdDebugGenerator {
     private record AssetPlacementSearchResult(AssetPlacement placement,
                                               int attempts,
                                               int noPoolRejects,
+                                              int unloadedChunkRejects,
                                               int outsideFieldRejects,
                                               int nonTerrainGroundRejects,
                                               int mainOverlapRejects,
                                               int detachedOverlapRejects) {
         private static AssetPlacementSearchResult noPool() {
-            return new AssetPlacementSearchResult(null, 0, 1, 0, 0, 0, 0);
+            return new AssetPlacementSearchResult(null, 0, 1, 0, 0, 0, 0, 0);
         }
     }
 
     private static final class AssetPlacementDebugCounter {
         private int totalAttempts;
         private int noPoolRejects;
+        private int unloadedChunkRejects;
         private int outsideFieldRejects;
         private int nonTerrainGroundRejects;
         private int mainOverlapRejects;
@@ -5555,6 +5578,7 @@ public final class StrongholdDebugGenerator {
             }
             totalAttempts += Math.max(0, result.attempts());
             noPoolRejects += Math.max(0, result.noPoolRejects());
+            unloadedChunkRejects += Math.max(0, result.unloadedChunkRejects());
             outsideFieldRejects += Math.max(0, result.outsideFieldRejects());
             nonTerrainGroundRejects += Math.max(0, result.nonTerrainGroundRejects());
             mainOverlapRejects += Math.max(0, result.mainOverlapRejects());
