@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -273,20 +274,22 @@ public final class StrongholdSurvivalManager implements Listener {
 
     public void stopRun(UUID playerId, boolean silent) {
         Run run = runsByPlayer.get(playerId);
-        if (run == null) {
+        if (!isRunTrackedAndActive(run)) {
             return;
         }
+        run.active = false;
         for (UUID member : run.members) {
             runsByPlayer.remove(member);
         }
         pendingChoiceByLeader.remove(run.playerId);
         runsByWorld.remove(run.worldId);
-        run.active = false;
         if (run.waveTask != null) {
             run.waveTask.cancel();
+            run.waveTask = null;
         }
         if (run.bossBar != null) {
             run.bossBar.removeAll();
+            run.bossBar = null;
         }
         restoreRunBorder(run);
         for (UUID mobId : new HashSet<>(run.mobIds)) {
@@ -416,16 +419,12 @@ public final class StrongholdSurvivalManager implements Listener {
             return;
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!pendingChoiceByLeader.containsKey(player.getUniqueId())) {
+            if (!pendingChoiceByLeader.containsKey(player.getUniqueId()) || !isRunTrackedAndActive(run)) {
                 return;
             }
-            if (!player.isOnline()) {
-                pendingChoiceByLeader.remove(player.getUniqueId());
-                applyPathChoice(run, PathChoice.BALANCED, null);
-                beginWave(run, true);
-                return;
-            }
-            openWaveChoice(run);
+            pendingChoiceByLeader.remove(player.getUniqueId());
+            applyPathChoice(run, PathChoice.BALANCED, player.isOnline() ? player : null);
+            beginWave(run, true);
         }, 2L);
     }
 
@@ -514,7 +513,7 @@ public final class StrongholdSurvivalManager implements Listener {
             stopRun(run.playerId, true);
             return;
         }
-        if (!run.active) {
+        if (!isRunTrackedAndActive(run)) {
             stopRun(run.playerId, true);
             return;
         }
@@ -617,7 +616,8 @@ public final class StrongholdSurvivalManager implements Listener {
 
     private void finishRun(Run run) {
         long elapsedMs = Math.max(1L, System.currentTimeMillis() - run.startedAtMs);
-        int score = calculateScore(run, elapsedMs);
+        ScoreBreakdown scoreBreakdown = calculateScoreBreakdown(run, elapsedMs);
+        int score = scoreBreakdown.finalScore();
         String rank = rankForScore(score);
         String rankToken = rankToken(score);
         Player anchor = resolveAnchor(run);
@@ -645,6 +645,8 @@ public final class StrongholdSurvivalManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     ChatColor.GRAY + "Score " + ChatColor.GOLD + score + ChatColor.GRAY
                             + " • Rank " + rank);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, scoreBreakdown.summaryLine());
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, scoreBreakdown.modifierLine());
             grantStrongholdBattlePassProgress(player, rankToken, elapsedMs, run);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     ChatColor.DARK_GRAY + "Time: " + ChatColor.WHITE + formatElapsed(elapsedMs)
@@ -797,10 +799,11 @@ public final class StrongholdSurvivalManager implements Listener {
         if (meta != null) {
             meta.setDisplayName(ChatColor.GOLD + choice.displayName);
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Next-wave mob scale: " + ChatColor.WHITE + String.format("x%.2f", choice.nextWaveMobScale));
-            lore.add(ChatColor.GRAY + "Score bonus: " + ChatColor.GREEN + "+" + (int) Math.round(choice.scoreBonus * 100) + "%");
+            lore.addAll(TooltipUtil.bulletList(
+                    "Next-wave mob scale: " + ChatColor.WHITE + String.format("x%.2f", choice.nextWaveMobScale),
+                    "Score bonus: " + ChatColor.GREEN + "+" + (int) Math.round(choice.scoreBonus * 100) + "%"));
             if (choice.damageMitigation > 0) {
-                lore.add(ChatColor.GRAY + "Damage taken: " + ChatColor.AQUA + "-" + (int) Math.round(choice.damageMitigation * 100) + "%");
+                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Damage taken: " + ChatColor.AQUA + "-" + (int) Math.round(choice.damageMitigation * 100) + "%"));
             }
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions("to select this route", null));
@@ -843,16 +846,25 @@ public final class StrongholdSurvivalManager implements Listener {
     }
 
     private int calculateScore(Run run, long elapsedMs) {
+        return calculateScoreBreakdown(run, elapsedMs).finalScore();
+    }
+
+    private ScoreBreakdown calculateScoreBreakdown(Run run, long elapsedMs) {
         int timeComponent = Math.max(0, 4200 - (int) (elapsedMs / 1000L) * 9);
         int damageComponent = Math.max(0, 2600 - (int) Math.round(run.damageTaken * 2.5));
         int chestComponent = Math.min(1600, run.chestsOpened * 180);
         int doorComponent = Math.min(1600, run.doorsOpened * 220);
-        int base = Math.max(0, timeComponent + damageComponent + chestComponent + doorComponent + run.bonusScoreFlat);
+        int objectiveComponent = Math.max(0, run.bonusScoreFlat);
+        int base = Math.max(0, timeComponent + damageComponent + chestComponent + doorComponent + objectiveComponent);
         double petBonus = partyEffectBonus(run, PetEffectType.STRONGHOLD_SCORE_BONUS);
         double mutatorMult = run.mutator != null ? run.mutator.scoreMultiplier : 1.0;
-        double teamBonus = run.teamplayScoreBonus + run.pathScoreBonus;
-        int adjusted = (int) Math.round(base * (1.0 + petBonus + teamBonus) * mutatorMult);
-        return Math.max(0, Math.min(BASE_SCORE_MAX, adjusted));
+        double teamBonus = run.teamplayScoreBonus;
+        double pathBonus = run.pathScoreBonus;
+        double additiveBonus = 1.0 + petBonus + teamBonus + pathBonus;
+        int adjusted = (int) Math.round(base * additiveBonus * mutatorMult);
+        int finalScore = Math.max(0, Math.min(BASE_SCORE_MAX, adjusted));
+        return new ScoreBreakdown(timeComponent, damageComponent, chestComponent, doorComponent, objectiveComponent,
+                petBonus, teamBonus, pathBonus, mutatorMult, finalScore);
     }
 
     private double partyEffectBonus(Run run, PetEffectType effectType) {
@@ -982,11 +994,15 @@ public final class StrongholdSurvivalManager implements Listener {
     }
 
     private boolean isStrongholdWorld(World world) {
-        if (world == null || world.getName() == null) {
+        return StrongholdWorldUtil.isStrongholdWorld(world);
+    }
+
+    private boolean isRunTrackedAndActive(Run run) {
+        if (run == null || !run.active) {
             return false;
         }
-        String name = world.getName().toLowerCase(java.util.Locale.ROOT);
-        return name.startsWith("stronghold_debug_") || name.contains("stronghold");
+        Run worldRun = runsByWorld.get(run.worldId);
+        return worldRun == run;
     }
 
     private void initializeRunBorder(Run run, Player player) {
@@ -1032,6 +1048,38 @@ public final class StrongholdSurvivalManager implements Listener {
         border.setSize(run.borderState.size());
         border.setWarningDistance(run.borderState.warningDistance());
         border.setWarningTime(run.borderState.warningTime());
+    }
+
+    private record ScoreBreakdown(int timeComponent,
+                                  int damageComponent,
+                                  int chestComponent,
+                                  int doorComponent,
+                                  int objectiveComponent,
+                                  double petBonus,
+                                  double teamBonus,
+                                  double pathBonus,
+                                  double mutatorMultiplier,
+                                  int finalScore) {
+        private String summaryLine() {
+            return ChatColor.DARK_GRAY + "Breakdown: "
+                    + ChatColor.WHITE + "time " + timeComponent
+                    + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + "damage " + damageComponent
+                    + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + "chests " + chestComponent
+                    + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + "doors " + doorComponent
+                    + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + "objective " + objectiveComponent;
+        }
+
+        private String modifierLine() {
+            return ChatColor.DARK_GRAY + "Modifiers: "
+                    + ChatColor.WHITE + "pet +" + percent(petBonus)
+                    + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + "team +" + percent(teamBonus)
+                    + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + "path +" + percent(pathBonus)
+                    + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + "mutator x" + String.format("%.2f", mutatorMultiplier);
+        }
+
+        private static String percent(double value) {
+            return (int) Math.round(value * 100) + "%";
+        }
     }
 
     private static final class Run {

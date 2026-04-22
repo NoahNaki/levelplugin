@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 public final class StrongholdQueueManager implements Listener, PartyMembershipListener {
     private static final int BASE_GEAR_BAND = 250;
@@ -251,7 +250,7 @@ public final class StrongholdQueueManager implements Listener, PartyMembershipLi
         if (online.isEmpty()) {
             return;
         }
-        Player leader = online.get(ThreadLocalRandom.current().nextInt(online.size()));
+        Player leader = online.getFirst();
         broadcast(memberIds, ChatMessageUtil.MessageType.INFO,
                 ChatColor.GRAY + "Stronghold found! Leader " + ChatColor.GOLD + leader.getName()
                         + ChatColor.GRAY + " is creating a " + mode.displayName() + " run.");
@@ -350,5 +349,18 @@ public final class StrongholdQueueManager implements Listener, PartyMembershipLi
         PARTY_INVALID,
         IN_RUN,
         INVALID
+    }
+
+    public static String describeJoinFailure(QueueJoinResult result) {
+        if (result == null || result == QueueJoinResult.JOINED) {
+            return "Unknown queue status.";
+        }
+        return switch (result) {
+            case ALREADY_QUEUED -> "You are already queued for a Stronghold run.";
+            case PARTY_INVALID -> "Your party does not meet the requirements for this queue.";
+            case IN_RUN -> "Leave your current Stronghold run before queueing.";
+            case INVALID -> "Invalid queue request.";
+            case JOINED -> "Joined queue.";
+        };
     }
 }

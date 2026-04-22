@@ -118,7 +118,7 @@ public final class StrongholdQueueGUI implements Listener {
             StrongholdQueueManager.QueueJoinResult result = queueManager.join(player, mode);
             if (result != StrongholdQueueManager.QueueJoinResult.JOINED) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                        "Could not join queue: " + result.name().toLowerCase().replace('_', ' '));
+                        StrongholdQueueManager.describeJoinFailure(result));
             }
         }
         refresh();
