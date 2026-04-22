@@ -381,6 +381,18 @@ public class LootChestManager {
         return new ChestProgress(opened, total);
     }
 
+    public boolean hasOpenedStrongholdChest(UUID playerId, int chestId, World world) {
+        if (playerId == null || world == null || !isStrongholdWorld(world)) {
+            return false;
+        }
+        Map<String, Set<Integer>> byWorld = openedChestProgressByPlayer.get(playerId);
+        if (byWorld == null) {
+            return false;
+        }
+        Set<Integer> opened = byWorld.get(world.getName().toLowerCase(Locale.ROOT));
+        return opened != null && opened.contains(chestId);
+    }
+
     private int countChestsInWorld(World world) {
         if (world == null) {
             return 0;

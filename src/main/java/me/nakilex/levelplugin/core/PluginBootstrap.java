@@ -134,6 +134,8 @@ public class PluginBootstrap {
     private ArenaTeamMatchManager arenaTeamMatchManager;
     private ArenaCombatTracker arenaCombatTracker;
     private ArenaQueueGUI arenaQueueGUI;
+    private me.nakilex.levelplugin.stronghold.StrongholdQueueManager strongholdQueueManager;
+    private me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI strongholdQueueGUI;
     private ArenaInstanceManager arenaInstanceManager;
     private me.nakilex.levelplugin.guild.GuildManager guildManager;
     private me.nakilex.levelplugin.guild.GuildGUI guildGUI;
@@ -413,6 +415,10 @@ public class PluginBootstrap {
         arenaQueueManager.setMatchHandler(ArenaMode.ONE_VS_ONE, arenaMatchManager::startMatch);
         arenaQueueManager.setMatchHandler(ArenaMode.TWO_VS_TWO, arenaTeamMatchManager::startMatch);
         arenaQueueManager.setQueueUpdateListener(arenaQueueGUI::refresh);
+        strongholdQueueManager = new me.nakilex.levelplugin.stronghold.StrongholdQueueManager(plugin, partyManager);
+        strongholdQueueGUI = new me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI(plugin, strongholdQueueManager);
+        strongholdQueueManager.setQueueUpdateListener(strongholdQueueGUI::refresh);
+        Bukkit.getScheduler().runTaskTimer(plugin, strongholdQueueManager::tick, 40L, 20L);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
         partyGlowManager = new PartyGlowManager(plugin, partyManager, scoreboardManager::getBoard);
@@ -764,6 +770,7 @@ public class PluginBootstrap {
         if (economyManager != null) economyManager.saveBalances();
         if (dealMaker != null) dealMaker.closeAllTrades();
         if (arenaQueueManager != null) arenaQueueManager.clear();
+        if (strongholdQueueManager != null) strongholdQueueManager.clear();
         if (arenaInstanceManager != null) arenaInstanceManager.cleanup();
         if (itemConfig != null) itemConfig.saveItems();
         if (guildManager != null) guildManager.save();
@@ -852,6 +859,8 @@ public class PluginBootstrap {
     public ArenaMatchManager getArenaMatchManager() { return arenaMatchManager; }
     public ArenaTeamMatchManager getArenaTeamMatchManager() { return arenaTeamMatchManager; }
     public ArenaQueueGUI getArenaQueueGUI() { return arenaQueueGUI; }
+    public me.nakilex.levelplugin.stronghold.StrongholdQueueManager getStrongholdQueueManager() { return strongholdQueueManager; }
+    public me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI getStrongholdQueueGUI() { return strongholdQueueGUI; }
     public ArenaInstanceManager getArenaInstanceManager() { return arenaInstanceManager; }
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return guildManager; }
     public me.nakilex.levelplugin.guild.GuildGUI getGuildGUI() { return guildGUI; }

@@ -96,30 +96,48 @@ public final class StrongholdSurvivalManager implements Listener {
         if (player == null) {
             return;
         }
-        World world = player.getWorld();
+        startRun(List.of(player),  Math.max(50, me.nakilex.levelplugin.items.utils.ItemUtil.calculateTotalGearScore(player)));
+    }
+
+    public void startRun(List<Player> party, int averageGearScore) {
+        if (party == null || party.isEmpty()) {
+            return;
+        }
+        Player leader = party.getFirst();
+        World world = leader.getWorld();
         if (!isStrongholdWorld(world)) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+            ChatMessageUtil.send(leader, ChatMessageUtil.MessageType.WARNING,
                     "Stronghold survival can only start inside a stronghold world.");
             return;
         }
-        stopRun(player.getUniqueId(), true);
-        Run run = new Run(player.getUniqueId(), world.getUID());
-        runsByPlayer.put(player.getUniqueId(), run);
+        for (Player member : party) {
+            stopRun(member.getUniqueId(), true);
+        }
+        List<UUID> memberIds = party.stream().map(Player::getUniqueId).toList();
+        Run run = new Run(leader.getUniqueId(), world.getUID(), memberIds, Math.max(50, averageGearScore));
+        for (UUID memberId : memberIds) {
+            runsByPlayer.put(memberId, run);
+        }
         runsByWorld.put(world.getUID(), run);
-        initializeRunBorder(run, player);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                ChatColor.GRAY + "Objective: survive all " + ChatColor.GOLD + FINAL_WAVE
-                        + ChatColor.GRAY + " waves and defeat the final boss.");
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                ChatColor.GRAY + "The stronghold perimeter will " + ChatColor.RED + "collapse"
-                        + ChatColor.GRAY + " as waves progress.");
+        initializeRunBorder(run, leader);
+        for (Player member : party) {
+            ChatMessageUtil.send(member, ChatMessageUtil.MessageType.INFO,
+                    ChatColor.GRAY + "Objective: survive all " + ChatColor.GOLD + FINAL_WAVE
+                            + ChatColor.GRAY + " waves and defeat the final boss.");
+            ChatMessageUtil.send(member, ChatMessageUtil.MessageType.INFO,
+                    ChatColor.GRAY + "Difficulty scales with party size (" + ChatColor.GOLD + run.members.size()
+                            + ChatColor.GRAY + ") and average gear score (" + ChatColor.GOLD + run.averageGearScore + ChatColor.GRAY + ").");
+        }
         beginWave(run, false);
     }
 
     public void stopRun(UUID playerId, boolean silent) {
-        Run run = runsByPlayer.remove(playerId);
+        Run run = runsByPlayer.get(playerId);
         if (run == null) {
             return;
+        }
+        for (UUID member : run.members) {
+            runsByPlayer.remove(member);
         }
         runsByWorld.remove(run.worldId);
         run.active = false;
@@ -138,10 +156,13 @@ public final class StrongholdSurvivalManager implements Listener {
             }
         }
         run.mobIds.clear();
-        Player player = Bukkit.getPlayer(playerId);
-        if (!silent && player != null && player.isOnline()) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Stronghold survival ended.");
+        if (!silent) {
+            for (UUID member : run.members) {
+                Player player = Bukkit.getPlayer(member);
+                if (player != null && player.isOnline()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "Stronghold survival ended.");
+                }
+            }
         }
     }
 
@@ -170,7 +191,7 @@ public final class StrongholdSurvivalManager implements Listener {
     }
 
     private void beginWave(Run run, boolean announceBuff) {
-        Player player = Bukkit.getPlayer(run.playerId);
+        Player player = resolveAnchor(run);
         if (player == null || !player.isOnline()) {
             stopRun(run.playerId, true);
             return;
@@ -191,7 +212,13 @@ public final class StrongholdSurvivalManager implements Listener {
         if (run.bossBar == null) {
             run.bossBar = Bukkit.createBossBar("", BarColor.BLUE, BarStyle.SOLID);
         }
-        run.bossBar.addPlayer(player);
+        run.bossBar.removeAll();
+        for (UUID member : run.members) {
+            Player online = Bukkit.getPlayer(member);
+            if (online != null && online.isOnline()) {
+                run.bossBar.addPlayer(online);
+            }
+        }
         if (run.wave >= FINAL_WAVE) {
             run.bossBar.setColor(BarColor.RED);
         } else if (isEliteWave(run.wave)) {
@@ -200,26 +227,35 @@ public final class StrongholdSurvivalManager implements Listener {
             run.bossBar.setColor(BarColor.BLUE);
         }
         updateBossBar(run);
-        player.sendTitle(
-                ChatColor.GOLD + "" + ChatColor.BOLD + "Wave " + run.wave,
-                ChatColor.GRAY + (isEliteWave(run.wave) ? "Elite encounter" : "Defeat all enemies"),
-                8, 30, 10
-        );
-        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.2f);
-        if (announceBuff && run.lastBuff != null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, run.lastBuff.message);
+        for (UUID member : run.members) {
+            Player online = Bukkit.getPlayer(member);
+            if (online == null || !online.isOnline()) continue;
+            online.sendTitle(
+                    ChatColor.GOLD + "" + ChatColor.BOLD + "Wave " + run.wave,
+                    ChatColor.GRAY + (isEliteWave(run.wave) ? "Elite encounter" : "Defeat all enemies"),
+                    8, 30, 10
+            );
+            online.playSound(online.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.2f);
+            if (announceBuff && run.lastBuff != null) {
+                ChatMessageUtil.send(online, ChatMessageUtil.MessageType.SUCCESS, run.lastBuff.message);
+            }
         }
         if (run.waveTask != null) {
             run.waveTask.cancel();
         }
         run.waveTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> tickWave(run), 20L, 20L);
         if (plugin.getScoreboardManager() != null) {
-            plugin.getScoreboardManager().updateBoard(player);
+            for (UUID member : run.members) {
+                Player online = Bukkit.getPlayer(member);
+                if (online != null && online.isOnline()) {
+                    plugin.getScoreboardManager().updateBoard(online);
+                }
+            }
         }
     }
 
     private void tickWave(Run run) {
-        Player player = Bukkit.getPlayer(run.playerId);
+        Player player = resolveAnchor(run);
         if (player == null || !player.isOnline()) {
             stopRun(run.playerId, true);
             return;
@@ -229,9 +265,13 @@ public final class StrongholdSurvivalManager implements Listener {
             return;
         }
         if (System.currentTimeMillis() >= run.waveDeadlineMs) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Wave timer expired. The stronghold overwhelms you.");
-            player.sendTitle(ChatColor.RED + "Run Failed", ChatColor.GRAY + "Wave " + run.wave, 8, 40, 10);
+            for (UUID member : run.members) {
+                Player online = Bukkit.getPlayer(member);
+                if (online == null || !online.isOnline()) continue;
+                ChatMessageUtil.send(online, ChatMessageUtil.MessageType.ERROR,
+                        "Wave timer expired. The stronghold overwhelms you.");
+                online.sendTitle(ChatColor.RED + "Run Failed", ChatColor.GRAY + "Wave " + run.wave, 8, 40, 10);
+            }
             stopRun(run.playerId, true);
             return;
         }
@@ -241,7 +281,12 @@ public final class StrongholdSurvivalManager implements Listener {
         }
         updateBossBar(run);
         if (plugin.getScoreboardManager() != null) {
-            plugin.getScoreboardManager().updateBoard(player);
+            for (UUID member : run.members) {
+                Player online = Bukkit.getPlayer(member);
+                if (online != null && online.isOnline()) {
+                    plugin.getScoreboardManager().updateBoard(online);
+                }
+            }
         }
     }
 
@@ -253,8 +298,12 @@ public final class StrongholdSurvivalManager implements Listener {
         int wave = run.wave;
         boolean eliteWave = isEliteWave(wave);
         boolean bossWave = wave >= FINAL_WAVE;
-        int count = bossWave ? 1 : eliteWave ? Math.max(2, wave / 5) : Math.min(20, 4 + wave);
-        int level = Math.max(1, 4 + (wave * 2));
+        int partyScale = Math.max(1, run.members.size());
+        double gearScale = Math.max(0.8, run.averageGearScore / 900.0);
+        int count = bossWave ? Math.max(1, partyScale / 2) : eliteWave
+                ? Math.max(2, (wave / 5) + partyScale - 1)
+                : Math.min(36, 3 + wave + (partyScale * 2));
+        int level = Math.max(1, (int) Math.round((4 + (wave * 2)) * gearScale));
         String forcedMob = bossWave ? pickAvailableMob(mobManager, BOSS_POOL)
                 : eliteWave ? pickAvailableMob(mobManager, ELITE_POOL)
                 : pickAvailableMob(mobManager, poolForWave(wave));
@@ -264,7 +313,7 @@ public final class StrongholdSurvivalManager implements Listener {
             if (mobId == null) {
                 continue;
             }
-            Location spawn = randomSpawnAround(player.getLocation(), 8.0, 17.0);
+            Location spawn = randomSpawnAround(pickSpawnAnchor(run, player), 8.0, 17.0);
             List<LivingEntity> entities = mobManager.spawn(mobId, spawn, 1, level);
             if (entities.isEmpty()) {
                 continue;
@@ -280,27 +329,33 @@ public final class StrongholdSurvivalManager implements Listener {
     }
 
     private void completeWave(Run run) {
-        Player player = Bukkit.getPlayer(run.playerId);
+        Player player = resolveAnchor(run);
         if (player == null || !player.isOnline()) {
             stopRun(run.playerId, true);
             return;
         }
-        int xpReward = 60 + (run.wave * 18);
-        plugin.getLevelManager().addXP(player, xpReward);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
-                ChatColor.GOLD + "Wave " + run.wave + " cleared "
-                        + ChatColor.GRAY + "• +" + xpReward + " <glyph:experience_orb_icon> XP");
+        int xpReward = (60 + (run.wave * 18)) * Math.max(1, run.members.size());
+        int equalShare = Math.max(1, xpReward / Math.max(1, run.members.size()));
+        for (UUID member : run.members) {
+            Player online = Bukkit.getPlayer(member);
+            if (online == null || !online.isOnline()) continue;
+            plugin.getLevelManager().addXP(online, equalShare);
+            ChatMessageUtil.send(online, ChatMessageUtil.MessageType.REWARD,
+                    ChatColor.GOLD + "Wave " + run.wave + " cleared "
+                            + ChatColor.GRAY + "• +" + equalShare + " <glyph:experience_orb_icon> XP");
+        }
         if (run.wave >= FINAL_WAVE) {
             finishRun(run);
             return;
         }
-        run.lastBuff = grantIntermissionBuff(player, run.wave);
+        run.lastBuff = grantIntermissionBuff(run, run.wave);
         beginWave(run, true);
     }
 
     private void finishRun(Run run) {
-        Player player = Bukkit.getPlayer(run.playerId);
-        if (player != null && player.isOnline()) {
+        for (UUID member : run.members) {
+            Player player = Bukkit.getPlayer(member);
+            if (player == null || !player.isOnline()) continue;
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                     ChatColor.GREEN + "" + ChatColor.BOLD + "STRONGHOLD CLEARED"
                             + ChatColor.GRAY + " • You survived all " + ChatColor.GOLD + FINAL_WAVE + ChatColor.GRAY + " waves.");
@@ -325,35 +380,72 @@ public final class StrongholdSurvivalManager implements Listener {
                 + ChatColor.YELLOW + (millisLeft / 1000L) + "s");
     }
 
-    private BuffResult grantIntermissionBuff(Player player, int wave) {
+    private BuffResult grantIntermissionBuff(Run run, int wave) {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         int roll = random.nextInt(4);
         return switch (roll) {
             case 0 -> {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 20 * 30, 0, true, false, true));
+                for (Player player : onlineMembers(run)) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 20 * 30, 0, true, false, true));
+                }
                 yield new BuffResult("Battle Boon", ChatColor.GRAY + "Boon: " + ChatColor.RED + "Fury "
                         + ChatColor.GRAY + "for 30s.");
             }
             case 1 -> {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 20 * 30, 0, true, false, true));
+                for (Player player : onlineMembers(run)) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 20 * 30, 0, true, false, true));
+                }
                 yield new BuffResult("Guard Boon", ChatColor.GRAY + "Boon: " + ChatColor.BLUE + "Bulwark "
                         + ChatColor.GRAY + "for 30s.");
             }
             case 2 -> {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 30, 0, true, false, true));
+                for (Player player : onlineMembers(run)) {
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 20 * 30, 0, true, false, true));
+                }
                 yield new BuffResult("Mobility Boon", ChatColor.GRAY + "Boon: " + ChatColor.AQUA + "Haste "
                         + ChatColor.GRAY + "for 30s.");
             }
             default -> {
-                StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
                 int restored = Math.max(20, 30 + (wave * 2));
-                stats.setCurrentMana(Math.min(stats.getMaxMana(), stats.getCurrentMana() + restored));
-                double healed = Math.min(player.getMaxHealth(), player.getHealth() + (player.getMaxHealth() * 0.20));
-                player.setHealth(healed);
+                for (Player player : onlineMembers(run)) {
+                    StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+                    stats.setCurrentMana(Math.min(stats.getMaxMana(), stats.getCurrentMana() + restored));
+                    double healed = Math.min(player.getMaxHealth(), player.getHealth() + (player.getMaxHealth() * 0.20));
+                    player.setHealth(healed);
+                }
                 yield new BuffResult("Recovery Boon", ChatColor.GRAY + "Boon: " + ChatColor.GREEN + "Recovered "
                         + ChatColor.WHITE + restored + ChatColor.GRAY + " mana and health.");
             }
         };
+    }
+
+    private Player resolveAnchor(Run run) {
+        for (UUID member : run.members) {
+            Player online = Bukkit.getPlayer(member);
+            if (online != null && online.isOnline()) {
+                return online;
+            }
+        }
+        return null;
+    }
+
+    private Location pickSpawnAnchor(Run run, Player fallback) {
+        List<Player> online = onlineMembers(run);
+        if (online.isEmpty()) {
+            return fallback.getLocation();
+        }
+        return online.get(ThreadLocalRandom.current().nextInt(online.size())).getLocation();
+    }
+
+    private List<Player> onlineMembers(Run run) {
+        List<Player> players = new ArrayList<>();
+        for (UUID member : run.members) {
+            Player online = Bukkit.getPlayer(member);
+            if (online != null && online.isOnline()) {
+                players.add(online);
+            }
+        }
+        return players;
     }
 
     private boolean isEliteWave(int wave) {
@@ -456,6 +548,8 @@ public final class StrongholdSurvivalManager implements Listener {
     private static final class Run {
         private final UUID playerId;
         private final UUID worldId;
+        private final List<UUID> members;
+        private final int averageGearScore;
         private boolean active = true;
         private int wave = 0;
         private int mobsRemaining = 0;
@@ -466,9 +560,11 @@ public final class StrongholdSurvivalManager implements Listener {
         private BuffResult lastBuff;
         private BorderState borderState;
 
-        private Run(UUID playerId, UUID worldId) {
+        private Run(UUID playerId, UUID worldId, List<UUID> members, int averageGearScore) {
             this.playerId = playerId;
             this.worldId = worldId;
+            this.members = new ArrayList<>(members);
+            this.averageGearScore = averageGearScore;
         }
     }
 

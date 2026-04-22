@@ -119,6 +119,7 @@ import me.nakilex.levelplugin.chat.RollCommand;
 import me.nakilex.levelplugin.server.ConnectCommand;
 import me.nakilex.levelplugin.server.HubCommand;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
+import me.nakilex.levelplugin.stronghold.commands.StrongholdCommand;
 import org.bukkit.command.PluginCommand;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 
@@ -290,6 +291,9 @@ public class CommandRegistry {
         ArenaCommand arenaCmd = new ArenaCommand(plugin.getArenaQueueGUI(), plugin.getArenaQueueManager());
         plugin.getCommand("arena").setExecutor(arenaCmd);
         plugin.getCommand("arena").setTabCompleter(arenaCmd);
+        StrongholdCommand strongholdCmd = new StrongholdCommand(plugin.getStrongholdQueueGUI(), plugin.getStrongholdQueueManager());
+        plugin.getCommand("stronghold").setExecutor(strongholdCmd);
+        plugin.getCommand("stronghold").setTabCompleter(strongholdCmd);
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
         MerchantCommand merchantCommand = new MerchantCommand(plugin);
         plugin.getCommand("merchant").setExecutor(merchantCommand);

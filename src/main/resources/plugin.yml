@@ -164,6 +164,9 @@ commands:
   arena:
     description: Manage the arena queue
     usage: /arena [join|leave|open]
+  stronghold:
+    description: Open the stronghold queue menu
+    usage: /stronghold [leave]
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage

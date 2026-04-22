@@ -89,6 +89,13 @@ public class LootChestListener implements Listener {
         if (chestId == null) {
             return false;
         }
+        if (loc.getWorld() != null
+                && lootChestManager.isStrongholdWorld(loc.getWorld())
+                && lootChestManager.hasOpenedStrongholdChest(player.getUniqueId(), chestId, loc.getWorld())) {
+            ChatMessageUtil.send(player, MessageType.WARNING,
+                    ChatColor.GRAY + "You already claimed this stronghold chest in this run.");
+            return true;
+        }
         Main.getInstance().getDialogManager().recordDialogCooldown(player);
 
         // Build the custom loot GUI.

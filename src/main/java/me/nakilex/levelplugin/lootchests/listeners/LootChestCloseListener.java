@@ -61,6 +61,9 @@ public class LootChestCloseListener implements Listener {
                         " was closed. Running close animation, then removing crate & starting cooldown."
         );
         lootChestManager.playClosingAnimation(chestId);
+        if (lootChestManager.isStrongholdWorld(loc.getWorld())) {
+            return;
+        }
         lootChestManager.getPlugin().getServer().getScheduler().runTaskLater(
                 lootChestManager.getPlugin(),
                 () -> {
