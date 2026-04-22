@@ -48,6 +48,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.Random;
 import java.util.Set;
 import java.util.IdentityHashMap;
@@ -127,50 +128,10 @@ public final class StrongholdDebugGenerator {
     private static final int FLAG_VERTICAL_OFFSET_BLOCKS = -1;
     private static final String FLAG_TEMPLATE_ID = "flag_1";
 
-    private static final List<TemplateSpec> TEMPLATE_SPECS = List.of(
-            new TemplateSpec("straight_1", new TemplateBounds(219, -39, -6337, 249, -61, -6347), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_2", new TemplateBounds(219, -39, -6347, 249, -61, -6357), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_3", new TemplateBounds(219, -39, -6357, 249, -61, -6367), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_4", new TemplateBounds(219, -39, -6367, 249, -61, -6377), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_5", new TemplateBounds(219, -39, -6377, 249, -61, -6387), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_6", new TemplateBounds(219, -39, -6387, 249, -61, -6397), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_7", new TemplateBounds(219, -39, -6397, 249, -61, -6407), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_8", new TemplateBounds(219, -39, -6407, 249, -61, -6419), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_9", new TemplateBounds(219, -39, -6419, 249, -61, -6429), PieceCategory.WALL, 2),
-            new TemplateSpec("straight_10", new TemplateBounds(219, -39, -6429, 249, -61, -6439), PieceCategory.WALL, 2),
-            new TemplateSpec("corner_1", new TemplateBounds(249, -61, -6439, 239, -40, -6449), PieceCategory.WALL, 1),
-            new TemplateSpec("corner_2", new TemplateBounds(239, -61, -6439, 229, -40, -6449), PieceCategory.WALL, 1),
-            new TemplateSpec("deadend_1", new TemplateBounds(249, -61, -6337, 287, -39, -6347), PieceCategory.DEAD_END, 1),
-            new TemplateSpec("deadend_2", new TemplateBounds(249, -61, -6347, 287, -39, -6363), PieceCategory.DEAD_END, 1),
-            new TemplateSpec("corner_3", new TemplateBounds(287, -61, -6337, 310, -39, -6361), PieceCategory.WALL, 1),
-            new TemplateSpec("corner_4", new TemplateBounds(287, -61, -6361, 310, -39, -6384), PieceCategory.WALL, 1),
-            new TemplateSpec("corner_5", new TemplateBounds(287, -61, -6384, 310, -39, -6408), PieceCategory.WALL, 1),
-            new TemplateSpec("t_section", new TemplateBounds(310, -61, -6337, 346, -23, -6364), PieceCategory.JUNCTION_LARGE, 3),
-            new TemplateSpec("tower_1", new TemplateBounds(310, -13, -6364, 334, -61, -6388), PieceCategory.JUNCTION_LARGE, 1),
-            new TemplateSpec("smallfort", new TemplateBounds(346, -61, -6337, 378, -30, -6395), PieceCategory.WALL, 1),
-            new TemplateSpec("smallfortpassage", new TemplateBounds(378, -61, -6401, 437, -28, -6434), PieceCategory.WALL, 1),
-            new TemplateSpec("gate_1", new TemplateBounds(378, -61, -6337, 450, -11, -6369), PieceCategory.JUNCTION_LARGE, 1),
-            new TemplateSpec("gate_2", new TemplateBounds(378, -61, -6369, 450, -11, -6401), PieceCategory.JUNCTION_LARGE, 1),
-            new TemplateSpec("fort", new TemplateBounds(450, -61, -6337, 520, -29, -6407), PieceCategory.WALL, 1),
-            new TemplateSpec("fortpassage", new TemplateBounds(450, -61, -6408, 520, -29, -6478), PieceCategory.WALL, 1),
-            new TemplateSpec("church", new TemplateBounds(520, -61, -6478, 450, 37, -6548), PieceCategory.JUNCTION_LARGE, 1)
-    );
-
-    private static final TemplateSpec CONNECTOR_SPEC =
-            new TemplateSpec("connector_1", new TemplateBounds(412, -61, -5711, 402, -38, -5701), PieceCategory.CONNECTOR, 1);
-    private static final List<DetachedAssetTemplateSpec> DETACHED_ASSET_TEMPLATE_SPECS = List.of(
-            new DetachedAssetTemplateSpec(FLAG_TEMPLATE_ID, AssetType.FLAG, new TemplateBounds(184, -61, -6341, 188, -41, -6359)),
-            new DetachedAssetTemplateSpec("tree_1", AssetType.TREE, new TemplateBounds(210, -61, -6337, 200, -38, -6347)),
-            new DetachedAssetTemplateSpec("tree_2", AssetType.TREE, new TemplateBounds(210, -61, -6347, 195, -23, -6362)),
-            new DetachedAssetTemplateSpec("tree_3", AssetType.TREE, new TemplateBounds(210, -61, -6362, 191, -4, -6383)),
-            new DetachedAssetTemplateSpec("rock_large_1", AssetType.ROCK, new TemplateBounds(60, -34, -6342, 112, -61, -6396)),
-            new DetachedAssetTemplateSpec("rock_large_2", AssetType.ROCK, new TemplateBounds(112, -61, -6396, 60, -34, -6461)),
-            new DetachedAssetTemplateSpec("rock_large_3", AssetType.ROCK, new TemplateBounds(112, -34, -6461, 181, -61, -6408)),
-            new DetachedAssetTemplateSpec("rock_large_4", AssetType.ROCK, new TemplateBounds(181, -61, -6408, 112, -34, -6342)),
-            new DetachedAssetTemplateSpec("ruin_1", AssetType.RUIN, new TemplateBounds(590, -61, -6426, 624, -30, -6388))
-    );
-
-    private static final String SOURCE_WORLD = "flatland";
+    private static final List<TemplateSpec> TEMPLATE_SPECS = buildTemplateSpecs();
+    private static final TemplateSpec CONNECTOR_SPEC = buildConnectorSpec();
+    private static final List<DetachedAssetTemplateSpec> DETACHED_ASSET_TEMPLATE_SPECS = buildDetachedAssetTemplateSpecs();
+    private static final String SOURCE_WORLD = StrongholdTemplateData.SOURCE_WORLD;
     private static final String GENERATED_WORLD_PREFIX = "stronghold_debug_";
     private static final String STRONGHOLD_DOOR_TAG = "stronghold_door_hologram";
     private static final double DOOR_HOLOGRAM_ACTIVATION_RANGE_SQUARED = 14 * 14;
@@ -273,6 +234,67 @@ public final class StrongholdDebugGenerator {
     );
 
     private StrongholdDebugGenerator() {
+    }
+
+    private static List<TemplateSpec> buildTemplateSpecs() {
+        List<TemplateSpec> out = new ArrayList<>();
+        for (StrongholdTemplateData.TemplateEntry entry : StrongholdTemplateData.templates()) {
+            out.add(new TemplateSpec(
+                    entry.id(),
+                    toTemplateBounds(entry.bounds()),
+                    parsePieceCategory(entry.category()),
+                    entry.weight()
+            ));
+        }
+        return List.copyOf(out);
+    }
+
+    private static TemplateSpec buildConnectorSpec() {
+        StrongholdTemplateData.TemplateEntry entry = StrongholdTemplateData.connector();
+        return new TemplateSpec(
+                entry.id(),
+                toTemplateBounds(entry.bounds()),
+                parsePieceCategory(entry.category()),
+                entry.weight()
+        );
+    }
+
+    private static List<DetachedAssetTemplateSpec> buildDetachedAssetTemplateSpecs() {
+        List<DetachedAssetTemplateSpec> out = new ArrayList<>();
+        for (StrongholdTemplateData.DetachedAssetEntry entry : StrongholdTemplateData.detachedAssets()) {
+            out.add(new DetachedAssetTemplateSpec(
+                    entry.id(),
+                    parseAssetType(entry.assetType()),
+                    toTemplateBounds(entry.bounds())
+            ));
+        }
+        return List.copyOf(out);
+    }
+
+    private static TemplateBounds toTemplateBounds(StrongholdTemplateData.Bounds bounds) {
+        return new TemplateBounds(bounds.x1(), bounds.y1(), bounds.z1(), bounds.x2(), bounds.y2(), bounds.z2());
+    }
+
+    private static PieceCategory parsePieceCategory(String token) {
+        if (token == null || token.isBlank()) {
+            return PieceCategory.WALL;
+        }
+        try {
+            return PieceCategory.valueOf(token.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return PieceCategory.WALL;
+        }
+    }
+
+    private static AssetType parseAssetType(String token) {
+        if (token == null || token.isBlank()) {
+            return AssetType.TREE;
+        }
+        try {
+            return AssetType.valueOf(token.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return AssetType.TREE;
+        }
     }
 
     public static double getMaxOverlapPercent() {
