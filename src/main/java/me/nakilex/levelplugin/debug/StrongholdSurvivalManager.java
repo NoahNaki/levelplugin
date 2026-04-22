@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.debug;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.mob.custom.CustomMobManager;
+import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
@@ -61,6 +62,7 @@ public final class StrongholdSurvivalManager implements Listener {
     private static final double BORDER_MIN_SIZE = 42.0;
     private static final double BORDER_SHRINK_PER_WAVE = 5.5;
     private static final int BORDER_WARNING_DISTANCE = 12;
+    private static final int BASE_SCORE_MAX = 10000;
 
     private static final List<String> EARLY_POOL = List.of(
             "rpg_rat", "wild_rooster", "forest_slime", "moss_zombie", "goblin_warrior", "goblin_archer"
@@ -77,6 +79,25 @@ public final class StrongholdSurvivalManager implements Listener {
     private static final List<String> BOSS_POOL = List.of(
             "astral_devourer", "void_reaver", "slime_king"
     );
+
+    private enum StrongholdMutator {
+        NONE("Calm Frontier", 1.0, 0, 1.0),
+        SHADOW_SIEGE("Shadow Siege", 1.2, -6, 1.15),
+        IRON_GARRISON("Iron Garrison", 1.35, -10, 1.28),
+        QUICKENED_RITUAL("Quickened Ritual", 1.1, -14, 1.2);
+
+        private final String displayName;
+        private final double mobScale;
+        private final int waveTimeOffset;
+        private final double scoreMultiplier;
+
+        StrongholdMutator(String displayName, double mobScale, int waveTimeOffset, double scoreMultiplier) {
+            this.displayName = displayName;
+            this.mobScale = mobScale;
+            this.waveTimeOffset = waveTimeOffset;
+            this.scoreMultiplier = scoreMultiplier;
+        }
+    }
 
     public record StageStatus(int wave, int mobsRemaining, int secondsLeft) {
     }
@@ -186,6 +207,7 @@ public final class StrongholdSurvivalManager implements Listener {
         }
         List<UUID> memberIds = party.stream().map(Player::getUniqueId).toList();
         Run run = new Run(leader.getUniqueId(), world.getUID(), memberIds, Math.max(50, averageGearScore));
+        run.mutator = rollMutator();
         for (UUID memberId : memberIds) {
             runsByPlayer.put(memberId, run);
         }
@@ -198,6 +220,9 @@ public final class StrongholdSurvivalManager implements Listener {
             ChatMessageUtil.send(member, ChatMessageUtil.MessageType.INFO,
                     ChatColor.GRAY + "Difficulty scales with party size (" + ChatColor.GOLD + run.members.size()
                             + ChatColor.GRAY + ") and average gear score (" + ChatColor.GOLD + run.averageGearScore + ChatColor.GRAY + ").");
+            ChatMessageUtil.send(member, ChatMessageUtil.MessageType.INFO,
+                    ChatColor.GRAY + "Mutator: " + ChatColor.LIGHT_PURPLE + run.mutator.displayName
+                            + ChatColor.GRAY + " (score x" + String.format("%.2f", run.mutator.scoreMultiplier) + ").");
         }
         beginWave(run, false);
     }
@@ -250,7 +275,8 @@ public final class StrongholdSurvivalManager implements Listener {
         }
         run.mobIds.remove(mobId);
         run.mobsRemaining = Math.max(0, run.mobsRemaining - 1);
-        if (ThreadLocalRandom.current().nextDouble() <= 0.05D) {
+        double keyChance = 0.05D + partyEffectBonus(run, PetEffectType.STRONGHOLD_KEY_LUCK);
+        if (ThreadLocalRandom.current().nextDouble() <= Math.min(0.30D, keyChance)) {
             event.getDrops().add(createStrongholdDoorKey());
         }
         updateBossBar(run);
@@ -310,7 +336,7 @@ public final class StrongholdSurvivalManager implements Listener {
         }
         run.mobIds.clear();
         run.mobsRemaining = spawnWaveMobs(run, player);
-        run.waveDeadlineMs = System.currentTimeMillis() + (BASE_WAVE_SECONDS * 1000L);
+        run.waveDeadlineMs = System.currentTimeMillis() + (runWaveSeconds(run) * 1000L);
         applyWaveBorder(run);
         if (run.bossBar == null) {
             run.bossBar = Bukkit.createBossBar("", BarColor.BLUE, BarStyle.SOLID);
@@ -341,6 +367,12 @@ public final class StrongholdSurvivalManager implements Listener {
             online.playSound(online.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.9f, 1.2f);
             if (announceBuff && run.lastBuff != null) {
                 ChatMessageUtil.send(online, ChatMessageUtil.MessageType.SUCCESS, run.lastBuff.message);
+            }
+            boolean alertEnabled = plugin.getPetManager() != null
+                    && plugin.getPetManager().getActiveEffectValue(online.getUniqueId(), PetEffectType.STRONGHOLD_ALERT) > 0.0;
+            if (alertEnabled && (isEliteWave(run.wave) || run.wave >= FINAL_WAVE)) {
+                ChatMessageUtil.send(online, ChatMessageUtil.MessageType.WARNING,
+                        ChatColor.GRAY + "Warden Pup senses danger. " + ChatColor.RED + "Brace for a deadly wave.");
             }
         }
         if (run.waveTask != null) {
@@ -406,6 +438,7 @@ public final class StrongholdSurvivalManager implements Listener {
         int count = bossWave ? Math.max(1, partyScale / 2) : eliteWave
                 ? Math.max(2, (wave / 5) + partyScale - 1)
                 : Math.min(36, 3 + wave + (partyScale * 2));
+        count = Math.max(1, (int) Math.round(count * (run.mutator != null ? run.mutator.mobScale : 1.0)));
         int level = Math.max(1, (int) Math.round((4 + (wave * 2)) * gearScale));
         String forcedMob = bossWave ? pickAvailableMob(mobManager, BOSS_POOL)
                 : eliteWave ? pickAvailableMob(mobManager, ELITE_POOL)
@@ -459,12 +492,21 @@ public final class StrongholdSurvivalManager implements Listener {
         long elapsedMs = Math.max(1L, System.currentTimeMillis() - run.startedAtMs);
         int score = calculateScore(run, elapsedMs);
         String rank = rankForScore(score);
+        String rankToken = rankToken(score);
         Player anchor = resolveAnchor(run);
         if (anchor != null) {
             if (plugin.getLootChestManager() != null) {
+                int rankTierBonus = rankLootTierBonus(rankToken);
                 Supplier<ItemStack> rewardSupplier = () -> plugin.getLootChestManager()
-                        .getRandomLootForTier(Math.max(4, run.averageGearScore / 120), "stronghold", null);
-                RewardBombUtil.startRewardBomb(plugin, anchor.getLocation(), rewardSupplier, 100);
+                        .getRandomLootForTier(Math.max(4, run.averageGearScore / 120) + rankTierBonus, "stronghold", null);
+                int duration = switch (rankToken) {
+                    case "S" -> 150;
+                    case "A" -> 130;
+                    case "B" -> 115;
+                    case "C" -> 100;
+                    default -> 85;
+                };
+                RewardBombUtil.startRewardBomb(plugin, anchor.getLocation(), rewardSupplier, duration);
             }
         }
         for (UUID member : run.members) {
@@ -476,6 +518,7 @@ public final class StrongholdSurvivalManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     ChatColor.GRAY + "Score " + ChatColor.GOLD + score + ChatColor.GRAY
                             + " • Rank " + rank);
+            grantStrongholdBattlePassProgress(player, rankToken, elapsedMs, run);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     ChatColor.DARK_GRAY + "Time: " + ChatColor.WHITE + formatElapsed(elapsedMs)
                             + ChatColor.DARK_GRAY + " | Damage: " + ChatColor.WHITE + (int) Math.round(run.damageTaken)
@@ -493,7 +536,7 @@ public final class StrongholdSurvivalManager implements Listener {
             return;
         }
         long millisLeft = Math.max(0L, run.waveDeadlineMs - System.currentTimeMillis());
-        double progress = run.mobsRemaining <= 0 ? 0.0 : Math.min(1.0, millisLeft / (BASE_WAVE_SECONDS * 1000.0));
+        double progress = run.mobsRemaining <= 0 ? 0.0 : Math.min(1.0, millisLeft / (runWaveSeconds(run) * 1000.0));
         run.bossBar.setProgress(Math.max(0.0, progress));
         run.bossBar.setTitle(ChatColor.GOLD + "Wave " + run.wave
                 + ChatColor.DARK_GRAY + " • "
@@ -590,7 +633,22 @@ public final class StrongholdSurvivalManager implements Listener {
         int damageComponent = Math.max(0, 2600 - (int) Math.round(run.damageTaken * 2.5));
         int chestComponent = Math.min(1600, run.chestsOpened * 180);
         int doorComponent = Math.min(1600, run.doorsOpened * 220);
-        return Math.max(0, timeComponent + damageComponent + chestComponent + doorComponent);
+        int base = Math.max(0, timeComponent + damageComponent + chestComponent + doorComponent);
+        double petBonus = partyEffectBonus(run, PetEffectType.STRONGHOLD_SCORE_BONUS);
+        double mutatorMult = run.mutator != null ? run.mutator.scoreMultiplier : 1.0;
+        int adjusted = (int) Math.round(base * (1.0 + petBonus) * mutatorMult);
+        return Math.max(0, Math.min(BASE_SCORE_MAX, adjusted));
+    }
+
+    private double partyEffectBonus(Run run, PetEffectType effectType) {
+        if (run == null || effectType == null || plugin.getPetManager() == null) {
+            return 0.0;
+        }
+        double total = 0.0;
+        for (UUID member : run.members) {
+            total += plugin.getPetManager().getActiveEffectValue(member, effectType);
+        }
+        return total;
     }
 
     private String rankForScore(int score) {
@@ -603,11 +661,64 @@ public final class StrongholdSurvivalManager implements Listener {
         return ChatColor.DARK_RED + "F";
     }
 
+    private String rankToken(int score) {
+        if (score >= 8500) return "S";
+        if (score >= 7200) return "A";
+        if (score >= 6000) return "B";
+        if (score >= 4800) return "C";
+        if (score >= 3600) return "D";
+        if (score >= 2400) return "E";
+        return "F";
+    }
+
+    private int rankLootTierBonus(String rankToken) {
+        return switch (rankToken) {
+            case "S" -> 3;
+            case "A" -> 2;
+            case "B" -> 1;
+            default -> 0;
+        };
+    }
+
+    private void grantStrongholdBattlePassProgress(Player player, String rankToken, long elapsedMs, Run run) {
+        if (player == null || plugin.getBattlePassManager() == null) {
+            return;
+        }
+        int xp = switch (rankToken) {
+            case "S" -> 1200;
+            case "A" -> 900;
+            case "B" -> 700;
+            case "C" -> 500;
+            default -> 300;
+        };
+        if (elapsedMs <= 16 * 60 * 1000L) {
+            xp += 120;
+        }
+        if (run.chestsOpened >= 4) {
+            xp += 80;
+        }
+        if (run.doorsOpened >= 3) {
+            xp += 80;
+        }
+        plugin.getBattlePassManager().addProgress(player, xp,
+                "for clearing Stronghold (" + rankToken + " rank)");
+    }
+
+    private StrongholdMutator rollMutator() {
+        StrongholdMutator[] values = StrongholdMutator.values();
+        return values[ThreadLocalRandom.current().nextInt(values.length)];
+    }
+
     private String formatElapsed(long elapsedMs) {
         long totalSeconds = Math.max(0L, elapsedMs / 1000L);
         long minutes = totalSeconds / 60L;
         long seconds = totalSeconds % 60L;
         return String.format("%02d:%02d", minutes, seconds);
+    }
+
+    private int runWaveSeconds(Run run) {
+        int adjusted = BASE_WAVE_SECONDS + (run.mutator != null ? run.mutator.waveTimeOffset : 0);
+        return Math.max(24, adjusted);
     }
 
     private boolean isEliteWave(int wave) {
@@ -720,6 +831,7 @@ public final class StrongholdSurvivalManager implements Listener {
         private double damageTaken = 0.0;
         private int chestsOpened = 0;
         private int doorsOpened = 0;
+        private StrongholdMutator mutator = StrongholdMutator.NONE;
         private final Set<UUID> mobIds = new HashSet<>();
         private BossBar bossBar;
         private BukkitTask waveTask;

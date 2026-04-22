@@ -82,6 +82,12 @@ public enum PetEffectType {
             value -> "At 20 Hunt Mark stacks: consume marks to burst for "
                     + ChatColor.GREEN + formatPercent(value)
                     + ChatColor.GRAY + " target max HP"),
+    STRONGHOLD_KEY_LUCK("stronghold_key_luck", "Keyfinder",
+            value -> "Stronghold gate key drop chance " + ChatColor.GREEN + "+" + formatPercent(value)),
+    STRONGHOLD_SCORE_BONUS("stronghold_score_bonus", "Stronghold Analyst",
+            value -> "Stronghold final score " + ChatColor.GREEN + "+" + formatPercent(value)),
+    STRONGHOLD_ALERT("stronghold_alert", "Warden Instinct",
+            value -> "Alerts on elite/final stronghold waves"),
     LOW_HEALTH_DAMAGE("low_health_damage", "Berserker Heart",
             value -> "Deal " + ChatColor.GREEN + "+" + formatPercent(value)
                     + ChatColor.GRAY + " damage while below " + ChatColor.RED + "50% HP"),
