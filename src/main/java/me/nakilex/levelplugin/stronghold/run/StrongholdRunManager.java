@@ -29,6 +29,10 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
  * starts auto wave spawning and random shrine placement for solo runs.
  */
 public class StrongholdRunManager {
+    private static final int SHRINES_PER_RUN = 1;
+    private static final int FIRST_WAVE_DELAY_SECONDS = 3;
+    private static final int WAVE_INTERVAL_SECONDS = 5;
+
     private final Main plugin;
     private final StrongholdShrineManager shrineManager;
     private final Map<UUID, ActiveRun> activeRuns = new HashMap<>();
@@ -51,7 +55,7 @@ public class StrongholdRunManager {
         stopRun(worldId);
 
         Location origin = player.getLocation().clone();
-        int shrines = shrineManager.spawnRandomShrines(origin, 3, 72, 250.0);
+        int shrines = shrineManager.spawnRandomShrines(origin, SHRINES_PER_RUN, 72, 250.0);
         if (shrines > 0) {
             send(player, MessageType.INFO, "Placed " + ChatColor.WHITE + shrines + ChatColor.GRAY + " shrine(s) around the stronghold.");
         }
@@ -82,7 +86,7 @@ public class StrongholdRunManager {
 
         private BukkitTask task;
         private int wave = 0;
-        private int ticks;
+        private int secondsUntilNextWave = FIRST_WAVE_DELAY_SECONDS;
 
         private ActiveRun(UUID worldId, Location origin) {
             this.worldId = worldId;
@@ -96,11 +100,11 @@ public class StrongholdRunManager {
                     stopRun(worldId);
                     return;
                 }
-                ticks++;
-                if (ticks < 20 * 12) {
+                if (secondsUntilNextWave > 0) {
+                    secondsUntilNextWave--;
                     return;
                 }
-                ticks = 0;
+                secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
                 wave++;
                 spawnWave(world, wave);
             }, 20L, 20L);

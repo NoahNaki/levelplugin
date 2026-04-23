@@ -71,8 +71,9 @@ public class StrongholdShrineManager implements Listener {
         World world = location.getWorld();
         double maxHp = Math.max(20.0, hp);
 
+        Location shrineBase = location.clone().add(0.0, 1.0, 0.0);
         NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.VILLAGER, ChatColor.LIGHT_PURPLE + "Shrine");
-        npc.spawn(location);
+        npc.spawn(shrineBase);
         Entity entity = npc.getEntity();
         if (!(entity instanceof LivingEntity living)) {
             npc.despawn();
@@ -94,19 +95,19 @@ public class StrongholdShrineManager implements Listener {
                 : maxHp));
         CombatTargetUtil.markDamageImmune(living, plugin);
 
-        org.bukkit.entity.TextDisplay title = world.spawn(location.clone().add(0.0, 2.35, 0.0), org.bukkit.entity.TextDisplay.class, td -> {
+        org.bukkit.entity.TextDisplay title = world.spawn(shrineBase.clone().add(0.0, 2.35, 0.0), org.bukkit.entity.TextDisplay.class, td -> {
             td.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
             td.setText(ChatColor.LIGHT_PURPLE + "<glyph:star> " + ChatColor.WHITE + "Shrine");
             td.addScoreboardTag(SHRINE_HOLOGRAM_TAG);
             td.setMetadata(SHRINE_ID_META, new FixedMetadataValue(plugin, "pending"));
         });
-        org.bukkit.entity.TextDisplay subtitle = world.spawn(location.clone().add(0.0, 2.1, 0.0), org.bukkit.entity.TextDisplay.class, td -> {
+        org.bukkit.entity.TextDisplay subtitle = world.spawn(shrineBase.clone().add(0.0, 2.1, 0.0), org.bukkit.entity.TextDisplay.class, td -> {
             td.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
             td.setText(ChatColor.GRAY + "Right-click to begin defense");
             td.addScoreboardTag(SHRINE_HOLOGRAM_TAG);
             td.setMetadata(SHRINE_ID_META, new FixedMetadataValue(plugin, "pending"));
         });
-        Interaction interaction = world.spawn(location.clone().add(0.0, 1.2, 0.0), Interaction.class, i -> {
+        Interaction interaction = world.spawn(shrineBase.clone().add(0.0, 1.2, 0.0), Interaction.class, i -> {
             i.setInteractionHeight(2.0f);
             i.setInteractionWidth(1.3f);
             i.addScoreboardTag(SHRINE_INTERACTION_TAG);
@@ -119,7 +120,7 @@ public class StrongholdShrineManager implements Listener {
         applyShrineMetadata(subtitle, shrineId);
         applyShrineMetadata(interaction, shrineId);
 
-        ShrineAnchor anchor = new ShrineAnchor(shrineId, npc, living, title, subtitle, interaction, location.clone(), maxHp, DEFAULT_ZONE_RADIUS);
+        ShrineAnchor anchor = new ShrineAnchor(shrineId, npc, living, title, subtitle, interaction, shrineBase.clone(), maxHp, DEFAULT_ZONE_RADIUS);
         anchorsById.put(shrineId, anchor);
         return Optional.of(anchor);
     }
@@ -139,7 +140,7 @@ public class StrongholdShrineManager implements Listener {
                 if (ground.getType() != Material.GRASS_BLOCK) {
                     continue;
                 }
-                Location spawn = ground.getLocation().add(0.5, 1.0, 0.5);
+                Location spawn = ground.getLocation().add(0.5, 0.0, 0.5);
                 if (spawn.distanceSquared(origin) < 10 * 10) {
                     continue;
                 }
