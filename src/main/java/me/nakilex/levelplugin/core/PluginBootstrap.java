@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
 import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
+import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI;
 import org.bukkit.scheduler.BukkitTask;
 import me.nakilex.levelplugin.horse.gui.HorseGUI;
@@ -140,6 +141,7 @@ public class PluginBootstrap {
     private ArenaInstanceManager arenaInstanceManager;
     private StrongholdQueueManager strongholdQueueManager;
     private StrongholdQueueGUI strongholdQueueGUI;
+    private StrongholdShrineManager strongholdShrineManager;
     private BukkitTask strongholdQueueTickTask;
     private me.nakilex.levelplugin.guild.GuildManager guildManager;
     private me.nakilex.levelplugin.guild.GuildGUI guildGUI;
@@ -381,6 +383,7 @@ public class PluginBootstrap {
         arenaQueueGUI = new ArenaQueueGUI(arenaQueueManager, arenaRatingManager);
         strongholdQueueManager = new StrongholdQueueManager(partyManager);
         strongholdQueueGUI = new StrongholdQueueGUI(strongholdQueueManager);
+        strongholdShrineManager = new StrongholdShrineManager(plugin);
         arenaInstanceManager = new ArenaInstanceManager(plugin);
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
@@ -638,6 +641,7 @@ public class PluginBootstrap {
         plugin.getServer().getPluginManager().registerEvents(cursorMenuManager, plugin);
         plugin.getServer().getPluginManager().registerEvents(blockGlowUtil, plugin);
         plugin.getServer().getPluginManager().registerEvents(strongholdQueueGUI, plugin);
+        plugin.getServer().getPluginManager().registerEvents(strongholdShrineManager, plugin);
 
         ListenerRegistry.registerListeners(
             plugin,
@@ -794,6 +798,7 @@ public class PluginBootstrap {
         if (dealMaker != null) dealMaker.closeAllTrades();
         if (arenaQueueManager != null) arenaQueueManager.clear();
         if (strongholdQueueManager != null) strongholdQueueManager.clear();
+        if (strongholdShrineManager != null) strongholdShrineManager.cleanup();
         if (strongholdQueueTickTask != null) strongholdQueueTickTask.cancel();
         if (arenaInstanceManager != null) arenaInstanceManager.cleanup();
         if (itemConfig != null) itemConfig.saveItems();
@@ -886,6 +891,7 @@ public class PluginBootstrap {
     public ArenaInstanceManager getArenaInstanceManager() { return arenaInstanceManager; }
     public StrongholdQueueManager getStrongholdQueueManager() { return strongholdQueueManager; }
     public StrongholdQueueGUI getStrongholdQueueGUI() { return strongholdQueueGUI; }
+    public StrongholdShrineManager getStrongholdShrineManager() { return strongholdShrineManager; }
     public me.nakilex.levelplugin.guild.GuildManager getGuildManager() { return guildManager; }
     public me.nakilex.levelplugin.guild.GuildGUI getGuildGUI() { return guildGUI; }
     public me.nakilex.levelplugin.guild.GuildMemberGUI getGuildMemberGUI() { return guildMemberGUI; }

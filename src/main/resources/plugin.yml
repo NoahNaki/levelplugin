@@ -166,7 +166,7 @@ commands:
     usage: /arena [join|leave|open]
   stronghold:
     description: Manage the stronghold queue
-    usage: /stronghold [join|leave|open|template] [solo|duo|squad]
+    usage: /stronghold [join|leave|open|template|shrine] [solo|duo|squad]
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage
