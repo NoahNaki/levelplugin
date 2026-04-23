@@ -1,8 +1,9 @@
 package me.nakilex.levelplugin.stronghold;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
+import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
+import me.nakilex.levelplugin.utils.CombatTargetUtil;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -19,6 +20,7 @@ import org.bukkit.entity.Interaction;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
@@ -90,6 +92,7 @@ public class StrongholdShrineManager implements Listener {
         living.setHealth(Math.min(maxHp, living.getAttribute(Attribute.MAX_HEALTH) != null
                 ? living.getAttribute(Attribute.MAX_HEALTH).getValue()
                 : maxHp));
+        CombatTargetUtil.markDamageImmune(living, plugin);
 
         org.bukkit.entity.TextDisplay title = world.spawn(location.clone().add(0.0, 2.35, 0.0), org.bukkit.entity.TextDisplay.class, td -> {
             td.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
@@ -119,6 +122,50 @@ public class StrongholdShrineManager implements Listener {
         ShrineAnchor anchor = new ShrineAnchor(shrineId, npc, living, title, subtitle, interaction, location.clone(), maxHp, DEFAULT_ZONE_RADIUS);
         anchorsById.put(shrineId, anchor);
         return Optional.of(anchor);
+    }
+
+    public int spawnRandomShrines(Location origin, int count, int searchRadius, double hp) {
+        if (origin == null || origin.getWorld() == null || count <= 0) {
+            return 0;
+        }
+        List<Location> candidates = new ArrayList<>();
+        World world = origin.getWorld();
+        int radius = Math.max(8, searchRadius);
+        for (int x = -radius; x <= radius; x += 3) {
+            for (int z = -radius; z <= radius; z += 3) {
+                Location sample = origin.clone().add(x, 0.0, z);
+                int surfaceY = world.getHighestBlockYAt(sample);
+                Block ground = world.getBlockAt(sample.getBlockX(), surfaceY - 1, sample.getBlockZ());
+                if (ground.getType() != Material.GRASS_BLOCK) {
+                    continue;
+                }
+                Location spawn = ground.getLocation().add(0.5, 1.0, 0.5);
+                if (spawn.distanceSquared(origin) < 10 * 10) {
+                    continue;
+                }
+                candidates.add(spawn);
+            }
+        }
+        if (candidates.isEmpty()) {
+            return 0;
+        }
+        java.util.Collections.shuffle(candidates);
+        int spawned = 0;
+        for (Location candidate : candidates) {
+            boolean tooClose = anchorsById.values().stream()
+                    .anyMatch(anchor -> anchor.origin.getWorld().equals(candidate.getWorld())
+                            && anchor.origin.distanceSquared(candidate) < 12 * 12);
+            if (tooClose) {
+                continue;
+            }
+            if (spawnShrine(candidate, hp).isPresent()) {
+                spawned++;
+            }
+            if (spawned >= count) {
+                break;
+            }
+        }
+        return spawned;
     }
 
     public void cleanup() {
@@ -187,6 +234,10 @@ public class StrongholdShrineManager implements Listener {
 
         ActiveShrineEvent active = activeByAnchor.get(shrineId);
         if (active == null) {
+            event.setCancelled(true);
+            return;
+        }
+        if (CombatTargetUtil.isPlayerSourced(event.getDamager())) {
             event.setCancelled(true);
             return;
         }
@@ -432,16 +483,7 @@ public class StrongholdShrineManager implements Listener {
         }
 
         private LivingEntity spawnShrineMob(Location at) {
-            CustomMobManager customMobManager = plugin.getCustomMobManager();
-            if (customMobManager != null) {
-                String mobId = shrineMobPool.get(ThreadLocalRandom.current().nextInt(shrineMobPool.size()));
-                List<LivingEntity> spawned = customMobManager.spawn(mobId, at, 1);
-                if (!spawned.isEmpty()) {
-                    return spawned.get(0);
-                }
-            }
-            Entity fallback = at.getWorld().spawnEntity(at, EntityType.ZOMBIE);
-            return fallback instanceof LivingEntity living ? living : null;
+            return StrongholdMobSpawnUtil.spawnStrongholdHostile(plugin.getCustomMobManager(), shrineMobPool, at);
         }
 
         private void retargetMobsToShrine(LivingEntity target) {
