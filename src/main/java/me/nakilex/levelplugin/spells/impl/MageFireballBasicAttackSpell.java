@@ -147,6 +147,9 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         Location eye = caster.getEyeLocation().clone();
         Vector baseDirection = resolveCastDirection(context, caster, eye);
         List<Vector> targetDirections = resolveProjectileDirections(caster, eye, baseDirection);
+        if (targetDirections.isEmpty()) {
+            return;
+        }
 
         caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_FIRECHARGE_USE, 0.7f, 1.2f);
         for (int i = 0; i < targetDirections.size(); i++) {
@@ -171,6 +174,9 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                         directions.add(toTarget.normalize());
                     }
                 });
+        if (directions.isEmpty()) {
+            return directions;
+        }
         for (int i = directions.size(); i < projectileCount; i++) {
             double yawOffset = computeYawOffset(i);
             directions.add(rotateAroundY(baseDirection.clone(), yawOffset));

@@ -193,8 +193,12 @@ public class MobRewardService {
                             && !settings.isLootPickupAllowed(rarity)) {
                         player.getWorld().dropItemNaturally(player.getLocation(), loot);
                     } else {
-                        player.getInventory().addItem(loot).values()
-                                .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
+                        var runManager = Main.getInstance().getStrongholdRunManager();
+                        boolean routedToStorage = runManager != null && runManager.storeLootToResultStorage(player, loot);
+                        if (!routedToStorage) {
+                            player.getInventory().addItem(loot).values()
+                                    .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
+                        }
                     }
                 }
             }

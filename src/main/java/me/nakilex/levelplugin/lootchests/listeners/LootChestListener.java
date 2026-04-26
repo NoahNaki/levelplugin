@@ -105,6 +105,23 @@ public class LootChestListener implements Listener {
         }
         // ─────────────────────────────────────────────────────────────────────
 
+        var runManager = Main.getInstance().getStrongholdRunManager();
+        boolean strongholdRunActive = runManager != null && runManager.getStageStatus(player.getUniqueId()) != null;
+        if (strongholdRunActive) {
+            for (int slot = 0; slot < lootGui.getSize(); slot++) {
+                ItemStack stack = lootGui.getItem(slot);
+                if (stack == null || stack.getType().isAir()) {
+                    continue;
+                }
+                runManager.storeLootToResultStorage(player, stack.clone());
+            }
+            lootChestManager.playOpeningAnimation(chestId, lootGui);
+            org.bukkit.Bukkit.getScheduler().runTaskLater(Main.getInstance(),
+                    () -> lootChestManager.playClosingAnimation(chestId), 12L);
+            GuildQuestManager.getInstance().handleLootChestOpen(player);
+            return true;
+        }
+
         // 7) Open the inventory
         lootChestManager.playOpeningAnimation(chestId, lootGui);
         player.openInventory(lootGui);

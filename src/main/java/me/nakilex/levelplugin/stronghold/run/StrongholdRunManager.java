@@ -146,6 +146,17 @@ public class StrongholdRunManager implements Listener {
         return run.forceEndAndShowRewards(target);
     }
 
+    public boolean storeLootToResultStorage(Player player, ItemStack stack) {
+        if (player == null || stack == null || stack.getType().isAir()) {
+            return false;
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null) {
+            return false;
+        }
+        return run.captureLootToStash(player, stack);
+    }
+
     public StageStatus getStageStatus(UUID playerId) {
         if (playerId == null) {
             return null;
@@ -500,14 +511,18 @@ public class StrongholdRunManager implements Listener {
         }
 
         private ItemStack createStrongholdKey() {
-            ItemStack item = new ItemStack(Material.TRIPWIRE_HOOK);
+            Material keyType = Material.matchMaterial("TRIAL_KEY");
+            if (keyType == null) {
+                keyType = Material.TRIPWIRE_HOOK;
+            }
+            ItemStack item = new ItemStack(keyType);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
                 meta.setDisplayName(ChatColor.GOLD + "Stronghold Key");
-                meta.setLore(List.of(
-                        ChatColor.GRAY + "Opens sealed gates in the stronghold.",
-                        ChatColor.DARK_GRAY + "Rare drop"
-                ));
+                List<String> lore = new ArrayList<>();
+                lore.addAll(TooltipUtil.bulletList("Opens sealed gates in the stronghold."));
+                lore.add(ChatColor.DARK_GRAY + "Rare drop");
+                meta.setLore(lore);
                 item.setItemMeta(meta);
             }
             return item;
@@ -1137,6 +1152,12 @@ public class StrongholdRunManager implements Listener {
                 return false;
             }
             state.lootStash.add(pickedUp.clone());
+            String itemName = pickedUp.hasItemMeta() && pickedUp.getItemMeta() != null
+                    && pickedUp.getItemMeta().hasDisplayName()
+                    ? pickedUp.getItemMeta().getDisplayName()
+                    : me.nakilex.levelplugin.utils.TextUtil.beautifyWords(pickedUp.getType().name());
+            send(player, MessageType.REWARD,
+                    ChatColor.GREEN + "+ " + ChatColor.WHITE + itemName + ChatColor.GRAY + " added to storage");
             return true;
         }
 
