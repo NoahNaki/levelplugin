@@ -90,6 +90,7 @@ public class StrongholdRunManager implements Listener {
     private final StrongholdShrineManager shrineManager;
     private final Map<UUID, ActiveRun> activeRuns = new HashMap<>();
     private final Map<UUID, Inventory> pendingResultInventories = new HashMap<>();
+    private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final List<String> waveMobPool = List.of("goblin_warrior", "goblin_archer", "goblin_assassin");
     private final Set<String> autoCastBasePool = new HashSet<>();
     private final Set<String> excludedAutoCastSpellIds = Set.of(
@@ -153,6 +154,13 @@ public class StrongholdRunManager implements Listener {
             return false;
         }
         return run.forceEndAndShowRewards(target);
+    }
+
+    public void captureReturnLocation(Player player) {
+        if (player == null) {
+            return;
+        }
+        returnLocations.put(player.getUniqueId(), player.getLocation().clone());
     }
 
     public boolean storeLootToResultStorage(Player player, ItemStack stack) {
@@ -623,11 +631,7 @@ public class StrongholdRunManager implements Listener {
             if (state == null) {
                 return false;
             }
-            if (target.isDead()) {
-                pendingResultInventories.put(target.getUniqueId(), createSessionResultInventory(target, state));
-            } else {
-                openSessionResultGui(target, state);
-            }
+            pendingResultInventories.put(target.getUniqueId(), createSessionResultInventory(target, state));
             stopRun(worldId);
             return true;
         }
@@ -823,6 +827,7 @@ public class StrongholdRunManager implements Listener {
             PlayerClass currentClass = PlayerClassManager.getInstance().getPlayerClass(player);
             SurvivorState state = new SurvivorState(currentClass);
             playerStates.put(player.getUniqueId(), state);
+            returnLocations.putIfAbsent(player.getUniqueId(), player.getLocation().clone());
             state.savedStorageContents = cloneItemArray(player.getInventory().getStorageContents());
             state.savedArmorContents = cloneItemArray(player.getInventory().getArmorContents());
             state.savedExtraContents = cloneItemArray(player.getInventory().getExtraContents());
@@ -1296,6 +1301,13 @@ public class StrongholdRunManager implements Listener {
                     state.progressBar.setVisible(false);
                 }
                 online.closeInventory();
+                if (!online.isDead()) {
+                    Location back = consumeReturnLocation(playerId, online.getLocation());
+                    if (back != null && back.getWorld() != null) {
+                        online.teleport(back);
+                    }
+                    openPendingResultsAfterTeleport(online);
+                }
             }
         }
 
@@ -1428,6 +1440,33 @@ public class StrongholdRunManager implements Listener {
             label = label.substring(0, i) + label.substring(ws);
         }
         return label.trim();
+    }
+
+    private Location consumeReturnLocation(UUID playerId, Location fallback) {
+        Location stored = playerId == null ? null : returnLocations.remove(playerId);
+        if (stored != null && stored.getWorld() != null) {
+            return stored.clone();
+        }
+        if (fallback != null && fallback.getWorld() != null) {
+            return fallback.clone();
+        }
+        World world = Bukkit.getWorld("world");
+        return world == null ? null : world.getSpawnLocation();
+    }
+
+    private void openPendingResultsAfterTeleport(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        Inventory pending = pendingResultInventories.remove(player.getUniqueId());
+        if (pending == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                player.openInventory(pending);
+            }
+        }, 2L);
     }
 
     private static final class SurvivorState {

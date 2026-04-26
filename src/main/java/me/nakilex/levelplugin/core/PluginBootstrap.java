@@ -440,6 +440,7 @@ public class PluginBootstrap {
                 return;
             }
             Bukkit.getScheduler().runTask(plugin, () -> {
+                strongholdRunManager.captureReturnLocation(soloPlayer);
                 boolean started = me.nakilex.levelplugin.debug.StrongholdDebugGenerator.generateTest(soloPlayer);
                 if (!started) {
                     me.nakilex.levelplugin.utils.ChatMessageUtil.send(
