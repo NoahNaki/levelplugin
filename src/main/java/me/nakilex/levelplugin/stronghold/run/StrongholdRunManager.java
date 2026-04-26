@@ -82,8 +82,8 @@ public class StrongholdRunManager implements Listener {
     private static final double MOB_RELOCATE_MAX_RADIUS = 10.0;
     private static final double MOB_RELOCATE_AXIS_OFFSET = 5.0;
     private static final double MOB_RELOCATE_AXIS_JITTER = 1.5;
-    private static final String MINIBOSS_MOB_ID = "goblin_brute";
-    private static final String BOSS_MOB_ID = "stronghold_overlord";
+    private static final String MINIBOSS_MOB_ID = "slime_king";
+    private static final String BOSS_MOB_ID = "slime_king";
     private static final double KEY_DROP_CHANCE = 0.03;
 
     private final Main plugin;
@@ -91,7 +91,7 @@ public class StrongholdRunManager implements Listener {
     private final Map<UUID, ActiveRun> activeRuns = new HashMap<>();
     private final Map<UUID, Inventory> pendingResultInventories = new HashMap<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
-    private final List<String> waveMobPool = List.of("goblin_warrior", "goblin_archer", "goblin_assassin");
+    private final List<String> waveMobPool = List.of("forest_slime");
     private final Set<String> autoCastBasePool = new HashSet<>();
     private final Set<String> excludedAutoCastSpellIds = Set.of(
             "mage_blink", "mage_blink_phase", "mage_blink_rift",
@@ -161,6 +161,10 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         returnLocations.put(player.getUniqueId(), player.getLocation().clone());
+    }
+
+    public boolean tryConsumeStrongholdKey(Player player) {
+        return consumeFirstMatchingItem(player, this::isStrongholdKey);
     }
 
     public boolean storeLootToResultStorage(Player player, ItemStack stack) {
@@ -257,7 +261,7 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         event.setCancelled(true);
-        if (!consumeFirstMatchingItem(player, this::isStrongholdKey)) {
+        if (!tryConsumeStrongholdKey(player)) {
             send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
             return;
         }
@@ -1251,6 +1255,18 @@ public class StrongholdRunManager implements Listener {
             SurvivorState state = playerStates.get(player.getUniqueId());
             if (state == null) {
                 return false;
+            }
+            if (isStrongholdKey(pickedUp)) {
+                ItemStack keyCopy = pickedUp.clone();
+                Map<Integer, ItemStack> overflow = player.getInventory().addItem(keyCopy);
+                if (!overflow.isEmpty()) {
+                    for (ItemStack leftover : overflow.values()) {
+                        player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+                    }
+                }
+                send(player, MessageType.REWARD,
+                        ChatColor.GREEN + "+ " + ChatColor.GOLD + STRONGHOLD_KEY_NAME + ChatColor.GRAY + " added to inventory");
+                return true;
             }
             state.lootStash.add(pickedUp.clone());
             String itemName = pickedUp.hasItemMeta() && pickedUp.getItemMeta() != null

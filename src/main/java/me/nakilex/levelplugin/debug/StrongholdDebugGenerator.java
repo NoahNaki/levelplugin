@@ -4856,6 +4856,14 @@ public final class StrongholdDebugGenerator {
         if (player == null || interaction == null) {
             return;
         }
+        Main plugin = Main.getInstance();
+        if (plugin == null || plugin.getStrongholdRunManager() == null
+                || !plugin.getStrongholdRunManager().tryConsumeStrongholdKey(player)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
+            player.playSound(player.getLocation(), Sound.BLOCK_IRON_DOOR_CLOSE, 0.8f, 0.7f);
+            return;
+        }
         DoorInteractionState state = doorInteractionsByEntityId.get(interaction.getEntityId());
         if (state == null) {
             return;
