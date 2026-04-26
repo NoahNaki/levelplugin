@@ -482,7 +482,10 @@ public class CursorMenuManager implements Listener {
             }
             return;
         }
-        player.performCommand(resolved.startsWith("/") ? resolved.substring(1) : resolved);
+        String cmd = resolved.startsWith("/") ? resolved.substring(1) : resolved;
+        if (!cmd.isEmpty()) {
+            plugin.getServer().dispatchCommand(plugin.getServer().getConsoleSender(), cmd);
+        }
     }
 
     private void executeButtonAction(Player player, MenuSession session, MenuButton button) {

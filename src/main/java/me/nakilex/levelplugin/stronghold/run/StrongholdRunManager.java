@@ -682,7 +682,7 @@ public class StrongholdRunManager implements Listener {
         }
 
         private Inventory createSessionResultInventory(Player player, SurvivorState state) {
-            Inventory inv = Bukkit.createInventory(player, 27, RESULTS_GUI_TITLE);
+            Inventory inv = Bukkit.createInventory(player, 54, RESULTS_GUI_TITLE);
             ItemStack summary = new ItemStack(Material.BOOK);
             ItemMeta meta = summary.getItemMeta();
             if (meta != null) {
@@ -695,7 +695,21 @@ public class StrongholdRunManager implements Listener {
                 ));
                 summary.setItemMeta(meta);
             }
-            inv.setItem(13, summary);
+            inv.setItem(49, summary);
+
+            int stashSlot = 0;
+            for (ItemStack stashed : state.lootStash) {
+                if (stashed == null || stashed.getType().isAir()) {
+                    continue;
+                }
+                while (stashSlot < inv.getSize() && stashSlot == 49) {
+                    stashSlot++;
+                }
+                if (stashSlot >= inv.getSize()) {
+                    break;
+                }
+                inv.setItem(stashSlot++, stashed.clone());
+            }
             return inv;
         }
 
