@@ -106,6 +106,17 @@ public class StrongholdRunManager implements Listener {
         }
     }
 
+    public boolean addDebugXp(Player player, int amount) {
+        if (player == null || amount <= 0) {
+            return false;
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null) {
+            return false;
+        }
+        return run.grantDebugXp(player, amount);
+    }
+
     private void stopRun(UUID worldId) {
         ActiveRun existing = activeRuns.remove(worldId);
         if (existing != null) {
@@ -417,6 +428,15 @@ public class StrongholdRunManager implements Listener {
                 state.pendingUpgrades = rollUpgradeChoices(state, 3);
                 openUpgradeGui(player, state);
             }
+        }
+
+        private boolean grantDebugXp(Player player, int amount) {
+            SurvivorState state = playerStates.get(player.getUniqueId());
+            if (state == null) {
+                return false;
+            }
+            grantXp(player, state, amount);
+            return true;
         }
 
         private void updateProgressBar(Player player, SurvivorState state) {

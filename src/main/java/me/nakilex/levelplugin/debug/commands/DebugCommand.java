@@ -136,7 +136,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|lootchestanimation|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|" + statUsage + ">");
             }
             return true;
         }
@@ -605,6 +605,38 @@ public class DebugCommand implements TabExecutor {
                 ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
                         "Unknown stronghold template: " + args[2] + ". Available: test, towerwall");
                 return true;
+            case "strongholdxp":
+                if (!(sender instanceof Player strongholdXpPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(strongholdXpPlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug strongholdxp <amount>");
+                    return true;
+                }
+                int xpAmount;
+                try {
+                    xpAmount = Integer.parseInt(args[1]);
+                } catch (NumberFormatException ex) {
+                    ChatMessageUtil.send(strongholdXpPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "Invalid amount. Example: /debug strongholdxp 150");
+                    return true;
+                }
+                if (xpAmount <= 0) {
+                    ChatMessageUtil.send(strongholdXpPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "XP amount must be greater than 0.");
+                    return true;
+                }
+                var runManager = Main.getInstance().getStrongholdRunManager();
+                if (runManager == null || !runManager.addDebugXp(strongholdXpPlayer, xpAmount)) {
+                    ChatMessageUtil.send(strongholdXpPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "You must be inside an active Stronghold run to add Stronghold XP.");
+                    return true;
+                }
+                ChatMessageUtil.send(strongholdXpPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Added " + ChatColor.WHITE + xpAmount + ChatColor.GREEN + " Stronghold XP.");
+                return true;
             case "lootchestanimation":
                 if (!(sender instanceof Player lootChestAnimationPlayer)) {
                     sender.sendMessage(ChatColor.RED + "Players only.");
@@ -622,7 +654,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|lootchestanimation|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -809,10 +841,14 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "lootchestanimation"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "lootchestanimation"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("strongholdxp")) {
+            return List.of("50", "100", "150", "250").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
             return List.of("generate", "overlap", "templates", "assets", "output").stream()
