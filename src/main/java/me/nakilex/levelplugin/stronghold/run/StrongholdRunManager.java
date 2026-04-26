@@ -67,6 +67,10 @@ public class StrongholdRunManager implements Listener {
     private static final long STUCK_PULL_DELAY_MS = 4_000L;
     private static final double STUCK_MOVE_EPSILON_SQ = 0.20 * 0.20;
     private static final double STUCK_PULL_DISTANCE = 6.0;
+    private static final long MOB_RELOCATE_COOLDOWN_MS = 2_500L;
+    private static final double MOB_RELOCATE_TRIGGER_DISTANCE = 30.0;
+    private static final double MOB_RELOCATE_MIN_RADIUS = 4.0;
+    private static final double MOB_RELOCATE_MAX_RADIUS = 10.0;
 
     private final Main plugin;
     private final StrongholdShrineManager shrineManager;
@@ -470,13 +474,10 @@ public class StrongholdRunManager implements Listener {
                 }
                 MobMotionState state = entry.getValue();
                 Location current = mob.getLocation();
-                if (state.lastLocation != null && current.distanceSquared(state.lastLocation) > STUCK_MOVE_EPSILON_SQ) {
+                boolean movedRecently = state.lastLocation != null && current.distanceSquared(state.lastLocation) > STUCK_MOVE_EPSILON_SQ;
+                if (movedRecently) {
                     state.lastLocation = current.clone();
                     state.lastMovedAtMs = now;
-                    continue;
-                }
-                if (now - state.lastMovedAtMs < STUCK_PULL_DELAY_MS) {
-                    continue;
                 }
                 Player nearest = players.stream()
                         .min(java.util.Comparator.comparingDouble(p -> p.getLocation().distanceSquared(current)))
@@ -484,7 +485,15 @@ public class StrongholdRunManager implements Listener {
                 if (nearest == null) {
                     continue;
                 }
-                Location pulled = pullTowardPlayer(current, nearest.getLocation(), world);
+                boolean stuckLongEnough = now - state.lastMovedAtMs >= STUCK_PULL_DELAY_MS;
+                double distanceSqToNearest = nearest.getLocation().distanceSquared(current);
+                boolean tooFarFromPlayer = distanceSqToNearest >= MOB_RELOCATE_TRIGGER_DISTANCE * MOB_RELOCATE_TRIGGER_DISTANCE;
+                if (!shouldRelocateMob(stuckLongEnough, tooFarFromPlayer, now, state.lastTeleportAtMs)) {
+                    continue;
+                }
+                Location pulled = tooFarFromPlayer
+                        ? findSpawnNear(nearest.getLocation(), nearest.getLocation(), MOB_RELOCATE_MIN_RADIUS, MOB_RELOCATE_MAX_RADIUS)
+                        : pullTowardPlayer(current, nearest.getLocation(), world);
                 if (pulled == null) {
                     continue;
                 }
@@ -494,6 +503,13 @@ public class StrongholdRunManager implements Listener {
                 state.lastMovedAtMs = now;
                 state.lastTeleportAtMs = now;
             }
+        }
+
+        private boolean shouldRelocateMob(boolean stuckLongEnough, boolean tooFarFromPlayer, long now, long lastTeleportAtMs) {
+            if (!stuckLongEnough && !tooFarFromPlayer) {
+                return false;
+            }
+            return now - lastTeleportAtMs >= MOB_RELOCATE_COOLDOWN_MS;
         }
 
         private Location pullTowardPlayer(Location mobLocation, Location playerLocation, World world) {
