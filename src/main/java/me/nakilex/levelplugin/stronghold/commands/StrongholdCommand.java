@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.stronghold.commands;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
+import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -28,17 +29,23 @@ public class StrongholdCommand implements TabExecutor {
     private final Main plugin;
     private final StrongholdQueueGUI gui;
     private final StrongholdQueueManager queueManager;
+    private final StrongholdShrineManager shrineManager;
 
-    public StrongholdCommand(Main plugin, StrongholdQueueGUI gui, StrongholdQueueManager queueManager) {
+    public StrongholdCommand(Main plugin, StrongholdQueueGUI gui, StrongholdQueueManager queueManager,
+                             StrongholdShrineManager shrineManager) {
         this.plugin = plugin;
         this.gui = gui;
         this.queueManager = queueManager;
+        this.shrineManager = shrineManager;
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length > 0 && equalsAny(args[0], "template")) {
             return handleTemplateSubcommand(sender, args);
+        }
+        if (args.length > 0 && equalsAny(args[0], "shrine")) {
+            return handleShrineSubcommand(sender, args);
         }
 
         if (!(sender instanceof Player player)) {
@@ -91,14 +98,14 @@ public class StrongholdCommand implements TabExecutor {
             return true;
         }
 
-        send(player, MessageType.INFO, "Usage: /" + label + " [join|leave|open|template]");
+        send(player, MessageType.INFO, "Usage: /" + label + " [join|leave|open|template|shrine]");
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return partial(args[0], List.of("join", "leave", "open", "template"));
+            return partial(args[0], List.of("join", "leave", "open", "template", "shrine"));
         }
         if (args.length == 2 && equalsAny(args[0], "join", "queue")) {
             return partial(args[1], Arrays.asList("solo", "duo", "squad"));
@@ -109,6 +116,9 @@ public class StrongholdCommand implements TabExecutor {
         if (args.length == 3 && equalsAny(args[0], "template") && equalsAny(args[1], "set")) {
             List<String> names = Bukkit.getWorlds().stream().map(World::getName).toList();
             return partial(args[2], names);
+        }
+        if (args.length == 2 && equalsAny(args[0], "shrine")) {
+            return partial(args[1], List.of("create"));
         }
         return Collections.emptyList();
     }
@@ -182,6 +192,38 @@ public class StrongholdCommand implements TabExecutor {
             return true;
         }
         send(sender, MessageType.WARNING, "Usage: /stronghold template <set|clear|show> [worldName]");
+        return true;
+    }
+
+    private boolean handleShrineSubcommand(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            send(sender, MessageType.ERROR, "Only players can use shrine commands.");
+            return true;
+        }
+        if (!player.hasPermission("levelplugin.admin")) {
+            send(player, MessageType.ERROR, "You do not have permission to manage Stronghold shrines.");
+            return true;
+        }
+        if (shrineManager == null) {
+            send(player, MessageType.ERROR, "Shrine manager unavailable.");
+            return true;
+        }
+        if (args.length < 2 || !equalsAny(args[1], "create", "spawn")) {
+            send(player, MessageType.WARNING, "Usage: /stronghold shrine create [hp]");
+            return true;
+        }
+        double hp = 250.0;
+        if (args.length >= 3) {
+            try {
+                hp = Math.max(20.0, Double.parseDouble(args[2]));
+            } catch (NumberFormatException ignored) {
+                send(player, MessageType.ERROR, "Invalid HP value. Example: /stronghold shrine create 250");
+                return true;
+            }
+        }
+        shrineManager.spawnShrine(player.getLocation(), hp).ifPresentOrElse(anchor -> {
+            send(player, MessageType.SUCCESS, "Spawned shrine at your location. Right-click the shrine hologram to begin.");
+        }, () -> send(player, MessageType.ERROR, "Failed to spawn shrine."));
         return true;
     }
 }

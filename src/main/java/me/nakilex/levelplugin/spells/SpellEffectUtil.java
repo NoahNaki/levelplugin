@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.utils.HologramUtil;
 import me.nakilex.levelplugin.utils.PotionEffectUtil;
+import me.nakilex.levelplugin.utils.CombatTargetUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -64,6 +65,9 @@ public final class SpellEffectUtil {
                 continue;
             }
             if (living.isDead() || living instanceof ArmorStand) {
+                continue;
+            }
+            if (!CombatTargetUtil.isSpellValidTarget(living)) {
                 continue;
             }
             if (living.getLocation().distanceSquared(center) > radiusSq) {
@@ -150,6 +154,9 @@ public final class SpellEffectUtil {
             return;
         }
         for (LivingEntity target : getLivingTargets(center, radius, living -> !living.equals(source))) {
+            if (!CombatTargetUtil.isSpellValidTarget(target)) {
+                continue;
+            }
             target.damage(damage, source);
         }
     }
@@ -198,6 +205,9 @@ public final class SpellEffectUtil {
             return;
         }
         if (target instanceof ArmorStand) {
+            return;
+        }
+        if (!CombatTargetUtil.isSpellValidTarget(target)) {
             return;
         }
         if (target instanceof Player victim

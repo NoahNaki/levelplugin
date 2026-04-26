@@ -291,7 +291,11 @@ public class CommandRegistry {
         ArenaCommand arenaCmd = new ArenaCommand(plugin.getArenaQueueGUI(), plugin.getArenaQueueManager());
         plugin.getCommand("arena").setExecutor(arenaCmd);
         plugin.getCommand("arena").setTabCompleter(arenaCmd);
-        StrongholdCommand strongholdCmd = new StrongholdCommand(plugin, plugin.getStrongholdQueueGUI(), plugin.getStrongholdQueueManager());
+        StrongholdCommand strongholdCmd = new StrongholdCommand(
+                plugin,
+                plugin.getStrongholdQueueGUI(),
+                plugin.getStrongholdQueueManager(),
+                plugin.getStrongholdShrineManager());
         plugin.getCommand("stronghold").setExecutor(strongholdCmd);
         plugin.getCommand("stronghold").setTabCompleter(strongholdCmd);
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));
