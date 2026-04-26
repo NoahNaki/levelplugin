@@ -59,6 +59,8 @@ public class StrongholdRunManager implements Listener {
     private static final int WAVE_INTERVAL_SECONDS = 5;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
     private static final int BASE_XP_REQUIRED = 100;
+    private static final double MIN_ENEMY_SPAWN_RADIUS = 5.0;
+    private static final long BASE_AUTOCAST_COOLDOWN_MS = 1_400L;
     private static final long STUCK_PULL_DELAY_MS = 4_000L;
     private static final double STUCK_MOVE_EPSILON_SQ = 0.20 * 0.20;
     private static final double STUCK_PULL_DISTANCE = 6.0;
@@ -618,6 +620,9 @@ public class StrongholdRunManager implements Listener {
                     int rank = state.ownedSpellRanks.getOrDefault(choice.baseSpellId, 0);
                     lore.add(ChatColor.GRAY + "Current Rank: " + ChatColor.WHITE + rank);
                     lore.add(ChatColor.GRAY + "Result Spell: " + ChatColor.WHITE + choice.resultSpellId);
+                } else if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
+                    lore.add(ChatColor.GRAY + "Cooldown Tier: " + ChatColor.WHITE + state.cooldownUpgradeTier);
+                    lore.add(ChatColor.GRAY + "Effect: " + ChatColor.GREEN + "-10% global auto-cast cooldown");
                 } else if (choice.statType != null) {
                     lore.add(ChatColor.GRAY + "Temporary Bonus: " + ChatColor.GREEN + "+" + choice.statAmount + " " + choice.statType.getDisplayName());
                 }
@@ -717,6 +722,13 @@ public class StrongholdRunManager implements Listener {
                         + " " + choice.statType.getDisplayName() + ChatColor.GRAY + " (temporary).");
                 return;
             }
+            if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
+                state.cooldownUpgradeTier++;
+                send(player, MessageType.SUCCESS, "Auto-cast cadence improved: "
+                        + ChatColor.GREEN + "-10% global cooldown" + ChatColor.GRAY + " (Tier "
+                        + ChatColor.WHITE + state.cooldownUpgradeTier + ChatColor.GRAY + ").");
+                return;
+            }
             if (choice.baseSpellId == null || choice.resultSpellId == null) {
                 return;
             }
@@ -749,7 +761,8 @@ public class StrongholdRunManager implements Listener {
                         new UpgradeChoice(UpgradeType.STAT, "Power Surge", "Temporary Strength boost for this run only.", null, null, StatsManager.StatType.STR, 2),
                         new UpgradeChoice(UpgradeType.STAT, "Swiftfoot", "Temporary Agility boost for this run only.", null, null, StatsManager.StatType.AGI, 2),
                         new UpgradeChoice(UpgradeType.STAT, "Arcane Focus", "Temporary Intelligence boost for this run only.", null, null, StatsManager.StatType.INT, 2),
-                        new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost for this run only.", null, null, StatsManager.StatType.VIT, 2)
+                        new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost for this run only.", null, null, StatsManager.StatType.VIT, 2),
+                        new UpgradeChoice(UpgradeType.GLOBAL_COOLDOWN, "Arcane Tempo", "Reduce all auto-cast cooldowns globally by 10%.", null, null, null, 0)
                 ));
                 while (!statCandidates.isEmpty() && rolled.size() < count) {
                     int pick = rng.nextInt(statCandidates.size());
@@ -823,7 +836,7 @@ public class StrongholdRunManager implements Listener {
                         continue;
                     }
                     SpellDefinition definition = spellEntry.definition();
-                    long cooldown = Math.max(650L, SpellCastManager.getInstance().getCooldownMs(definition));
+                    long cooldown = computeAutoCastCooldownMs(definition, state);
                     long last = state.lastCastAtBySpell.getOrDefault(spellId, 0L);
                     if (now - last < cooldown) {
                         continue;
@@ -832,6 +845,22 @@ public class StrongholdRunManager implements Listener {
                     state.lastCastAtBySpell.put(spellId, now);
                 }
             }
+        }
+
+        private long computeAutoCastCooldownMs(SpellDefinition definition, SurvivorState state) {
+            if (definition == null) {
+                return BASE_AUTOCAST_COOLDOWN_MS;
+            }
+            String spellId = definition.id() == null ? "" : definition.id().toLowerCase(Locale.ROOT);
+            long cooldown = Math.max(BASE_AUTOCAST_COOLDOWN_MS, SpellCastManager.getInstance().getCooldownMs(definition));
+            if (spellId.startsWith("mage_fireball")) {
+                cooldown = Math.max(cooldown, 2_200L);
+            } else if (spellId.startsWith("archer_quickshot")) {
+                cooldown = Math.max(cooldown, 1_850L);
+            }
+            int tier = state == null ? 0 : Math.max(0, state.cooldownUpgradeTier);
+            double multiplier = Math.max(0.45, 1.0 - (tier * 0.10));
+            return Math.max(600L, Math.round(cooldown * multiplier));
         }
 
         private boolean requiresLockTarget(String spellId) {
@@ -915,9 +944,11 @@ public class StrongholdRunManager implements Listener {
             if (world == null) {
                 return null;
             }
+            double safeMinRadius = Math.max(MIN_ENEMY_SPAWN_RADIUS, minRadius);
+            double safeMaxRadius = Math.max(safeMinRadius + 0.5, maxRadius);
             for (int attempt = 0; attempt < 16; attempt++) {
                 double angle = ThreadLocalRandom.current().nextDouble(0, Math.PI * 2);
-                double dist = ThreadLocalRandom.current().nextDouble(minRadius, maxRadius);
+                double dist = ThreadLocalRandom.current().nextDouble(safeMinRadius, safeMaxRadius);
                 Vector offset = new Vector(Math.cos(angle) * dist, 0.0, Math.sin(angle) * dist);
                 Location base = playerLoc.clone().add(offset);
                 int y = world.getHighestBlockYAt(base);
@@ -947,6 +978,7 @@ public class StrongholdRunManager implements Listener {
         private boolean awaitingUpgradeSelection;
         private boolean skipNextUpgradeReopen;
         private boolean upgradePaused;
+        private int cooldownUpgradeTier;
 
         private SurvivorState(PlayerClass originalClass) {
             this.originalClass = originalClass == null ? PlayerClass.VILLAGER : originalClass;
@@ -956,7 +988,8 @@ public class StrongholdRunManager implements Listener {
     private enum UpgradeType {
         SPELL_UNLOCK,
         SPELL_UPGRADE,
-        STAT
+        STAT,
+        GLOBAL_COOLDOWN
     }
 
     private record UpgradeChoice(UpgradeType type,
