@@ -31,6 +31,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
+import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -263,6 +264,21 @@ public class StrongholdRunManager implements Listener {
         event.setCancelled(true);
         if (event.getEntity() instanceof Mob mob) {
             mob.setTarget(null);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onRunLootPickup(EntityPickupItemEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null) {
+            return;
+        }
+        if (run.captureLootToStash(player, event.getItem().getItemStack())) {
+            event.setCancelled(true);
+            event.getItem().remove();
         }
     }
 
@@ -522,7 +538,8 @@ public class StrongholdRunManager implements Listener {
                 meta.setLore(List.of(
                         ChatColor.GRAY + "Reached Wave: " + ChatColor.WHITE + wave,
                         ChatColor.GRAY + "Run Rank: " + ChatColor.WHITE + state.level,
-                        ChatColor.GRAY + "Keys Found: " + ChatColor.WHITE + state.keysCollected
+                        ChatColor.GRAY + "Keys Found: " + ChatColor.WHITE + state.keysCollected,
+                        ChatColor.GRAY + "Loot Stash: " + ChatColor.WHITE + state.lootStash.size() + " item(s)"
                 ));
                 summary.setItemMeta(meta);
             }
@@ -695,6 +712,10 @@ public class StrongholdRunManager implements Listener {
             PlayerClass currentClass = PlayerClassManager.getInstance().getPlayerClass(player);
             SurvivorState state = new SurvivorState(currentClass);
             playerStates.put(player.getUniqueId(), state);
+            state.savedStorageContents = cloneItemArray(player.getInventory().getStorageContents());
+            state.savedArmorContents = cloneItemArray(player.getInventory().getArmorContents());
+            state.savedExtraContents = cloneItemArray(player.getInventory().getExtraContents());
+            state.savedOffHand = player.getInventory().getItemInOffHand() == null ? null : player.getInventory().getItemInOffHand().clone();
 
             PlayerClassManager.getInstance().setPlayerClass(player, PlayerClass.VILLAGER);
             state.progressBar = Bukkit.createBossBar("", BarColor.PURPLE, BarStyle.SOLID);
@@ -1107,6 +1128,29 @@ public class StrongholdRunManager implements Listener {
             }
         }
 
+        private boolean captureLootToStash(Player player, ItemStack pickedUp) {
+            if (player == null || pickedUp == null || pickedUp.getType().isAir()) {
+                return false;
+            }
+            SurvivorState state = playerStates.get(player.getUniqueId());
+            if (state == null) {
+                return false;
+            }
+            state.lootStash.add(pickedUp.clone());
+            return true;
+        }
+
+        private ItemStack[] cloneItemArray(ItemStack[] source) {
+            if (source == null) {
+                return new ItemStack[0];
+            }
+            ItemStack[] out = new ItemStack[source.length];
+            for (int i = 0; i < source.length; i++) {
+                out[i] = source[i] == null ? null : source[i].clone();
+            }
+            return out;
+        }
+
         private void restorePlayerAfterRun(UUID playerId, SurvivorState state) {
             if (state == null) {
                 return;
@@ -1125,6 +1169,10 @@ public class StrongholdRunManager implements Listener {
             if (online != null && online.isOnline()) {
                 online.setInvisible(false);
                 PlayerClassManager.getInstance().setPlayerClass(online, state.originalClass);
+                online.getInventory().setStorageContents(cloneItemArray(state.savedStorageContents));
+                online.getInventory().setArmorContents(cloneItemArray(state.savedArmorContents));
+                online.getInventory().setExtraContents(cloneItemArray(state.savedExtraContents));
+                online.getInventory().setItemInOffHand(state.savedOffHand == null ? null : state.savedOffHand.clone());
                 if (state.progressBar != null) {
                     state.progressBar.removePlayer(online);
                     state.progressBar.setVisible(false);
@@ -1214,6 +1262,11 @@ public class StrongholdRunManager implements Listener {
         private boolean upgradePaused;
         private int cooldownUpgradeTier;
         private int keysCollected;
+        private final List<ItemStack> lootStash = new ArrayList<>();
+        private ItemStack[] savedStorageContents = new ItemStack[0];
+        private ItemStack[] savedArmorContents = new ItemStack[0];
+        private ItemStack[] savedExtraContents = new ItemStack[0];
+        private ItemStack savedOffHand;
 
         private SurvivorState(PlayerClass originalClass) {
             this.originalClass = originalClass == null ? PlayerClass.VILLAGER : originalClass;
