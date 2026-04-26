@@ -257,6 +257,7 @@ public class StrongholdRunManager implements Listener {
         private final List<UUID> currentWaveSpawned = new ArrayList<>();
         private final Map<UUID, MobMotionState> mobMotionStates = new HashMap<>();
         private final Map<UUID, SurvivorState> playerStates = new HashMap<>();
+        private final Set<UUID> pausedPlayers = new HashSet<>();
 
         private BukkitTask task;
         private BukkitTask autoCastTask;
@@ -597,6 +598,7 @@ public class StrongholdRunManager implements Listener {
                 state.pendingUpgrades = rollUpgradeChoices(state, 3);
             }
             state.awaitingUpgradeSelection = true;
+            setUpgradePausedState(player, state, true);
             Inventory inv = Bukkit.createInventory(player, 27, UPGRADE_GUI_TITLE);
             inv.setItem(11, upgradeItem(state.pendingUpgrades.get(0), state));
             inv.setItem(13, upgradeItem(state.pendingUpgrades.get(1), state));
@@ -647,6 +649,7 @@ public class StrongholdRunManager implements Listener {
             state.pendingUpgrades = List.of();
             state.awaitingUpgradeSelection = false;
             state.skipNextUpgradeReopen = true;
+            setUpgradePausedState(player, state, false);
             player.closeInventory();
         }
 
@@ -673,6 +676,37 @@ public class StrongholdRunManager implements Listener {
                 }
                 openUpgradeGui(online, onlineState);
             });
+        }
+
+        private void setUpgradePausedState(Player player, SurvivorState state, boolean paused) {
+            if (player == null || state == null) {
+                return;
+            }
+            state.upgradePaused = paused;
+            if (paused) {
+                pausedPlayers.add(player.getUniqueId());
+                player.setInvisible(true);
+                setEnemyFreezeState(true);
+                return;
+            }
+            pausedPlayers.remove(player.getUniqueId());
+            player.setInvisible(false);
+            if (pausedPlayers.isEmpty()) {
+                setEnemyFreezeState(false);
+            }
+        }
+
+        private void setEnemyFreezeState(boolean frozen) {
+            for (UUID id : spawned) {
+                var entity = plugin.getServer().getEntity(id);
+                if (!(entity instanceof LivingEntity living) || living.isDead()) {
+                    continue;
+                }
+                if (living instanceof Mob mob) {
+                    mob.setTarget(null);
+                    mob.setAI(!frozen);
+                }
+            }
         }
 
         private void applyUpgrade(Player player, SurvivorState state, UpgradeChoice choice) {
@@ -776,8 +810,14 @@ public class StrongholdRunManager implements Listener {
                 if (player == null || !player.isOnline() || !Objects.equals(player.getWorld().getUID(), worldId)) {
                     continue;
                 }
+                if (pausedPlayers.contains(player.getUniqueId())) {
+                    continue;
+                }
                 SurvivorState state = entry.getValue();
                 for (String spellId : state.activeSpellByBase.values()) {
+                    if (requiresLockTarget(spellId) && findNearestLockTarget(player, 18.0) == null) {
+                        continue;
+                    }
                     SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(spellId);
                     if (spellEntry == null) {
                         continue;
@@ -792,6 +832,22 @@ public class StrongholdRunManager implements Listener {
                     state.lastCastAtBySpell.put(spellId, now);
                 }
             }
+        }
+
+        private boolean requiresLockTarget(String spellId) {
+            if (spellId == null) {
+                return false;
+            }
+            String normalized = spellId.toLowerCase(Locale.ROOT);
+            return normalized.contains("homing") || normalized.contains("seeker");
+        }
+
+        private LivingEntity findNearestLockTarget(Player caster, double range) {
+            return me.nakilex.levelplugin.spells.SpellEffectUtil.getLivingTargets(caster.getLocation(), Math.max(2.0, range),
+                            living -> !living.equals(caster))
+                    .stream()
+                    .min(java.util.Comparator.comparingDouble(living -> living.getLocation().distanceSquared(caster.getLocation())))
+                    .orElse(null);
         }
 
         private void castAutoSpell(Player player, SpellRegistry.SpellEntry spellEntry) {
@@ -834,11 +890,17 @@ public class StrongholdRunManager implements Listener {
             }
             state.awaitingUpgradeSelection = false;
             state.skipNextUpgradeReopen = true;
+            state.upgradePaused = false;
+            pausedPlayers.remove(playerId);
+            if (pausedPlayers.isEmpty()) {
+                setEnemyFreezeState(false);
+            }
             for (Map.Entry<StatsManager.StatType, Integer> buff : state.tempStatBonuses.entrySet()) {
                 applyTempStatDelta(playerId, buff.getKey(), -Math.max(0, buff.getValue()));
             }
             Player online = Bukkit.getPlayer(playerId);
             if (online != null && online.isOnline()) {
+                online.setInvisible(false);
                 PlayerClassManager.getInstance().setPlayerClass(online, state.originalClass);
                 if (state.progressBar != null) {
                     state.progressBar.removePlayer(online);
@@ -859,6 +921,10 @@ public class StrongholdRunManager implements Listener {
                 Vector offset = new Vector(Math.cos(angle) * dist, 0.0, Math.sin(angle) * dist);
                 Location base = playerLoc.clone().add(offset);
                 int y = world.getHighestBlockYAt(base);
+                Material groundType = world.getBlockAt(base.getBlockX(), y, base.getBlockZ()).getType();
+                if (groundType != Material.GRASS_BLOCK) {
+                    continue;
+                }
                 Location spawn = new Location(world, base.getX(), Math.max(y + 1, fallbackOrigin.getY()), base.getZ());
                 if (spawn.getBlock().getType().isAir() && spawn.clone().add(0, 1, 0).getBlock().getType().isAir()) {
                     return spawn;
@@ -880,6 +946,7 @@ public class StrongholdRunManager implements Listener {
         private List<UpgradeChoice> pendingUpgrades = List.of();
         private boolean awaitingUpgradeSelection;
         private boolean skipNextUpgradeReopen;
+        private boolean upgradePaused;
 
         private SurvivorState(PlayerClass originalClass) {
             this.originalClass = originalClass == null ? PlayerClass.VILLAGER : originalClass;
