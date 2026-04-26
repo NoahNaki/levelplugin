@@ -69,6 +69,7 @@ public class StrongholdRunManager implements Listener {
     private static final int SHRINES_PER_RUN = 1;
     private static final int FIRST_WAVE_DELAY_SECONDS = 3;
     private static final int WAVE_INTERVAL_SECONDS = 5;
+    private static final int MAX_WAVE = 30;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
     private static final int BASE_XP_REQUIRED = 100;
     private static final double MIN_ENEMY_SPAWN_RADIUS = 5.0;
@@ -463,6 +464,11 @@ public class StrongholdRunManager implements Listener {
                 if (countAliveCurrentWave() > 0) {
                     return;
                 }
+                if (wave >= MAX_WAVE) {
+                    endRunAndShowRewardsForAllPlayers(ChatColor.GREEN + "Wave " + ChatColor.WHITE + MAX_WAVE
+                            + ChatColor.GREEN + " cleared! Stronghold run complete.");
+                    return;
+                }
                 if (secondsUntilNextWave > 0) {
                     secondsUntilNextWave--;
                     return;
@@ -572,6 +578,7 @@ public class StrongholdRunManager implements Listener {
             }
             String mobId = waveNumber == 30 ? BOSS_MOB_ID : MINIBOSS_MOB_ID;
             String label = waveNumber == 30 ? "Boss" : "Mini-boss";
+            String mobDisplay = resolveMobDisplayName(mobId);
             Player target = players.get(ThreadLocalRandom.current().nextInt(players.size()));
             Location spawn = findSpawnNear(target.getLocation(), origin, 12.0, 24.0);
             if (spawn == null) {
@@ -592,8 +599,18 @@ public class StrongholdRunManager implements Listener {
             }
             for (Player player : players) {
                 send(player, MessageType.WARNING,
-                        label + " incoming: " + ChatColor.WHITE + mobId + ChatColor.GRAY + " has joined Wave " + waveNumber + ".");
+                        label + " incoming: " + ChatColor.WHITE + mobDisplay + ChatColor.GRAY
+                                + " has joined Wave " + ChatColor.WHITE + waveNumber + ChatColor.GRAY + ".");
             }
+        }
+
+        private String resolveMobDisplayName(String mobId) {
+            if (mobId == null || mobId.isBlank()) {
+                return "Unknown";
+            }
+            return plugin.getCustomMobManager().getDefinition(mobId)
+                    .map(def -> def.displayName())
+                    .orElse(me.nakilex.levelplugin.utils.TextUtil.beautifyWords(mobId));
         }
 
         private void maybeDropStrongholdKey(Location at, Player killer) {
@@ -638,6 +655,22 @@ public class StrongholdRunManager implements Listener {
             pendingResultInventories.put(target.getUniqueId(), createSessionResultInventory(target, state));
             stopRun(worldId);
             return true;
+        }
+
+        private void endRunAndShowRewardsForAllPlayers(String completionMessage) {
+            for (Map.Entry<UUID, SurvivorState> entry : new HashMap<>(playerStates).entrySet()) {
+                UUID playerId = entry.getKey();
+                SurvivorState state = entry.getValue();
+                Player player = Bukkit.getPlayer(playerId);
+                if (player == null || !player.isOnline()) {
+                    continue;
+                }
+                pendingResultInventories.put(playerId, createSessionResultInventory(player, state));
+                if (completionMessage != null && !completionMessage.isBlank()) {
+                    send(player, MessageType.SUCCESS, completionMessage);
+                }
+            }
+            stopRun(worldId);
         }
 
         private void openSessionResultGui(Player player, SurvivorState state) {
