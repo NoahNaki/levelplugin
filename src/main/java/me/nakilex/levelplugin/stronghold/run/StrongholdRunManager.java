@@ -71,6 +71,8 @@ public class StrongholdRunManager implements Listener {
     private static final double MOB_RELOCATE_TRIGGER_DISTANCE = 30.0;
     private static final double MOB_RELOCATE_MIN_RADIUS = 4.0;
     private static final double MOB_RELOCATE_MAX_RADIUS = 10.0;
+    private static final double MOB_RELOCATE_AXIS_OFFSET = 5.0;
+    private static final double MOB_RELOCATE_AXIS_JITTER = 1.5;
 
     private final Main plugin;
     private final StrongholdShrineManager shrineManager;
@@ -492,7 +494,7 @@ public class StrongholdRunManager implements Listener {
                     continue;
                 }
                 Location pulled = tooFarFromPlayer
-                        ? findSpawnNear(nearest.getLocation(), nearest.getLocation(), MOB_RELOCATE_MIN_RADIUS, MOB_RELOCATE_MAX_RADIUS)
+                        ? findRelocationNearPlayer(nearest.getLocation())
                         : pullTowardPlayer(current, nearest.getLocation(), world);
                 if (pulled == null) {
                     continue;
@@ -510,6 +512,23 @@ public class StrongholdRunManager implements Listener {
                 return false;
             }
             return now - lastTeleportAtMs >= MOB_RELOCATE_COOLDOWN_MS;
+        }
+
+        private Location findRelocationNearPlayer(Location playerLocation) {
+            if (playerLocation == null || playerLocation.getWorld() == null) {
+                return null;
+            }
+            World world = playerLocation.getWorld();
+            for (int attempt = 0; attempt < 8; attempt++) {
+                double xOffset = randomAxisOffset();
+                double zOffset = randomAxisOffset();
+                Location sample = playerLocation.clone().add(xOffset, 0.0, zOffset);
+                Location spawn = resolveSurfaceSpawn(world, sample, playerLocation, true);
+                if (spawn != null) {
+                    return spawn;
+                }
+            }
+            return findSpawnNear(playerLocation, playerLocation, MOB_RELOCATE_MIN_RADIUS, MOB_RELOCATE_MAX_RADIUS);
         }
 
         private Location pullTowardPlayer(Location mobLocation, Location playerLocation, World world) {
@@ -1033,17 +1052,34 @@ public class StrongholdRunManager implements Listener {
                 double dist = ThreadLocalRandom.current().nextDouble(minRadius, maxRadius);
                 Vector offset = new Vector(Math.cos(angle) * dist, 0.0, Math.sin(angle) * dist);
                 Location base = playerLoc.clone().add(offset);
-                int y = world.getHighestBlockYAt(base);
-                Material groundType = world.getBlockAt(base.getBlockX(), y, base.getBlockZ()).getType();
-                if (!isAllowedSpawnGround(groundType, grassOnly)) {
-                    continue;
-                }
-                Location spawn = new Location(world, base.getX(), Math.max(y + 1, fallbackOrigin.getY()), base.getZ());
-                if (spawn.getBlock().getType().isAir() && spawn.clone().add(0, 1, 0).getBlock().getType().isAir()) {
+                Location spawn = resolveSurfaceSpawn(world, base, fallbackOrigin, grassOnly);
+                if (spawn != null) {
                     return spawn;
                 }
             }
             return null;
+        }
+
+        private Location resolveSurfaceSpawn(World world, Location base, Location fallbackOrigin, boolean grassOnly) {
+            if (world == null || base == null || fallbackOrigin == null) {
+                return null;
+            }
+            int y = world.getHighestBlockYAt(base);
+            Material groundType = world.getBlockAt(base.getBlockX(), y, base.getBlockZ()).getType();
+            if (!isAllowedSpawnGround(groundType, grassOnly)) {
+                return null;
+            }
+            Location spawn = new Location(world, base.getX(), Math.max(y + 1, fallbackOrigin.getY()), base.getZ());
+            if (spawn.getBlock().getType().isAir() && spawn.clone().add(0, 1, 0).getBlock().getType().isAir()) {
+                return spawn;
+            }
+            return null;
+        }
+
+        private double randomAxisOffset() {
+            double magnitude = MOB_RELOCATE_AXIS_OFFSET
+                    + ThreadLocalRandom.current().nextDouble(-MOB_RELOCATE_AXIS_JITTER, MOB_RELOCATE_AXIS_JITTER);
+            return ThreadLocalRandom.current().nextBoolean() ? magnitude : -magnitude;
         }
 
         private boolean isAllowedSpawnGround(Material groundType, boolean grassOnly) {
