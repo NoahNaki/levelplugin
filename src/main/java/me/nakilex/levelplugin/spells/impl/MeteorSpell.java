@@ -7,7 +7,6 @@ import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
 import me.nakilex.levelplugin.spells.SpellTargetingUtil;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -63,9 +62,8 @@ public class MeteorSpell implements SpellHandler {
         Player player = context.player();
         Location impact = SpellTargetingUtil.resolveTargetGround(player, TARGET_RANGE);
         if (impact == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "No ground target in sight for Meteor.");
-            return;
+            impact = player.getLocation().clone().add(player.getLocation().getDirection().multiply(8.0));
+            impact.setY(player.getWorld().getHighestBlockYAt(impact) + 1.0);
         }
         Location spawn = player.getLocation().clone().add(0, spawnHeight, 0);
         World world = spawn.getWorld();

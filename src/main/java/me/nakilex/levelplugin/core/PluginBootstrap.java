@@ -647,6 +647,7 @@ public class PluginBootstrap {
         plugin.getServer().getPluginManager().registerEvents(blockGlowUtil, plugin);
         plugin.getServer().getPluginManager().registerEvents(strongholdQueueGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(strongholdShrineManager, plugin);
+        plugin.getServer().getPluginManager().registerEvents(strongholdRunManager, plugin);
 
         ListenerRegistry.registerListeners(
             plugin,

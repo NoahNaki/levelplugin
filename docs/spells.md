@@ -191,3 +191,58 @@ They are designed to mirror existing class themes (clear identity, readable tele
 - **Bulwark Charge** → *Rampart Rush* → *Warlord Rush* (longer charge, stronger lane displacement).
 - **Iron Bastion** → *Fortress Stance* → *Unbroken Bastion* (higher frontal mitigation + stronger punish proc).
 
+## Stronghold / Survivor-style auto-cast candidates
+
+When adapting the current class spell set to a survivor-style loop (automatic periodic casts around or near the player), prefer spells that either:
+
+- already resolve ground targets and can snap to nearest enemy cluster, or
+- are self/party-centered buffs with no aim dependency.
+
+### Best immediate candidates (minimal behavior change)
+
+- **Meteor line (`meteor`, `meteor_double`, `meteor_big`)**
+  - Auto trigger: every cooldown window.
+  - Auto target: nearest enemy cluster within 12-20 blocks, fallback to `player.location + forward * 6`.
+  - Why: already built as delayed AoE impact with clear telegraph.
+- **Blackhole line (`blackhole`, `blackhole_gravitywell`, `blackhole_singularity`)**
+  - Auto trigger: when at least N enemies are in medium range (e.g. 4+ in 14 blocks).
+  - Auto target: densest local pack.
+  - Why: crowd-control spell naturally fits swarm gameplay.
+- **Archer Arrow Rain (`archer_arrow_rain`)**
+  - Auto trigger: periodic offense proc.
+  - Auto target: nearest packed enemies slightly ahead of player.
+  - Why: area barrage pattern maps directly to survivor "zone clear" behavior.
+- **Archer Homing Barrage (`archer_homing_barrage`)**
+  - Auto trigger: single-target pressure proc.
+  - Auto target: highest-health enemy in range.
+  - Why: already projectile-oriented and forgiving on precision.
+
+### Strong defensive/utility auto-casts
+
+- **Mage Heal line (`mage_heal`, `mage_heal_rejuvenation`, `mage_heal_party`)**
+  - Auto trigger: health threshold (e.g. <= 70%) or periodic sustain pulse.
+- **Archer Windguard (`archer_windguard`)**
+  - Auto trigger: panic/pressure rule (nearby enemy count spike).
+- **Warrior Guarded Resolve (`warrior_guarded_resolve`)**
+  - Auto trigger: high incoming pressure (surrounded or recent damage burst).
+- **Rogue Smoke Bomb line (`rogue_veil_counter*`)**
+  - Auto trigger: emergency peel when enemies enter close radius.
+
+### Usually keep as manual (or heavily constrained auto-use)
+
+- **Mobility spells** (`mage_blink`, `archer_skybound`, `rogue_razor_dash`, `warrior_titan_vault`)
+  - Reason: auto movement can feel loss-of-control unless tied to explicit evade logic.
+- **Precision melee gap-closers/combos** (`rogue_sky_ripper*`, `rogue_phantom_cross*`)
+  - Reason: these are strongest with intentional target selection.
+
+### Reusable trigger model (recommended)
+
+To avoid one-off auto-cast logic per spell, use generic trigger categories:
+
+- `OFFENSE_PERIODIC`: fires every cooldown if enemies exist in spell range.
+- `OFFENSE_CLUSTER`: requires a minimum cluster size.
+- `DEFENSE_HEALTH_THRESHOLD`: fires under configured HP%.
+- `DEFENSE_SURROUNDED`: fires when nearby enemy count >= threshold.
+- `UTILITY_PERIODIC`: fixed interval support pulse.
+
+Then map each spell ID to one category + target resolver strategy. This keeps new class spells compatible with the same stronghold/survivor runtime without adding spell-specific control code.
