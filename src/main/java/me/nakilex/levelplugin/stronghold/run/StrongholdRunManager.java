@@ -32,8 +32,10 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -81,6 +83,7 @@ public class StrongholdRunManager implements Listener {
     private final Main plugin;
     private final StrongholdShrineManager shrineManager;
     private final Map<UUID, ActiveRun> activeRuns = new HashMap<>();
+    private final Map<UUID, Inventory> pendingResultInventories = new HashMap<>();
     private final List<String> waveMobPool = List.of("goblin_warrior", "goblin_archer", "goblin_assassin");
     private final Set<String> autoCastBasePool = new HashSet<>();
     private final Set<String> excludedAutoCastSpellIds = Set.of(
@@ -237,6 +240,35 @@ public class StrongholdRunManager implements Listener {
         if (run != null) {
             run.hideProgressBar(player.getUniqueId());
         }
+    }
+
+    @EventHandler
+    public void onRunPlayerDeath(PlayerDeathEvent event) {
+        if (event == null || event.getEntity() == null) {
+            return;
+        }
+        Player player = event.getEntity();
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run != null) {
+            run.handlePlayerDeath(player);
+        }
+    }
+
+    @EventHandler
+    public void onRunPlayerRespawn(PlayerRespawnEvent event) {
+        if (event == null || event.getPlayer() == null) {
+            return;
+        }
+        Player player = event.getPlayer();
+        Inventory pending = pendingResultInventories.remove(player.getUniqueId());
+        if (pending == null) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (player.isOnline()) {
+                player.openInventory(pending);
+            }
+        }, 2L);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -428,6 +460,19 @@ public class StrongholdRunManager implements Listener {
             }
         }
 
+        private void handlePlayerDeath(Player player) {
+            if (player == null) {
+                return;
+            }
+            SurvivorState state = playerStates.get(player.getUniqueId());
+            if (state == null) {
+                return;
+            }
+            Inventory result = createSessionResultInventory(player, state);
+            pendingResultInventories.put(player.getUniqueId(), result);
+            stopRun(worldId);
+        }
+
         private void spawnWave(World world, int waveNumber) {
             List<Player> players = world.getPlayers().stream().filter(Player::isOnline).toList();
             if (players.isEmpty()) {
@@ -536,7 +581,11 @@ public class StrongholdRunManager implements Listener {
             if (state == null) {
                 return false;
             }
-            openSessionResultGui(target, state);
+            if (target.isDead()) {
+                pendingResultInventories.put(target.getUniqueId(), createSessionResultInventory(target, state));
+            } else {
+                openSessionResultGui(target, state);
+            }
             stopRun(worldId);
             return true;
         }
@@ -545,6 +594,11 @@ public class StrongholdRunManager implements Listener {
             if (player == null || state == null) {
                 return;
             }
+            Inventory inv = createSessionResultInventory(player, state);
+            player.openInventory(inv);
+        }
+
+        private Inventory createSessionResultInventory(Player player, SurvivorState state) {
             Inventory inv = Bukkit.createInventory(player, 27, ChatColor.DARK_PURPLE + "Stronghold Results");
             ItemStack summary = new ItemStack(Material.BOOK);
             ItemMeta meta = summary.getItemMeta();
@@ -559,7 +613,7 @@ public class StrongholdRunManager implements Listener {
                 summary.setItemMeta(meta);
             }
             inv.setItem(13, summary);
-            player.openInventory(inv);
+            return inv;
         }
 
         private void initializePlayers(World world) {
