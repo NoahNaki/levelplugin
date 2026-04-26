@@ -419,6 +419,7 @@ public class PluginBootstrap {
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
         arenaQueueManager.setScoreboardManager(scoreboardManager);
         scoreboardManager.setStrongholdQueueManager(strongholdQueueManager);
+        scoreboardManager.setStrongholdRunManager(strongholdRunManager);
         arenaCombatTracker = new ArenaCombatTracker();
         arenaMatchManager = new ArenaMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
         arenaTeamMatchManager = new ArenaTeamMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
@@ -647,6 +648,7 @@ public class PluginBootstrap {
         plugin.getServer().getPluginManager().registerEvents(blockGlowUtil, plugin);
         plugin.getServer().getPluginManager().registerEvents(strongholdQueueGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(strongholdShrineManager, plugin);
+        plugin.getServer().getPluginManager().registerEvents(strongholdRunManager, plugin);
 
         ListenerRegistry.registerListeners(
             plugin,

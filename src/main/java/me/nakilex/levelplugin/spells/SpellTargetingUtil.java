@@ -31,6 +31,22 @@ public final class SpellTargetingUtil {
         return base.add(0.5, 1.0, 0.5);
     }
 
+    public static Location resolveNearestEnemyGround(Player player, double radius) {
+        if (player == null || player.getWorld() == null || radius <= 0.0) {
+            return null;
+        }
+        LivingEntity nearest = SpellEffectUtil.getLivingTargets(player.getLocation(), radius, living -> !living.equals(player))
+                .stream()
+                .min(java.util.Comparator.comparingDouble(living -> living.getLocation().distanceSquared(player.getLocation())))
+                .orElse(null);
+        if (nearest == null) {
+            return null;
+        }
+        Location at = nearest.getLocation().clone();
+        int y = player.getWorld().getHighestBlockYAt(at);
+        return new Location(player.getWorld(), at.getX(), y + 1.0, at.getZ());
+    }
+
     public static Location resolveSafeTeleportTarget(Player player, double maxDistance) {
         if (player == null || player.getWorld() == null || maxDistance <= 0) {
             return null;

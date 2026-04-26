@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.spells.SpellHandler;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Arrow;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
@@ -54,15 +55,20 @@ public class ArcherHomingBarrageSpell implements SpellHandler {
                     cancel();
                     return;
                 }
-                shootHomingArrow(caster, damage);
+                LivingEntity lockTarget = findLockTarget(caster, 20.0);
+                if (lockTarget == null) {
+                    cancel();
+                    return;
+                }
+                shootHomingArrow(caster, damage, lockTarget);
                 fired++;
             }
         }.runTaskTimer(plugin, 0L, intervalTicks);
     }
 
-    private void shootHomingArrow(Player caster, double damage) {
+    private void shootHomingArrow(Player caster, double damage, LivingEntity lockTarget) {
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        Vector direction = caster.getEyeLocation().getDirection().clone();
+        Vector direction = lockTarget.getEyeLocation().toVector().subtract(caster.getEyeLocation().toVector()).normalize();
         direction.add(new Vector(
                 random.nextDouble(-0.07, 0.07),
                 random.nextDouble(-0.04, 0.04),
@@ -74,5 +80,13 @@ public class ArcherHomingBarrageSpell implements SpellHandler {
         }
         caster.getWorld().spawnParticle(Particle.CRIT, caster.getEyeLocation(), 5, 0.12, 0.08, 0.12, 0.02);
         ArcherArrowUtil.attachHomingTask(plugin, caster, arrow, homingStrength, 36, 18.0, 0.7);
+    }
+
+    private LivingEntity findLockTarget(Player caster, double range) {
+        return SpellEffectUtil.getLivingTargets(caster.getLocation(), Math.max(2.0, range),
+                        living -> !living.equals(caster))
+                .stream()
+                .min(java.util.Comparator.comparingDouble(living -> living.getLocation().distanceSquared(caster.getLocation())))
+                .orElse(null);
     }
 }

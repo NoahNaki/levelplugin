@@ -51,6 +51,7 @@ import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
 import me.nakilex.levelplugin.items.listeners.StaticItemListener;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Material;
@@ -136,7 +137,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|lootchestanimation|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|" + statUsage + ">");
             }
             return true;
         }
@@ -555,7 +556,29 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output|endsession <player>>");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("endsession")) {
+                    if (args.length < 3) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug stronghold endsession <player>");
+                        return true;
+                    }
+                    Player targetPlayer = Bukkit.getPlayerExact(args[2]);
+                    if (targetPlayer == null || !targetPlayer.isOnline()) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Player not found or offline: " + args[2]);
+                        return true;
+                    }
+                    var runManager = Main.getInstance().getStrongholdRunManager();
+                    if (runManager == null || !runManager.forceEndSession(targetPlayer)) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Target is not in an active Stronghold run.");
+                        return true;
+                    }
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Ended Stronghold session for " + ChatColor.WHITE + targetPlayer.getName() + ChatColor.GREEN + ".");
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("assets")) {
@@ -593,7 +616,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output|endsession <player>>");
                     return true;
                 }
                 if (args[2].equalsIgnoreCase("test")) {
@@ -604,6 +627,38 @@ public class DebugCommand implements TabExecutor {
                 }
                 ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
                         "Unknown stronghold template: " + args[2] + ". Available: test, towerwall");
+                return true;
+            case "strongholdxp":
+                if (!(sender instanceof Player strongholdXpPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(strongholdXpPlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug strongholdxp <amount>");
+                    return true;
+                }
+                int xpAmount;
+                try {
+                    xpAmount = Integer.parseInt(args[1]);
+                } catch (NumberFormatException ex) {
+                    ChatMessageUtil.send(strongholdXpPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "Invalid amount. Example: /debug strongholdxp 150");
+                    return true;
+                }
+                if (xpAmount <= 0) {
+                    ChatMessageUtil.send(strongholdXpPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "XP amount must be greater than 0.");
+                    return true;
+                }
+                var runManager = Main.getInstance().getStrongholdRunManager();
+                if (runManager == null || !runManager.addDebugXp(strongholdXpPlayer, xpAmount)) {
+                    ChatMessageUtil.send(strongholdXpPlayer, ChatMessageUtil.MessageType.ERROR,
+                            "You must be inside an active Stronghold run to add Stronghold XP.");
+                    return true;
+                }
+                ChatMessageUtil.send(strongholdXpPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Added " + ChatColor.WHITE + xpAmount + ChatColor.GREEN + " Stronghold XP.");
                 return true;
             case "lootchestanimation":
                 if (!(sender instanceof Player lootChestAnimationPlayer)) {
@@ -622,7 +677,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|lootchestanimation|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -809,14 +864,23 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "lootchestanimation"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "lootchestanimation"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate", "overlap", "templates", "assets", "output").stream()
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("strongholdxp")) {
+            return List.of("50", "100", "150", "250").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
+            return List.of("generate", "overlap", "templates", "assets", "output", "endsession").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("endsession")) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("generate")) {
             return List.of("test", "towerwall").stream()

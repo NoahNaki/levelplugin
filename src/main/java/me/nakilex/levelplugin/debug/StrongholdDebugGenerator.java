@@ -4792,7 +4792,7 @@ public final class StrongholdDebugGenerator {
         state.interaction().setInteractionWidth(1.8f);
         state.interaction().setInteractionHeight(2.0f);
         state.display().teleport(base.clone().add(0, 0.75, 0));
-        state.display().setText(ChatColor.GOLD + "Right click to open");
+        state.display().setText(ChatColor.GOLD + "Right click to open " + ChatColor.GRAY + "(Requires Stronghold Key)");
     }
 
     private static void hideDoorHologram(DoorInteractionState state) {
