@@ -13,6 +13,7 @@ import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.ArmorStand;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.Particle.DustOptions;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -127,10 +128,25 @@ public class MeteorSpell implements SpellHandler {
         world.spawnParticle(Particle.LAVA, impact, 36, 0.9, 0.4, 0.9, 0.03);
         spawnOrangeGroundFlower(impact);
         world.playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 1.3f, 0.8f);
-        SpellEffectUtil.applyAreaDamage(caster, impact, impactRadius, impactDamage);
+        applyMeteorImpactDamage(caster, impact);
         particleService.renderPreset(caster, ElementalPresets.BURNING_SIGIL, impact);
         SpellEffectUtil.startDamageOverTime(plugin, caster, impact, dotRadius, dotDamage,
                 DOT_PERIOD_TICKS, DOT_DURATION_TICKS);
+    }
+
+    private void applyMeteorImpactDamage(Player caster, Location impact) {
+        double horizontalRadiusSq = impactRadius * impactRadius;
+        for (LivingEntity target : SpellEffectUtil.getLivingTargets(impact, impactRadius + 6.0, living -> !living.equals(caster))) {
+            Vector delta = target.getLocation().toVector().subtract(impact.toVector());
+            double horizontalSq = (delta.getX() * delta.getX()) + (delta.getZ() * delta.getZ());
+            if (horizontalSq > horizontalRadiusSq) {
+                continue;
+            }
+            if (Math.abs(delta.getY()) > 8.0) {
+                continue;
+            }
+            SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, impactDamage);
+        }
     }
 
     private void spawnOrangeGroundFlower(Location impact) {

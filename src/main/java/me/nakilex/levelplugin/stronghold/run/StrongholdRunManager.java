@@ -628,7 +628,7 @@ public class StrongholdRunManager implements Listener {
             updateProgressBar(player, state);
             if (leveledUp) {
                 send(player, MessageType.SUCCESS,
-                        "Level up! " + ChatColor.WHITE + "Lv. " + state.level + ChatColor.GRAY + " reached.");
+                        "Rank up! " + ChatColor.WHITE + "Run Rank " + state.level + ChatColor.GRAY + " reached.");
                 state.pendingUpgrades = rollUpgradeChoices(state, 3);
                 openUpgradeGui(player, state);
             }
@@ -656,7 +656,7 @@ public class StrongholdRunManager implements Listener {
             }
             int required = xpRequiredForLevel(state.level);
             double progress = required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, state.xp / (double) required));
-            state.progressBar.setTitle(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Stronghold Lv." + state.level
+            state.progressBar.setTitle(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Stronghold Rank " + state.level
                     + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + state.xp + ChatColor.GRAY + "/" + ChatColor.WHITE + required + " XP");
             state.progressBar.setProgress(progress);
             state.progressBar.setVisible(true);
