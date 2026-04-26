@@ -60,7 +60,10 @@ public class MeteorSpell implements SpellHandler {
     @Override
     public void cast(SpellContext context) {
         Player player = context.player();
-        Location impact = SpellTargetingUtil.resolveTargetGround(player, TARGET_RANGE);
+        Location impact = SpellTargetingUtil.resolveNearestEnemyGround(player, TARGET_RANGE);
+        if (impact == null) {
+            impact = SpellTargetingUtil.resolveTargetGround(player, TARGET_RANGE);
+        }
         if (impact == null) {
             impact = player.getLocation().clone().add(player.getLocation().getDirection().multiply(8.0));
             impact.setY(player.getWorld().getHighestBlockYAt(impact) + 1.0);

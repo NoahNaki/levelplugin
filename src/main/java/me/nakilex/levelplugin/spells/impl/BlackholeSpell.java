@@ -38,7 +38,10 @@ public class BlackholeSpell implements SpellHandler {
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        Location resolved = SpellTargetingUtil.resolveTargetGround(caster, 28);
+        Location resolved = SpellTargetingUtil.resolveNearestEnemyGround(caster, 28);
+        if (resolved == null) {
+            resolved = SpellTargetingUtil.resolveTargetGround(caster, 28);
+        }
         if (resolved == null) {
             resolved = caster.getLocation().clone().add(caster.getLocation().getDirection().multiply(7.0));
             resolved.setY(caster.getWorld().getHighestBlockYAt(resolved) + 1.0);
