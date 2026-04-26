@@ -59,6 +59,9 @@ public class StrongholdRunManager implements Listener {
     private static final int WAVE_INTERVAL_SECONDS = 5;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
     private static final int BASE_XP_REQUIRED = 100;
+    private static final long STUCK_PULL_DELAY_MS = 4_000L;
+    private static final double STUCK_MOVE_EPSILON_SQ = 0.20 * 0.20;
+    private static final double STUCK_PULL_DISTANCE = 6.0;
 
     private final Main plugin;
     private final StrongholdShrineManager shrineManager;
@@ -252,6 +255,7 @@ public class StrongholdRunManager implements Listener {
         private final Location origin;
         private final List<UUID> spawned = new ArrayList<>();
         private final List<UUID> currentWaveSpawned = new ArrayList<>();
+        private final Map<UUID, MobMotionState> mobMotionStates = new HashMap<>();
         private final Map<UUID, SurvivorState> playerStates = new HashMap<>();
 
         private BukkitTask task;
@@ -277,6 +281,7 @@ public class StrongholdRunManager implements Listener {
                 }
                 syncRunPlayers(world);
                 cleanupDeadSpawned();
+                updateStuckMobPull(world);
                 if (countAliveCurrentWave() > 0) {
                     return;
                 }
@@ -308,6 +313,7 @@ public class StrongholdRunManager implements Listener {
             }
             spawned.clear();
             currentWaveSpawned.clear();
+            mobMotionStates.clear();
             for (Map.Entry<UUID, SurvivorState> entry : new HashMap<>(playerStates).entrySet()) {
                 restorePlayerAfterRun(entry.getKey(), entry.getValue());
             }
@@ -321,6 +327,7 @@ public class StrongholdRunManager implements Listener {
             UUID deadId = entity.getUniqueId();
             spawned.remove(deadId);
             currentWaveSpawned.remove(deadId);
+            mobMotionStates.remove(deadId);
 
             Player killer = entity.getKiller();
             if (killer != null && killer.isOnline()) {
@@ -347,6 +354,10 @@ public class StrongholdRunManager implements Listener {
                 }
                 spawned.add(mob.getUniqueId());
                 currentWaveSpawned.add(mob.getUniqueId());
+                mobMotionStates.put(mob.getUniqueId(), new MobMotionState(
+                        mob.getLocation().clone(),
+                        System.currentTimeMillis(),
+                        System.currentTimeMillis()));
                 if (mob instanceof Mob hostile) {
                     hostile.setTarget(target);
                 }
@@ -386,6 +397,74 @@ public class StrongholdRunManager implements Listener {
                 var entity = plugin.getServer().getEntity(id);
                 return !(entity instanceof LivingEntity living) || living.isDead();
             });
+            mobMotionStates.entrySet().removeIf(entry -> {
+                var entity = plugin.getServer().getEntity(entry.getKey());
+                return !(entity instanceof LivingEntity living) || living.isDead();
+            });
+        }
+
+        private void updateStuckMobPull(World world) {
+            if (world == null) {
+                return;
+            }
+            List<Player> players = world.getPlayers().stream().filter(Player::isOnline).toList();
+            if (players.isEmpty()) {
+                return;
+            }
+            long now = System.currentTimeMillis();
+            for (Map.Entry<UUID, MobMotionState> entry : mobMotionStates.entrySet()) {
+                UUID mobId = entry.getKey();
+                var entity = plugin.getServer().getEntity(mobId);
+                if (!(entity instanceof Mob mob) || mob.isDead()) {
+                    continue;
+                }
+                MobMotionState state = entry.getValue();
+                Location current = mob.getLocation();
+                if (state.lastLocation != null && current.distanceSquared(state.lastLocation) > STUCK_MOVE_EPSILON_SQ) {
+                    state.lastLocation = current.clone();
+                    state.lastMovedAtMs = now;
+                    continue;
+                }
+                if (now - state.lastMovedAtMs < STUCK_PULL_DELAY_MS) {
+                    continue;
+                }
+                Player nearest = players.stream()
+                        .min(java.util.Comparator.comparingDouble(p -> p.getLocation().distanceSquared(current)))
+                        .orElse(null);
+                if (nearest == null) {
+                    continue;
+                }
+                Location pulled = pullTowardPlayer(current, nearest.getLocation(), world);
+                if (pulled == null) {
+                    continue;
+                }
+                mob.teleport(pulled);
+                mob.setTarget(nearest);
+                state.lastLocation = pulled.clone();
+                state.lastMovedAtMs = now;
+                state.lastTeleportAtMs = now;
+            }
+        }
+
+        private Location pullTowardPlayer(Location mobLocation, Location playerLocation, World world) {
+            if (mobLocation == null || playerLocation == null || world == null) {
+                return null;
+            }
+            Vector toward = playerLocation.toVector().subtract(mobLocation.toVector());
+            toward.setY(0.0);
+            if (toward.lengthSquared() <= 0.0001) {
+                return null;
+            }
+            double horizontalDistance = Math.sqrt(toward.lengthSquared());
+            double pullDistance = Math.min(STUCK_PULL_DISTANCE, Math.max(0.5, horizontalDistance - 1.0));
+            Vector offset = toward.normalize().multiply(pullDistance);
+            Location destination = mobLocation.clone().add(offset);
+            int y = world.getHighestBlockYAt(destination);
+            destination.setY(y + 1.0);
+            if (!destination.getBlock().getType().isAir()) {
+                destination.add(0.0, 1.0, 0.0);
+            }
+            return destination;
         }
 
         private int countAliveCurrentWave() {
@@ -823,5 +902,17 @@ public class StrongholdRunManager implements Listener {
     }
 
     public record StageStatus(int wave, int enemiesRemaining) {
+    }
+
+    private static final class MobMotionState {
+        private Location lastLocation;
+        private long lastMovedAtMs;
+        private long lastTeleportAtMs;
+
+        private MobMotionState(Location lastLocation, long lastMovedAtMs, long lastTeleportAtMs) {
+            this.lastLocation = lastLocation;
+            this.lastMovedAtMs = lastMovedAtMs;
+            this.lastTeleportAtMs = lastTeleportAtMs;
+        }
     }
 }
