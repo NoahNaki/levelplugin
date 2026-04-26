@@ -22,6 +22,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerGameModeChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -539,6 +540,15 @@ public class StaticItemListener implements Listener {
     }
 
     @EventHandler
+    public void onPlayerDeath(PlayerDeathEvent event) {
+        if (event == null || event.getEntity() == null) {
+            return;
+        }
+        event.getDrops().removeIf(StaticItemListener::isManagedStaticItem);
+        clearManagedCraftingSlots(event.getEntity());
+    }
+
+    @EventHandler
     public void onPlayerChangedWorld(PlayerChangedWorldEvent event) {
         queueCraftingMenuRefresh(event.getPlayer());
     }
@@ -701,6 +711,30 @@ public class StaticItemListener implements Listener {
                 action.run();
             }
         }, 1L);
+    }
+
+    private static void clearManagedCraftingSlots(Player player) {
+        if (player == null) {
+            return;
+        }
+        InventoryView view = player.getOpenInventory();
+        if (view != null && view.getTopInventory() instanceof CraftingInventory craftingInventory) {
+            clearCraftingShortcutItems(craftingInventory);
+        }
+        ItemStack[] extra = player.getInventory().getExtraContents();
+        if (extra == null || extra.length == 0) {
+            return;
+        }
+        boolean changed = false;
+        for (int i = 0; i < extra.length; i++) {
+            if (isManagedStaticItem(extra[i])) {
+                extra[i] = null;
+                changed = true;
+            }
+        }
+        if (changed) {
+            player.getInventory().setExtraContents(extra);
+        }
     }
 
     private static void handleStaticAction(Player player, ItemStack item, boolean delayOneTick) {

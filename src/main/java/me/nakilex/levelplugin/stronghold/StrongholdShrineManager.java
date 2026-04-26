@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.CombatTargetUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import net.citizensnpcs.api.npc.NPC;
@@ -54,6 +55,11 @@ public class StrongholdShrineManager implements Listener {
     private static final double DEFAULT_ZONE_RADIUS = 6.0;
     private static final int DEFAULT_DURATION_SECONDS = 10;
     private static final double DEFAULT_MAX_HEALTH = 250.0;
+    private static final int SHRINE_BONUS_XP_MIN = 55;
+    private static final int SHRINE_BONUS_XP_MAX = 95;
+    private static final int SHRINE_BONUS_COINS_MIN = 35;
+    private static final int SHRINE_BONUS_COINS_MAX = 85;
+    private static final double SHRINE_REWARD_GEAR_COMBAT_POWER = 45.0;
 
     private final Main plugin;
     private final Map<UUID, ShrineAnchor> anchorsById = new HashMap<>();
@@ -285,11 +291,12 @@ public class StrongholdShrineManager implements Listener {
         Player activator = plugin.getServer().getPlayer(active.activator);
         if (activator != null && activator.isOnline()) {
             grantSimpleBoon(activator);
+            grantShrineRunRewards(activator);
             RewardBombUtil.startRewardBomb(plugin, active.anchor.origin.clone().add(0.0, 0.3, 0.0),
-                    this::rollShrineReward, 100, activator);
+                    () -> rollShrineReward(activator), 100, activator);
         } else {
             RewardBombUtil.startRewardBomb(plugin, active.anchor.origin.clone().add(0.0, 0.3, 0.0),
-                    this::rollShrineReward, 100);
+                    () -> rollShrineReward(null), 100);
         }
 
         active.anchor.title().setText(ChatColor.GREEN + "Shrine [Secured]");
@@ -300,7 +307,24 @@ public class StrongholdShrineManager implements Listener {
         }, 40L);
     }
 
-    private ItemStack rollShrineReward() {
+    private void grantShrineRunRewards(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        int xp = ThreadLocalRandom.current().nextInt(SHRINE_BONUS_XP_MIN, SHRINE_BONUS_XP_MAX + 1);
+        int coins = ThreadLocalRandom.current().nextInt(SHRINE_BONUS_COINS_MIN, SHRINE_BONUS_COINS_MAX + 1);
+        plugin.getLevelManager().addXP(player, xp);
+        plugin.getEconomyManager().addCoins(player, coins);
+        send(player, MessageType.REWARD,
+                "Shrine bonus: " + ChatColor.GREEN + "+" + xp + " <glyph:experience_orb_icon> XP");
+        CurrencyMessageUtil.sendReceive(player, CurrencyMessageUtil.Currency.COINS, coins);
+    }
+
+    private ItemStack rollShrineReward(Player owner) {
+        ItemStack gear = rollShrineGearReward(owner);
+        if (gear != null) {
+            return gear;
+        }
         int roll = ThreadLocalRandom.current().nextInt(5);
         return switch (roll) {
             case 0 -> new ItemStack(Material.EMERALD, ThreadLocalRandom.current().nextInt(3, 7));
@@ -309,6 +333,19 @@ public class StrongholdShrineManager implements Listener {
             case 3 -> new ItemStack(Material.LAPIS_LAZULI, ThreadLocalRandom.current().nextInt(4, 10));
             default -> new ItemStack(Material.GOLDEN_APPLE, 1);
         };
+    }
+
+    private ItemStack rollShrineGearReward(Player owner) {
+        if (plugin.getLootChestManager() == null || ThreadLocalRandom.current().nextDouble() > 0.35) {
+            return null;
+        }
+        int levelRequirement = owner == null ? 1 : Math.max(1, owner.getLevel());
+        return plugin.getLootChestManager().getRandomLootForCombatPower(
+                SHRINE_REWARD_GEAR_COMBAT_POWER,
+                levelRequirement,
+                null,
+                null,
+                false);
     }
 
     private void grantSimpleBoon(Player player) {
