@@ -117,6 +117,21 @@ public class StrongholdRunManager implements Listener {
         return run.grantDebugXp(player, amount);
     }
 
+    public StageStatus getStageStatus(UUID playerId) {
+        if (playerId == null) {
+            return null;
+        }
+        Player player = Bukkit.getPlayer(playerId);
+        if (player == null || !player.isOnline()) {
+            return null;
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null) {
+            return null;
+        }
+        return run.getStageStatus(playerId);
+    }
+
     private void stopRun(UUID worldId) {
         ActiveRun existing = activeRuns.remove(worldId);
         if (existing != null) {
@@ -199,8 +214,22 @@ public class StrongholdRunManager implements Listener {
             if (excludedAutoCastSpellIds.contains(definition.id().toLowerCase(Locale.ROOT))) {
                 continue;
             }
+            if (!isAllowedAutoCastSpellId(definition.id())) {
+                continue;
+            }
             autoCastBasePool.add(definition.id().toLowerCase(Locale.ROOT));
         }
+    }
+
+    private boolean isAllowedAutoCastSpellId(String spellId) {
+        if (spellId == null || spellId.isBlank()) {
+            return false;
+        }
+        String normalized = spellId.toLowerCase(Locale.ROOT);
+        return normalized.startsWith("mage_")
+                || normalized.startsWith("archer_")
+                || normalized.equals("meteor")
+                || normalized.equals("blackhole");
     }
 
     private Set<String> baseSpellIds() {
@@ -370,6 +399,17 @@ public class StrongholdRunManager implements Listener {
             return alive;
         }
 
+        private int countAliveAllSpawned() {
+            int alive = 0;
+            for (UUID id : spawned) {
+                var entity = plugin.getServer().getEntity(id);
+                if (entity instanceof LivingEntity living && !living.isDead()) {
+                    alive++;
+                }
+            }
+            return alive;
+        }
+
         private void registerPlayer(Player player) {
             if (player == null || !player.isOnline()) {
                 return;
@@ -437,6 +477,13 @@ public class StrongholdRunManager implements Listener {
             }
             grantXp(player, state, amount);
             return true;
+        }
+
+        private StageStatus getStageStatus(UUID playerId) {
+            if (playerId == null || !playerStates.containsKey(playerId)) {
+                return null;
+            }
+            return new StageStatus(Math.max(1, wave), countAliveAllSpawned());
         }
 
         private void updateProgressBar(Player player, SurvivorState state) {
@@ -773,5 +820,8 @@ public class StrongholdRunManager implements Listener {
                                  String resultSpellId,
                                  StatsManager.StatType statType,
                                  int statAmount) {
+    }
+
+    public record StageStatus(int wave, int enemiesRemaining) {
     }
 }

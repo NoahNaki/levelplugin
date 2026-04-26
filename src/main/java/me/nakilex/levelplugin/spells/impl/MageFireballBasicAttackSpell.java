@@ -131,7 +131,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         Player caster = context.player();
         boolean debug = isDebugEnabled(caster.getUniqueId());
         Location eye = caster.getEyeLocation().clone();
-        Vector baseDirection = eye.getDirection().clone().normalize();
+        Vector baseDirection = resolveCastDirection(context, caster, eye);
 
         caster.getWorld().playSound(caster.getLocation(), Sound.ITEM_FIRECHARGE_USE, 0.7f, 1.2f);
         for (int i = 0; i < projectileCount; i++) {
@@ -143,6 +143,37 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
             }
             fireInstantBolt(caster, eye, direction, debug);
         }
+    }
+
+    private Vector resolveCastDirection(SpellContext context, Player caster, Location eye) {
+        Vector fallback = eye.getDirection().clone().normalize();
+        if (context == null || context.inputEvent() == null) {
+            return fallback;
+        }
+        String sequence = context.inputEvent().getInputSequence();
+        if (!"AUTO".equalsIgnoreCase(sequence)) {
+            return fallback;
+        }
+        LivingEntity nearest = SpellTargetingUtil.rayTraceLivingEntity(
+                eye,
+                fallback.clone().multiply(DEFAULT_MAX_RANGE),
+                DEFAULT_HIT_RADIUS,
+                living -> isValidSpellTarget(living, caster, null));
+        if (nearest == null) {
+            nearest = SpellEffectUtil.getLivingTargets(caster.getLocation(), DEFAULT_MAX_RANGE,
+                    living -> isValidSpellTarget(living, caster, null))
+                    .stream()
+                    .min(java.util.Comparator.comparingDouble(living -> living.getLocation().distanceSquared(caster.getLocation())))
+                    .orElse(null);
+        }
+        if (nearest == null) {
+            return fallback;
+        }
+        Vector toTarget = nearest.getEyeLocation().toVector().subtract(eye.toVector());
+        if (toTarget.lengthSquared() <= 0.000001) {
+            return fallback;
+        }
+        return toTarget.normalize();
     }
 
     private double computeYawOffset(int index) {
