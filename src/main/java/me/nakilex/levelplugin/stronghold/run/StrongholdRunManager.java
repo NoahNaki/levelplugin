@@ -25,8 +25,11 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.Openable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
@@ -35,6 +38,7 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
@@ -60,6 +64,8 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 public class StrongholdRunManager implements Listener {
     private static final String UPGRADE_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Upgrades";
+    private static final String RESULTS_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Results";
+    private static final String STRONGHOLD_KEY_NAME = "Stronghold Key";
     private static final int SHRINES_PER_RUN = 1;
     private static final int FIRST_WAVE_DELAY_SECONDS = 3;
     private static final int WAVE_INTERVAL_SECONDS = 5;
@@ -204,7 +210,15 @@ public class StrongholdRunManager implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        if (event.getView() == null || !UPGRADE_GUI_TITLE.equals(event.getView().getTitle())) {
+        if (event.getView() == null) {
+            return;
+        }
+        String title = event.getView().getTitle();
+        if (RESULTS_GUI_TITLE.equals(title)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (!UPGRADE_GUI_TITLE.equals(title)) {
             return;
         }
         event.setCancelled(true);
@@ -214,6 +228,34 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         run.handleUpgradeClick(player, event.getRawSlot());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onStrongholdDoorInteract(PlayerInteractEvent event) {
+        if (event == null || event.getPlayer() == null || event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+        Player player = event.getPlayer();
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null) {
+            return;
+        }
+        Block clicked = event.getClickedBlock();
+        if (!isLockedStrongholdDoor(clicked)) {
+            return;
+        }
+        Openable openable = (Openable) clicked.getBlockData();
+        if (openable.isOpen()) {
+            return;
+        }
+        event.setCancelled(true);
+        if (!consumeFirstMatchingItem(player, this::isStrongholdKey)) {
+            send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
+            return;
+        }
+        openable.setOpen(true);
+        clicked.setBlockData(openable);
+        send(player, MessageType.SUCCESS, ChatColor.GOLD + "Stronghold Key used. Gate opened.");
     }
 
     @EventHandler
@@ -599,7 +641,7 @@ public class StrongholdRunManager implements Listener {
         }
 
         private Inventory createSessionResultInventory(Player player, SurvivorState state) {
-            Inventory inv = Bukkit.createInventory(player, 27, ChatColor.DARK_PURPLE + "Stronghold Results");
+            Inventory inv = Bukkit.createInventory(player, 27, RESULTS_GUI_TITLE);
             ItemStack summary = new ItemStack(Material.BOOK);
             ItemMeta meta = summary.getItemMeta();
             if (meta != null) {
@@ -1210,6 +1252,7 @@ public class StrongholdRunManager implements Listener {
                     && pickedUp.getItemMeta().hasDisplayName()
                     ? pickedUp.getItemMeta().getDisplayName()
                     : me.nakilex.levelplugin.utils.TextUtil.beautifyWords(pickedUp.getType().name());
+            itemName = normalizeStorageItemLabel(itemName);
             send(player, MessageType.REWARD,
                     ChatColor.GREEN + "+ " + ChatColor.WHITE + itemName + ChatColor.GRAY + " added to storage");
             return true;
@@ -1320,6 +1363,71 @@ public class StrongholdRunManager implements Listener {
             }
             return !groundType.name().contains("LEAVES");
         }
+    }
+
+    private boolean isLockedStrongholdDoor(Block block) {
+        if (block == null || block.getType() == null) {
+            return false;
+        }
+        String typeName = block.getType().name();
+        return typeName.endsWith("_DOOR") && block.getBlockData() instanceof Openable;
+    }
+
+    private boolean isStrongholdKey(ItemStack stack) {
+        if (stack == null || stack.getType().isAir()) {
+            return false;
+        }
+        String typeName = stack.getType().name();
+        if (!"TRIAL_KEY".equals(typeName) && stack.getType() != Material.TRIPWIRE_HOOK) {
+            return false;
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null || !meta.hasDisplayName()) {
+            return false;
+        }
+        String plainName = ChatColor.stripColor(meta.getDisplayName());
+        return plainName != null && STRONGHOLD_KEY_NAME.equalsIgnoreCase(plainName.trim());
+    }
+
+    private boolean consumeFirstMatchingItem(Player player, java.util.function.Predicate<ItemStack> matcher) {
+        if (player == null || matcher == null) {
+            return false;
+        }
+        ItemStack[] contents = player.getInventory().getStorageContents();
+        for (int slot = 0; slot < contents.length; slot++) {
+            ItemStack stack = contents[slot];
+            if (!matcher.test(stack)) {
+                continue;
+            }
+            if (stack.getAmount() <= 1) {
+                player.getInventory().setItem(slot, null);
+            } else {
+                stack.setAmount(stack.getAmount() - 1);
+                player.getInventory().setItem(slot, stack);
+            }
+            player.updateInventory();
+            return true;
+        }
+        return false;
+    }
+
+    private String normalizeStorageItemLabel(String rawLabel) {
+        if (rawLabel == null || rawLabel.isBlank()) {
+            return "Unknown Item";
+        }
+        String label = rawLabel;
+        int i = 0;
+        while (i + 1 < label.length() && label.charAt(i) == ChatColor.COLOR_CHAR) {
+            i += 2;
+        }
+        int ws = i;
+        while (ws < label.length() && Character.isWhitespace(label.charAt(ws))) {
+            ws++;
+        }
+        if (ws > i) {
+            label = label.substring(0, i) + label.substring(ws);
+        }
+        return label.trim();
     }
 
     private static final class SurvivorState {
