@@ -11,12 +11,12 @@ import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
-import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
-import org.bukkit.Material;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
@@ -29,6 +29,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -40,8 +41,8 @@ import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -51,10 +52,6 @@ import java.util.concurrent.ThreadLocalRandom;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
-/**
- * Minimal first-pass Stronghold run driver:
- * starts auto wave spawning and random shrine placement for solo runs.
- */
 public class StrongholdRunManager implements Listener {
     private static final String UPGRADE_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Upgrades";
     private static final int SHRINES_PER_RUN = 1;
@@ -78,7 +75,6 @@ public class StrongholdRunManager implements Listener {
     public StrongholdRunManager(Main plugin, StrongholdShrineManager shrineManager) {
         this.plugin = plugin;
         this.shrineManager = shrineManager;
-        initializeAutoCastPool();
     }
 
     public void startSoloRun(Player player) {
@@ -131,11 +127,7 @@ public class StrongholdRunManager implements Listener {
         if (run == null) {
             return;
         }
-        Player killer = entity.getKiller();
-        if (killer == null || !killer.isOnline()) {
-            return;
-        }
-        run.handleMobKillXp(killer, entity);
+        run.onEntityDeath(entity);
     }
 
     @EventHandler
@@ -156,6 +148,20 @@ public class StrongholdRunManager implements Listener {
     }
 
     @EventHandler
+    public void onUpgradeGuiClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        if (event.getView() == null || !UPGRADE_GUI_TITLE.equals(event.getView().getTitle())) {
+            return;
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run != null) {
+            run.handleUpgradeClose(player);
+        }
+    }
+
+    @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         if (event == null || event.getPlayer() == null) {
             return;
@@ -168,6 +174,7 @@ public class StrongholdRunManager implements Listener {
     }
 
     private void initializeAutoCastPool() {
+        autoCastBasePool.clear();
         SpellRegistry registry = SpellRegistry.getInstance();
         for (String spellId : baseSpellIds()) {
             SpellRegistry.SpellEntry entry = registry.getSpell(spellId);
@@ -204,6 +211,7 @@ public class StrongholdRunManager implements Listener {
         private final UUID worldId;
         private final Location origin;
         private final List<UUID> spawned = new ArrayList<>();
+        private final List<UUID> currentWaveSpawned = new ArrayList<>();
         private final Map<UUID, SurvivorState> playerStates = new HashMap<>();
 
         private BukkitTask task;
@@ -228,6 +236,10 @@ public class StrongholdRunManager implements Listener {
                     return;
                 }
                 syncRunPlayers(world);
+                cleanupDeadSpawned();
+                if (countAliveCurrentWave() > 0) {
+                    return;
+                }
                 if (secondsUntilNextWave > 0) {
                     secondsUntilNextWave--;
                     return;
@@ -255,10 +267,25 @@ public class StrongholdRunManager implements Listener {
                 }
             }
             spawned.clear();
+            currentWaveSpawned.clear();
             for (Map.Entry<UUID, SurvivorState> entry : new HashMap<>(playerStates).entrySet()) {
                 restorePlayerAfterRun(entry.getKey(), entry.getValue());
             }
             playerStates.clear();
+        }
+
+        private void onEntityDeath(LivingEntity entity) {
+            if (entity == null) {
+                return;
+            }
+            UUID deadId = entity.getUniqueId();
+            spawned.remove(deadId);
+            currentWaveSpawned.remove(deadId);
+
+            Player killer = entity.getKiller();
+            if (killer != null && killer.isOnline()) {
+                handleMobKillXp(killer, entity);
+            }
         }
 
         private void spawnWave(World world, int waveNumber) {
@@ -266,6 +293,7 @@ public class StrongholdRunManager implements Listener {
             if (players.isEmpty()) {
                 return;
             }
+            currentWaveSpawned.clear();
             int spawnCount = Math.min(10, 2 + waveNumber);
             for (int i = 0; i < spawnCount; i++) {
                 Player target = players.get(ThreadLocalRandom.current().nextInt(players.size()));
@@ -278,6 +306,7 @@ public class StrongholdRunManager implements Listener {
                     continue;
                 }
                 spawned.add(mob.getUniqueId());
+                currentWaveSpawned.add(mob.getUniqueId());
                 if (mob instanceof Mob hostile) {
                     hostile.setTarget(target);
                 }
@@ -306,6 +335,28 @@ public class StrongholdRunManager implements Listener {
                     updateProgressBar(online, playerStates.get(playerId));
                 }
             }
+        }
+
+        private void cleanupDeadSpawned() {
+            spawned.removeIf(id -> {
+                var entity = plugin.getServer().getEntity(id);
+                return !(entity instanceof LivingEntity living) || living.isDead();
+            });
+            currentWaveSpawned.removeIf(id -> {
+                var entity = plugin.getServer().getEntity(id);
+                return !(entity instanceof LivingEntity living) || living.isDead();
+            });
+        }
+
+        private int countAliveCurrentWave() {
+            int alive = 0;
+            for (UUID id : currentWaveSpawned) {
+                var entity = plugin.getServer().getEntity(id);
+                if (entity instanceof LivingEntity living && !living.isDead()) {
+                    alive++;
+                }
+            }
+            return alive;
         }
 
         private void registerPlayer(Player player) {
@@ -399,6 +450,7 @@ public class StrongholdRunManager implements Listener {
             if (state.pendingUpgrades == null || state.pendingUpgrades.isEmpty()) {
                 state.pendingUpgrades = rollUpgradeChoices(state, 3);
             }
+            state.awaitingUpgradeSelection = true;
             Inventory inv = Bukkit.createInventory(player, 27, UPGRADE_GUI_TITLE);
             inv.setItem(11, upgradeItem(state.pendingUpgrades.get(0), state));
             inv.setItem(13, upgradeItem(state.pendingUpgrades.get(1), state));
@@ -447,7 +499,34 @@ public class StrongholdRunManager implements Listener {
             UpgradeChoice selected = state.pendingUpgrades.get(idx);
             applyUpgrade(player, state, selected);
             state.pendingUpgrades = List.of();
+            state.awaitingUpgradeSelection = false;
+            state.skipNextUpgradeReopen = true;
             player.closeInventory();
+        }
+
+        private void handleUpgradeClose(Player player) {
+            SurvivorState state = playerStates.get(player.getUniqueId());
+            if (state == null) {
+                return;
+            }
+            if (state.skipNextUpgradeReopen) {
+                state.skipNextUpgradeReopen = false;
+                return;
+            }
+            if (!state.awaitingUpgradeSelection || state.pendingUpgrades == null || state.pendingUpgrades.isEmpty()) {
+                return;
+            }
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Player online = Bukkit.getPlayer(player.getUniqueId());
+                if (online == null || !online.isOnline()) {
+                    return;
+                }
+                SurvivorState onlineState = playerStates.get(online.getUniqueId());
+                if (onlineState == null || !onlineState.awaitingUpgradeSelection || onlineState.pendingUpgrades.isEmpty()) {
+                    return;
+                }
+                openUpgradeGui(online, onlineState);
+            });
         }
 
         private void applyUpgrade(Player player, SurvivorState state, UpgradeChoice choice) {
@@ -469,27 +548,46 @@ public class StrongholdRunManager implements Listener {
         }
 
         private List<UpgradeChoice> rollUpgradeChoices(SurvivorState state, int count) {
-            List<UpgradeChoice> candidates = new ArrayList<>();
+            refreshAutoCastPoolIfNeeded();
+            List<UpgradeChoice> spellCandidates = new ArrayList<>();
             for (String baseId : autoCastBasePool) {
                 UpgradeChoice spellChoice = spellUpgradeChoiceFor(state, baseId);
                 if (spellChoice != null) {
-                    candidates.add(spellChoice);
+                    spellCandidates.add(spellChoice);
                 }
             }
-            candidates.add(new UpgradeChoice(UpgradeType.STAT, "Power Surge", "Temporary Strength boost for this run only.", null, null, StatsManager.StatType.STR, 2));
-            candidates.add(new UpgradeChoice(UpgradeType.STAT, "Swiftfoot", "Temporary Agility boost for this run only.", null, null, StatsManager.StatType.AGI, 2));
-            candidates.add(new UpgradeChoice(UpgradeType.STAT, "Arcane Focus", "Temporary Intelligence boost for this run only.", null, null, StatsManager.StatType.INT, 2));
 
             List<UpgradeChoice> rolled = new ArrayList<>();
             ThreadLocalRandom rng = ThreadLocalRandom.current();
-            while (!candidates.isEmpty() && rolled.size() < count) {
-                int pick = rng.nextInt(candidates.size());
-                rolled.add(candidates.remove(pick));
+            while (!spellCandidates.isEmpty() && rolled.size() < count) {
+                int pick = rng.nextInt(spellCandidates.size());
+                rolled.add(spellCandidates.remove(pick));
             }
+
+            if (rolled.size() < count) {
+                List<UpgradeChoice> statCandidates = new ArrayList<>(List.of(
+                        new UpgradeChoice(UpgradeType.STAT, "Power Surge", "Temporary Strength boost for this run only.", null, null, StatsManager.StatType.STR, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Swiftfoot", "Temporary Agility boost for this run only.", null, null, StatsManager.StatType.AGI, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Arcane Focus", "Temporary Intelligence boost for this run only.", null, null, StatsManager.StatType.INT, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost for this run only.", null, null, StatsManager.StatType.VIT, 2)
+                ));
+                while (!statCandidates.isEmpty() && rolled.size() < count) {
+                    int pick = rng.nextInt(statCandidates.size());
+                    rolled.add(statCandidates.remove(pick));
+                }
+            }
+
             while (rolled.size() < count) {
                 rolled.add(new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost for this run only.", null, null, StatsManager.StatType.VIT, 2));
             }
             return rolled;
+        }
+
+        private void refreshAutoCastPoolIfNeeded() {
+            if (!autoCastBasePool.isEmpty()) {
+                return;
+            }
+            initializeAutoCastPool();
         }
 
         private UpgradeChoice spellUpgradeChoiceFor(SurvivorState state, String baseSpellId) {
@@ -588,6 +686,8 @@ public class StrongholdRunManager implements Listener {
             if (state == null) {
                 return;
             }
+            state.awaitingUpgradeSelection = false;
+            state.skipNextUpgradeReopen = true;
             for (Map.Entry<StatsManager.StatType, Integer> buff : state.tempStatBonuses.entrySet()) {
                 applyTempStatDelta(playerId, buff.getKey(), -Math.max(0, buff.getValue()));
             }
@@ -632,6 +732,8 @@ public class StrongholdRunManager implements Listener {
         private int level = 1;
         private int xp = 0;
         private List<UpgradeChoice> pendingUpgrades = List.of();
+        private boolean awaitingUpgradeSelection;
+        private boolean skipNextUpgradeReopen;
 
         private SurvivorState(PlayerClass originalClass) {
             this.originalClass = originalClass == null ? PlayerClass.VILLAGER : originalClass;
