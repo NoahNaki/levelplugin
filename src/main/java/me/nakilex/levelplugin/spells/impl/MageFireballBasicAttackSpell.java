@@ -42,6 +42,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
     private final double splashRadius;
     private final double splashDamageFactor;
     private final int burnTicks;
+    private final int chainBounces;
 
     public MageFireballBasicAttackSpell(Main plugin) {
         this(plugin, 3, 0.0, 3.0, 0.45, 0.0, 0.0, 0);
@@ -55,6 +56,18 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
                                         double splashRadius,
                                         double splashDamageFactor,
                                         int burnTicks) {
+        this(plugin, projectileCount, coneDegrees, baseDamage, intelligenceScale, splashRadius, splashDamageFactor, burnTicks, 0);
+    }
+
+    public MageFireballBasicAttackSpell(Main plugin,
+                                        int projectileCount,
+                                        double coneDegrees,
+                                        double baseDamage,
+                                        double intelligenceScale,
+                                        double splashRadius,
+                                        double splashDamageFactor,
+                                        int burnTicks,
+                                        int chainBounces) {
         this.plugin = plugin;
         this.projectileCount = Math.max(1, Math.min(3, projectileCount));
         this.coneDegrees = Math.max(0.0, coneDegrees);
@@ -63,6 +76,7 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
         this.splashRadius = Math.max(0.0, splashRadius);
         this.splashDamageFactor = Math.max(0.0, splashDamageFactor);
         this.burnTicks = Math.max(0, burnTicks);
+        this.chainBounces = Math.max(0, chainBounces);
     }
 
     public record FireballSpawnResult(ArmorStand anchor,
@@ -246,6 +260,9 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
             if (burnTicks > 0) {
                 target.setFireTicks(Math.max(target.getFireTicks(), burnTicks));
             }
+            if (chainBounces > 0) {
+                applyChainLightning(caster, target, damage);
+            }
         }
 
         if (splashRadius > 0.0 && splashDamageFactor > 0.0) {
@@ -259,6 +276,33 @@ public class MageFireballBasicAttackSpell implements SpellHandler {
             ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.INFO,
                     "[FireballDebug] Applied damage=" + String.format("%.2f", damage)
                             + " splashRadius=" + String.format("%.2f", splashRadius));
+        }
+    }
+
+    private void applyChainLightning(Player caster, LivingEntity firstTarget, double baseDamage) {
+        LivingEntity current = firstTarget;
+        java.util.Set<UUID> hit = new java.util.HashSet<>();
+        hit.add(firstTarget.getUniqueId());
+        for (int bounce = 0; bounce < chainBounces; bounce++) {
+            LivingEntity anchor = current;
+            LivingEntity next = SpellEffectUtil.getLivingTargets(anchor.getLocation(), 8.0,
+                            living -> !living.equals(caster) && !hit.contains(living.getUniqueId()))
+                    .stream()
+                    .min(java.util.Comparator.comparingDouble(living -> living.getLocation().distanceSquared(anchor.getLocation())))
+                    .orElse(null);
+            if (next == null) {
+                return;
+            }
+            World world = current.getWorld();
+            if (world != null) {
+                world.spawnParticle(Particle.ELECTRIC_SPARK, current.getEyeLocation(), 10, 0.15, 0.15, 0.15, 0.01);
+                world.spawnParticle(Particle.ELECTRIC_SPARK, next.getEyeLocation(), 10, 0.15, 0.15, 0.15, 0.01);
+                world.playSound(next.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.35f, 1.6f);
+            }
+            double bouncedDamage = baseDamage * Math.max(0.35, 1.0 - ((bounce + 1) * 0.15));
+            SpellEffectUtil.applyDirectSpellDamage(plugin, caster, next, bouncedDamage, true);
+            hit.add(next.getUniqueId());
+            current = next;
         }
     }
 

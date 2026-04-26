@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.spells.impl.RogueNightfallLungeSpell;
 import me.nakilex.levelplugin.spells.impl.RogueShadowFlurrySpell;
 import me.nakilex.levelplugin.spells.impl.RogueSmokeBombSpell;
 import me.nakilex.levelplugin.spells.impl.WarriorExecutionArcSpell;
+import me.nakilex.levelplugin.spells.impl.WarriorEarthquakeSpell;
 import me.nakilex.levelplugin.spells.impl.WarriorGuardedResolveSpell;
 import me.nakilex.levelplugin.spells.impl.WarriorRuptureCycloneSpell;
 import me.nakilex.levelplugin.spells.impl.WarriorTitanVaultSpell;
@@ -42,11 +43,13 @@ public final class SpellCatalog {
         SpellDefinition mageBasicAttack = new SpellDefinition("mage_fireball_basic", "Mage Fireball", 0, false);
         SpellDefinition mageBasicBarrage = new SpellDefinition("mage_fireball_barrage", "Mage Fireball: Arc Barrage", 0, false);
         SpellDefinition mageBasicInferno = new SpellDefinition("mage_fireball_inferno", "Mage Fireball: Inferno Volley", 0, false);
+        SpellDefinition mageBasicChain = new SpellDefinition("mage_fireball_chainlightning", "Mage Fireball: Chain Lightning", 0, false);
         registry.registerSpell(mageBasicAttack, new MageFireballBasicAttackSpell(plugin, 1, 0.0, 3.2, 0.48, 0.0, 0.0, 0));
         registry.registerSpell(mageBasicBarrage, new MageFireballBasicAttackSpell(plugin, 3, 28.0, 3.8, 0.58, 1.4, 0.35, 30));
         registry.registerSpell(mageBasicInferno, new MageFireballBasicAttackSpell(plugin, 3, 34.0, 5.0, 0.72, 2.9, 0.80, 70));
+        registry.registerSpell(mageBasicChain, new MageFireballBasicAttackSpell(plugin, 3, 0.0, 5.4, 0.78, 2.6, 0.68, 80, 2));
         registry.registerProgression(new SpellProgression(mageBasicAttack.id(), java.util.List.of(
-                mageBasicBarrage.id(), mageBasicInferno.id())));
+                mageBasicBarrage.id(), mageBasicInferno.id(), mageBasicChain.id())));
         registry.registerBinding(SpellBinding.forInputType(mageBasicAttack.id(), ClassUtil::isMageFamily,
                 SpellInputType.BASIC_ATTACK));
 
@@ -167,20 +170,28 @@ public final class SpellCatalog {
         registerStandardSequenceBindings(registry, rogueShadowFlurry.id(), rogueNightfallLunge.id(), rogueRazorDash.id(), rogueSmokeBomb.id(), ClassUtil::isRogueFamily);
 
         SpellDefinition warriorExecutionArc = new SpellDefinition("warrior_execution_arc", "Cyclone Brand", 16, false);
+        SpellDefinition warriorEarthquake = new SpellDefinition("warrior_earthquake", "Earthquake", 16, false);
+        SpellDefinition warriorEarthquakeTremor = new SpellDefinition("warrior_earthquake_tremor", "Earthquake: Tremor", 16, false);
+        SpellDefinition warriorEarthquakeCataclysm = new SpellDefinition("warrior_earthquake_cataclysm", "Earthquake: Cataclysm", 16, false);
         SpellDefinition warriorRuptureCyclone = new SpellDefinition("warrior_rupture_cyclone", "Rupture Cyclone", 18, false);
         SpellDefinition warriorTitanVault = new SpellDefinition("warrior_titan_vault", "Titan Vault", 14, true);
         SpellDefinition warriorGuardedResolve = new SpellDefinition("warrior_guarded_resolve", "Aegis Bastion", 16, false);
 
         registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 120, 2.0, 6.4));
+        registry.registerSpell(warriorEarthquake, new WarriorEarthquakeSpell(plugin, 3.8, 6.2, 0.55));
+        registry.registerSpell(warriorEarthquakeTremor, new WarriorEarthquakeSpell(plugin, 4.8, 7.4, 0.62));
+        registry.registerSpell(warriorEarthquakeCataclysm, new WarriorEarthquakeSpell(plugin, 6.0, 8.9, 0.70));
         registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 7, 2L, 0.6, 0.7, 2.8, 0.7, 0.46));
         registry.registerSpell(warriorTitanVault, new WarriorTitanVaultSpell(plugin, 1.18, 0.72, 3.0, 7.2));
         registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 100, 3, 30.0));
+        registry.registerProgression(new SpellProgression(warriorEarthquake.id(), java.util.List.of(
+                warriorEarthquakeTremor.id(), warriorEarthquakeCataclysm.id())));
 
-        registry.registerBinding(SpellBinding.forInputType(warriorExecutionArc.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_1));
+        registry.registerBinding(SpellBinding.forInputType(warriorEarthquake.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(warriorTitanVault.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(warriorGuardedResolve.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_4));
-        registerStandardSequenceBindings(registry, warriorExecutionArc.id(), warriorRuptureCyclone.id(), warriorTitanVault.id(), warriorGuardedResolve.id(), ClassUtil::isWarriorFamily);
+        registerStandardSequenceBindings(registry, warriorEarthquake.id(), warriorRuptureCyclone.id(), warriorTitanVault.id(), warriorGuardedResolve.id(), ClassUtil::isWarriorFamily);
 
         configureCooldowns();
     }
@@ -240,6 +251,7 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("mage_fireball_basic", 0L);
         SpellCastManager.setSpellCooldownMs("mage_fireball_barrage", 0L);
         SpellCastManager.setSpellCooldownMs("mage_fireball_inferno", 0L);
+        SpellCastManager.setSpellCooldownMs("mage_fireball_chainlightning", 0L);
         SpellCastManager.setSpellCooldownMs("meteor", 7500L);
         SpellCastManager.setSpellCooldownMs("meteor_double", 9000L);
         SpellCastManager.setSpellCooldownMs("meteor_big", 11500L);
@@ -276,6 +288,9 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_judgement", 8600L);
 
         SpellCastManager.setSpellCooldownMs("warrior_execution_arc", 5900L);
+        SpellCastManager.setSpellCooldownMs("warrior_earthquake", 5900L);
+        SpellCastManager.setSpellCooldownMs("warrior_earthquake_tremor", 6500L);
+        SpellCastManager.setSpellCooldownMs("warrior_earthquake_cataclysm", 7400L);
         SpellCastManager.setSpellCooldownMs("warrior_rupture_cyclone", 7600L);
         SpellCastManager.setSpellCooldownMs("warrior_titan_vault", 0L);
         SpellCastManager.setSpellCooldownMs("warrior_guarded_resolve", 11000L);
