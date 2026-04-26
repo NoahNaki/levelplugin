@@ -27,7 +27,10 @@ import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.EntityRegainHealthEvent;
+import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -204,6 +207,45 @@ public class StrongholdRunManager implements Listener {
         }
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onSelectionDamageImmunity(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null || !run.isUpgradePaused(player.getUniqueId())) {
+            return;
+        }
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onSelectionRegenPause(EntityRegainHealthEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null || !run.isUpgradePaused(player.getUniqueId())) {
+            return;
+        }
+        event.setCancelled(true);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPausedPlayerTarget(EntityTargetLivingEntityEvent event) {
+        if (!(event.getTarget() instanceof Player player)) {
+            return;
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null || !run.isUpgradePaused(player.getUniqueId())) {
+            return;
+        }
+        event.setCancelled(true);
+        if (event.getEntity() instanceof Mob mob) {
+            mob.setTarget(null);
+        }
+    }
+
     private void initializeAutoCastPool() {
         autoCastBasePool.clear();
         SpellRegistry registry = SpellRegistry.getInstance();
@@ -362,7 +404,12 @@ public class StrongholdRunManager implements Listener {
                         System.currentTimeMillis(),
                         System.currentTimeMillis()));
                 if (mob instanceof Mob hostile) {
-                    hostile.setTarget(target);
+                    if (pausedPlayers.contains(target.getUniqueId())) {
+                        hostile.setTarget(null);
+                        hostile.setAI(false);
+                    } else {
+                        hostile.setTarget(target);
+                    }
                 }
                 world.spawnParticle(Particle.SMOKE, spawn, 10, 0.2, 0.2, 0.2, 0.01);
             }
@@ -714,6 +761,10 @@ public class StrongholdRunManager implements Listener {
             }
         }
 
+        private boolean isUpgradePaused(UUID playerId) {
+            return playerId != null && pausedPlayers.contains(playerId);
+        }
+
         private void applyUpgrade(Player player, SurvivorState state, UpgradeChoice choice) {
             if (choice.type == UpgradeType.STAT && choice.statType != null && choice.statAmount > 0) {
                 state.tempStatBonuses.merge(choice.statType, choice.statAmount, Integer::sum);
@@ -868,7 +919,9 @@ public class StrongholdRunManager implements Listener {
                 return false;
             }
             String normalized = spellId.toLowerCase(Locale.ROOT);
-            return normalized.contains("homing") || normalized.contains("seeker");
+            return normalized.contains("homing")
+                    || normalized.contains("seeker")
+                    || normalized.startsWith("archer_quickshot");
         }
 
         private LivingEntity findNearestLockTarget(Player caster, double range) {
@@ -946,14 +999,27 @@ public class StrongholdRunManager implements Listener {
             }
             double safeMinRadius = Math.max(MIN_ENEMY_SPAWN_RADIUS, minRadius);
             double safeMaxRadius = Math.max(safeMinRadius + 0.5, maxRadius);
-            for (int attempt = 0; attempt < 16; attempt++) {
+            Location grassSpawn = findSpawnNearWithGroundRule(world, playerLoc, fallbackOrigin, safeMinRadius, safeMaxRadius, true);
+            if (grassSpawn != null) {
+                return grassSpawn;
+            }
+            return findSpawnNearWithGroundRule(world, playerLoc, fallbackOrigin, safeMinRadius, safeMaxRadius, false);
+        }
+
+        private Location findSpawnNearWithGroundRule(World world,
+                                                     Location playerLoc,
+                                                     Location fallbackOrigin,
+                                                     double minRadius,
+                                                     double maxRadius,
+                                                     boolean grassOnly) {
+            for (int attempt = 0; attempt < 20; attempt++) {
                 double angle = ThreadLocalRandom.current().nextDouble(0, Math.PI * 2);
-                double dist = ThreadLocalRandom.current().nextDouble(safeMinRadius, safeMaxRadius);
+                double dist = ThreadLocalRandom.current().nextDouble(minRadius, maxRadius);
                 Vector offset = new Vector(Math.cos(angle) * dist, 0.0, Math.sin(angle) * dist);
                 Location base = playerLoc.clone().add(offset);
                 int y = world.getHighestBlockYAt(base);
                 Material groundType = world.getBlockAt(base.getBlockX(), y, base.getBlockZ()).getType();
-                if (groundType != Material.GRASS_BLOCK) {
+                if (!isAllowedSpawnGround(groundType, grassOnly)) {
                     continue;
                 }
                 Location spawn = new Location(world, base.getX(), Math.max(y + 1, fallbackOrigin.getY()), base.getZ());
@@ -962,6 +1028,16 @@ public class StrongholdRunManager implements Listener {
                 }
             }
             return null;
+        }
+
+        private boolean isAllowedSpawnGround(Material groundType, boolean grassOnly) {
+            if (groundType == null || !groundType.isSolid()) {
+                return false;
+            }
+            if (grassOnly) {
+                return groundType == Material.GRASS_BLOCK;
+            }
+            return !groundType.name().contains("LEAVES");
         }
     }
 
