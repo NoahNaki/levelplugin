@@ -10,8 +10,10 @@ import org.bukkit.event.entity.SlimeSplitEvent;
 public class SlimeSplitListener implements Listener {
     private static final String COMMON_SLIME_KEY = "Slime_Common";
     private static final String FOREST_SLIME_KEY = "forest_slime";
+    private static final String SLIME_KING_KEY = "slime_king";
     private static final String COMMON_SLIME_CANONICAL = MobNameUtil.canonicalMobKey(COMMON_SLIME_KEY);
     private static final String FOREST_SLIME_CANONICAL = MobNameUtil.canonicalMobKey(FOREST_SLIME_KEY);
+    private static final String SLIME_KING_CANONICAL = MobNameUtil.canonicalMobKey(SLIME_KING_KEY);
 
     @EventHandler
     public void onSlimeSplit(SlimeSplitEvent event) {
@@ -23,7 +25,7 @@ public class SlimeSplitListener implements Listener {
             return;
         }
         String mobId = MobNameUtil.resolveCustomMobId(slime).orElse(null);
-        if (isCommonSlime(mobId)) {
+        if (isNonSplittingSlime(mobId)) {
             event.setCancelled(true);
             return;
         }
@@ -31,12 +33,12 @@ public class SlimeSplitListener implements Listener {
         if (name == null || name.isBlank()) {
             name = slime.getName();
         }
-        if (isCommonSlime(ChatColor.stripColor(name))) {
+        if (isNonSplittingSlime(ChatColor.stripColor(name))) {
             event.setCancelled(true);
         }
     }
 
-    private boolean isCommonSlime(String value) {
+    private boolean isNonSplittingSlime(String value) {
         if (value == null || value.isBlank()) {
             return false;
         }
@@ -45,6 +47,7 @@ public class SlimeSplitListener implements Listener {
             return false;
         }
         return canonical.equalsIgnoreCase(COMMON_SLIME_CANONICAL)
-                || canonical.equalsIgnoreCase(FOREST_SLIME_CANONICAL);
+                || canonical.equalsIgnoreCase(FOREST_SLIME_CANONICAL)
+                || canonical.equalsIgnoreCase(SLIME_KING_CANONICAL);
     }
 }
