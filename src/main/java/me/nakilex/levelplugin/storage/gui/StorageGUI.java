@@ -367,6 +367,81 @@ public class StorageGUI {
         return STORAGE_SLOTS.contains(slot);
     }
 
+    public int countFreeStorageSlots() {
+        int free = 0;
+        for (Inventory page : pages) {
+            if (page == null) {
+                continue;
+            }
+            for (int slot : STORAGE_SLOTS) {
+                ItemStack existing = page.getItem(slot);
+                if (existing == null || existing.getType() == Material.AIR) {
+                    free++;
+                }
+            }
+        }
+        return free;
+    }
+
+    public ItemStack addItemToStorage(ItemStack stack) {
+        if (stack == null || stack.getType() == Material.AIR) {
+            return null;
+        }
+        ItemStack remaining = stack.clone();
+        int maxStack = Math.max(1, remaining.getMaxStackSize());
+
+        for (Inventory page : pages) {
+            if (page == null || remaining.getAmount() <= 0) {
+                continue;
+            }
+            for (int slot : STORAGE_SLOTS) {
+                if (remaining.getAmount() <= 0) {
+                    break;
+                }
+                ItemStack existing = page.getItem(slot);
+                if (existing == null || existing.getType() == Material.AIR) {
+                    continue;
+                }
+                if (!existing.isSimilar(remaining)) {
+                    continue;
+                }
+                int room = maxStack - existing.getAmount();
+                if (room <= 0) {
+                    continue;
+                }
+                int moved = Math.min(room, remaining.getAmount());
+                existing.setAmount(existing.getAmount() + moved);
+                page.setItem(slot, existing);
+                remaining.setAmount(remaining.getAmount() - moved);
+            }
+        }
+
+        for (Inventory page : pages) {
+            if (page == null || remaining.getAmount() <= 0) {
+                continue;
+            }
+            for (int slot : STORAGE_SLOTS) {
+                if (remaining.getAmount() <= 0) {
+                    break;
+                }
+                ItemStack existing = page.getItem(slot);
+                if (existing != null && existing.getType() != Material.AIR) {
+                    continue;
+                }
+                int moved = Math.min(maxStack, remaining.getAmount());
+                ItemStack placed = remaining.clone();
+                placed.setAmount(moved);
+                page.setItem(slot, placed);
+                remaining.setAmount(remaining.getAmount() - moved);
+            }
+        }
+
+        if (remaining.getAmount() <= 0) {
+            return null;
+        }
+        return remaining;
+    }
+
     private static ItemStack createFiller() {
         ItemStack glass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta meta = glass.getItemMeta();

@@ -129,7 +129,9 @@ public class PetSummonGUI implements Listener {
     }
 
     private void handleSummon(Player player, int amount) {
-        player.closeInventory();
+        if (!summonManager.shouldKeepSummonGuiOpen(player.getUniqueId())) {
+            player.closeInventory();
+        }
         summonManager.startSummon(player, amount);
     }
 

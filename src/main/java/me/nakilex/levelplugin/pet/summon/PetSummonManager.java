@@ -124,6 +124,13 @@ public class PetSummonManager implements Listener {
         return petManager == null ? List.of() : petManager.getGachaRarities();
     }
 
+    public boolean shouldKeepSummonGuiOpen(UUID playerId) {
+        if (playerId == null || petManager == null) {
+            return false;
+        }
+        return petManager.getProfile(playerId).autoSkipSummonAnimation();
+    }
+
 
     public void startSummon(Player player, int amount) {
         if (player == null || petManager == null || cutsceneManager == null) {

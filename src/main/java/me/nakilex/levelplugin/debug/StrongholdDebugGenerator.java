@@ -617,41 +617,8 @@ public final class StrongholdDebugGenerator {
         schedulePostTeleportEnhancements(sourceWorld, world, pastePlan.deferredTemplates(), placed, occupied, player, random, originY);
         timing.processFinished("Teleport + queue detached pasting", processStart);
 
-        processStart = timing.processStarted("Send generation diagnostics");
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                ChatColor.GOLD + "" + ChatColor.BOLD + "STRONGHOLD GENERATED "
-                        + ChatColor.GRAY + "• "
-                        + ChatColor.WHITE + placed.size() + ChatColor.GRAY + " pieces "
-                        + ChatColor.DARK_GRAY + "(" + ChatColor.GRAY + world.getName()
-                        + ChatColor.DARK_GRAY + ", " + ChatColor.GRAY + "overlap "
-                        + ChatColor.WHITE + String.format("%.2f", maxOverlapPercent) + "%" + ChatColor.DARK_GRAY + ")");
-        String viableOutputSummary = ENABLE_EXPENSIVE_DIAGNOSTICS
-                ? String.valueOf(countViableOpenOutputs(placed, captured, occupied))
-                : "skipped";
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Stronghold diagnostics -> spine blocked sides: " + diagnostics.spineBlockedSides
-                        + ", branch blocked sides: " + diagnostics.branchBlockedSides
-                        + ", remaining open outputs: " + countOpenOutputs(placed)
-                        + ", viable next outputs: " + viableOutputSummary
-                        + ", sealed viable outputs: " + sealedViableOutputs
-                        + ", church placed: " + finalChurchCount
-                        + ", required forced: " + diagnostics.requiredPlacementsForced
-                        + ", church least-overlap: " + diagnostics.churchLeastOverlapPlaced
-                        + ", required least-overlap: " + diagnostics.requiredLeastOverlapPlaced
-                        + ", church satellite: " + diagnostics.satelliteChurchPlaced
-                        + ", church emergency: " + diagnostics.churchEmergencyPlaced
-                        + ", required emergency: " + diagnostics.requiredEmergencyPlaced
-                        + ", church raw copy: " + diagnostics.churchRawCopied
-                        + ", required raw copy: " + diagnostics.requiredRawCopied
-                        + ", church origins: " + summarizeTemplateOrigins(placed, spec -> spec != null && "church".equalsIgnoreCase(spec.id))
-                        + ", required counts: " + summarizeRequiredTemplateCounts(placed)
-                        + ", satellite link segments: " + diagnostics.satelliteLinkSegments
-                        + ", rejected(wallPacing): " + diagnostics.rejectedWallPacing
-                        + ", rejected(largeSpacing): " + diagnostics.rejectedLargeSpacing
-                        + ", detached assets: deferred (scheduled post-teleport)"
-                        + ", placed templates: " + summarizePlacedTemplates(placed)
-                        + ", template connectors(captured): " + diagnostics.templateConnectorSummary);
-        timing.processFinished("Send generation diagnostics", processStart);
+        processStart = timing.processStarted("Finalize generation diagnostics");
+        timing.processFinished("Finalize generation diagnostics", processStart);
         timing.sendSummary();
         return true;
     }

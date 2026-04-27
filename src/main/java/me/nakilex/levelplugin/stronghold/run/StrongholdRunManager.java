@@ -122,6 +122,10 @@ public class StrongholdRunManager implements Listener {
         int shrines = shrineManager.spawnRandomShrines(origin, SHRINES_PER_RUN, 72, 250.0);
         if (shrines > 0) {
             send(player, MessageType.INFO, "Placed " + ChatColor.WHITE + shrines + ChatColor.GRAY + " shrine(s) around the stronghold.");
+        } else {
+            send(player, MessageType.WARNING, "Shrine debug: no shrines spawned for this run. "
+                    + ChatColor.GRAY + "(target=" + ChatColor.WHITE + SHRINES_PER_RUN
+                    + ChatColor.GRAY + ", radius=72, maxDistance=250.0)");
         }
 
         ActiveRun run = new ActiveRun(worldId, origin);
@@ -854,6 +858,11 @@ public class StrongholdRunManager implements Listener {
             state.savedArmorContents = cloneItemArray(player.getInventory().getArmorContents());
             state.savedExtraContents = cloneItemArray(player.getInventory().getExtraContents());
             state.savedOffHand = player.getInventory().getItemInOffHand() == null ? null : player.getInventory().getItemInOffHand().clone();
+            if (plugin.getGemsManager() != null) {
+                int gems = plugin.getGemsManager().getTotalUnits(player);
+                state.startingGems = gems;
+                state.maxGemsDuringRun = gems;
+            }
 
             PlayerClassManager.getInstance().setPlayerClass(player, PlayerClass.VILLAGER);
             state.progressBar = Bukkit.createBossBar("", BarColor.PURPLE, BarStyle.SOLID);
@@ -1268,6 +1277,9 @@ public class StrongholdRunManager implements Listener {
                     continue;
                 }
                 SurvivorState state = entry.getValue();
+                if (plugin.getGemsManager() != null) {
+                    state.maxGemsDuringRun = Math.max(state.maxGemsDuringRun, plugin.getGemsManager().getTotalUnits(player));
+                }
                 for (String spellId : state.activeSpellByBase.values()) {
                     SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(spellId);
                     if (spellEntry == null || spellEntry.definition() == null) {
@@ -1453,6 +1465,13 @@ public class StrongholdRunManager implements Listener {
                         online.teleport(back);
                     }
                     openPendingResultsAfterTeleport(online);
+                }
+                if (plugin.getGemsManager() != null) {
+                    int current = plugin.getGemsManager().getTotalUnits(online);
+                    int persisted = Math.max(current, Math.max(state.startingGems, state.maxGemsDuringRun));
+                    if (persisted > current) {
+                        plugin.getGemsManager().setTotalUnits(online, persisted);
+                    }
                 }
             }
         }
@@ -1693,6 +1712,8 @@ public class StrongholdRunManager implements Listener {
         private boolean upgradePaused;
         private int cooldownUpgradeTier;
         private int keysCollected;
+        private int startingGems;
+        private int maxGemsDuringRun;
         private final List<ItemStack> lootStash = new ArrayList<>();
         private ItemStack[] savedStorageContents = new ItemStack[0];
         private ItemStack[] savedArmorContents = new ItemStack[0];
