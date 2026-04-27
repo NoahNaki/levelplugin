@@ -1032,33 +1032,54 @@ public class StrongholdRunManager implements Listener {
             if (meta != null) {
                 meta.setDisplayName(ChatColor.GOLD + choice.displayName);
                 List<String> lore = new ArrayList<>();
-                lore.addAll(TooltipUtil.bulletList(choice.description));
+                appendWrappedBulletBlock(lore, choice.description);
+                lore.add(" ");
                 if (choice.type == UpgradeType.SPELL_UNLOCK || choice.type == UpgradeType.SPELL_UPGRADE) {
                     int rank = state.ownedSpellRanks.getOrDefault(choice.baseSpellId, 0);
+                    lore.add(TooltipUtil.sectionHeader("Spell Upgrade"));
                     lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Current Rank",
                             ChatColor.WHITE, String.valueOf(rank)));
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Next Spell",
                             ChatColor.WHITE, resolveUpgradeSpellDisplay(choice.resultSpellId)));
                     lore.add(" ");
-                    lore.add(ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Spell Effect");
-                    lore.addAll(TooltipUtil.bulletList(describeAutoCastSpell(choice.resultSpellId)));
-                    lore.add(ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Upgrade Effect");
-                    lore.addAll(TooltipUtil.bulletList(describeUpgradeEffect(choice)));
+                    lore.add(TooltipUtil.sectionHeader("Spell Effect"));
+                    appendWrappedBulletBlock(lore, describeAutoCastSpell(choice.resultSpellId));
+                    lore.add(TooltipUtil.sectionHeader("Upgrade Effect"));
+                    appendWrappedBulletBlock(lore, describeUpgradeEffect(choice));
                 } else if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
+                    lore.add(TooltipUtil.sectionHeader("Global Cooldown"));
                     lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Cooldown Tier",
                             ChatColor.WHITE, String.valueOf(state.cooldownUpgradeTier)));
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Effect",
                             ChatColor.GREEN, "-10% global skill cooldown"));
                 } else if (choice.statType != null) {
+                    lore.add(TooltipUtil.sectionHeader("Temporary Bonus"));
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Temporary Bonus",
                             ChatColor.GREEN, "+" + choice.statAmount + " " + choice.statType.getDisplayName()));
                 }
                 lore.add(TooltipUtil.sectionDividerByPixels(150));
+                lore.add(TooltipUtil.selectionLine(true, "Choose this upgrade"));
                 lore.addAll(TooltipUtil.clickInstructions("to choose this upgrade", null));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
+                TooltipUtil.centerItemName(item);
             }
             return item;
+        }
+
+        private void appendWrappedBulletBlock(List<String> lore, String description) {
+            if (lore == null || description == null || description.isBlank()) {
+                return;
+            }
+            List<String> wrapped = TooltipUtil.wrapLoreLine(ChatColor.GRAY + description.trim(), 210,
+                    ChatColor.DARK_GRAY + "  " + ChatColor.GRAY);
+            if (wrapped.isEmpty()) {
+                return;
+            }
+            lore.add(TooltipUtil.bulletLine(wrapped.get(0)));
+            for (int i = 1; i < wrapped.size(); i++) {
+                lore.add(wrapped.get(i));
+            }
         }
 
         private String resolveUpgradeSpellDisplay(String spellId) {
