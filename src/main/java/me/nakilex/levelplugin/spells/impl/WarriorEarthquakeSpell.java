@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
+import me.nakilex.levelplugin.spells.WarriorCombatUtil;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -35,6 +36,7 @@ public class WarriorEarthquakeSpell implements SpellHandler {
         }
         SpellEffectUtil.spawnRingParticles(center, radius, Particle.CRIT, 48, 0.02);
         world.spawnParticle(Particle.CLOUD, center, 26, radius * 0.25, 0.15, radius * 0.25, 0.02);
+        WarriorCombatUtil.spawnGroundRipple(plugin, world, center, radius);
         world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.65f, 0.75f);
         for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, radius, living -> !living.equals(caster))) {
             SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage, true);

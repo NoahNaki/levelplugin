@@ -270,7 +270,7 @@ public final class WarriorCombatUtil {
         }
     }
 
-    private static void spawnGroundRipple(Main plugin, World world, Location center, double radius) {
+    public static void spawnGroundRipple(Main plugin, World world, Location center, double radius) {
         if (world == null || center == null) {
             return;
         }

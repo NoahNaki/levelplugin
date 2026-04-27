@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellDefinition;
 import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
+import me.nakilex.levelplugin.spells.SpellAccessUtil;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -1324,6 +1325,7 @@ public class StrongholdRunManager implements Listener {
 
         private void castAutoSpell(Player player, SpellRegistry.SpellEntry spellEntry) {
             try {
+                ensureCyclonePlaceholderWeapon(player, spellEntry.definition());
                 me.nakilex.levelplugin.spells.input.SpellInputEvent fakeInput =
                         new me.nakilex.levelplugin.spells.input.SpellInputEvent(
                                 player,
@@ -1334,6 +1336,26 @@ public class StrongholdRunManager implements Listener {
             } catch (Exception ignored) {
                 // Guard auto-cast loop from individual spell runtime issues.
             }
+        }
+
+        private void ensureCyclonePlaceholderWeapon(Player player, SpellDefinition definition) {
+            if (player == null || definition == null || definition.id() == null) {
+                return;
+            }
+            String spellId = definition.id().toLowerCase(Locale.ROOT);
+            if (!spellId.startsWith("warrior_execution_arc")) {
+                return;
+            }
+            if (SpellAccessUtil.isHoldingWeapon(player)) {
+                return;
+            }
+            ItemStack fallback = new ItemStack(Material.IRON_AXE);
+            ItemMeta meta = fallback.getItemMeta();
+            if (meta != null) {
+                meta.setDisplayName(ChatColor.GRAY + "Training Axe");
+                fallback.setItemMeta(meta);
+            }
+            player.getInventory().setItemInMainHand(fallback);
         }
 
         private void applyTempStatDelta(UUID playerId, StatsManager.StatType statType, int delta) {
