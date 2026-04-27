@@ -88,7 +88,7 @@ public class LifeSkillRewardManager {
                 statReward(14, skillName, StatType.VIT, 2, "+2 Vitality"),
                 giftReward(15, skillName, "blossom_bundle"),
                 coinReward(16, skillName, 1200),
-                statReward(17, skillName, StatType.TEC, 2, "+2 Technique"),
+                statReward(17, skillName, StatType.WIL, 2, "+2 Will"),
                 giftReward(18, skillName, "heroic_token"),
                 coinReward(19, skillName, 1400),
                 statReward(20, skillName, StatType.STR, 3, "+3 Strength"),
@@ -98,7 +98,7 @@ public class LifeSkillRewardManager {
                 coinReward(24, skillName, 1800)
         ));
 
-        List<StatType> statCycle = List.of(StatType.VIT, StatType.STR, StatType.AGI, StatType.DEX, StatType.WIL, StatType.TEC);
+        List<StatType> statCycle = List.of(StatType.VIT, StatType.STR, StatType.AGI, StatType.DEX, StatType.WIL);
         String[] gifts = {"blossom_bundle", "heroic_token", "adventurers_feast"};
         int statIndex = 0;
         int giftIndex = 0;

@@ -106,7 +106,6 @@ public class StatsMenuListener implements Listener {
             else if (displayName.contains("Dexterity")) stat = StatsManager.StatType.DEX;
             else if (displayName.contains("Vitality")) stat = StatsManager.StatType.VIT;
             else if (displayName.contains("Will")) stat = StatsManager.StatType.WIL;
-            else if (displayName.contains("Technique")) stat = StatsManager.StatType.TEC;
 
             if (stat != null) {
                 int availablePoints = statsManager.getPlayerStats(player.getUniqueId()).skillPoints;

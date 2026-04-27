@@ -301,6 +301,10 @@ public class ListenerRegistry {
         if (classSystemEnabled) {
             pm.registerEvents(new SubclassGUI(), plugin);
             pm.registerEvents(ClassSelectionGUI.getInstance(), plugin);
+        }
+        boolean essenceSystemEnabled = classSystemEnabled
+                && FeatureFlagUtil.isEnabled("features.essence-system", false);
+        if (essenceSystemEnabled) {
             pm.registerEvents(new ClassEssenceMenuListener(), plugin);
             pm.registerEvents(new ClassEssenceBoundListener(), plugin);
             pm.registerEvents(new ClassEssenceSwapListener(), plugin);

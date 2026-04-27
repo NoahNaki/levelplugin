@@ -253,13 +253,9 @@ public class CommandRegistry {
             plugin.getCommand("sealingcharm").setExecutor(sealingCharmCmd);
             plugin.getCommand("sealingcharm").setTabCompleter(sealingCharmCmd);
         } else {
-            org.bukkit.command.CommandExecutor disabled = (sender, command, label, args) -> {
-                sender.sendMessage(org.bukkit.ChatColor.RED + "Essence system is temporarily disabled.");
-                return true;
-            };
-            plugin.getCommand("essence").setExecutor(disabled);
-            plugin.getCommand("essenceupgrade").setExecutor(disabled);
-            plugin.getCommand("sealingcharm").setExecutor(disabled);
+            registerArchivedCommand(plugin.getCommand("essence"), "Essence");
+            registerArchivedCommand(plugin.getCommand("essenceupgrade"), "Essence");
+            registerArchivedCommand(plugin.getCommand("sealingcharm"), "Essence");
         }
         EndDialogCommand endDialogCommand = new EndDialogCommand();
         plugin.getCommand("enddialog").setExecutor(endDialogCommand);

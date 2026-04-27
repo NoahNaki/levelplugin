@@ -641,7 +641,11 @@ public class PluginBootstrap {
 
         furnitureGuiMapper = new me.nakilex.levelplugin.nexo.FurnitureGuiMapper();
         furnitureGuiMapper.register("quest_board", player -> mercenaryExpeditionGUI.open(player));
-        furnitureGuiMapper.register("altar", player -> ClassEssenceUpgradeGUI.openInvest(player, null));
+        boolean essenceSystemEnabled = me.nakilex.levelplugin.utils.FeatureFlagUtil.isEnabled("features.class-system", false)
+                && me.nakilex.levelplugin.utils.FeatureFlagUtil.isEnabled("features.essence-system", false);
+        if (essenceSystemEnabled) {
+            furnitureGuiMapper.register("altar", player -> ClassEssenceUpgradeGUI.openInvest(player, null));
+        }
         java.util.List.of(
                 "portal_decoration_animated_v1_portal_1",
                 "portal_decoration_animated_v1_portal_2",

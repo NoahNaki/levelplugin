@@ -641,6 +641,6 @@ public class StatsManager {
          * Vitality first followed by the six primary attributes.
          */
         public static final List<StatType> DISPLAY_ORDER =
-                java.util.List.of(VIT, STR, AGI, INT, DEX, WIL, TEC);
+                java.util.List.of(VIT, STR, AGI, INT, DEX, WIL);
     }
 }
