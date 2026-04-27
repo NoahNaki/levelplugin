@@ -5,14 +5,11 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.spells.SpellCastManager;
-import me.nakilex.levelplugin.spells.SpellContext;
-import me.nakilex.levelplugin.spells.SpellDefinition;
-import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.PotionEffectUtil;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
@@ -48,6 +45,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -57,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -75,6 +74,7 @@ public class StrongholdRunManager implements Listener {
     private static final int MAX_WAVE = 30;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
     private static final int BASE_XP_REQUIRED = 100;
+    private static final int MAX_ACTIVE_STRONGHOLD_SPELLS = 4;
     private static final double MIN_ENEMY_SPAWN_RADIUS = 5.0;
     private static final long BASE_AUTOCAST_COOLDOWN_MS = 1_400L;
     private static final long STUCK_PULL_DELAY_MS = 4_000L;
@@ -99,12 +99,7 @@ public class StrongholdRunManager implements Listener {
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final List<String> waveMobPool = List.of("forest_slime");
     private final Set<String> autoCastBasePool = new HashSet<>();
-    private final Set<String> excludedAutoCastSpellIds = Set.of(
-            "mage_blink", "mage_blink_phase", "mage_blink_rift",
-            "archer_skybound",
-            "rogue_razor_dash", "rogue_razor_dash_rift", "rogue_razor_dash_shade",
-            "warrior_titan_vault"
-    );
+    private static final Map<String, StrongholdSpellDefinition> STRONGHOLD_AUTOCAST_SPELLS = createStrongholdSpellCatalog();
 
     public StrongholdRunManager(Main plugin, StrongholdShrineManager shrineManager) {
         this.plugin = plugin;
@@ -404,45 +399,81 @@ public class StrongholdRunManager implements Listener {
 
     private void initializeAutoCastPool() {
         autoCastBasePool.clear();
-        SpellRegistry registry = SpellRegistry.getInstance();
-        for (String spellId : baseSpellIds()) {
-            SpellRegistry.SpellEntry entry = registry.getSpell(spellId);
-            if (entry == null) {
-                continue;
-            }
-            SpellDefinition definition = entry.definition();
-            if (definition == null || definition.movementSpell()) {
-                continue;
-            }
-            if (excludedAutoCastSpellIds.contains(definition.id().toLowerCase(Locale.ROOT))) {
-                continue;
-            }
-            if (!isAllowedAutoCastSpellId(definition.id())) {
-                continue;
-            }
-            autoCastBasePool.add(definition.id().toLowerCase(Locale.ROOT));
-        }
+        autoCastBasePool.addAll(STRONGHOLD_AUTOCAST_SPELLS.keySet());
     }
 
-    private boolean isAllowedAutoCastSpellId(String spellId) {
-        if (spellId == null || spellId.isBlank()) {
-            return false;
-        }
-        String normalized = spellId.toLowerCase(Locale.ROOT);
-        return normalized.startsWith("mage_")
-                || normalized.startsWith("archer_")
-                || normalized.equals("meteor")
-                || normalized.equals("blackhole");
+    private static Map<String, StrongholdSpellDefinition> createStrongholdSpellCatalog() {
+        Map<String, StrongholdSpellDefinition> spells = new HashMap<>();
+        registerSpell(spells, "cinder_halo", "Cinder Halo", "Emits a close-range fire ring around you.",
+                AutoCastProfile.OFFENSE_PERIODIC,
+                new SpellTier("Cinder Halo", 6.0, 6.5, 2_300L),
+                new SpellTier("Cinder Halo: Ember Ring", 7.6, 7.0, 2_150L),
+                new SpellTier("Cinder Halo: Infernal Crown", 9.0, 7.6, 2_000L));
+        registerSpell(spells, "siegebreak_bolt", "Siegebreak Bolt", "Piercing bolt aimed at high-threat targets.",
+                AutoCastProfile.OFFENSE_PRIORITY,
+                new SpellTier("Siegebreak Bolt", 9.5, 24.0, 2_700L),
+                new SpellTier("Siegebreak Bolt: Breachline", 12.0, 26.0, 2_500L),
+                new SpellTier("Siegebreak Bolt: Bastionbreaker", 15.0, 28.0, 2_300L));
+        registerSpell(spells, "gravitic_latch", "Gravitic Latch", "Pull-field that groups enemy clusters.",
+                AutoCastProfile.OFFENSE_CLUSTER,
+                new SpellTier("Gravitic Latch", 6.0, 7.0, 3_300L),
+                new SpellTier("Gravitic Latch: Gravity Well", 7.5, 7.5, 3_100L),
+                new SpellTier("Gravitic Latch: Event Horizon", 9.0, 8.0, 2_900L));
+        registerSpell(spells, "aegis_orbit", "Aegis Orbit", "Orbiting shards damage nearby foes and add barrier.",
+                AutoCastProfile.DEFENSE_SURROUNDED,
+                new SpellTier("Aegis Orbit", 5.0, 5.5, 3_600L),
+                new SpellTier("Aegis Orbit: Guardian Ring", 6.8, 6.0, 3_400L),
+                new SpellTier("Aegis Orbit: Bulwark Orbit", 8.5, 6.5, 3_200L));
+        registerSpell(spells, "bloodpact_sigil", "Bloodpact Sigil", "Shield + heal-on-hit style sustain pulse.",
+                AutoCastProfile.DEFENSE_HEALTH_THRESHOLD,
+                new SpellTier("Bloodpact Sigil", 0.0, 0.0, 4_600L),
+                new SpellTier("Bloodpact Sigil: Crimson Ward", 0.0, 0.0, 4_300L),
+                new SpellTier("Bloodpact Sigil: Covenant Field", 0.0, 0.0, 4_000L));
+        registerSpell(spells, "thunder_mesh", "Thunder Mesh", "Chain lightning through nearby clumped enemies.",
+                AutoCastProfile.OFFENSE_CLUSTER,
+                new SpellTier("Thunder Mesh", 5.5, 14.0, 2_800L),
+                new SpellTier("Thunder Mesh: Storm Lattice", 7.0, 15.0, 2_600L),
+                new SpellTier("Thunder Mesh: Tempest Grid", 8.6, 16.5, 2_400L));
+        registerSpell(spells, "shrapnel_bloom", "Shrapnel Bloom", "Hybrid projectile burst with radial fragments.",
+                AutoCastProfile.OFFENSE_PRIORITY,
+                new SpellTier("Shrapnel Bloom", 7.0, 16.0, 2_900L),
+                new SpellTier("Shrapnel Bloom: Iron Blossom", 8.8, 17.0, 2_700L),
+                new SpellTier("Shrapnel Bloom: Starburst", 10.4, 18.0, 2_500L));
+        registerSpell(spells, "frostwire_mine", "Frostwire Mine", "Pathing mine that detonates for damage + slow.",
+                AutoCastProfile.UTILITY_PATHING,
+                new SpellTier("Frostwire Mine", 7.5, 0.0, 3_300L),
+                new SpellTier("Frostwire Mine: Coldsnare", 9.0, 0.0, 3_100L),
+                new SpellTier("Frostwire Mine: Icebreaker", 10.5, 0.0, 2_900L));
+        registerSpell(spells, "phoenix_trace", "Phoenix Trace", "Leaves a burning trail while repositioning.",
+                AutoCastProfile.UTILITY_PATHING,
+                new SpellTier("Phoenix Trace", 6.2, 6.0, 2_600L),
+                new SpellTier("Phoenix Trace: Ashen Wake", 7.8, 6.5, 2_400L),
+                new SpellTier("Phoenix Trace: Solar Wake", 9.2, 7.0, 2_200L));
+        registerSpell(spells, "rift_mortar", "Rift Mortar", "Delayed arc blast into densest nearby packs.",
+                AutoCastProfile.OFFENSE_CLUSTER,
+                new SpellTier("Rift Mortar", 11.0, 18.0, 3_500L),
+                new SpellTier("Rift Mortar: Rift Battery", 13.0, 20.0, 3_250L),
+                new SpellTier("Rift Mortar: Void Artillery", 15.5, 22.0, 3_000L));
+        registerSpell(spells, "void_leech", "Void Leech", "Marks targets and detonates stacks for restore value.",
+                AutoCastProfile.OFFENSE_PRIORITY,
+                new SpellTier("Void Leech", 6.5, 13.0, 2_750L),
+                new SpellTier("Void Leech: Entropic Mark", 8.2, 14.0, 2_550L),
+                new SpellTier("Void Leech: Null Feast", 10.0, 15.0, 2_350L));
+        registerSpell(spells, "wardline_pulse", "Wardline Pulse", "Frontal pulse that weakens enemy pressure.",
+                AutoCastProfile.DEFENSE_SURROUNDED,
+                new SpellTier("Wardline Pulse", 6.0, 11.0, 3_100L),
+                new SpellTier("Wardline Pulse: Suppression Wave", 7.4, 12.0, 2_900L),
+                new SpellTier("Wardline Pulse: Citadel Pulse", 9.0, 13.0, 2_700L));
+        return spells;
     }
 
-    private Set<String> baseSpellIds() {
-        Set<String> ids = new HashSet<>();
-        for (SpellProgression progression : SpellRegistry.getInstance().getAllProgressions()) {
-            if (progression != null && progression.baseSpellId() != null) {
-                ids.add(progression.baseSpellId().toLowerCase(Locale.ROOT));
-            }
-        }
-        return ids;
+    private static void registerSpell(Map<String, StrongholdSpellDefinition> spells,
+                                      String baseId,
+                                      String displayName,
+                                      String description,
+                                      AutoCastProfile profile,
+                                      SpellTier... tiers) {
+        spells.put(baseId, new StrongholdSpellDefinition(baseId, displayName, description, profile, List.of(tiers)));
     }
 
     private int xpRequiredForLevel(int level) {
@@ -1034,6 +1065,10 @@ public class StrongholdRunManager implements Listener {
             if (spellId == null || spellId.isBlank()) {
                 return "Unknown";
             }
+            Optional<SpellTier> strongholdTier = findStrongholdTierBySpellId(spellId);
+            if (strongholdTier.isPresent()) {
+                return strongholdTier.get().displayName();
+            }
             SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(spellId);
             if (entry == null || entry.definition() == null || entry.definition().displayName() == null) {
                 return me.nakilex.levelplugin.utils.TextUtil.beautifyWords(spellId);
@@ -1196,48 +1231,37 @@ public class StrongholdRunManager implements Listener {
         }
 
         private UpgradeChoice spellUpgradeChoiceFor(SurvivorState state, String baseSpellId) {
-            SpellRegistry registry = SpellRegistry.getInstance();
             String base = baseSpellId.toLowerCase(Locale.ROOT);
+            StrongholdSpellDefinition strongholdSpell = STRONGHOLD_AUTOCAST_SPELLS.get(base);
+            if (strongholdSpell == null) {
+                return null;
+            }
             int rank = state.ownedSpellRanks.getOrDefault(base, 0);
+            int ownedCount = (int) state.ownedSpellRanks.values().stream().filter(value -> value != null && value > 0).count();
             if (rank <= 0) {
-                SpellRegistry.SpellEntry baseEntry = registry.getSpell(base);
-                if (baseEntry == null) {
+                if (ownedCount >= MAX_ACTIVE_STRONGHOLD_SPELLS) {
                     return null;
                 }
-                return new UpgradeChoice(UpgradeType.SPELL_UNLOCK, "Unlock " + baseEntry.definition().displayName(),
-                        "Adds this spell to your loadout.", base, baseEntry.definition().id(), null, 0);
+                return new UpgradeChoice(UpgradeType.SPELL_UNLOCK, "Unlock " + strongholdSpell.displayName(),
+                        "Adds this spell to your loadout.", base, tierSpellId(base, 1), null, 0);
             }
-            SpellProgression progression = registry.getProgression(base);
-            if (progression == null || progression.upgradeSpellIds() == null || progression.upgradeSpellIds().isEmpty()) {
+            if (rank >= strongholdSpell.tiers().size()) {
                 return null;
             }
-            int nextIndex = rank - 1;
-            if (nextIndex < 0 || nextIndex >= progression.upgradeSpellIds().size()) {
-                return null;
-            }
-            String nextSpell = progression.upgradeSpellIds().get(nextIndex);
-            SpellRegistry.SpellEntry upgraded = registry.getSpell(nextSpell);
-            if (upgraded == null) {
-                return null;
-            }
-            return new UpgradeChoice(UpgradeType.SPELL_UPGRADE, "Upgrade: " + upgraded.definition().displayName(),
-                    "Improves an already owned loadout skill.", base, upgraded.definition().id(), null, 0);
+            SpellTier nextTier = strongholdSpell.tiers().get(rank);
+            return new UpgradeChoice(UpgradeType.SPELL_UPGRADE, "Upgrade: " + nextTier.displayName(),
+                    "Improves an already owned loadout skill.", base, tierSpellId(base, rank + 1), null, 0);
         }
 
         private String describeAutoCastSpell(String spellId) {
             if (spellId == null) {
                 return "Improves your loadout damage rotation.";
             }
-            String id = spellId.toLowerCase(Locale.ROOT);
-            if (id.startsWith("mage_fireball")) return "Shoots firebolts at enemies in front of you.";
-            if (id.startsWith("mage_meteor")) return "Drops a meteor at target ground, dealing area damage.";
-            if (id.startsWith("blackhole")) return "Creates a pull zone that damages enemies over time.";
-            if (id.startsWith("archer_quickshot")) return "Rapidly fires arrows at nearby enemies.";
-            if (id.startsWith("archer_homing_barrage")) return "Launches homing arrows that lock onto nearby targets.";
-            if (id.startsWith("archer_arrow_rain")) return "Bombards a target area with repeated arrow volleys.";
-            if (id.startsWith("rogue_razor_dash")) return "Dash-slashes through targets for burst damage.";
-            if (id.startsWith("warrior_earthquake")) return "Slams the ground and damages enemies in an area.";
-            if (id.startsWith("warrior_arc_slash")) return "Sends a frontal arc slash through enemies.";
+            String base = extractBaseId(spellId);
+            StrongholdSpellDefinition definition = STRONGHOLD_AUTOCAST_SPELLS.get(base);
+            if (definition != null) {
+                return definition.description();
+            }
             return "Improves your loadout damage rotation.";
         }
 
@@ -1264,30 +1288,10 @@ public class StrongholdRunManager implements Listener {
             if (spellId == null) {
                 return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
             }
-            String id = spellId.toLowerCase(Locale.ROOT);
-            if (id.startsWith("archer_homing_barrage")) {
-                return "Turns barrage arrows into homing shots that seek nearby targets.";
-            }
-            if (id.startsWith("mage_fireball_chain")) {
-                return "Adds chain hits so fireballs jump to nearby enemies after impact.";
-            }
-            if (id.startsWith("mage_fireball")) {
-                return "Upgrades fireball damage and improves pressure on clustered enemies.";
-            }
-            if (id.startsWith("meteor")) {
-                return "Increases meteor impact pressure with stronger area burst.";
-            }
-            if (id.startsWith("blackhole")) {
-                return "Strengthens blackhole pull-zone damage and control.";
-            }
-            if (id.startsWith("archer_arrow_rain")) {
-                return "Improves arrow rain volley pressure over the target area.";
-            }
-            if (id.startsWith("warrior_earthquake")) {
-                return "Improves slam impact to hit surrounding enemies harder.";
-            }
-            if (id.startsWith("rogue_razor_dash")) {
-                return "Empowers dash slashes for stronger burst through targets.";
+            Optional<SpellTier> tier = findStrongholdTierBySpellId(spellId);
+            if (tier.isPresent()) {
+                SpellTier value = tier.get();
+                return "Increases " + value.displayName() + " potency and improves auto-cast tempo.";
             }
             return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
         }
@@ -1307,50 +1311,53 @@ public class StrongholdRunManager implements Listener {
                     continue;
                 }
                 SurvivorState state = entry.getValue();
-                for (String spellId : state.activeSpellByBase.values()) {
-                    if (requiresLockTarget(spellId) && findNearestLockTarget(player, 18.0) == null) {
+                for (Map.Entry<String, Integer> owned : state.ownedSpellRanks.entrySet()) {
+                    String baseSpellId = owned.getKey();
+                    int rank = owned.getValue() == null ? 0 : owned.getValue();
+                    if (rank <= 0) {
                         continue;
                     }
-                    SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(spellId);
-                    if (spellEntry == null) {
+                    StrongholdSpellDefinition definition = STRONGHOLD_AUTOCAST_SPELLS.get(baseSpellId);
+                    if (definition == null) {
                         continue;
                     }
-                    SpellDefinition definition = spellEntry.definition();
-                    long cooldown = computeAutoCastCooldownMs(definition, state);
-                    long last = state.lastCastAtBySpell.getOrDefault(spellId, 0L);
+                    SpellTier tier = resolveSpellTier(definition, rank);
+                    if (tier == null) {
+                        continue;
+                    }
+                    if (!shouldTriggerProfile(definition.profile(), player)) {
+                        continue;
+                    }
+                    long cooldown = computeAutoCastCooldownMs(tier.baseCooldownMs(), state);
+                    long last = state.lastCastAtBySpell.getOrDefault(baseSpellId, 0L);
                     if (now - last < cooldown) {
                         continue;
                     }
-                    castAutoSpell(player, spellEntry);
-                    state.lastCastAtBySpell.put(spellId, now);
+                    castStrongholdAutoSpell(player, state, definition, tier);
+                    state.lastCastAtBySpell.put(baseSpellId, now);
                 }
             }
         }
 
-        private long computeAutoCastCooldownMs(SpellDefinition definition, SurvivorState state) {
-            if (definition == null) {
-                return BASE_AUTOCAST_COOLDOWN_MS;
-            }
-            String spellId = definition.id() == null ? "" : definition.id().toLowerCase(Locale.ROOT);
-            long cooldown = Math.max(BASE_AUTOCAST_COOLDOWN_MS, SpellCastManager.getInstance().getCooldownMs(definition));
-            if (spellId.startsWith("mage_fireball")) {
-                cooldown = Math.max(cooldown, 2_200L);
-            } else if (spellId.startsWith("archer_quickshot")) {
-                cooldown = Math.max(cooldown, 1_850L);
-            }
+        private long computeAutoCastCooldownMs(long baseCooldownMs, SurvivorState state) {
+            long cooldown = Math.max(BASE_AUTOCAST_COOLDOWN_MS, baseCooldownMs);
             int tier = state == null ? 0 : Math.max(0, state.cooldownUpgradeTier);
             double multiplier = Math.max(0.45, 1.0 - (tier * 0.10));
             return Math.max(600L, Math.round(cooldown * multiplier));
         }
 
-        private boolean requiresLockTarget(String spellId) {
-            if (spellId == null) {
+        private boolean shouldTriggerProfile(AutoCastProfile profile, Player player) {
+            if (player == null) {
                 return false;
             }
-            String normalized = spellId.toLowerCase(Locale.ROOT);
-            return normalized.contains("homing")
-                    || normalized.contains("seeker")
-                    || normalized.startsWith("archer_quickshot");
+            return switch (profile) {
+                case OFFENSE_PERIODIC -> findNearestLockTarget(player, 18.0) != null;
+                case OFFENSE_CLUSTER -> resolveDensestClusterCenter(player, 16.0, 3).isPresent();
+                case OFFENSE_PRIORITY -> resolvePriorityTarget(player, 22.0).isPresent();
+                case DEFENSE_SURROUNDED -> countNearbyEnemies(player, 7.5) >= 4;
+                case DEFENSE_HEALTH_THRESHOLD -> player.getHealth() <= Math.max(6.0, player.getMaxHealth() * 0.65);
+                case UTILITY_PATHING -> true;
+            };
         }
 
         private LivingEntity findNearestLockTarget(Player caster, double range) {
@@ -1361,18 +1368,209 @@ public class StrongholdRunManager implements Listener {
                     .orElse(null);
         }
 
-        private void castAutoSpell(Player player, SpellRegistry.SpellEntry spellEntry) {
+        private Optional<LivingEntity> resolvePriorityTarget(Player caster, double range) {
+            List<LivingEntity> targets = me.nakilex.levelplugin.spells.SpellEffectUtil
+                    .getLivingTargets(caster.getLocation(), Math.max(2.0, range), living -> !living.equals(caster));
+            if (targets.isEmpty()) {
+                return Optional.empty();
+            }
+            return targets.stream()
+                    .max(java.util.Comparator.comparingDouble(target -> target.getMaxHealth() + target.getHealth() * 0.40));
+        }
+
+        private Optional<Location> resolveDensestClusterCenter(Player caster, double searchRadius, int minClusterSize) {
+            List<LivingEntity> targets = me.nakilex.levelplugin.spells.SpellEffectUtil
+                    .getLivingTargets(caster.getLocation(), Math.max(2.0, searchRadius), living -> !living.equals(caster));
+            if (targets.isEmpty()) {
+                return Optional.empty();
+            }
+            LivingEntity best = null;
+            int bestCount = 0;
+            for (LivingEntity pivot : targets) {
+                int count = 0;
+                Location center = pivot.getLocation();
+                for (LivingEntity candidate : targets) {
+                    if (candidate.getLocation().distanceSquared(center) <= 4.8 * 4.8) {
+                        count++;
+                    }
+                }
+                if (count > bestCount) {
+                    bestCount = count;
+                    best = pivot;
+                }
+            }
+            if (best == null || bestCount < minClusterSize) {
+                return Optional.empty();
+            }
+            return Optional.of(best.getLocation());
+        }
+
+        private int countNearbyEnemies(Player player, double radius) {
+            return me.nakilex.levelplugin.spells.SpellEffectUtil
+                    .getLivingTargets(player.getLocation(), Math.max(2.0, radius), living -> !living.equals(player))
+                    .size();
+        }
+
+        private void castStrongholdAutoSpell(Player player,
+                                             SurvivorState state,
+                                             StrongholdSpellDefinition spellDefinition,
+                                             SpellTier tier) {
             try {
-                me.nakilex.levelplugin.spells.input.SpellInputEvent fakeInput =
-                        new me.nakilex.levelplugin.spells.input.SpellInputEvent(
-                                player,
-                                me.nakilex.levelplugin.spells.input.SpellInputType.BASIC_ATTACK,
-                                me.nakilex.levelplugin.spells.input.SpellInputMode.MOUSE_COMBO,
-                                "AUTO");
-                spellEntry.handler().cast(new SpellContext(plugin, player, spellEntry.definition(), fakeInput));
+                applyStrongholdSpellEffect(player, state, spellDefinition, tier);
             } catch (Exception ignored) {
                 // Guard auto-cast loop from individual spell runtime issues.
             }
+        }
+
+        private SpellTier resolveSpellTier(StrongholdSpellDefinition definition, int rank) {
+            if (definition == null || definition.tiers() == null || definition.tiers().isEmpty()) {
+                return null;
+            }
+            int index = Math.max(0, Math.min(definition.tiers().size() - 1, rank - 1));
+            return definition.tiers().get(index);
+        }
+
+        private void applyStrongholdSpellEffect(Player caster,
+                                                SurvivorState state,
+                                                StrongholdSpellDefinition definition,
+                                                SpellTier tier) {
+            String baseId = definition.baseId();
+            Location origin = caster.getLocation().clone();
+            switch (baseId) {
+                case "cinder_halo" -> {
+                    caster.getWorld().spawnParticle(Particle.FLAME, origin, 42, 0.8, 0.3, 0.8, 0.02);
+                    me.nakilex.levelplugin.spells.SpellEffectUtil.applyAreaDamage(caster, origin, Math.max(2.8, tier.range() * 0.40), tier.baseDamage());
+                }
+                case "siegebreak_bolt" -> resolvePriorityTarget(caster, tier.range()).ifPresent(target -> {
+                    caster.getWorld().spawnParticle(Particle.CRIT, target.getLocation().clone().add(0.0, 1.0, 0.0), 20, 0.3, 0.3, 0.3, 0.02);
+                    me.nakilex.levelplugin.spells.SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, tier.baseDamage());
+                });
+                case "gravitic_latch" -> resolveDensestClusterCenter(caster, tier.range(), 3).ifPresent(center -> {
+                    caster.getWorld().spawnParticle(Particle.PORTAL, center.clone().add(0.0, 0.6, 0.0), 40, 0.6, 0.4, 0.6, 0.05);
+                    for (LivingEntity target : me.nakilex.levelplugin.spells.SpellEffectUtil.getLivingTargets(center, Math.max(2.8, tier.range() * 0.40), living -> !living.equals(caster))) {
+                        Vector pull = center.toVector().subtract(target.getLocation().toVector()).multiply(0.09);
+                        target.setVelocity(target.getVelocity().multiply(0.6).add(pull));
+                        PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.SLOWNESS, 30, 1);
+                        me.nakilex.levelplugin.spells.SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, tier.baseDamage());
+                    }
+                });
+                case "aegis_orbit" -> {
+                    caster.setAbsorptionAmount(Math.min(caster.getAbsorptionAmount() + 2.0, 12.0));
+                    caster.getWorld().spawnParticle(Particle.END_ROD, origin.clone().add(0.0, 1.0, 0.0), 18, 0.8, 0.3, 0.8, 0.03);
+                    me.nakilex.levelplugin.spells.SpellEffectUtil.applyAreaDamage(caster, origin, Math.max(2.8, tier.range() * 0.40), tier.baseDamage());
+                }
+                case "bloodpact_sigil" -> {
+                    caster.setAbsorptionAmount(Math.min(caster.getAbsorptionAmount() + 3.0, 14.0));
+                    double heal = Math.min(caster.getMaxHealth(), caster.getHealth() + (1.0 + (state.cooldownUpgradeTier * 0.2)));
+                    caster.setHealth(heal);
+                    caster.getWorld().spawnParticle(Particle.HEART, origin.clone().add(0.0, 1.1, 0.0), 6, 0.5, 0.2, 0.5, 0.02);
+                }
+                case "thunder_mesh" -> resolveDensestClusterCenter(caster, tier.range(), 2).ifPresent(center -> {
+                    List<LivingEntity> targets = me.nakilex.levelplugin.spells.SpellEffectUtil
+                            .getLivingTargets(center, 6.5, living -> !living.equals(caster))
+                            .stream()
+                            .limit(5)
+                            .toList();
+                    for (LivingEntity target : targets) {
+                        caster.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, target.getLocation().clone().add(0.0, 1.0, 0.0), 10, 0.2, 0.2, 0.2, 0.02);
+                        me.nakilex.levelplugin.spells.SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, tier.baseDamage());
+                    }
+                });
+                case "shrapnel_bloom" -> resolvePriorityTarget(caster, tier.range()).ifPresent(target -> {
+                    Location impact = target.getLocation().clone();
+                    caster.getWorld().spawnParticle(Particle.EXPLOSION, impact.clone().add(0.0, 0.5, 0.0), 2, 0.0, 0.0, 0.0, 0.0);
+                    me.nakilex.levelplugin.spells.SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, tier.baseDamage() * 1.2);
+                    me.nakilex.levelplugin.spells.SpellEffectUtil.applyAreaDamage(caster, impact, 3.6, tier.baseDamage() * 0.7);
+                });
+                case "frostwire_mine" -> {
+                    Location detonation = origin.clone().add(origin.getDirection().normalize().multiply(3.0));
+                    caster.getWorld().spawnParticle(Particle.SNOWFLAKE, detonation.clone().add(0.0, 0.2, 0.0), 8, 0.35, 0.2, 0.35, 0.01);
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (!caster.isOnline() || caster.getWorld() != detonation.getWorld()) {
+                            return;
+                        }
+                        caster.getWorld().spawnParticle(Particle.SNOWFLAKE, detonation.clone().add(0.0, 0.4, 0.0), 30, 0.8, 0.3, 0.8, 0.04);
+                        for (LivingEntity target : me.nakilex.levelplugin.spells.SpellEffectUtil.getLivingTargets(detonation, 3.4, living -> !living.equals(caster))) {
+                            me.nakilex.levelplugin.spells.SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, tier.baseDamage());
+                            PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.SLOWNESS, 45, 2);
+                        }
+                    }, 20L);
+                }
+                case "phoenix_trace" -> {
+                    Location behind = origin.clone().subtract(origin.getDirection().normalize().multiply(2.0));
+                    caster.getWorld().spawnParticle(Particle.FLAME, behind.clone().add(0.0, 0.3, 0.0), 36, 0.9, 0.2, 0.9, 0.03);
+                    me.nakilex.levelplugin.spells.SpellEffectUtil.applyAreaDamage(caster, behind, Math.max(2.8, tier.range() * 0.40), tier.baseDamage());
+                }
+                case "rift_mortar" -> resolveDensestClusterCenter(caster, tier.range(), 3).ifPresent(center -> {
+                    Location targetLocation = center.clone();
+                    caster.getWorld().spawnParticle(Particle.PORTAL, targetLocation.clone().add(0.0, 0.3, 0.0), 16, 0.6, 0.2, 0.6, 0.05);
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        if (!caster.isOnline() || caster.getWorld() != targetLocation.getWorld()) {
+                            return;
+                        }
+                        caster.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, targetLocation.clone().add(0.0, 0.4, 0.0), 1, 0.0, 0.0, 0.0, 0.0);
+                        me.nakilex.levelplugin.spells.SpellEffectUtil.applyAreaDamage(caster, targetLocation, 4.2, tier.baseDamage());
+                    }, 18L);
+                });
+                case "void_leech" -> resolvePriorityTarget(caster, tier.range()).ifPresent(target -> {
+                    int nextStacks = state.voidLeechStacks.merge(target.getUniqueId(), 1, Integer::sum);
+                    me.nakilex.levelplugin.spells.SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, tier.baseDamage() * 0.6);
+                    if (nextStacks >= 3) {
+                        state.voidLeechStacks.remove(target.getUniqueId());
+                        me.nakilex.levelplugin.spells.SpellEffectUtil.applyAreaDamage(caster, target.getLocation(), 3.2, tier.baseDamage() * 1.4);
+                        caster.setAbsorptionAmount(Math.min(caster.getAbsorptionAmount() + 1.5, 14.0));
+                    }
+                });
+                case "wardline_pulse" -> {
+                    Vector look = origin.getDirection().normalize();
+                    caster.getWorld().spawnParticle(Particle.ENCHANT, origin.clone().add(0.0, 1.0, 0.0), 22, 1.2, 0.3, 1.2, 0.02);
+                    for (LivingEntity target : me.nakilex.levelplugin.spells.SpellEffectUtil.getLivingTargets(origin, tier.range(), living -> !living.equals(caster))) {
+                        Vector toTarget = target.getLocation().toVector().subtract(origin.toVector()).normalize();
+                        if (look.dot(toTarget) < 0.25) {
+                            continue;
+                        }
+                        me.nakilex.levelplugin.spells.SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, tier.baseDamage());
+                        PotionEffectUtil.applyHiddenEffect(target, PotionEffectType.WEAKNESS, 50, 0);
+                    }
+                }
+                default -> {
+                }
+            }
+        }
+
+        private String tierSpellId(String baseSpellId, int rank) {
+            return baseSpellId.toLowerCase(Locale.ROOT) + "_t" + Math.max(1, rank);
+        }
+
+        private String extractBaseId(String spellId) {
+            if (spellId == null || spellId.isBlank()) {
+                return "";
+            }
+            String normalized = spellId.toLowerCase(Locale.ROOT);
+            int tierIndex = normalized.lastIndexOf("_t");
+            if (tierIndex <= 0) {
+                return normalized;
+            }
+            return normalized.substring(0, tierIndex);
+        }
+
+        private Optional<SpellTier> findStrongholdTierBySpellId(String spellId) {
+            String base = extractBaseId(spellId);
+            StrongholdSpellDefinition definition = STRONGHOLD_AUTOCAST_SPELLS.get(base);
+            if (definition == null) {
+                return Optional.empty();
+            }
+            int rank = 1;
+            String normalized = spellId.toLowerCase(Locale.ROOT);
+            int tierIndex = normalized.lastIndexOf("_t");
+            if (tierIndex > 0 && tierIndex + 2 < normalized.length()) {
+                try {
+                    rank = Integer.parseInt(normalized.substring(tierIndex + 2));
+                } catch (NumberFormatException ignored) {
+                    rank = 1;
+                }
+            }
+            return Optional.ofNullable(resolveSpellTier(definition, rank));
         }
 
         private void applyTempStatDelta(UUID playerId, StatsManager.StatType statType, int delta) {
@@ -1700,6 +1898,7 @@ public class StrongholdRunManager implements Listener {
         private final Map<String, Integer> ownedSpellRanks = new HashMap<>();
         private final Map<String, String> activeSpellByBase = new HashMap<>();
         private final Map<String, Long> lastCastAtBySpell = new HashMap<>();
+        private final Map<UUID, Integer> voidLeechStacks = new HashMap<>();
         private final Map<StatsManager.StatType, Integer> tempStatBonuses = new EnumMap<>(StatsManager.StatType.class);
         private BossBar progressBar;
         private int level = 1;
@@ -1735,6 +1934,28 @@ public class StrongholdRunManager implements Listener {
                                  String resultSpellId,
                                  StatsManager.StatType statType,
                                  int statAmount) {
+    }
+
+    private enum AutoCastProfile {
+        OFFENSE_PERIODIC,
+        OFFENSE_CLUSTER,
+        OFFENSE_PRIORITY,
+        DEFENSE_SURROUNDED,
+        DEFENSE_HEALTH_THRESHOLD,
+        UTILITY_PATHING
+    }
+
+    private record StrongholdSpellDefinition(String baseId,
+                                             String displayName,
+                                             String description,
+                                             AutoCastProfile profile,
+                                             List<SpellTier> tiers) {
+    }
+
+    private record SpellTier(String displayName,
+                             double baseDamage,
+                             double range,
+                             long baseCooldownMs) {
     }
 
     public record StageStatus(int wave, int enemiesRemaining) {
