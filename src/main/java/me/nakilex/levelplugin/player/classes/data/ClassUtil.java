@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.classes.data;
 
 import me.nakilex.levelplugin.items.data.WeaponType;
+import me.nakilex.levelplugin.utils.FeatureFlagUtil;
 import org.bukkit.inventory.ItemStack;
 
 /** Utility methods related to player classes and families. */
@@ -59,6 +60,9 @@ public final class ClassUtil {
      * subclasses. A null or VILLAGER requirement means all classes are allowed.
      */
     public static boolean meetsRequirement(PlayerClass playerClass, PlayerClass required) {
+        if (!isClassSystemEnabled()) {
+            return true;
+        }
         if (required == null || required == PlayerClass.VILLAGER) return true;
         if (playerClass == required) return true;
         return switch (required) {
@@ -76,7 +80,13 @@ public final class ClassUtil {
      */
     public static boolean isValidWeaponForClass(PlayerClass playerClass, ItemStack weapon) {
         WeaponType type = WeaponType.matchType(weapon);
-        if (type == null || playerClass == null) {
+        if (type == null) {
+            return false;
+        }
+        if (!isClassSystemEnabled()) {
+            return true;
+        }
+        if (playerClass == null) {
             return false;
         }
         if (isMageFamily(playerClass)) {
@@ -102,5 +112,9 @@ public final class ClassUtil {
      */
     public static boolean canUseWeapon(PlayerClass playerClass, ItemStack weapon, PlayerClass requiredClass) {
         return isValidWeaponForClass(playerClass, weapon) && meetsRequirement(playerClass, requiredClass);
+    }
+
+    public static boolean isClassSystemEnabled() {
+        return FeatureFlagUtil.isEnabled("features.class-system", false);
     }
 }

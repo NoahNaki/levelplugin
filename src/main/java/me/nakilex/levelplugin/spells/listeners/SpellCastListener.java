@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.spells.listeners;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
-import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.SpellAccessUtil;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellCastManager;
@@ -40,7 +39,7 @@ public class SpellCastListener implements Listener {
         if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) {
             if (!SpellAccessUtil.isHoldingLifeSkillTool(player) && SpellAccessUtil.isHoldingWeapon(player)) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                        "You must hold a valid class weapon to cast skills.");
+                        "You must hold a valid weapon to cast skills.");
             }
             return;
         }

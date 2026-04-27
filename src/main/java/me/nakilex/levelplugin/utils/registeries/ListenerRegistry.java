@@ -61,6 +61,7 @@ import me.nakilex.levelplugin.guild.GuildGUI;
 import me.nakilex.levelplugin.guild.GuildGUIListener;
 import me.nakilex.levelplugin.guild.quests.GuildQuestGUIListener;
 import me.nakilex.levelplugin.utils.*;
+import me.nakilex.levelplugin.utils.FeatureFlagUtil;
 import me.nakilex.levelplugin.quests.listeners.QuestKillListener;
 import me.nakilex.levelplugin.quests.listeners.QuestCraftListener;
 import me.nakilex.levelplugin.quests.gui.QuestGUIListener;
@@ -225,7 +226,10 @@ public class ListenerRegistry {
         }
         pm.registerEvents(new StatsMenuListener(codexGUI), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);
-        pm.registerEvents(new BoosterItemListener(boosterManager), plugin);
+        boolean boosterSystemEnabled = FeatureFlagUtil.isEnabled("features.booster-system", false);
+        if (boosterSystemEnabled && boosterManager != null) {
+            pm.registerEvents(new BoosterItemListener(boosterManager), plugin);
+        }
         pm.registerEvents(new ArmorListener(), plugin);
         pm.registerEvents(new ArmorStatsListener(), plugin);
         pm.registerEvents(new WeaponListener(), plugin);
@@ -247,9 +251,12 @@ public class ListenerRegistry {
         pm.registerEvents(new NPCCommandListener(), plugin);
         pm.registerEvents(new PlayerRightClicksPlayerListener(), plugin);
         pm.registerEvents(new TradingWindow(), plugin);
-        pm.registerEvents(arenaQueueGUI, plugin);
-        pm.registerEvents(arenaMatchManager, plugin);
-        pm.registerEvents(arenaTeamMatchManager, plugin);
+        boolean arenaSystemEnabled = FeatureFlagUtil.isEnabled("features.arena-system", false);
+        if (arenaSystemEnabled && arenaQueueGUI != null && arenaMatchManager != null && arenaTeamMatchManager != null) {
+            pm.registerEvents(arenaQueueGUI, plugin);
+            pm.registerEvents(arenaMatchManager, plugin);
+            pm.registerEvents(arenaTeamMatchManager, plugin);
+        }
         pm.registerEvents(new ChatChannelListener(), plugin);
         pm.registerEvents(new ChatGameListener(chatGameManager), plugin);
         pm.registerEvents(new PartyInviteListener(partyManager), plugin);
@@ -269,7 +276,10 @@ public class ListenerRegistry {
         pm.registerEvents(new FallDamageDisabler(), plugin);
         pm.registerEvents(new HungerDisabler(), plugin);
         pm.registerEvents(new CropTrampleListener(), plugin);
-        pm.registerEvents(new DuelListener(), plugin);
+        boolean duelSystemEnabled = FeatureFlagUtil.isEnabled("features.duel-system", false);
+        if (duelSystemEnabled) {
+            pm.registerEvents(new DuelListener(), plugin);
+        }
         pm.registerEvents(new PickupCustomItemListener(plugin), plugin);
         pm.registerEvents(new CustomItemUpdateListener(), plugin);
         pm.registerEvents(new SalvageListener(economyManager, gemsManager), plugin);
@@ -287,12 +297,15 @@ public class ListenerRegistry {
         pm.registerEvents(debugGUI, plugin);
         pm.registerEvents(new GuildGUIListener(guildGUI), plugin);
         pm.registerEvents(new GuildQuestGUIListener(), plugin);
-        pm.registerEvents(new SubclassGUI(), plugin);
-        pm.registerEvents(ClassSelectionGUI.getInstance(), plugin);
-        pm.registerEvents(new ClassEssenceMenuListener(), plugin);
-        pm.registerEvents(new ClassEssenceBoundListener(), plugin);
-        pm.registerEvents(new ClassEssenceSwapListener(), plugin);
-        pm.registerEvents(new ClassEssenceUpgradeGUI(), plugin);
+        boolean classSystemEnabled = FeatureFlagUtil.isEnabled("features.class-system", false);
+        if (classSystemEnabled) {
+            pm.registerEvents(new SubclassGUI(), plugin);
+            pm.registerEvents(ClassSelectionGUI.getInstance(), plugin);
+            pm.registerEvents(new ClassEssenceMenuListener(), plugin);
+            pm.registerEvents(new ClassEssenceBoundListener(), plugin);
+            pm.registerEvents(new ClassEssenceSwapListener(), plugin);
+            pm.registerEvents(new ClassEssenceUpgradeGUI(), plugin);
+        }
         pm.registerEvents(new FieldBossListener(plugin, plugin.getBossConfig(), plugin.getItemManager(), plugin.getGemsManager()), plugin);
         pm.registerEvents(new EquipOnJoinListener(), plugin);
         pm.registerEvents(new PlayerDeathListener(plugin), plugin);

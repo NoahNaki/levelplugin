@@ -335,7 +335,9 @@ public class ItemUtil {
             reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
         }
 
-        if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
+        if (me.nakilex.levelplugin.player.classes.data.ClassUtil.isClassSystemEnabled()
+                && reqClass != null
+                && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
             me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
             if (player != null) {
                 playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager
@@ -758,7 +760,9 @@ public class ItemUtil {
             reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
         }
 
-        if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
+        if (me.nakilex.levelplugin.player.classes.data.ClassUtil.isClassSystemEnabled()
+                && reqClass != null
+                && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
             me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
             if (player != null) {
                 playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager
