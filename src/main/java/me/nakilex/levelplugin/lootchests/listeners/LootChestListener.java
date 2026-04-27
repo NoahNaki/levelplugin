@@ -23,10 +23,17 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 public class LootChestListener implements Listener {
+    private static final long OPEN_DEBOUNCE_MS = 2_500L;
 
     private final LootChestManager lootChestManager;
     private final BattlePassManager battlePassManager;
+    private final Map<UUID, Integer> lastOpenedChestByPlayer = new HashMap<>();
+    private final Map<UUID, Long> nextAllowedOpenAtByPlayer = new HashMap<>();
 
     public LootChestListener(LootChestManager lootChestManager, BattlePassManager battlePassManager) {
         this.lootChestManager = lootChestManager;
@@ -89,6 +96,9 @@ public class LootChestListener implements Listener {
         if (chestId == null) {
             return false;
         }
+        if (isDebouncedChestOpen(player, chestId)) {
+            return true;
+        }
         Main.getInstance().getDialogManager().recordDialogCooldown(player);
 
         // Build the custom loot GUI.
@@ -119,12 +129,14 @@ public class LootChestListener implements Listener {
             org.bukkit.Bukkit.getScheduler().runTaskLater(Main.getInstance(),
                     () -> lootChestManager.playClosingAnimation(chestId), 12L);
             GuildQuestManager.getInstance().handleLootChestOpen(player);
+            markChestOpened(player, chestId);
             return true;
         }
 
         // 7) Open the inventory
         lootChestManager.playOpeningAnimation(chestId, lootGui);
         player.openInventory(lootGui);
+        markChestOpened(player, chestId);
 
         // 8) Track guild quest progress
         GuildQuestManager.getInstance().handleLootChestOpen(player);
@@ -157,6 +169,25 @@ public class LootChestListener implements Listener {
         }
         awardBattlePassProgress(player, gearScore);
         return true;
+    }
+
+    private boolean isDebouncedChestOpen(Player player, int chestId) {
+        if (player == null) {
+            return false;
+        }
+        UUID playerId = player.getUniqueId();
+        int lastChestId = lastOpenedChestByPlayer.getOrDefault(playerId, Integer.MIN_VALUE);
+        long nextAllowedAt = nextAllowedOpenAtByPlayer.getOrDefault(playerId, 0L);
+        return lastChestId == chestId && System.currentTimeMillis() < nextAllowedAt;
+    }
+
+    private void markChestOpened(Player player, int chestId) {
+        if (player == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        lastOpenedChestByPlayer.put(playerId, chestId);
+        nextAllowedOpenAtByPlayer.put(playerId, System.currentTimeMillis() + OPEN_DEBOUNCE_MS);
     }
 
     private void awardBattlePassProgress(Player player, int gearScore) {
