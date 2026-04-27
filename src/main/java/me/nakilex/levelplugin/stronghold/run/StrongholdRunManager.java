@@ -69,9 +69,6 @@ public class StrongholdRunManager implements Listener {
     private static final String RESULTS_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Results";
     private static final String RESULTS_CONFIRM_GUI_TITLE = ChatColor.DARK_RED + "Exit Stronghold Results?";
     private static final String STRONGHOLD_KEY_NAME = "Stronghold Key";
-    private static final int RESULTS_SUMMARY_SLOT = 49;
-    private static final int RESULTS_SORT_SLOT = 50;
-    private static final int RESULTS_FILTER_SLOT = 51;
     private static final int SHRINES_PER_RUN = 1;
     private static final int FIRST_WAVE_DELAY_SECONDS = 3;
     private static final int WAVE_INTERVAL_SECONDS = 5;
@@ -99,7 +96,6 @@ public class StrongholdRunManager implements Listener {
     private final Map<UUID, StrongholdResultsStorageGUI> pendingResultInventories = new HashMap<>();
     private final Map<UUID, StrongholdResultsStorageGUI> openResultInventories = new HashMap<>();
     private final Set<UUID> confirmedResultExit = new HashSet<>();
-    private final Set<UUID> suppressNextResultsCloseConfirm = new HashSet<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final List<String> waveMobPool = List.of("forest_slime");
     private final Set<String> autoCastBasePool = new HashSet<>();
@@ -242,10 +238,6 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         if (isResultsGuiTitle(title)) {
-            int rawSlot = event.getRawSlot();
-            if (rawSlot == RESULTS_SORT_SLOT || rawSlot == RESULTS_FILTER_SLOT) {
-                suppressNextResultsCloseConfirm.add(player.getUniqueId());
-            }
             return;
         }
         if (!UPGRADE_GUI_TITLE.equals(title)) {
@@ -294,9 +286,6 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         if (event.getView() != null && isResultsGuiTitle(event.getView().getTitle())) {
-            if (suppressNextResultsCloseConfirm.remove(player.getUniqueId())) {
-                return;
-            }
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (!player.isOnline()) {
                     return;
@@ -1702,7 +1691,6 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         if (rawSlot == 15 && results != null) {
-            suppressNextResultsCloseConfirm.add(playerId);
             Bukkit.getScheduler().runTask(plugin, () -> results.open(player));
         }
     }
