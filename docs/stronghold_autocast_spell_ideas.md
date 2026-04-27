@@ -1,57 +1,70 @@
 # Stronghold Auto-Cast Spell Ideas (Classless)
 
-This list is designed for the current Stronghold loop where spells are auto-cast on cooldown and the player focuses on movement, positioning, and upgrade decisions.
+This list is intentionally focused on **auto-cast reliability**: low-aim requirements, readable effects in dense waves, and roles that stay useful while the player is moving.
 
 ## Design goals
 - No class dependency.
-- Clear visual readability in high-density waves.
-- Strong synergy with existing Stronghold upgrade choices (spell unlock, spell upgrade, global cooldown, stat bumps).
-- Distinct roles: clear, single-target pressure, control, sustain, safety.
+- Minimal precision targeting (nearest enemy / densest cluster / self-centered effects).
+- High readability under heavy mob density.
+- Distinct roles: wave clear, priority damage, control, sustain, emergency safety.
+- Upgrade-friendly spell shapes that can scale without unique one-off logic.
 
-## Proposed base spells
+## New spell candidates (name + short description)
 
-### 1) Ember Pulse
-- **Role:** Short-range wave clear.
-- **Auto-cast behavior:** Emits a ring around the player that damages nearby enemies.
-- **Why Stronghold-friendly:** Always useful when swarmed; no target lock needed.
-- **Upgrade directions:** Radius+, burn DoT, second delayed pulse.
+1. **Cinder Halo**  
+   Emits a close-range fire ring around the player, ideal for consistent anti-swarm clearing.
 
-### 2) Arc Lance
-- **Role:** Single-target priority delete.
-- **Auto-cast behavior:** Fires a piercing projectile at the nearest elite/closest target.
-- **Why Stronghold-friendly:** Helps finish dangerous mobs and minibosses.
-- **Upgrade directions:** Pierces extra targets, crit chance, armor shred debuff.
+2. **Siegebreak Bolt**  
+   Fires a fast piercing bolt at the nearest elite/high-health enemy to stabilize dangerous pulls.
 
-### 3) Gravity Snare
-- **Role:** Crowd control.
-- **Auto-cast behavior:** Drops a snare field at the densest enemy cluster, slowing and tugging enemies inward.
-- **Why Stronghold-friendly:** Creates setup windows for other auto-casts.
-- **Upgrade directions:** Stronger pull, longer slow, vulnerable debuff.
+3. **Gravitic Latch**  
+   Deploys a pull field at the densest enemy cluster, grouping mobs for follow-up auto-casts.
 
-### 4) Shard Orbit
-- **Role:** Passive defensive/offensive hybrid.
-- **Auto-cast behavior:** Summons orbiting shards that intercept and damage nearby enemies.
-- **Why Stronghold-friendly:** Gives survivability while still contributing damage.
-- **Upgrade directions:** More shards, faster orbit, chance to block projectiles.
+4. **Aegis Orbit**  
+   Summons rotating shards that chip nearby enemies and absorb minor incoming projectile pressure.
 
-### 5) Rebound Sigil
-- **Role:** Sustain and safety.
-- **Auto-cast behavior:** Places a timed sigil under player that grants shield and minor heal-on-hit.
-- **Why Stronghold-friendly:** Stabilizes runs without requiring manual activation.
-- **Upgrade directions:** Bigger shield, heal amp, ally pulse for duo/squad.
+5. **Bloodpact Sigil**  
+   Places a timed sigil beneath the player that grants a shield and brief heal-on-hit sustain.
 
-### 6) Storm Volley
-- **Role:** Mid/long-range area pressure.
-- **Auto-cast behavior:** Launches repeated bolts/arrows toward random enemies in a target cone.
-- **Why Stronghold-friendly:** Reliable lane pressure in moving fights.
-- **Upgrade directions:** Volley count+, chain on hit, split bolts.
+6. **Thunder Mesh**  
+   Chains lightning through nearby enemies, excelling when packs are naturally clumped.
 
-## Optional "stronghold-only" modifiers
-- **Overclock:** next cast of a random spell has -50% cooldown and +25% effect.
-- **Cascade:** kills have a chance to instantly trigger a mini-cast of your lowest cooldown spell.
-- **Surge Windows:** every X seconds, all auto-casts gain brief haste.
+7. **Shrapnel Bloom**  
+   Launches a seed projectile that bursts into radial fragments on contact for hybrid single/AoE pressure.
 
-## Suggested rollout
-1. Add 2 evergreen base spells first (`Ember Pulse`, `Arc Lance`).
-2. Add one control spell (`Gravity Snare`) and one sustain spell (`Rebound Sigil`).
-3. Introduce upgrade branches after telemetry confirms cast reliability and run length balance.
+8. **Frostwire Mine**  
+   Auto-drops a proximity mine near the player’s forward lane; detonates with damage + slow on trigger.
+
+9. **Phoenix Trace**  
+   Leaves a short-lived burning trail behind the player, rewarding movement and choke-point kiting.
+
+10. **Rift Mortar**  
+    Lobs delayed arc blasts at predicted clusters for high-value area denial in dense waves.
+
+11. **Void Leech**  
+    Applies stacking marks to nearby enemies; max stacks detonate and return mana or barrier value.
+
+12. **Wardline Pulse**  
+    Sends a frontal pulse that briefly weakens enemy damage output during high-pressure moments.
+
+## Optional reusable trigger profiles
+
+To keep the implementation generic and reusable, map each spell to a shared trigger profile + target resolver:
+
+- `OFFENSE_PERIODIC`: cast when cooldown is ready and an enemy is in range.
+- `OFFENSE_CLUSTER`: cast only when cluster size threshold is met.
+- `OFFENSE_PRIORITY`: cast at nearest elite/high-health target.
+- `DEFENSE_SURROUNDED`: cast when nearby enemy count spikes.
+- `DEFENSE_HEALTH_THRESHOLD`: cast when player HP falls below configured percent.
+- `UTILITY_PATHING`: cast around player or slightly forward along movement direction.
+
+This avoids per-spell special-case logic and keeps future Stronghold spells compatible with the same auto-cast runtime.
+
+## Suggested first implementation batch
+
+- **Cinder Halo** (evergreen clear)
+- **Siegebreak Bolt** (priority target pressure)
+- **Gravitic Latch** (control / setup)
+- **Bloodpact Sigil** (sustain)
+
+This 4-spell batch gives a complete baseline loop before adding higher-variance options like mines, trails, and delayed mortars.
