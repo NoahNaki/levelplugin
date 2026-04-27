@@ -626,7 +626,6 @@ public class StrongholdRunManager implements Listener {
                 return;
             }
             String mobId = waveNumber == 30 ? BOSS_MOB_ID : MINIBOSS_MOB_ID;
-            String label = waveNumber == 30 ? "Boss" : "Mini-boss";
             String mobDisplay = resolveMobDisplayName(mobId);
             Player target = players.get(ThreadLocalRandom.current().nextInt(players.size()));
             Location spawn = findSpawnNear(target.getLocation(), origin, 12.0, 24.0);
@@ -647,9 +646,8 @@ public class StrongholdRunManager implements Listener {
                 hostile.setTarget(target);
             }
             for (Player player : players) {
-                send(player, MessageType.WARNING,
-                        label + " incoming: " + ChatColor.WHITE + mobDisplay + ChatColor.GRAY
-                                + " has joined Wave " + ChatColor.WHITE + waveNumber + ChatColor.GRAY + ".");
+                String title = waveNumber == 30 ? ChatColor.DARK_RED + "Boss Appeared" : ChatColor.RED + "Mini-Boss Appeared";
+                player.sendTitle(title, ChatColor.WHITE + mobDisplay, 5, 50, 10);
             }
         }
 
@@ -658,7 +656,7 @@ public class StrongholdRunManager implements Listener {
                 return "Unknown";
             }
             return plugin.getCustomMobManager().getDefinition(mobId)
-                    .map(def -> def.displayName())
+                    .map(def -> ChatColor.translateAlternateColorCodes('&', def.displayName()))
                     .orElse(me.nakilex.levelplugin.utils.TextUtil.beautifyWords(mobId));
         }
 

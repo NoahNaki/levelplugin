@@ -107,7 +107,13 @@ public enum PetEffectType {
             value -> "On lethal hit: " + ChatColor.RED + "Immune 5s"
                     + ChatColor.GRAY + ", " + ChatColor.GREEN + "+150% dmg"
                     + ChatColor.GRAY + ", " + ChatColor.AQUA + "+25% speed"
-                    + ChatColor.GRAY + " (10m cooldown)");
+                    + ChatColor.GRAY + " (10m cooldown)"),
+    CHEST_PROXIMITY_OPEN("chest_proximity_open", "Lock Whisper",
+            value -> "Auto-opens nearby loot chests within "
+                    + ChatColor.GOLD + formatFlat(value) + ChatColor.GRAY + " blocks"),
+    ITEM_MAGNET("item_magnet", "Treasure Magnet",
+            value -> "Pulls dropped items within "
+                    + ChatColor.AQUA + formatFlat(value) + ChatColor.GRAY + " blocks");
 
     private final String id;
     private final String displayName;

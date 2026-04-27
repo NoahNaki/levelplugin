@@ -84,7 +84,7 @@ public class LootChestListener implements Listener {
         }
     }
 
-    private boolean openLootChest(Player player, Location loc) {
+    public boolean openLootChest(Player player, Location loc) {
         Integer chestId = lootChestManager.getChestIdAtLocation(loc);
         if (chestId == null) {
             return false;

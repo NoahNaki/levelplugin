@@ -90,6 +90,7 @@ import me.nakilex.levelplugin.pet.listeners.PetPlayerListener;
 import me.nakilex.levelplugin.pet.listeners.PetCombatEffectListener;
 import me.nakilex.levelplugin.pet.listeners.PetMovementListener;
 import me.nakilex.levelplugin.pet.listeners.PetProtectionListener;
+import me.nakilex.levelplugin.pet.listeners.PetUtilityEffectListener;
 import me.nakilex.levelplugin.server.LevelPluginCommandGuard;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -252,7 +253,11 @@ public class ListenerRegistry {
         pm.registerEvents(new ChatChannelListener(), plugin);
         pm.registerEvents(new ChatGameListener(chatGameManager), plugin);
         pm.registerEvents(new PartyInviteListener(partyManager), plugin);
-        pm.registerEvents(new LootChestListener(lootChestManager, battlePassManager), plugin);
+        LootChestListener lootChestListener = new LootChestListener(lootChestManager, battlePassManager);
+        pm.registerEvents(lootChestListener, plugin);
+        if (petManager != null) {
+            pm.registerEvents(new PetUtilityEffectListener(petManager, lootChestListener, lootChestManager), plugin);
+        }
         pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager,
                 plugin.getDungeonManager()), plugin);
         pm.registerEvents(new LootChestChunkListener(lootChestManager), plugin);
