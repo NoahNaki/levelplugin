@@ -1058,7 +1058,7 @@ public class StrongholdRunManager implements Listener {
                     lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Cooldown Tier",
                             ChatColor.WHITE, String.valueOf(state.cooldownUpgradeTier)));
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Effect",
-                            ChatColor.GREEN, "-10% global auto-cast cooldown"));
+                            ChatColor.GREEN, "-10% global skill cooldown"));
                 } else if (choice.statType != null) {
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Temporary Bonus",
                             ChatColor.GREEN, "+" + choice.statAmount + " " + choice.statType.getDisplayName()));
@@ -1176,7 +1176,7 @@ public class StrongholdRunManager implements Listener {
             }
             if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
                 state.cooldownUpgradeTier++;
-                send(player, MessageType.SUCCESS, "Auto-cast cadence improved: "
+                send(player, MessageType.SUCCESS, "Skill upgrade applied: "
                         + ChatColor.GREEN + "-10% global cooldown" + ChatColor.GRAY + " (Tier "
                         + ChatColor.WHITE + state.cooldownUpgradeTier + ChatColor.GRAY + ").");
                 return;
@@ -1188,7 +1188,8 @@ public class StrongholdRunManager implements Listener {
             int nextRank = Math.max(1, state.ownedSpellRanks.getOrDefault(base, 0) + 1);
             state.ownedSpellRanks.put(base, nextRank);
             state.activeSpellByBase.put(base, choice.resultSpellId.toLowerCase(Locale.ROOT));
-            send(player, MessageType.SUCCESS, "Auto-cast " + ChatColor.WHITE + choice.displayName + ChatColor.GRAY + " acquired.");
+            send(player, MessageType.SUCCESS, "Skill upgrade unlocked: "
+                    + ChatColor.WHITE + choice.displayName + ChatColor.GRAY + ".");
         }
 
         private List<UpgradeChoice> rollUpgradeChoices(SurvivorState state, int count) {
@@ -1214,7 +1215,7 @@ public class StrongholdRunManager implements Listener {
                         new UpgradeChoice(UpgradeType.STAT, "Swiftfoot", "Temporary Agility boost for this run only.", null, null, StatsManager.StatType.AGI, 2),
                         new UpgradeChoice(UpgradeType.STAT, "Arcane Focus", "Temporary Intelligence boost for this run only.", null, null, StatsManager.StatType.INT, 2),
                         new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost for this run only.", null, null, StatsManager.StatType.VIT, 2),
-                        new UpgradeChoice(UpgradeType.GLOBAL_COOLDOWN, "Arcane Tempo", "Reduce all auto-cast cooldowns globally by 10%.", null, null, null, 0)
+                        new UpgradeChoice(UpgradeType.GLOBAL_COOLDOWN, "Arcane Tempo", "Reduce all loadout skill cooldowns globally by 10%.", null, null, null, 0)
                 ));
                 while (!statCandidates.isEmpty() && rolled.size() < count) {
                     int pick = rng.nextInt(statCandidates.size());
@@ -1245,7 +1246,7 @@ public class StrongholdRunManager implements Listener {
                     return null;
                 }
                 return new UpgradeChoice(UpgradeType.SPELL_UNLOCK, "Unlock " + baseEntry.definition().displayName(),
-                        "Adds this spell to your auto-cast loadout.", base, baseEntry.definition().id(), null, 0);
+                        "Adds this spell to your loadout.", base, baseEntry.definition().id(), null, 0);
             }
             SpellProgression progression = registry.getProgression(base);
             if (progression == null || progression.upgradeSpellIds() == null || progression.upgradeSpellIds().isEmpty()) {
@@ -1261,12 +1262,12 @@ public class StrongholdRunManager implements Listener {
                 return null;
             }
             return new UpgradeChoice(UpgradeType.SPELL_UPGRADE, "Upgrade: " + upgraded.definition().displayName(),
-                    "Improves an already owned auto-cast spell.", base, upgraded.definition().id(), null, 0);
+                    "Improves an already owned loadout skill.", base, upgraded.definition().id(), null, 0);
         }
 
         private String describeAutoCastSpell(String spellId) {
             if (spellId == null) {
-                return "Improves your auto-cast combat rotation.";
+                return "Improves your loadout damage rotation.";
             }
             String id = spellId.toLowerCase(Locale.ROOT);
             if (id.startsWith("mage_fireball")) return "Shoots firebolts at enemies in front of you.";
@@ -1278,7 +1279,7 @@ public class StrongholdRunManager implements Listener {
             if (id.startsWith("rogue_razor_dash")) return "Dash-slashes through targets for burst damage.";
             if (id.startsWith("warrior_earthquake")) return "Slams the ground and damages enemies in an area.";
             if (id.startsWith("warrior_arc_slash")) return "Sends a frontal arc slash through enemies.";
-            return "Improves your auto-cast combat rotation.";
+            return "Improves your loadout damage rotation.";
         }
 
         private String describeUpgradeEffect(UpgradeChoice choice) {
@@ -1286,18 +1287,50 @@ public class StrongholdRunManager implements Listener {
                 return "Strengthens your run loadout.";
             }
             if (choice.type == UpgradeType.SPELL_UNLOCK) {
-                return "Adds this spell to the spells your character auto-casts.";
+                return specificSpellUpgradeEffect(choice.resultSpellId, true);
             }
             if (choice.type == UpgradeType.SPELL_UPGRADE) {
-                return "Replaces the previous tier with this stronger spell variant.";
+                return specificSpellUpgradeEffect(choice.resultSpellId, false);
             }
             if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
-                return "Reduces cooldowns on all auto-cast spells by 10%.";
+                return "Reduces cooldowns on all loadout skills by 10%.";
             }
             if (choice.type == UpgradeType.STAT && choice.statType != null) {
                 return "Grants +" + choice.statAmount + " " + choice.statType.getDisplayName() + " for this run.";
             }
             return "Strengthens your run loadout.";
+        }
+
+        private String specificSpellUpgradeEffect(String spellId, boolean unlock) {
+            if (spellId == null) {
+                return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
+            }
+            String id = spellId.toLowerCase(Locale.ROOT);
+            if (id.startsWith("archer_homing_barrage")) {
+                return "Turns barrage arrows into homing shots that seek nearby targets.";
+            }
+            if (id.startsWith("mage_fireball_chain")) {
+                return "Adds chain hits so fireballs jump to nearby enemies after impact.";
+            }
+            if (id.startsWith("mage_fireball")) {
+                return "Upgrades fireball damage and improves pressure on clustered enemies.";
+            }
+            if (id.startsWith("meteor")) {
+                return "Increases meteor impact pressure with stronger area burst.";
+            }
+            if (id.startsWith("blackhole")) {
+                return "Strengthens blackhole pull-zone damage and control.";
+            }
+            if (id.startsWith("archer_arrow_rain")) {
+                return "Improves arrow rain volley pressure over the target area.";
+            }
+            if (id.startsWith("warrior_earthquake")) {
+                return "Improves slam impact to hit surrounding enemies harder.";
+            }
+            if (id.startsWith("rogue_razor_dash")) {
+                return "Empowers dash slashes for stronger burst through targets.";
+            }
+            return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
         }
 
         private void tickAutoCast() {
