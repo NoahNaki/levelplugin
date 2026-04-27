@@ -180,7 +180,7 @@ public class MobRewardService {
             economyManager.addCoins(player, coins);
             var settings = plugin.getSettingsManager().getSettings(player);
             itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel, forceDrops);
-            itemDropper.maybeDropEssence(player, node);
+            // Essence system temporarily disabled.
             double gearDropBonus = GamblersGambitQuest.resolveDropBonus(player);
             double effectiveGearChance = gearDropChance + gearDropBonus;
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;

@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellDefinition;
@@ -11,6 +12,7 @@ import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
@@ -65,6 +67,7 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 public class StrongholdRunManager implements Listener {
     private static final String UPGRADE_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Upgrades";
     private static final String RESULTS_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Results";
+    private static final String RESULTS_CONFIRM_GUI_TITLE = ChatColor.DARK_RED + "Exit Stronghold Results?";
     private static final String STRONGHOLD_KEY_NAME = "Stronghold Key";
     private static final int SHRINES_PER_RUN = 1;
     private static final int FIRST_WAVE_DELAY_SECONDS = 3;
@@ -91,6 +94,8 @@ public class StrongholdRunManager implements Listener {
     private final StrongholdShrineManager shrineManager;
     private final Map<UUID, ActiveRun> activeRuns = new HashMap<>();
     private final Map<UUID, Inventory> pendingResultInventories = new HashMap<>();
+    private final Map<UUID, Inventory> openResultInventories = new HashMap<>();
+    private final Set<UUID> confirmedResultExit = new HashSet<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final List<String> waveMobPool = List.of("forest_slime");
     private final Set<String> autoCastBasePool = new HashSet<>();
@@ -227,6 +232,11 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         String title = event.getView().getTitle();
+        if (RESULTS_CONFIRM_GUI_TITLE.equals(title)) {
+            event.setCancelled(true);
+            handleResultsConfirmClick(player, event.getRawSlot());
+            return;
+        }
         if (RESULTS_GUI_TITLE.equals(title)) {
             if (event.getRawSlot() == 49) {
                 event.setCancelled(true);
@@ -278,6 +288,10 @@ public class StrongholdRunManager implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
+        if (event.getView() != null && RESULTS_GUI_TITLE.equals(event.getView().getTitle())) {
+            handleResultsGuiClose(player, event.getInventory());
+            return;
+        }
         if (event.getView() == null || !UPGRADE_GUI_TITLE.equals(event.getView().getTitle())) {
             return;
         }
@@ -323,6 +337,7 @@ public class StrongholdRunManager implements Listener {
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline()) {
+                openResultInventories.put(player.getUniqueId(), pending);
                 player.openInventory(pending);
             }
         }, 2L);
@@ -639,10 +654,10 @@ public class StrongholdRunManager implements Listener {
                 meta.setDisplayName(ChatColor.GOLD + "Stronghold Key");
                 List<String> lore = new ArrayList<>();
                 lore.addAll(TooltipUtil.bulletList("Opens sealed gates in the stronghold."));
-                lore.add(ChatColor.DARK_GRAY + "Rare drop");
                 meta.setLore(lore);
                 item.setItemMeta(meta);
             }
+            ItemUtil.setSoulbound(item, true);
             return item;
         }
 
@@ -996,13 +1011,18 @@ public class StrongholdRunManager implements Listener {
                 lore.addAll(TooltipUtil.bulletList(choice.description));
                 if (choice.type == UpgradeType.SPELL_UNLOCK || choice.type == UpgradeType.SPELL_UPGRADE) {
                     int rank = state.ownedSpellRanks.getOrDefault(choice.baseSpellId, 0);
-                    lore.add(ChatColor.GRAY + "Current Rank: " + ChatColor.WHITE + rank);
-                    lore.add(ChatColor.GRAY + "Result Spell: " + ChatColor.WHITE + choice.resultSpellId);
+                    lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Current Rank",
+                            ChatColor.WHITE, String.valueOf(rank)));
+                    lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Next Spell",
+                            ChatColor.WHITE, resolveUpgradeSpellDisplay(choice.resultSpellId)));
                 } else if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
-                    lore.add(ChatColor.GRAY + "Cooldown Tier: " + ChatColor.WHITE + state.cooldownUpgradeTier);
-                    lore.add(ChatColor.GRAY + "Effect: " + ChatColor.GREEN + "-10% global auto-cast cooldown");
+                    lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Cooldown Tier",
+                            ChatColor.WHITE, String.valueOf(state.cooldownUpgradeTier)));
+                    lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Effect",
+                            ChatColor.GREEN, "-10% global auto-cast cooldown"));
                 } else if (choice.statType != null) {
-                    lore.add(ChatColor.GRAY + "Temporary Bonus: " + ChatColor.GREEN + "+" + choice.statAmount + " " + choice.statType.getDisplayName());
+                    lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Temporary Bonus",
+                            ChatColor.GREEN, "+" + choice.statAmount + " " + choice.statType.getDisplayName()));
                 }
                 lore.add(TooltipUtil.sectionDividerByPixels(150));
                 lore.addAll(TooltipUtil.clickInstructions("to choose this upgrade", null));
@@ -1010,6 +1030,17 @@ public class StrongholdRunManager implements Listener {
                 item.setItemMeta(meta);
             }
             return item;
+        }
+
+        private String resolveUpgradeSpellDisplay(String spellId) {
+            if (spellId == null || spellId.isBlank()) {
+                return "Unknown";
+            }
+            SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(spellId);
+            if (entry == null || entry.definition() == null || entry.definition().displayName() == null) {
+                return me.nakilex.levelplugin.utils.TextUtil.beautifyWords(spellId);
+            }
+            return entry.definition().displayName();
         }
 
         private void handleUpgradeClick(Player player, int slot) {
@@ -1529,9 +1560,92 @@ public class StrongholdRunManager implements Listener {
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline()) {
+                openResultInventories.put(player.getUniqueId(), pending);
                 player.openInventory(pending);
             }
         }, 2L);
+    }
+
+    private void handleResultsGuiClose(Player player, Inventory resultsInventory) {
+        if (player == null || resultsInventory == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        if (confirmedResultExit.remove(playerId)) {
+            openResultInventories.remove(playerId);
+            return;
+        }
+        if (!hasRemainingResultItems(resultsInventory)) {
+            openResultInventories.remove(playerId);
+            return;
+        }
+        openResultInventories.put(playerId, resultsInventory);
+        Bukkit.getScheduler().runTask(plugin, () -> player.openInventory(createResultsConfirmGui()));
+    }
+
+    private Inventory createResultsConfirmGui() {
+        Inventory confirm = Bukkit.createInventory(null, 27, RESULTS_CONFIRM_GUI_TITLE);
+        ItemStack confirmItem = GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm Exit");
+        ItemMeta confirmMeta = confirmItem.getItemMeta();
+        if (confirmMeta != null) {
+            List<String> lore = new ArrayList<>();
+            lore.addAll(TooltipUtil.bulletList("You still have items in the results GUI."));
+            lore.addAll(TooltipUtil.bulletList("Are you sure you wanna exit?"));
+            lore.addAll(TooltipUtil.clickInstructions("to salvage remaining items and exit", null));
+            confirmMeta.setLore(lore);
+            confirmItem.setItemMeta(confirmMeta);
+        }
+        confirm.setItem(11, confirmItem);
+        confirm.setItem(15, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
+        return confirm;
+    }
+
+    private void handleResultsConfirmClick(Player player, int rawSlot) {
+        if (player == null) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        Inventory results = openResultInventories.get(playerId);
+        if (rawSlot == 11) {
+            if (results != null) {
+                clearRemainingResultItems(results);
+            }
+            confirmedResultExit.add(playerId);
+            openResultInventories.remove(playerId);
+            player.closeInventory();
+            return;
+        }
+        if (rawSlot == 15 && results != null) {
+            Bukkit.getScheduler().runTask(plugin, () -> player.openInventory(results));
+        }
+    }
+
+    private boolean hasRemainingResultItems(Inventory inventory) {
+        if (inventory == null) {
+            return false;
+        }
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            if (slot == 49) {
+                continue;
+            }
+            ItemStack stack = inventory.getItem(slot);
+            if (stack != null && !stack.getType().isAir()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void clearRemainingResultItems(Inventory inventory) {
+        if (inventory == null) {
+            return;
+        }
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            if (slot == 49) {
+                continue;
+            }
+            inventory.setItem(slot, null);
+        }
     }
 
     private static final class SurvivorState {
