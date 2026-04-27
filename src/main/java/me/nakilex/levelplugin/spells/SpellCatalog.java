@@ -87,10 +87,11 @@ public final class SpellCatalog {
         registry.registerSpell(blinkPhase, new MageBlinkSpell(plugin, 11.0));
         registry.registerSpell(blinkRift, new MageBlinkSpell(plugin, 14.0));
         registry.registerProgression(new SpellProgression(blink.id(), java.util.List.of(blinkPhase.id(), blinkRift.id())));
-        registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
+        // Mobility spell archived for rework.
+        // registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
 
         registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_2));
-        registerStandardSequenceBindings(registry, blackhole.id(), meteor.id(), blink.id(), heal.id(), ClassUtil::isMageFamily);
+        registerStandardSequenceBindings(registry, blackhole.id(), meteor.id(), null, heal.id(), ClassUtil::isMageFamily);
 
         SpellDefinition archerBasic = new SpellDefinition("archer_quickshot_basic", "Quickshot", 0, false);
         SpellDefinition archerBasicSeeker = new SpellDefinition("archer_quickshot_seeker", "Quickshot: Seeker Tip", 0, false);
@@ -113,9 +114,10 @@ public final class SpellCatalog {
                 archerBasicSeeker.id(), archerBasicPayload.id())));
         registry.registerBinding(SpellBinding.forInputType(archerBarrage.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(archerArrowRain.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_2));
-        registry.registerBinding(SpellBinding.forInputType(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_3));
+        // Mobility spell archived for rework.
+        // registry.registerBinding(SpellBinding.forInputType(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(archerWindguard.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_4));
-        registerReversedSequenceBindings(registry, archerBarrage.id(), archerArrowRain.id(), archerSkybound.id(), archerWindguard.id(), ClassUtil::isArcherFamily);
+        registerReversedSequenceBindings(registry, archerBarrage.id(), archerArrowRain.id(), null, archerWindguard.id(), ClassUtil::isArcherFamily);
 
         SpellDefinition rogueShadowFlurry = new SpellDefinition("rogue_sky_ripper", "Shadow Flurry", 14, false);
         SpellDefinition rogueShadowFlurryTempest = new SpellDefinition("rogue_sky_ripper_tempest", "Shadow Flurry: Tempest Dive", 14, false);
@@ -165,9 +167,10 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(rogueArcBasic.id(), ClassUtil::isRogueFamily, SpellInputType.BASIC_ATTACK));
         registry.registerBinding(SpellBinding.forInputType(rogueShadowFlurry.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(rogueNightfallLunge.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
-        registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
+        // Mobility spell archived for rework.
+        // registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(rogueSmokeBomb.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
-        registerStandardSequenceBindings(registry, rogueShadowFlurry.id(), rogueNightfallLunge.id(), rogueRazorDash.id(), rogueSmokeBomb.id(), ClassUtil::isRogueFamily);
+        registerStandardSequenceBindings(registry, rogueShadowFlurry.id(), rogueNightfallLunge.id(), null, rogueSmokeBomb.id(), ClassUtil::isRogueFamily);
 
         SpellDefinition warriorExecutionArc = new SpellDefinition("warrior_execution_arc", "Cyclone Brand", 16, false);
         SpellDefinition warriorEarthquake = new SpellDefinition("warrior_earthquake", "Earthquake", 16, false);
@@ -189,9 +192,10 @@ public final class SpellCatalog {
 
         registry.registerBinding(SpellBinding.forInputType(warriorEarthquake.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_2));
-        registry.registerBinding(SpellBinding.forInputType(warriorTitanVault.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_3));
+        // Mobility spell archived for rework.
+        // registry.registerBinding(SpellBinding.forInputType(warriorTitanVault.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(warriorGuardedResolve.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_4));
-        registerStandardSequenceBindings(registry, warriorEarthquake.id(), warriorRuptureCyclone.id(), warriorTitanVault.id(), warriorGuardedResolve.id(), ClassUtil::isWarriorFamily);
+        registerStandardSequenceBindings(registry, warriorEarthquake.id(), warriorRuptureCyclone.id(), null, warriorGuardedResolve.id(), ClassUtil::isWarriorFamily);
 
         configureCooldowns();
     }
@@ -209,8 +213,10 @@ public final class SpellCatalog {
                 SpellInputMode.MOUSE_COMBO, "RLL"));
         registry.registerBinding(SpellBinding.forSequence(defensiveSpellId, classPredicate,
                 SpellInputMode.MOUSE_COMBO, "RLR"));
-        registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
-                SpellInputMode.MOUSE_COMBO, "RRR"));
+        if (mobilitySpellId != null && !mobilitySpellId.isBlank()) {
+            registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
+                    SpellInputMode.MOUSE_COMBO, "RRR"));
+        }
 
         registry.registerBinding(SpellBinding.forSequence(offensivePrimarySpellId, classPredicate,
                 SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Right"));
@@ -218,8 +224,10 @@ public final class SpellCatalog {
                 SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Left"));
         registry.registerBinding(SpellBinding.forSequence(defensiveSpellId, classPredicate,
                 SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Sneak"));
-        registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
-                SpellInputMode.MOUSE_AND_KEYBOARD, "Right"));
+        if (mobilitySpellId != null && !mobilitySpellId.isBlank()) {
+            registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
+                    SpellInputMode.MOUSE_AND_KEYBOARD, "Right"));
+        }
     }
 
     private static void registerReversedSequenceBindings(SpellRegistry registry,
@@ -234,8 +242,10 @@ public final class SpellCatalog {
                 SpellInputMode.MOUSE_COMBO, "LRR"));
         registry.registerBinding(SpellBinding.forSequence(defensiveSpellId, classPredicate,
                 SpellInputMode.MOUSE_COMBO, "LRL"));
-        registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
-                SpellInputMode.MOUSE_COMBO, "LLL"));
+        if (mobilitySpellId != null && !mobilitySpellId.isBlank()) {
+            registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
+                    SpellInputMode.MOUSE_COMBO, "LLL"));
+        }
 
         registry.registerBinding(SpellBinding.forSequence(offensivePrimarySpellId, classPredicate,
                 SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Left"));
@@ -243,8 +253,10 @@ public final class SpellCatalog {
                 SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Right"));
         registry.registerBinding(SpellBinding.forSequence(defensiveSpellId, classPredicate,
                 SpellInputMode.MOUSE_AND_KEYBOARD, "Sneak+Sneak"));
-        registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
-                SpellInputMode.MOUSE_AND_KEYBOARD, "Left"));
+        if (mobilitySpellId != null && !mobilitySpellId.isBlank()) {
+            registry.registerBinding(SpellBinding.forSequence(mobilitySpellId, classPredicate,
+                    SpellInputMode.MOUSE_AND_KEYBOARD, "Left"));
+        }
     }
 
     private static void configureCooldowns() {
@@ -261,16 +273,18 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("mage_heal", 6200L);
         SpellCastManager.setSpellCooldownMs("mage_heal_rejuvenation", 7800L);
         SpellCastManager.setSpellCooldownMs("mage_heal_party", 8600L);
-        SpellCastManager.setSpellCooldownMs("mage_blink", 0L);
-        SpellCastManager.setSpellCooldownMs("mage_blink_phase", 0L);
-        SpellCastManager.setSpellCooldownMs("mage_blink_rift", 0L);
+        // Mobility spell archived for rework.
+        // SpellCastManager.setSpellCooldownMs("mage_blink", 0L);
+        // SpellCastManager.setSpellCooldownMs("mage_blink_phase", 0L);
+        // SpellCastManager.setSpellCooldownMs("mage_blink_rift", 0L);
 
         SpellCastManager.setSpellCooldownMs("archer_quickshot_basic", 0L);
         SpellCastManager.setSpellCooldownMs("archer_quickshot_seeker", 0L);
         SpellCastManager.setSpellCooldownMs("archer_quickshot_payload", 0L);
         SpellCastManager.setSpellCooldownMs("archer_homing_barrage", 6200L);
         SpellCastManager.setSpellCooldownMs("archer_windguard", 9000L);
-        SpellCastManager.setSpellCooldownMs("archer_skybound", 0L);
+        // Mobility spell archived for rework.
+        // SpellCastManager.setSpellCooldownMs("archer_skybound", 0L);
         SpellCastManager.setSpellCooldownMs("archer_arrow_rain", 9800L);
 
         SpellCastManager.setSpellCooldownMs("rogue_arc_basic", 0L);
@@ -280,9 +294,10 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("rogue_veil_counter", 30000L);
         SpellCastManager.setSpellCooldownMs("rogue_veil_counter_obscure", 30000L);
         SpellCastManager.setSpellCooldownMs("rogue_veil_counter_dread", 30000L);
-        SpellCastManager.setSpellCooldownMs("rogue_razor_dash", 0L);
-        SpellCastManager.setSpellCooldownMs("rogue_razor_dash_rift", 0L);
-        SpellCastManager.setSpellCooldownMs("rogue_razor_dash_shade", 0L);
+        // Mobility spell archived for rework.
+        // SpellCastManager.setSpellCooldownMs("rogue_razor_dash", 0L);
+        // SpellCastManager.setSpellCooldownMs("rogue_razor_dash_rift", 0L);
+        // SpellCastManager.setSpellCooldownMs("rogue_razor_dash_shade", 0L);
         SpellCastManager.setSpellCooldownMs("rogue_phantom_cross", 6900L);
         SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_cyclone", 7700L);
         SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_judgement", 8600L);
@@ -292,7 +307,8 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("warrior_earthquake_tremor", 6500L);
         SpellCastManager.setSpellCooldownMs("warrior_earthquake_cataclysm", 7400L);
         SpellCastManager.setSpellCooldownMs("warrior_rupture_cyclone", 7600L);
-        SpellCastManager.setSpellCooldownMs("warrior_titan_vault", 0L);
+        // Mobility spell archived for rework.
+        // SpellCastManager.setSpellCooldownMs("warrior_titan_vault", 0L);
         SpellCastManager.setSpellCooldownMs("warrior_guarded_resolve", 11000L);
     }
 }
