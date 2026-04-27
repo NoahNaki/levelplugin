@@ -228,7 +228,9 @@ public class StrongholdRunManager implements Listener {
         }
         String title = event.getView().getTitle();
         if (RESULTS_GUI_TITLE.equals(title)) {
-            event.setCancelled(true);
+            if (event.getRawSlot() == 49) {
+                event.setCancelled(true);
+            }
             return;
         }
         if (!UPGRADE_GUI_TITLE.equals(title)) {

@@ -111,9 +111,30 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         } catch (Throwable ignore) {
             obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         }
+        hideSidebarNumbers(obj);
         boards.put(player.getUniqueId(), board);
         player.setScoreboard(board);
         updateBoard(player);
+    }
+
+    private void hideSidebarNumbers(Objective obj) {
+        if (obj == null) {
+            return;
+        }
+        try {
+            Class<?> numberFormatClass = Class.forName("io.papermc.paper.scoreboard.numbers.NumberFormat");
+            Class<?> blankClass = Class.forName("io.papermc.paper.scoreboard.numbers.BlankFormat");
+            Object blank = blankClass.getMethod("blank").invoke(null);
+            try {
+                java.lang.reflect.Method method = obj.getClass().getMethod("setNumberFormat", numberFormatClass);
+                method.invoke(obj, blank);
+            } catch (NoSuchMethodException missingOldName) {
+                java.lang.reflect.Method method = obj.getClass().getMethod("numberFormat", numberFormatClass);
+                method.invoke(obj, blank);
+            }
+        } catch (Throwable ignored) {
+            // Best-effort compatibility across Paper API versions.
+        }
     }
 
     public void removeBoard(Player player) {
