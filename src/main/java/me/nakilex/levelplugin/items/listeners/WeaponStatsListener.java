@@ -94,14 +94,7 @@ public class WeaponStatsListener implements Listener {
                     int playerLevel    = LevelManager.getInstance().getLevel(player);
                     int requiredLevel  = inst.getLevelRequirement();
 
-                    String clsReqRaw = inst.getClassRequirement();
-                    me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
-                    if (clsReqRaw != null && !clsReqRaw.isBlank()) {
-                        reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
-                    }
-
                     StatsManager.PlayerStats ps = statsManager.getPlayerStats(puuid);
-                    me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = ps.playerClass;
 
                 Bukkit.getLogger().info(
                     "[WeaponStats] Attempting to add new weapon (ID=" + inst.getId() +
@@ -114,16 +107,6 @@ public class WeaponStatsListener implements Listener {
                     player.sendMessage(ChatColor.YELLOW
                         + inst.getBaseName()
                         + " is broken and grants no bonuses."
-                    );
-                }
-                else if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, reqClass)) {
-                    Bukkit.getLogger().info(
-                        "[WeaponStats] Skipped addition: player class "
-                            + playerClass + " does not meet required " + reqClass
-                    );
-                    player.sendMessage(ChatColor.RED
-                        + "You are not the right class to gain stats from "
-                        + inst.getBaseName() + "."
                     );
                 }
                 else if (playerLevel < requiredLevel) {

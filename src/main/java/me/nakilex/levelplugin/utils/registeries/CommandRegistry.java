@@ -233,13 +233,24 @@ public class CommandRegistry {
         GenClassCommand genClassCmd = new GenClassCommand();
         plugin.getCommand("genclass").setExecutor(genClassCmd);
         plugin.getCommand("genclass").setTabCompleter(genClassCmd);
-        plugin.getCommand("essence").setExecutor(new EssenceCommand());
-        EssenceUpgradeCommand essenceUpgradeCmd = new EssenceUpgradeCommand();
-        plugin.getCommand("essenceupgrade").setExecutor(essenceUpgradeCmd);
-        plugin.getCommand("essenceupgrade").setTabCompleter(essenceUpgradeCmd);
-        SealingCharmCommand sealingCharmCmd = new SealingCharmCommand();
-        plugin.getCommand("sealingcharm").setExecutor(sealingCharmCmd);
-        plugin.getCommand("sealingcharm").setTabCompleter(sealingCharmCmd);
+        boolean essenceEnabled = plugin.getCustomConfig().getBoolean("features.essence-system", false);
+        if (essenceEnabled) {
+            plugin.getCommand("essence").setExecutor(new EssenceCommand());
+            EssenceUpgradeCommand essenceUpgradeCmd = new EssenceUpgradeCommand();
+            plugin.getCommand("essenceupgrade").setExecutor(essenceUpgradeCmd);
+            plugin.getCommand("essenceupgrade").setTabCompleter(essenceUpgradeCmd);
+            SealingCharmCommand sealingCharmCmd = new SealingCharmCommand();
+            plugin.getCommand("sealingcharm").setExecutor(sealingCharmCmd);
+            plugin.getCommand("sealingcharm").setTabCompleter(sealingCharmCmd);
+        } else {
+            org.bukkit.command.CommandExecutor disabled = (sender, command, label, args) -> {
+                sender.sendMessage(org.bukkit.ChatColor.RED + "Essence system is temporarily disabled.");
+                return true;
+            };
+            plugin.getCommand("essence").setExecutor(disabled);
+            plugin.getCommand("essenceupgrade").setExecutor(disabled);
+            plugin.getCommand("sealingcharm").setExecutor(disabled);
+        }
         EndDialogCommand endDialogCommand = new EndDialogCommand();
         plugin.getCommand("enddialog").setExecutor(endDialogCommand);
         plugin.getCommand("enddialog").setTabCompleter(endDialogCommand);

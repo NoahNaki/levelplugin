@@ -8,7 +8,6 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
-import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
 import org.bukkit.Bukkit;
@@ -284,19 +283,9 @@ public class FieldBossListener implements Listener {
         return drop;
     }
 
-    private ItemStack createAwakenedEssenceDrop() {
-        ItemRarity rarity = rollFieldBossEssenceRarity();
-        me.nakilex.levelplugin.player.classes.data.PlayerClass awakened = getRandomAwakenedEssenceClass();
-        return ClassEssence.generateEssence(awakened, rarity, 0);
-    }
+    private ItemStack createAwakenedEssenceDrop() { return null; }
 
-    private ItemStack createFieldBossEssenceDrop() {
-        ItemRarity rarity = rollFieldBossEssenceRarity();
-        me.nakilex.levelplugin.player.classes.data.PlayerClass clazz = ThreadLocalRandom.current().nextDouble() < 0.10
-                ? getRandomAwakenedEssenceClass()
-                : getRandomBaseEssenceClass();
-        return ClassEssence.generateEssence(clazz, rarity, 0);
-    }
+    private ItemStack createFieldBossEssenceDrop() { return null; }
 
     private me.nakilex.levelplugin.player.classes.data.PlayerClass getRandomAwakenedEssenceClass() {
         me.nakilex.levelplugin.player.classes.data.PlayerClass[] awakened = {
@@ -328,15 +317,10 @@ public class FieldBossListener implements Listener {
             if (gearDrop == null) {
                 gearDrop = rollFallbackBossGear(mobId);
             }
-            boolean chooseGear = ThreadLocalRandom.current().nextDouble() < 0.50;
-
-            if (chooseGear && gearDrop != null) {
+            if (gearDrop != null) {
                 return gearDrop.clone();
             }
-            ItemStack rolledEssence = createFieldBossEssenceDrop();
-            if (rolledEssence != null) return rolledEssence;
-
-            return gearDrop != null ? gearDrop.clone() : createAwakenedEssenceDrop();
+            return null;
         };
     }
 

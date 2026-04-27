@@ -160,6 +160,41 @@ public final class BattlePassRewardDefinition {
     }
 
     /**
+     * Produce formatted summary segments suitable for chat reward messages.
+     */
+    public List<String> formattedSummary(BattlePassRewardContext context) {
+        ItemManager itemManager = context != null ? context.itemManager() : null;
+        List<String> segments = new ArrayList<>();
+        if (coins > 0) {
+            segments.add(ChatColor.WHITE + NumberUtil.formatCommas(coins) + " <glyph:coins_icon>");
+        }
+        if (gems > 0) {
+            segments.add(ChatColor.WHITE + NumberUtil.formatCommas(gems) + " <glyph:purple_orb_icon>");
+        }
+        if (xp > 0) {
+            segments.add(ChatColor.WHITE + NumberUtil.formatCommas(xp) + " XP");
+        }
+        for (Map.Entry<Integer, Integer> entry : itemIds.entrySet()) {
+            if (itemManager == null) continue;
+            CustomItem template = itemManager.getTemplateById(entry.getKey());
+            if (template == null) continue;
+            StringBuilder sb = new StringBuilder(ChatColor.WHITE + template.getName());
+            if (entry.getValue() > 1) {
+                sb.append(ChatColor.GRAY).append(" x").append(entry.getValue());
+            }
+            segments.add(sb.toString());
+        }
+        for (DirectItemGrant grant : directItems) {
+            if (grant.amount() > 1) {
+                segments.add(ChatColor.WHITE + grant.displayName() + ChatColor.GRAY + " x" + grant.amount());
+            } else {
+                segments.add(ChatColor.WHITE + grant.displayName());
+            }
+        }
+        return segments;
+    }
+
+    /**
      * Resolve a neutral display name for the reward when none was explicitly
      * provided in the builder.  The name intentionally omits colour codes so
      * the GUI can apply its own styling.

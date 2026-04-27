@@ -1,9 +1,11 @@
 package me.nakilex.levelplugin.player.attributes.managers;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.stronghold.run.StrongholdRunManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
@@ -23,8 +25,8 @@ public class ActionBarTask extends BukkitRunnable {
             if (info != null) {
                 boolean showCd = now < info.expireAt && now < info.costExpireAt;
                 boolean showCost = info.cost > 0 && now < info.costExpireAt;
-                if (showCd || showCost) {
-                    StringBuilder msg = new StringBuilder();
+                    if (showCd || showCost) {
+                        StringBuilder msg = new StringBuilder();
                     if (showCd) {
                         long remaining = info.expireAt - now;
                         int seconds = (int) Math.ceil(remaining / 1000.0);
@@ -42,21 +44,45 @@ public class ActionBarTask extends BukkitRunnable {
                            .append(ChatColor.GRAY).append(info.cost)
                            .append(ChatColor.DARK_GRAY).append("]");
                     }
+                    String strongholdHp = strongholdHpSegment(player);
+                    if (!strongholdHp.isEmpty()) {
+                        msg.append(ChatColor.DARK_GRAY).append(" | ").append(strongholdHp);
+                    }
                     player.sendActionBar(Component.text(msg.toString()));
                     continue;
                 }
             }
+            String strongholdHp = strongholdHpSegment(player);
             if (StatsManager.getInstance().isInCombat(player.getUniqueId())) {
-                player.sendActionBar(Component.text(ChatColor.RED + "In Combat"));
+                String msg = ChatColor.RED + "In Combat"
+                        + (strongholdHp.isEmpty() ? "" : ChatColor.DARK_GRAY + " | " + strongholdHp);
+                player.sendActionBar(Component.text(msg));
             } else {
                 String consistency = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance()
                         .getConsistencyIndicator(player);
                 if (consistency != null) {
-                    player.sendActionBar(Component.text(consistency));
+                    String msg = consistency
+                            + (strongholdHp.isEmpty() ? "" : ChatColor.DARK_GRAY + " | " + strongholdHp);
+                    player.sendActionBar(Component.text(msg));
                 } else {
-                    player.sendActionBar(Component.text(""));
+                    player.sendActionBar(Component.text(strongholdHp));
                 }
             }
         }
+    }
+
+    private String strongholdHpSegment(Player player) {
+        if (player == null) {
+            return "";
+        }
+        StrongholdRunManager runManager = plugin.getStrongholdRunManager();
+        if (runManager == null || runManager.getStageStatus(player.getUniqueId()) == null) {
+            return "";
+        }
+        double maxHealth = player.getAttribute(Attribute.MAX_HEALTH) == null
+                ? player.getMaxHealth()
+                : player.getAttribute(Attribute.MAX_HEALTH).getValue();
+        return ChatColor.RED + "HP " + ChatColor.WHITE + (int) Math.ceil(player.getHealth())
+                + ChatColor.GRAY + "/" + ChatColor.WHITE + (int) Math.ceil(maxHealth);
     }
 }

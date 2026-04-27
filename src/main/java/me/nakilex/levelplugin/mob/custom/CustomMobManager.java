@@ -306,7 +306,7 @@ public class CustomMobManager {
             ageable.setAdult();
         }
         if (entity instanceof Slime slime && definition.id().equalsIgnoreCase("slime_king")) {
-            slime.setSize(120);
+            slime.setSize(60);
         }
         CustomMobStats stats = definition.stats();
         double baseHealth = definition.baseHealth() != null

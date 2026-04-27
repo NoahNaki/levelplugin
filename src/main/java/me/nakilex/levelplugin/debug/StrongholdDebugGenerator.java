@@ -4792,7 +4792,7 @@ public final class StrongholdDebugGenerator {
         state.interaction().setInteractionWidth(1.8f);
         state.interaction().setInteractionHeight(2.0f);
         state.display().teleport(base.clone().add(0, 0.75, 0));
-        state.display().setText(ChatColor.GOLD + "Right click to open");
+        state.display().setText(ChatColor.GOLD + "Right click to open " + ChatColor.GRAY + "(Requires Stronghold Key)");
     }
 
     private static void hideDoorHologram(DoorInteractionState state) {
@@ -4854,6 +4854,14 @@ public final class StrongholdDebugGenerator {
 
     private static void handleDoorInteraction(Player player, Interaction interaction) {
         if (player == null || interaction == null) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null || plugin.getStrongholdRunManager() == null
+                || !plugin.getStrongholdRunManager().tryConsumeStrongholdKey(player)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
+            player.playSound(player.getLocation(), Sound.BLOCK_IRON_DOOR_CLOSE, 0.8f, 0.7f);
             return;
         }
         DoorInteractionState state = doorInteractionsByEntityId.get(interaction.getEntityId());

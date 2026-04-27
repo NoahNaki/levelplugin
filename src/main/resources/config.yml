@@ -3,6 +3,7 @@ features:
   environment: true
   trade: true
   auction-house: true
+  essence-system: false
   quests: true
 debug:
   chunk-loading: false

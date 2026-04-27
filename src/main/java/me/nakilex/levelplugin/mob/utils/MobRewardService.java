@@ -180,7 +180,7 @@ public class MobRewardService {
             economyManager.addCoins(player, coins);
             var settings = plugin.getSettingsManager().getSettings(player);
             itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel, forceDrops);
-            itemDropper.maybeDropEssence(player, node);
+            // Essence system temporarily disabled.
             double gearDropBonus = GamblersGambitQuest.resolveDropBonus(player);
             double effectiveGearChance = gearDropChance + gearDropBonus;
             double roll = ThreadLocalRandom.current().nextDouble() * 100.0;
@@ -193,8 +193,12 @@ public class MobRewardService {
                             && !settings.isLootPickupAllowed(rarity)) {
                         player.getWorld().dropItemNaturally(player.getLocation(), loot);
                     } else {
-                        player.getInventory().addItem(loot).values()
-                                .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
+                        var runManager = Main.getInstance().getStrongholdRunManager();
+                        boolean routedToStorage = runManager != null && runManager.storeLootToResultStorage(player, loot);
+                        if (!routedToStorage) {
+                            player.getInventory().addItem(loot).values()
+                                    .forEach(i -> player.getWorld().dropItemNaturally(player.getLocation(), i));
+                        }
                     }
                 }
             }

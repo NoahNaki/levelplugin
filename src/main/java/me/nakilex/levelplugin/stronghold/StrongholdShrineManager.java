@@ -4,9 +4,10 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.CombatTargetUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
+import com.nexomc.nexo.api.NexoFurniture;
+import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import me.nakilex.levelplugin.utils.RewardBombUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -54,6 +55,12 @@ public class StrongholdShrineManager implements Listener {
     private static final double DEFAULT_ZONE_RADIUS = 6.0;
     private static final int DEFAULT_DURATION_SECONDS = 10;
     private static final double DEFAULT_MAX_HEALTH = 250.0;
+    private static final int SHRINE_BONUS_XP_MIN = 55;
+    private static final int SHRINE_BONUS_XP_MAX = 95;
+    private static final int SHRINE_BONUS_COINS_MIN = 35;
+    private static final int SHRINE_BONUS_COINS_MAX = 85;
+    private static final double SHRINE_REWARD_GEAR_COMBAT_POWER = 45.0;
+    private static final String SHRINE_FURNITURE_ID = "medievalpack_baner";
 
     private final Main plugin;
     private final Map<UUID, ShrineAnchor> anchorsById = new HashMap<>();
@@ -65,22 +72,31 @@ public class StrongholdShrineManager implements Listener {
     }
 
     public Optional<ShrineAnchor> spawnShrine(Location location, double hp) {
-        if (location == null || location.getWorld() == null || CitizensAPI.getNPCRegistry() == null) {
+        if (location == null || location.getWorld() == null) {
             return Optional.empty();
         }
         World world = location.getWorld();
         double maxHp = Math.max(20.0, hp);
 
         Location shrineBase = location.clone().add(0.0, 1.0, 0.0);
-        NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.VILLAGER, ChatColor.LIGHT_PURPLE + "Shrine");
-        npc.spawn(shrineBase);
-        Entity entity = npc.getEntity();
-        if (!(entity instanceof LivingEntity living)) {
-            npc.despawn();
-            npc.destroy();
+        FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic(SHRINE_FURNITURE_ID);
+        if (mechanic == null) {
+            plugin.getLogger().warning("[StrongholdShrineManager] Missing Nexo furniture id '" + SHRINE_FURNITURE_ID + "'.");
             return Optional.empty();
         }
-
+        org.bukkit.entity.ItemDisplay shrineDisplay = NexoFurniture.place(SHRINE_FURNITURE_ID, shrineBase.clone(), 0f, org.bukkit.block.BlockFace.NORTH);
+        if (shrineDisplay == null) {
+            return Optional.empty();
+        }
+        LivingEntity living = world.spawn(shrineBase.clone(), org.bukkit.entity.Slime.class, slime -> {
+            slime.setSize(1);
+            slime.setAI(false);
+            slime.setCollidable(false);
+            slime.setGravity(false);
+            slime.setInvisible(true);
+            slime.setSilent(true);
+            slime.setRemoveWhenFarAway(false);
+        });
         living.setAI(false);
         living.setCollidable(false);
         living.setMetadata(SHRINE_ID_META, new FixedMetadataValue(plugin, "pending"));
@@ -116,11 +132,12 @@ public class StrongholdShrineManager implements Listener {
 
         UUID shrineId = UUID.randomUUID();
         applyShrineMetadata(living, shrineId);
+        applyShrineMetadata(shrineDisplay, shrineId);
         applyShrineMetadata(title, shrineId);
         applyShrineMetadata(subtitle, shrineId);
         applyShrineMetadata(interaction, shrineId);
 
-        ShrineAnchor anchor = new ShrineAnchor(shrineId, npc, living, title, subtitle, interaction, shrineBase.clone(), maxHp, DEFAULT_ZONE_RADIUS);
+        ShrineAnchor anchor = new ShrineAnchor(shrineId, shrineDisplay, living, title, subtitle, interaction, shrineBase.clone(), maxHp, DEFAULT_ZONE_RADIUS);
         anchorsById.put(shrineId, anchor);
         return Optional.of(anchor);
     }
@@ -285,11 +302,12 @@ public class StrongholdShrineManager implements Listener {
         Player activator = plugin.getServer().getPlayer(active.activator);
         if (activator != null && activator.isOnline()) {
             grantSimpleBoon(activator);
+            grantShrineRunRewards(activator);
             RewardBombUtil.startRewardBomb(plugin, active.anchor.origin.clone().add(0.0, 0.3, 0.0),
-                    this::rollShrineReward, 100, activator);
+                    () -> rollShrineReward(activator), 100, activator);
         } else {
             RewardBombUtil.startRewardBomb(plugin, active.anchor.origin.clone().add(0.0, 0.3, 0.0),
-                    this::rollShrineReward, 100);
+                    () -> rollShrineReward(null), 100);
         }
 
         active.anchor.title().setText(ChatColor.GREEN + "Shrine [Secured]");
@@ -300,7 +318,24 @@ public class StrongholdShrineManager implements Listener {
         }, 40L);
     }
 
-    private ItemStack rollShrineReward() {
+    private void grantShrineRunRewards(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        int xp = ThreadLocalRandom.current().nextInt(SHRINE_BONUS_XP_MIN, SHRINE_BONUS_XP_MAX + 1);
+        int coins = ThreadLocalRandom.current().nextInt(SHRINE_BONUS_COINS_MIN, SHRINE_BONUS_COINS_MAX + 1);
+        plugin.getLevelManager().addXP(player, xp);
+        plugin.getEconomyManager().addCoins(player, coins);
+        send(player, MessageType.REWARD,
+                "Shrine bonus: " + ChatColor.GREEN + "+" + xp + " <glyph:experience_orb_icon> XP");
+        CurrencyMessageUtil.sendReceive(player, CurrencyMessageUtil.Currency.COINS, coins);
+    }
+
+    private ItemStack rollShrineReward(Player owner) {
+        ItemStack gear = rollShrineGearReward(owner);
+        if (gear != null) {
+            return gear;
+        }
         int roll = ThreadLocalRandom.current().nextInt(5);
         return switch (roll) {
             case 0 -> new ItemStack(Material.EMERALD, ThreadLocalRandom.current().nextInt(3, 7));
@@ -309,6 +344,19 @@ public class StrongholdShrineManager implements Listener {
             case 3 -> new ItemStack(Material.LAPIS_LAZULI, ThreadLocalRandom.current().nextInt(4, 10));
             default -> new ItemStack(Material.GOLDEN_APPLE, 1);
         };
+    }
+
+    private ItemStack rollShrineGearReward(Player owner) {
+        if (plugin.getLootChestManager() == null || ThreadLocalRandom.current().nextDouble() > 0.35) {
+            return null;
+        }
+        int levelRequirement = owner == null ? 1 : Math.max(1, owner.getLevel());
+        return plugin.getLootChestManager().getRandomLootForCombatPower(
+                SHRINE_REWARD_GEAR_COMBAT_POWER,
+                levelRequirement,
+                null,
+                null,
+                false);
     }
 
     private void grantSimpleBoon(Player player) {
@@ -374,16 +422,16 @@ public class StrongholdShrineManager implements Listener {
         if (anchor.interaction() != null && anchor.interaction().isValid()) anchor.interaction().remove();
         if (anchor.title() != null && anchor.title().isValid()) anchor.title().remove();
         if (anchor.subtitle() != null && anchor.subtitle().isValid()) anchor.subtitle().remove();
-        if (anchor.npc() != null) {
-            if (anchor.npc().isSpawned()) {
-                anchor.npc().despawn();
-            }
-            anchor.npc().destroy();
+        if (anchor.shrineDisplay() != null && anchor.shrineDisplay().isValid()) {
+            NexoFurniture.remove(anchor.shrineDisplay());
+        }
+        if (anchor.entity() != null && anchor.entity().isValid() && !anchor.entity().isDead()) {
+            anchor.entity().remove();
         }
     }
 
     public record ShrineAnchor(UUID id,
-                               NPC npc,
+                               org.bukkit.entity.ItemDisplay shrineDisplay,
                                LivingEntity entity,
                                org.bukkit.entity.TextDisplay title,
                                org.bukkit.entity.TextDisplay subtitle,
@@ -392,7 +440,7 @@ public class StrongholdShrineManager implements Listener {
                                double maxHealth,
                                double zoneRadius) {
         boolean isValid() {
-            return npc != null && npc.isSpawned() && entity != null && entity.isValid() && !entity.isDead();
+            return shrineDisplay != null && shrineDisplay.isValid() && entity != null && entity.isValid() && !entity.isDead();
         }
     }
 

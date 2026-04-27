@@ -275,12 +275,12 @@ public class BattlePassManager implements BattlePassProvider {
                     MessageType.REWARD,
                     "Claimed Tier " + tier + (premiumReward ? " Premium" : " Free") + " reward!"
             );
-            List<String> summary = rewardDefinition.plainSummary(rewardContext);
+            List<String> summary = rewardDefinition.formattedSummary(rewardContext);
             if (!summary.isEmpty()) {
                 ChatMessageUtil.send(
                         player,
                         MessageType.INFO,
-                        ChatColor.GRAY + "Rewards: " + ChatColor.YELLOW + String.join(ChatColor.GRAY + ", " + ChatColor.YELLOW, summary)
+                        ChatColor.GRAY + "Rewards: " + String.join(ChatColor.GRAY + ", ", summary)
                 );
             }
         }

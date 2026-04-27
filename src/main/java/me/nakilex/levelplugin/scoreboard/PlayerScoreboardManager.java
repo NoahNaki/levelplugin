@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.catacombs.CatacombsManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
+import me.nakilex.levelplugin.stronghold.run.StrongholdRunManager;
 import me.nakilex.levelplugin.party.Party;
 import me.nakilex.levelplugin.party.PartyManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
@@ -38,6 +39,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final ArenaQueueManager arenaQueueManager;
     private final ArenaRatingManager arenaRatingManager;
     private StrongholdQueueManager strongholdQueueManager;
+    private StrongholdRunManager strongholdRunManager;
     private CatacombsManager catacombsManager;
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
@@ -92,6 +94,10 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         this.strongholdQueueManager = strongholdQueueManager;
     }
 
+    public void setStrongholdRunManager(StrongholdRunManager strongholdRunManager) {
+        this.strongholdRunManager = strongholdRunManager;
+    }
+
     public void createBoard(Player player) {
         ScoreboardManager sm = Bukkit.getScoreboardManager();
         if (sm == null) return;
@@ -105,9 +111,30 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         } catch (Throwable ignore) {
             obj.setDisplaySlot(DisplaySlot.SIDEBAR);
         }
+        hideSidebarNumbers(obj);
         boards.put(player.getUniqueId(), board);
         player.setScoreboard(board);
         updateBoard(player);
+    }
+
+    private void hideSidebarNumbers(Objective obj) {
+        if (obj == null) {
+            return;
+        }
+        try {
+            Class<?> numberFormatClass = Class.forName("io.papermc.paper.scoreboard.numbers.NumberFormat");
+            Class<?> blankClass = Class.forName("io.papermc.paper.scoreboard.numbers.BlankFormat");
+            Object blank = blankClass.getMethod("blank").invoke(null);
+            try {
+                java.lang.reflect.Method method = obj.getClass().getMethod("setNumberFormat", numberFormatClass);
+                method.invoke(obj, blank);
+            } catch (NoSuchMethodException missingOldName) {
+                java.lang.reflect.Method method = obj.getClass().getMethod("numberFormat", numberFormatClass);
+                method.invoke(obj, blank);
+            }
+        } catch (Throwable ignored) {
+            // Best-effort compatibility across Paper API versions.
+        }
     }
 
     public void removeBoard(Player player) {
@@ -229,10 +256,13 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
         boolean queueing = arenaQueueManager != null && arenaQueueManager.isQueued(id);
         boolean strongholdQueueing = strongholdQueueManager != null && strongholdQueueManager.isQueued(id);
+        StrongholdRunManager.StageStatus strongholdStage =
+                strongholdRunManager == null ? null : strongholdRunManager.getStageStatus(id);
+        boolean strongholdActive = strongholdStage != null;
 
         boolean catacombsActive = catacombsManager != null && catacombsManager.getStage(id) != null;
 
-        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || strongholdQueueing || catacombsActive;
+        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || strongholdQueueing || strongholdActive || catacombsActive;
         Scoreboard board = boards.get(id);
         if (!showBoard) {
             if (board != null) {
@@ -399,6 +429,32 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             idx++; line--;
 
             current[idx] = ChatColor.GRAY + "Waiting: " + ChatColor.WHITE + formatDuration(strongholdQueueManager.getWaitDuration(id));
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = " ";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+        }
+
+        if (strongholdActive) {
+            current[idx] = ChatColor.LIGHT_PURPLE + "Stronghold Run";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = ChatColor.GRAY + "Wave: " + ChatColor.WHITE + strongholdStage.wave();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = ChatColor.GRAY + "Enemies: " + ChatColor.WHITE + strongholdStage.enemiesRemaining();
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }

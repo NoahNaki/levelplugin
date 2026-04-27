@@ -5,7 +5,6 @@ import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
 import me.nakilex.levelplugin.spells.SpellTargetingUtil;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -39,11 +38,15 @@ public class BlackholeSpell implements SpellHandler {
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        Location center = SpellTargetingUtil.resolveTargetGround(caster, 28);
-        if (center == null) {
-            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING, "No target location for Blackhole.");
-            return;
+        Location resolved = SpellTargetingUtil.resolveNearestEnemyGround(caster, 28);
+        if (resolved == null) {
+            resolved = SpellTargetingUtil.resolveTargetGround(caster, 28);
         }
+        if (resolved == null) {
+            resolved = caster.getLocation().clone().add(caster.getLocation().getDirection().multiply(7.0));
+            resolved.setY(caster.getWorld().getHighestBlockYAt(resolved) + 1.0);
+        }
+        final Location center = resolved;
         new BukkitRunnable() {
             int elapsed;
 
