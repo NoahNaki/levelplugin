@@ -38,11 +38,6 @@ import me.nakilex.levelplugin.debug.commands.MageFireballDebugCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
 import me.nakilex.levelplugin.player.attributes.commands.LifeSkillCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
-import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
-import me.nakilex.levelplugin.player.classes.commands.GenClassCommand;
-import me.nakilex.levelplugin.player.classes.commands.EssenceCommand;
-import me.nakilex.levelplugin.player.classes.commands.EssenceUpgradeCommand;
-import me.nakilex.levelplugin.player.classes.commands.SealingCharmCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.MiningLevelCommand;
 import me.nakilex.levelplugin.player.farming.commands.FarmingLevelCommand;
@@ -235,43 +230,12 @@ public class CommandRegistry {
         me.nakilex.levelplugin.items.commands.GenerateItemCommand genItemCmd = new me.nakilex.levelplugin.items.commands.GenerateItemCommand();
         plugin.getCommand("genitem").setExecutor(genItemCmd);
         plugin.getCommand("genitem").setTabCompleter(genItemCmd);
-        boolean classSystemEnabled = FeatureFlagUtil.isEnabled("features.class-system", false);
-        if (classSystemEnabled) {
-            GenClassCommand genClassCmd = new GenClassCommand();
-            plugin.getCommand("genclass").setExecutor(genClassCmd);
-            plugin.getCommand("genclass").setTabCompleter(genClassCmd);
-        } else {
-            registerArchivedCommand(plugin.getCommand("genclass"), "Class");
-        }
-        boolean essenceEnabled = classSystemEnabled && plugin.getCustomConfig().getBoolean("features.essence-system", false);
-        if (essenceEnabled) {
-            plugin.getCommand("essence").setExecutor(new EssenceCommand());
-            EssenceUpgradeCommand essenceUpgradeCmd = new EssenceUpgradeCommand();
-            plugin.getCommand("essenceupgrade").setExecutor(essenceUpgradeCmd);
-            plugin.getCommand("essenceupgrade").setTabCompleter(essenceUpgradeCmd);
-            SealingCharmCommand sealingCharmCmd = new SealingCharmCommand();
-            plugin.getCommand("sealingcharm").setExecutor(sealingCharmCmd);
-            plugin.getCommand("sealingcharm").setTabCompleter(sealingCharmCmd);
-        } else {
-            registerArchivedCommand(plugin.getCommand("essence"), "Essence");
-            registerArchivedCommand(plugin.getCommand("essenceupgrade"), "Essence");
-            registerArchivedCommand(plugin.getCommand("sealingcharm"), "Essence");
-        }
         EndDialogCommand endDialogCommand = new EndDialogCommand();
         plugin.getCommand("enddialog").setExecutor(endDialogCommand);
         plugin.getCommand("enddialog").setTabCompleter(endDialogCommand);
         SetLevelCommand setLevelCmd = new SetLevelCommand(plugin);
         plugin.getCommand("setlevel").setExecutor(setLevelCmd);
         plugin.getCommand("setlevel").setTabCompleter(setLevelCmd);
-        if (classSystemEnabled) {
-            ClassCommand classCmd = new ClassCommand();
-            plugin.getCommand("class").setExecutor(classCmd);
-            plugin.getCommand("class").setTabCompleter(classCmd);
-            plugin.getCommand("subclass").setExecutor(new me.nakilex.levelplugin.player.classes.commands.SubclassCommand());
-        } else {
-            registerArchivedCommand(plugin.getCommand("class"), "Class");
-            registerArchivedCommand(plugin.getCommand("subclass"), "Class");
-        }
         plugin.getCommand("balance").setExecutor(new BalanceCommand(economyManager));
         AddCoinsCommand addCoinsCmd = new AddCoinsCommand(economyManager);
         plugin.getCommand("addcoins").setExecutor(addCoinsCmd);
