@@ -1,8 +1,6 @@
 package me.nakilex.levelplugin.stronghold.run;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.items.data.CustomItem;
-import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
@@ -59,7 +57,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Comparator;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -75,7 +72,6 @@ public class StrongholdRunManager implements Listener {
     private static final int RESULTS_SUMMARY_SLOT = 49;
     private static final int RESULTS_SORT_SLOT = 50;
     private static final int RESULTS_FILTER_SLOT = 51;
-    private static final List<Integer> RESULTS_STORAGE_SLOTS = buildResultStorageSlots();
     private static final int SHRINES_PER_RUN = 1;
     private static final int FIRST_WAVE_DELAY_SECONDS = 3;
     private static final int WAVE_INTERVAL_SECONDS = 5;
@@ -100,12 +96,10 @@ public class StrongholdRunManager implements Listener {
     private final Main plugin;
     private final StrongholdShrineManager shrineManager;
     private final Map<UUID, ActiveRun> activeRuns = new HashMap<>();
-    private final Map<UUID, Inventory> pendingResultInventories = new HashMap<>();
-    private final Map<UUID, Inventory> openResultInventories = new HashMap<>();
-    private final Map<Inventory, Inventory> filteredResultViews = new HashMap<>();
+    private final Map<UUID, StrongholdResultsStorageGUI> pendingResultInventories = new HashMap<>();
+    private final Map<UUID, StrongholdResultsStorageGUI> openResultInventories = new HashMap<>();
     private final Set<UUID> confirmedResultExit = new HashSet<>();
-    private final Map<UUID, Integer> resultSortModes = new HashMap<>();
-    private final Map<UUID, Integer> resultFilterModes = new HashMap<>();
+    private final Set<UUID> suppressNextResultsCloseConfirm = new HashSet<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final List<String> waveMobPool = List.of("forest_slime");
     private final Set<String> autoCastBasePool = new HashSet<>();
@@ -115,17 +109,6 @@ public class StrongholdRunManager implements Listener {
             "rogue_razor_dash", "rogue_razor_dash_rift", "rogue_razor_dash_shade",
             "warrior_titan_vault"
     );
-
-    private static List<Integer> buildResultStorageSlots() {
-        List<Integer> slots = new ArrayList<>();
-        for (int slot = 0; slot < 54; slot++) {
-            if (slot == RESULTS_SUMMARY_SLOT || slot == RESULTS_SORT_SLOT || slot == RESULTS_FILTER_SLOT) {
-                continue;
-            }
-            slots.add(slot);
-        }
-        return List.copyOf(slots);
-    }
 
     public StrongholdRunManager(Main plugin, StrongholdShrineManager shrineManager) {
         this.plugin = plugin;
@@ -258,20 +241,10 @@ public class StrongholdRunManager implements Listener {
             handleResultsConfirmClick(player, event.getRawSlot());
             return;
         }
-        if (RESULTS_GUI_TITLE.equals(title)) {
+        if (isResultsGuiTitle(title)) {
             int rawSlot = event.getRawSlot();
-            if (rawSlot == RESULTS_SUMMARY_SLOT) {
-                event.setCancelled(true);
-                return;
-            }
             if (rawSlot == RESULTS_SORT_SLOT || rawSlot == RESULTS_FILTER_SLOT) {
-                event.setCancelled(true);
-                handleResultsWidgetClick(player, rawSlot, event.isLeftClick());
-                return;
-            }
-            if (isResultFilterActive(player.getUniqueId()) && isResultStorageSlot(rawSlot)) {
-                event.setCancelled(true);
-                send(player, MessageType.WARNING, "Disable the filter to move items.");
+                suppressNextResultsCloseConfirm.add(player.getUniqueId());
             }
             return;
         }
@@ -320,8 +293,11 @@ public class StrongholdRunManager implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
-        if (event.getView() != null && RESULTS_GUI_TITLE.equals(event.getView().getTitle())) {
-            handleResultsGuiClose(player, resolveResultSourceInventory(player.getUniqueId(), event.getInventory()));
+        if (event.getView() != null && isResultsGuiTitle(event.getView().getTitle())) {
+            if (suppressNextResultsCloseConfirm.remove(player.getUniqueId())) {
+                return;
+            }
+            handleResultsGuiClose(player);
             return;
         }
         if (event.getView() == null || !UPGRADE_GUI_TITLE.equals(event.getView().getTitle())) {
@@ -363,14 +339,14 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        Inventory pending = pendingResultInventories.remove(player.getUniqueId());
+        StrongholdResultsStorageGUI pending = pendingResultInventories.remove(player.getUniqueId());
         if (pending == null) {
             return;
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline()) {
                 openResultInventories.put(player.getUniqueId(), pending);
-                player.openInventory(pending);
+                pending.open(player);
             }
         }, 2L);
     }
@@ -577,7 +553,7 @@ public class StrongholdRunManager implements Listener {
             if (state == null) {
                 return;
             }
-            Inventory result = createSessionResultInventory(player, state);
+            StrongholdResultsStorageGUI result = createSessionResultGui(player, state);
             pendingResultInventories.put(player.getUniqueId(), result);
             stopRun(worldId);
         }
@@ -699,7 +675,7 @@ public class StrongholdRunManager implements Listener {
             if (state == null) {
                 return false;
             }
-            pendingResultInventories.put(target.getUniqueId(), createSessionResultInventory(target, state));
+            pendingResultInventories.put(target.getUniqueId(), createSessionResultGui(target, state));
             stopRun(worldId);
             return true;
         }
@@ -712,7 +688,7 @@ public class StrongholdRunManager implements Listener {
                 if (player == null || !player.isOnline()) {
                     continue;
                 }
-                pendingResultInventories.put(playerId, createSessionResultInventory(player, state));
+                pendingResultInventories.put(playerId, createSessionResultGui(player, state));
                 if (completionMessage != null && !completionMessage.isBlank()) {
                     send(player, MessageType.SUCCESS, completionMessage);
                 }
@@ -724,12 +700,12 @@ public class StrongholdRunManager implements Listener {
             if (player == null || state == null) {
                 return;
             }
-            Inventory inv = createSessionResultInventory(player, state);
-            openResultInventory(player, inv);
+            StrongholdResultsStorageGUI gui = createSessionResultGui(player, state);
+            openResultInventories.put(player.getUniqueId(), gui);
+            gui.open(player);
         }
 
-        private Inventory createSessionResultInventory(Player player, SurvivorState state) {
-            Inventory inv = Bukkit.createInventory(player, 54, RESULTS_GUI_TITLE);
+        private StrongholdResultsStorageGUI createSessionResultGui(Player player, SurvivorState state) {
             ItemStack summary = new ItemStack(Material.BOOK);
             ItemMeta meta = summary.getItemMeta();
             if (meta != null) {
@@ -742,24 +718,12 @@ public class StrongholdRunManager implements Listener {
                 ));
                 summary.setItemMeta(meta);
             }
-            inv.setItem(RESULTS_SUMMARY_SLOT, summary);
-
-            int stashSlot = 0;
-            for (ItemStack stashed : state.lootStash) {
-                if (stashed == null || stashed.getType().isAir()) {
-                    continue;
-                }
-                while (stashSlot < inv.getSize() && (stashSlot == RESULTS_SUMMARY_SLOT
-                        || stashSlot == RESULTS_SORT_SLOT
-                        || stashSlot == RESULTS_FILTER_SLOT)) {
-                    stashSlot++;
-                }
-                if (stashSlot >= inv.getSize()) {
-                    break;
-                }
-                inv.setItem(stashSlot++, stashed.clone());
-            }
-            return inv;
+            return new StrongholdResultsStorageGUI(
+                    player.getUniqueId().toString(),
+                    plugin.getStorageEvents(),
+                    summary,
+                    state.lootStash
+            );
         }
 
         private void initializePlayers(World world) {
@@ -1660,152 +1624,40 @@ public class StrongholdRunManager implements Listener {
         if (player == null || !player.isOnline()) {
             return;
         }
-        Inventory pending = pendingResultInventories.remove(player.getUniqueId());
+        StrongholdResultsStorageGUI pending = pendingResultInventories.remove(player.getUniqueId());
         if (pending == null) {
             return;
         }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (player.isOnline()) {
-                openResultInventory(player, pending);
+                openResultInventories.put(player.getUniqueId(), pending);
+                pending.open(player);
             }
         }, 2L);
     }
 
-    private void openResultInventory(Player player, Inventory sourceInventory) {
-        if (player == null || sourceInventory == null) {
-            return;
+    private boolean isResultsGuiTitle(String title) {
+        if (title == null) {
+            return false;
         }
-        UUID playerId = player.getUniqueId();
-        int sortMode = resultSortModes.getOrDefault(playerId, 0);
-        int filterMode = resultFilterModes.getOrDefault(playerId, 5);
-
-        sortResultItems(sourceInventory, sortMode);
-        Inventory view = filterMode == 5 ? sourceInventory : buildFilteredResultInventory(sourceInventory, filterMode);
-        renderResultWidgets(view, sortMode, filterMode);
-
-        openResultInventories.put(playerId, sourceInventory);
-        player.openInventory(view);
+        return ChatColor.stripColor(title).startsWith("Stronghold Results");
     }
 
-    private void renderResultWidgets(Inventory inventory, int sortMode, int filterMode) {
-        if (inventory == null) {
-            return;
-        }
-        inventory.setItem(RESULTS_SORT_SLOT, createResultSortButton(sortMode));
-        inventory.setItem(RESULTS_FILTER_SLOT, createResultFilterButton(filterMode));
-    }
-
-    private ItemStack createResultSortButton(int mode) {
-        ItemStack item = GuiUtil.getNexoItem("ascending_sort", ChatColor.AQUA + "Sort");
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String[] options = {
-                    ChatColor.YELLOW + "Default",
-                    ChatColor.YELLOW + "Rarity Desc",
-                    ChatColor.YELLOW + "Rarity Asc"
-            };
-            List<String> lore = new ArrayList<>();
-            lore.add(TooltipUtil.selectionLine(mode == 0, options[0]));
-            lore.add(TooltipUtil.selectionLine(mode == 1, options[1]));
-            lore.add(TooltipUtil.selectionLine(mode == 2, options[2]));
-            lore.add(" ");
-            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
-    private ItemStack createResultFilterButton(int mode) {
-        ItemStack item = GuiUtil.getNexoItem("filter", ChatColor.GREEN + "Filter");
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            String[] options = {
-                    ChatColor.YELLOW + "1-19",
-                    ChatColor.YELLOW + "20-39",
-                    ChatColor.YELLOW + "40-59",
-                    ChatColor.YELLOW + "60-79",
-                    ChatColor.YELLOW + "80+",
-                    ChatColor.YELLOW + "All"
-            };
-            List<String> lore = new ArrayList<>();
-            for (int i = 0; i < options.length; i++) {
-                lore.add(TooltipUtil.selectionLine(mode == i, options[i]));
-            }
-            lore.add(" ");
-            lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
-    private void handleResultsWidgetClick(Player player, int rawSlot, boolean leftClick) {
+    private void handleResultsGuiClose(Player player) {
         if (player == null) {
             return;
         }
         UUID playerId = player.getUniqueId();
-        Inventory source = openResultInventories.get(playerId);
-        if (source == null) {
-            return;
-        }
-        if (rawSlot == RESULTS_SORT_SLOT) {
-            int mode = resultSortModes.getOrDefault(playerId, 0);
-            mode = leftClick ? mode + 1 : mode - 1;
-            if (mode > 2) mode = 0;
-            if (mode < 0) mode = 2;
-            resultSortModes.put(playerId, mode);
-            openResultInventory(player, source);
-            return;
-        }
-        if (rawSlot == RESULTS_FILTER_SLOT) {
-            int mode = resultFilterModes.getOrDefault(playerId, 5);
-            mode = leftClick ? mode + 1 : mode - 1;
-            if (mode > 5) mode = 0;
-            if (mode < 0) mode = 5;
-            resultFilterModes.put(playerId, mode);
-            openResultInventory(player, source);
-        }
-    }
-
-    private boolean isResultFilterActive(UUID playerId) {
-        return resultFilterModes.getOrDefault(playerId, 5) != 5;
-    }
-
-    private boolean isResultStorageSlot(int rawSlot) {
-        return rawSlot >= 0 && rawSlot < 54
-                && rawSlot != RESULTS_SUMMARY_SLOT
-                && rawSlot != RESULTS_SORT_SLOT
-                && rawSlot != RESULTS_FILTER_SLOT;
-    }
-
-    private Inventory resolveResultSourceInventory(UUID playerId, Inventory topInventory) {
-        if (topInventory == null) {
-            return openResultInventories.get(playerId);
-        }
-        Inventory mapped = filteredResultViews.remove(topInventory);
-        if (mapped != null) {
-            return mapped;
-        }
-        return topInventory;
-    }
-
-    private void handleResultsGuiClose(Player player, Inventory resultsInventory) {
-        if (player == null || resultsInventory == null) {
-            return;
-        }
-        UUID playerId = player.getUniqueId();
+        StrongholdResultsStorageGUI resultsGui = openResultInventories.get(playerId);
         if (confirmedResultExit.remove(playerId)) {
             openResultInventories.remove(playerId);
             return;
         }
-        if (!hasRemainingResultItems(resultsInventory)) {
+        if (resultsGui == null || !resultsGui.hasRemainingItems()) {
             openResultInventories.remove(playerId);
-            resultSortModes.remove(playerId);
-            resultFilterModes.remove(playerId);
             return;
         }
-        openResultInventories.put(playerId, resultsInventory);
+        openResultInventories.put(playerId, resultsGui);
         Bukkit.getScheduler().runTask(plugin, () -> player.openInventory(createResultsConfirmGui()));
     }
 
@@ -1831,137 +1683,20 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         UUID playerId = player.getUniqueId();
-        Inventory results = openResultInventories.get(playerId);
+        StrongholdResultsStorageGUI results = openResultInventories.get(playerId);
         if (rawSlot == 11) {
             if (results != null) {
-                salvageAndClearRemainingResultItems(player, results);
+                results.salvageRemaining(player);
             }
             confirmedResultExit.add(playerId);
             openResultInventories.remove(playerId);
-            resultSortModes.remove(playerId);
-            resultFilterModes.remove(playerId);
             player.closeInventory();
             return;
         }
         if (rawSlot == 15 && results != null) {
-            Bukkit.getScheduler().runTask(plugin, () -> player.openInventory(results));
+            suppressNextResultsCloseConfirm.add(playerId);
+            Bukkit.getScheduler().runTask(plugin, () -> results.open(player));
         }
-    }
-
-    private boolean hasRemainingResultItems(Inventory inventory) {
-        if (inventory == null) {
-            return false;
-        }
-        for (int slot = 0; slot < inventory.getSize(); slot++) {
-            if (slot == RESULTS_SUMMARY_SLOT || slot == RESULTS_SORT_SLOT || slot == RESULTS_FILTER_SLOT) {
-                continue;
-            }
-            ItemStack stack = inventory.getItem(slot);
-            if (stack != null && !stack.getType().isAir()) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private void salvageAndClearRemainingResultItems(Player player, Inventory inventory) {
-        if (inventory == null) {
-            return;
-        }
-        List<ItemStack> leftovers = new ArrayList<>();
-        for (int slot = 0; slot < inventory.getSize(); slot++) {
-            if (slot == RESULTS_SUMMARY_SLOT || slot == RESULTS_SORT_SLOT || slot == RESULTS_FILTER_SLOT) {
-                continue;
-            }
-            ItemStack existing = inventory.getItem(slot);
-            if (existing != null && !existing.getType().isAir()) {
-                leftovers.add(existing.clone());
-            }
-            inventory.setItem(slot, null);
-        }
-        if (!leftovers.isEmpty()) {
-            plugin.getMercenaryExpeditionManager().salvageRemaining(player, leftovers);
-        }
-    }
-
-    private Inventory buildFilteredResultInventory(Inventory source, int filterMode) {
-        Inventory filtered = Bukkit.createInventory(null, source.getSize(), RESULTS_GUI_TITLE);
-        ItemStack summary = source.getItem(RESULTS_SUMMARY_SLOT);
-        if (summary != null) {
-            filtered.setItem(RESULTS_SUMMARY_SLOT, summary.clone());
-        }
-
-        List<ItemStack> matches = new ArrayList<>();
-        for (int slot : RESULTS_STORAGE_SLOTS) {
-            ItemStack item = source.getItem(slot);
-            if (item == null || item.getType().isAir()) {
-                continue;
-            }
-            Integer level = ItemUtil.getLevelRequirement(item);
-            if (matchesLevelFilter(level, filterMode)) {
-                matches.add(item.clone());
-            }
-        }
-        int index = 0;
-        for (int slot : RESULTS_STORAGE_SLOTS) {
-            if (index >= matches.size()) {
-                break;
-            }
-            filtered.setItem(slot, matches.get(index++));
-        }
-        filteredResultViews.put(filtered, source);
-        return filtered;
-    }
-
-    private void sortResultItems(Inventory inventory, int sortMode) {
-        if (inventory == null || sortMode == 0) {
-            return;
-        }
-        List<ItemStack> items = new ArrayList<>();
-        for (int slot : RESULTS_STORAGE_SLOTS) {
-            ItemStack stack = inventory.getItem(slot);
-            if (stack != null && !stack.getType().isAir()) {
-                items.add(stack);
-            }
-            inventory.setItem(slot, null);
-        }
-        Comparator<ItemStack> comparator = Comparator.comparingInt(this::getItemRarityOrdinal);
-        if (sortMode == 1) {
-            comparator = comparator.reversed();
-        }
-        items.sort(comparator);
-        int idx = 0;
-        for (int slot : RESULTS_STORAGE_SLOTS) {
-            if (idx >= items.size()) {
-                break;
-            }
-            inventory.setItem(slot, items.get(idx++));
-        }
-    }
-
-    private int getItemRarityOrdinal(ItemStack stack) {
-        if (stack == null || stack.getType().isAir()) {
-            return 0;
-        }
-        CustomItem custom = ItemManager.getInstance().getCustomItemFromItemStack(stack);
-        return custom == null ? 0 : custom.getRarity().ordinal();
-    }
-
-    private boolean matchesLevelFilter(Integer level, int filterMode) {
-        if (filterMode == 5) {
-            return true;
-        }
-        if (level == null) {
-            return false;
-        }
-        return switch (filterMode) {
-            case 0 -> level >= 1 && level <= 19;
-            case 1 -> level >= 20 && level <= 39;
-            case 2 -> level >= 40 && level <= 59;
-            case 3 -> level >= 60 && level <= 79;
-            case 4 -> level >= 80;
-            default -> true;
-        };
     }
 
     private static final class SurvivorState {
