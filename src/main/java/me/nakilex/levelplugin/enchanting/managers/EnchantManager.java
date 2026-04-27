@@ -37,6 +37,9 @@ public class EnchantManager {
             if (prefix == null) continue;
             StatType st = StatType.fromKey(key);
             if (st == null) st = StatType.VIT;
+            if (st == StatType.WIL || st == StatType.TEC) {
+                continue;
+            }
             prefixMap.put(prefix, st);
             prefixList.add(prefix);
         }

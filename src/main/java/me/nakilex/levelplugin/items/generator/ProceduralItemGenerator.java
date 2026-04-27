@@ -148,8 +148,8 @@ public class ProceduralItemGenerator {
             agi   = scaleStat(level, rarity, 1.0);
             intel = scaleStat(level, rarity, 1.0);
             dex   = scaleStat(level, rarity, 1.0);
-            wil   = scaleStat(level, rarity, 1.0);
-            tec   = scaleStat(level, rarity, 1.0);
+            wil = 0;
+            tec = 0;
 
             // Give the armor a random dominant stat for variety
             int choice = random.nextInt(5); // str, agi, intel, dex, def
@@ -170,8 +170,8 @@ public class ProceduralItemGenerator {
             agi = allocation.get(ArmorBiasUtil.ArmorStat.AGI);
             intel = allocation.get(ArmorBiasUtil.ArmorStat.INT);
             dex = allocation.get(ArmorBiasUtil.ArmorStat.DEX);
-            wil = allocation.get(ArmorBiasUtil.ArmorStat.WIL);
-            tec = allocation.get(ArmorBiasUtil.ArmorStat.TEC);
+            wil = 0;
+            tec = 0;
         } else {
             def = 0;
             switch (clazz) {
@@ -180,32 +180,32 @@ public class ProceduralItemGenerator {
                     agi = scaleStat(level, rarity, 1.0);
                     dex = scaleStat(level, rarity, 1.0);
                     intel = scaleStat(level, rarity, 1.0);
-                    wil = scaleStat(level, rarity, 1.0);
-                    tec = scaleStat(level, rarity, 1.0);
+                    wil = 0;
+                    tec = 0;
                 }
                 case "ROGUE", "ARCHER" -> {
                     dex = scaleStat(level, rarity, 2.0);
                     agi = scaleStat(level, rarity, 1.0);
                     str = scaleStat(level, rarity, 1.0);
                     intel = scaleStat(level, rarity, 1.0);
-                    wil = scaleStat(level, rarity, 1.0);
-                    tec = scaleStat(level, rarity, 1.0);
+                    wil = 0;
+                    tec = 0;
                 }
                 case "MAGE" -> {
                     intel = scaleStat(level, rarity, 2.0);
                     agi = scaleStat(level, rarity, 1.0);
                     dex = scaleStat(level, rarity, 1.0);
                     str = scaleStat(level, rarity, 1.0);
-                    wil = scaleStat(level, rarity, 1.0);
-                    tec = scaleStat(level, rarity, 1.0);
+                    wil = 0;
+                    tec = 0;
                 }
                 default -> {
                     str = scaleStat(level, rarity, 1.0);
                     agi = scaleStat(level, rarity, 1.0);
                     dex = scaleStat(level, rarity, 1.0);
                     intel = scaleStat(level, rarity, 1.0);
-                    wil = scaleStat(level, rarity, 1.0);
-                    tec = scaleStat(level, rarity, 1.0);
+                    wil = 0;
+                    tec = 0;
                 }
             }
         }
@@ -229,7 +229,7 @@ public class ProceduralItemGenerator {
         }
         Material material = createArmor ? resolveArmorMaterial(level, armorSlot) : pickWeaponMaterial(clazz, level);
 
-        String classReq = createArmor ? "ANY" : clazz;
+        String classReq = "ANY";
 
         // Assign a unique negative ID so each generated item can be tracked
         int genId = ItemManager.getInstance().getNextGeneratedId();
