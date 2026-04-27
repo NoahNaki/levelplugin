@@ -297,7 +297,15 @@ public class StrongholdRunManager implements Listener {
             if (suppressNextResultsCloseConfirm.remove(player.getUniqueId())) {
                 return;
             }
-            handleResultsGuiClose(player);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                if (player.getOpenInventory() != null && isResultsGuiTitle(player.getOpenInventory().getTitle())) {
+                    return;
+                }
+                handleResultsGuiClose(player);
+            });
             return;
         }
         if (event.getView() == null || !UPGRADE_GUI_TITLE.equals(event.getView().getTitle())) {
