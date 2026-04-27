@@ -126,8 +126,9 @@ public class LootChestListener implements Listener {
                 runManager.storeLootToResultStorage(player, stack.clone());
             }
             lootChestManager.playOpeningAnimation(chestId, lootGui);
-            org.bukkit.Bukkit.getScheduler().runTaskLater(Main.getInstance(),
-                    () -> lootChestManager.playClosingAnimation(chestId), 12L);
+            // No inventory is opened in Stronghold mode, so mirror close-listener cleanup here.
+            lootChestManager.consumeSession(player.getUniqueId());
+            scheduleStrongholdChestClose(chestId, loc);
             GuildQuestManager.getInstance().handleLootChestOpen(player);
             markChestOpened(player, chestId);
             return true;
@@ -169,6 +170,18 @@ public class LootChestListener implements Listener {
         }
         awardBattlePassProgress(player, gearScore);
         return true;
+    }
+
+    private void scheduleStrongholdChestClose(int chestId, Location loc) {
+        org.bukkit.Bukkit.getScheduler().runTaskLater(Main.getInstance(),
+                () -> lootChestManager.playClosingAnimation(chestId), 12L);
+        org.bukkit.Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            lootChestManager.removeChest(chestId);
+            if (!lootChestManager.isNonRespawningChest(chestId)
+                    && !Main.getInstance().getDungeonManager().isInstanceWorld(loc.getWorld())) {
+                lootChestManager.getCooldownManager().startChestCooldown(chestId);
+            }
+        }, 40L);
     }
 
     private boolean isDebouncedChestOpen(Player player, int chestId) {
