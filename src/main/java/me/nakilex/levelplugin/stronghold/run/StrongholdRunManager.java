@@ -67,6 +67,10 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 public class StrongholdRunManager implements Listener {
     private static final String UPGRADE_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Upgrades";
+    private static final int UPGRADE_GUI_ROWS = 5;
+    private static final int UPGRADE_GUI_SIZE = UPGRADE_GUI_ROWS * 9;
+    private static final int[] UPGRADE_CHOICE_SLOTS = {20, 22, 24};
+    private static final int UPGRADE_REROLL_SLOT = 31;
     private static final String RESULTS_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Results";
     private static final String RESULTS_CONFIRM_GUI_TITLE = ChatColor.DARK_RED + "Exit Stronghold Results?";
     private static final String STRONGHOLD_KEY_NAME = "Stronghold Key";
@@ -1003,11 +1007,21 @@ public class StrongholdRunManager implements Listener {
             }
             state.awaitingUpgradeSelection = true;
             setUpgradePausedState(player, state, true);
-            Inventory inv = Bukkit.createInventory(player, 27, UPGRADE_GUI_TITLE);
-            inv.setItem(11, upgradeItem(state.pendingUpgrades.get(0), state));
-            inv.setItem(13, upgradeItem(state.pendingUpgrades.get(1), state));
-            inv.setItem(15, upgradeItem(state.pendingUpgrades.get(2), state));
+            Inventory inv = Bukkit.createInventory(player, UPGRADE_GUI_SIZE, UPGRADE_GUI_TITLE);
+            populateUpgradeInventory(inv, state);
             player.openInventory(inv);
+        }
+
+        private void populateUpgradeInventory(Inventory inv, SurvivorState state) {
+            if (inv == null || state == null) {
+                return;
+            }
+            ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+            GuiUtil.fillBorder(inv, filler);
+            for (int i = 0; i < UPGRADE_CHOICE_SLOTS.length && i < state.pendingUpgrades.size(); i++) {
+                inv.setItem(UPGRADE_CHOICE_SLOTS[i], upgradeItem(state.pendingUpgrades.get(i), state));
+            }
+            inv.setItem(UPGRADE_REROLL_SLOT, rerollItem());
         }
 
         private ItemStack upgradeItem(UpgradeChoice choice, SurvivorState state) {
@@ -1081,16 +1095,35 @@ public class StrongholdRunManager implements Listener {
             return entry.definition().displayName();
         }
 
+        private ItemStack rerollItem() {
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + "Refresh all three current");
+            lore.add(ChatColor.GRAY + "upgrade choices.");
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to reroll options", null));
+            return GuiUtil.getNexoItem("refresh", ChatColor.RED + "Reroll Upgrades", lore);
+        }
+
         private void handleUpgradeClick(Player player, int slot) {
             SurvivorState state = playerStates.get(player.getUniqueId());
             if (state == null || state.pendingUpgrades == null || state.pendingUpgrades.isEmpty()) {
                 player.closeInventory();
                 return;
             }
+            if (slot == UPGRADE_REROLL_SLOT) {
+                state.pendingUpgrades = rollUpgradeChoices(state, 3);
+                Inventory top = player.getOpenInventory() == null ? null : player.getOpenInventory().getTopInventory();
+                if (top != null && top.getSize() == UPGRADE_GUI_SIZE) {
+                    populateUpgradeInventory(top, state);
+                    player.updateInventory();
+                }
+                send(player, MessageType.INFO, "Rerolled Stronghold upgrades.");
+                return;
+            }
             int idx = switch (slot) {
-                case 11 -> 0;
-                case 13 -> 1;
-                case 15 -> 2;
+                case 20 -> 0;
+                case 22 -> 1;
+                case 24 -> 2;
                 default -> -1;
             };
             if (idx < 0 || idx >= state.pendingUpgrades.size()) {
