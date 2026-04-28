@@ -42,6 +42,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
@@ -323,7 +324,7 @@ public class StrongholdRunManager implements Listener {
         send(player, MessageType.SUCCESS, ChatColor.GOLD + "Stronghold Key used. Gate opened.");
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onStrongholdMobilityInteract(PlayerInteractEvent event) {
         if (event == null || event.getPlayer() == null) {
             return;
@@ -331,17 +332,36 @@ public class StrongholdRunManager implements Listener {
         if (event.getHand() != EquipmentSlot.HAND || !isRightClickAction(event.getAction())) {
             return;
         }
-        ActiveRun run = activeRuns.get(event.getPlayer().getWorld().getUID());
-        if (run == null) {
+        if (!tryHandleStrongholdMobilityInput(event.getPlayer())) {
             return;
         }
-        if (run.tryManualCastMobilitySpell(event.getPlayer())) {
-            event.setCancelled(true);
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onStrongholdMobilityEntityInteract(PlayerInteractEntityEvent event) {
+        if (event == null || event.getPlayer() == null || event.getHand() != EquipmentSlot.HAND) {
+            return;
         }
+        if (!tryHandleStrongholdMobilityInput(event.getPlayer())) {
+            return;
+        }
+        event.setCancelled(true);
     }
 
     private boolean isRightClickAction(Action action) {
         return action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
+    }
+
+    private boolean tryHandleStrongholdMobilityInput(Player player) {
+        if (player == null) {
+            return false;
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null) {
+            return false;
+        }
+        return run.tryManualCastMobilitySpell(player);
     }
 
     @EventHandler
