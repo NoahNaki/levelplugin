@@ -23,23 +23,25 @@ public class RogueSmokeBombSpell implements SpellHandler {
     private final int durationTicks;
     private final double partyRadius;
     private final double damageMultiplier;
+    private final boolean guaranteeCrit;
+    private final int buffParticleCount;
 
     public RogueSmokeBombSpell(Main plugin, int durationTicks, double partyRadius, int ignored) {
-        this(plugin, durationTicks, partyRadius, ignored, 1, 0.0, 0.0, 20);
+        this(plugin, durationTicks, partyRadius, 2.0, true, 16);
     }
 
     public RogueSmokeBombSpell(Main plugin,
                                int durationTicks,
                                double partyRadius,
-                               int ignoredStunTicks,
-                               int ignoredBombCount,
-                               double ignoredCone,
-                               double ignoredDot,
-                               int ignoredDotPeriod) {
+                               double damageMultiplier,
+                               boolean guaranteeCrit,
+                               int buffParticleCount) {
         this.plugin = plugin;
         this.durationTicks = Math.max(20, durationTicks);
         this.partyRadius = Math.max(1.0, partyRadius);
-        this.damageMultiplier = 2.0;
+        this.damageMultiplier = Math.max(1.0, damageMultiplier);
+        this.guaranteeCrit = guaranteeCrit;
+        this.buffParticleCount = Math.max(6, buffParticleCount);
     }
 
     @Override
@@ -47,9 +49,9 @@ public class RogueSmokeBombSpell implements SpellHandler {
         Player caster = context.player();
         long expiresAt = System.currentTimeMillis() + (durationTicks * 50L);
         for (Player ally : SpellPartyUtil.resolvePartyPlayersInRange(plugin, caster, partyRadius, true)) {
-            ACTIVE_BUFFS.put(ally.getUniqueId(), new BuffState(expiresAt, damageMultiplier, true));
+            ACTIVE_BUFFS.put(ally.getUniqueId(), new BuffState(expiresAt, damageMultiplier, guaranteeCrit));
             ally.getWorld().spawnParticle(Particle.CRIT, ally.getLocation().add(0.0, 1.0, 0.0),
-                    16, 0.35, 0.35, 0.35, 0.02);
+                    buffParticleCount, 0.35, 0.35, 0.35, 0.02);
             ally.getWorld().playSound(ally.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.5f, 1.75f);
         }
         caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ENDER_DRAGON_GROWL, 0.45f, 1.8f);
