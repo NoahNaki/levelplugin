@@ -45,6 +45,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
@@ -322,6 +323,27 @@ public class StrongholdRunManager implements Listener {
         send(player, MessageType.SUCCESS, ChatColor.GOLD + "Stronghold Key used. Gate opened.");
     }
 
+    @EventHandler(ignoreCancelled = true)
+    public void onStrongholdMobilityInteract(PlayerInteractEvent event) {
+        if (event == null || event.getPlayer() == null) {
+            return;
+        }
+        if (event.getHand() != EquipmentSlot.HAND || !isRightClickAction(event.getAction())) {
+            return;
+        }
+        ActiveRun run = activeRuns.get(event.getPlayer().getWorld().getUID());
+        if (run == null) {
+            return;
+        }
+        if (run.tryManualCastMobilitySpell(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean isRightClickAction(Action action) {
+        return action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
+    }
+
     @EventHandler
     public void onUpgradeGuiClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {
@@ -492,6 +514,7 @@ public class StrongholdRunManager implements Listener {
         private final Map<UUID, MobMotionState> mobMotionStates = new HashMap<>();
         private final Map<UUID, SurvivorState> playerStates = new HashMap<>();
         private final Set<UUID> pausedPlayers = new HashSet<>();
+        private final Map<UUID, Long> lastMobilityCastAttemptAt = new HashMap<>();
 
         private BukkitTask task;
         private BukkitTask autoCastTask;
@@ -554,6 +577,7 @@ public class StrongholdRunManager implements Listener {
             spawned.clear();
             currentWaveSpawned.clear();
             mobMotionStates.clear();
+            lastMobilityCastAttemptAt.clear();
             for (Map.Entry<UUID, SurvivorState> entry : new HashMap<>(playerStates).entrySet()) {
                 restorePlayerAfterRun(entry.getKey(), entry.getValue());
             }
@@ -1552,6 +1576,9 @@ public class StrongholdRunManager implements Listener {
                         continue;
                     }
                     SpellDefinition definition = spellEntry.definition();
+                    if (definition.movementSpell()) {
+                        continue;
+                    }
                     if (!shouldAutoCastSpellNow(player, definition.id())) {
                         continue;
                     }
@@ -1560,10 +1587,50 @@ public class StrongholdRunManager implements Listener {
                     if (now - last < cooldown) {
                         continue;
                     }
-                    castAutoSpell(player, spellEntry);
+                    castSpell(player, spellEntry, createSyntheticInputEvent(player, "AUTO"), false);
                     state.lastCastAtBySpell.put(spellId, now);
                 }
             }
+        }
+
+        private boolean tryManualCastMobilitySpell(Player player) {
+            if (player == null || pausedPlayers.contains(player.getUniqueId())) {
+                return false;
+            }
+            if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) {
+                return false;
+            }
+            String requirementFailure = SpellAccessUtil.getHeldWeaponRequirementFailure(player);
+            if (requirementFailure != null) {
+                send(player, MessageType.WARNING, requirementFailure);
+                return false;
+            }
+            long now = System.currentTimeMillis();
+            long lastAttemptAt = lastMobilityCastAttemptAt.getOrDefault(player.getUniqueId(), 0L);
+            if (now - lastAttemptAt < 80L) {
+                return false;
+            }
+            lastMobilityCastAttemptAt.put(player.getUniqueId(), now);
+            SurvivorState state = playerStates.get(player.getUniqueId());
+            SpellRegistry.SpellEntry mobilitySpell = resolveOwnedMobilitySpell(state);
+            if (mobilitySpell == null) {
+                return false;
+            }
+            SpellDefinition definition = mobilitySpell.definition();
+            SpellCastManager castManager = SpellCastManager.getInstance();
+            long remainingCooldown = castManager.getRemainingCooldownMs(player, definition);
+            if (SpellCastManager.areCooldownsEnabled() && remainingCooldown > 0L) {
+                int seconds = (int) Math.ceil(remainingCooldown / 1000.0);
+                send(player, MessageType.WARNING, definition.displayName() + " is on cooldown for " + seconds + "s.");
+                return true;
+            }
+            int manaCost = castManager.getManaCost(player, definition);
+            StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+            if (SpellCastManager.areManaCostsEnabled() && manaCost > 0 && stats.getCurrentMana() < manaCost) {
+                send(player, MessageType.WARNING, "Not enough mana for " + definition.displayName() + " (" + manaCost + ").");
+                return true;
+            }
+            return castSpell(player, mobilitySpell, createSyntheticInputEvent(player, "STRONGHOLD_MOBILITY"), true);
         }
 
         private long computeAutoCastCooldownMs(Player player, SpellDefinition definition, SurvivorState state) {
@@ -1601,23 +1668,45 @@ public class StrongholdRunManager implements Listener {
                     .size();
         }
 
-        private void castAutoSpell(Player player, SpellRegistry.SpellEntry spellEntry) {
+        private SpellRegistry.SpellEntry resolveOwnedMobilitySpell(SurvivorState state) {
+            if (state == null || state.activeSpellByBase.isEmpty()) {
+                return null;
+            }
+            SpellRegistry registry = SpellRegistry.getInstance();
+            for (String spellId : state.activeSpellByBase.values()) {
+                SpellRegistry.SpellEntry entry = registry.getSpell(spellId);
+                if (entry == null || entry.definition() == null || !entry.definition().movementSpell()) {
+                    continue;
+                }
+                return entry;
+            }
+            return null;
+        }
+
+        private me.nakilex.levelplugin.spells.input.SpellInputEvent createSyntheticInputEvent(Player player, String inputSequence) {
+            return new me.nakilex.levelplugin.spells.input.SpellInputEvent(
+                    player,
+                    me.nakilex.levelplugin.spells.input.SpellInputType.BASIC_ATTACK,
+                    me.nakilex.levelplugin.spells.input.SpellInputMode.MOUSE_COMBO,
+                    inputSequence);
+        }
+
+        private boolean castSpell(Player player,
+                                  SpellRegistry.SpellEntry spellEntry,
+                                  me.nakilex.levelplugin.spells.input.SpellInputEvent inputEvent,
+                                  boolean consumeResources) {
             try {
-                if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) {
-                    return;
+                if (player == null || spellEntry == null || spellEntry.definition() == null || inputEvent == null) {
+                    return false;
                 }
-                if (SpellAccessUtil.getHeldWeaponRequirementFailure(player) != null) {
-                    return;
+                if (consumeResources && !SpellCastManager.getInstance().tryConsumeResources(player, spellEntry.definition())) {
+                    return false;
                 }
-                me.nakilex.levelplugin.spells.input.SpellInputEvent fakeInput =
-                        new me.nakilex.levelplugin.spells.input.SpellInputEvent(
-                                player,
-                                me.nakilex.levelplugin.spells.input.SpellInputType.BASIC_ATTACK,
-                                me.nakilex.levelplugin.spells.input.SpellInputMode.MOUSE_COMBO,
-                                "AUTO");
-                spellEntry.handler().cast(new SpellContext(plugin, player, spellEntry.definition(), fakeInput));
+                spellEntry.handler().cast(new SpellContext(plugin, player, spellEntry.definition(), inputEvent));
+                return true;
             } catch (Exception ignored) {
                 // Guard auto-cast loop from individual spell runtime issues.
+                return false;
             }
         }
 
