@@ -79,6 +79,9 @@ public class StrongholdShrineManager implements Listener {
         double maxHp = Math.max(20.0, hp);
 
         Location shrineBase = location.clone().add(0.0, 1.0, 0.0);
+        if (!preparePlacementSpace(shrineBase)) {
+            return Optional.empty();
+        }
         FurnitureMechanic mechanic = NexoFurniture.furnitureMechanic(SHRINE_FURNITURE_ID);
         if (mechanic == null) {
             plugin.getLogger().warning("[StrongholdShrineManager] Missing Nexo furniture id '" + SHRINE_FURNITURE_ID + "'.");
@@ -143,91 +146,127 @@ public class StrongholdShrineManager implements Listener {
     }
 
     public int spawnRandomShrines(Location origin, int count, int searchRadius, double hp) {
+        return spawnRandomShrinesWithDiagnostics(origin, count, searchRadius, hp).spawned();
+    }
+
+    public ShrineSpawnDiagnostics spawnRandomShrinesWithDiagnostics(Location origin, int count, int searchRadius, double hp) {
         if (origin == null || origin.getWorld() == null || count <= 0) {
-            return 0;
+            return ShrineSpawnDiagnostics.empty("random");
         }
-        List<Location> candidates = new ArrayList<>();
         World world = origin.getWorld();
         int radius = Math.max(8, searchRadius);
+        List<Location> candidates = new ArrayList<>();
+        int wrongGround = 0;
+        int unsafeSpace = 0;
+        int nearOrigin = 0;
         for (int x = -radius; x <= radius; x += 3) {
             for (int z = -radius; z <= radius; z += 3) {
                 Location sample = origin.clone().add(x, 0.0, z);
                 int surfaceY = world.getHighestBlockYAt(sample);
                 Block ground = world.getBlockAt(sample.getBlockX(), surfaceY - 1, sample.getBlockZ());
                 if (ground.getType() != Material.GRASS_BLOCK) {
+                    wrongGround++;
                     continue;
                 }
                 Location spawn = ground.getLocation().add(0.5, 0.0, 0.5);
                 if (spawn.distanceSquared(origin) < 10 * 10) {
+                    nearOrigin++;
+                    continue;
+                }
+                if (!isCandidateSpaceClear(spawn.clone().add(0.0, 1.0, 0.0))) {
+                    unsafeSpace++;
                     continue;
                 }
                 candidates.add(spawn);
             }
         }
         if (candidates.isEmpty()) {
-            return 0;
+            return new ShrineSpawnDiagnostics("random", 0, wrongGround, unsafeSpace, nearOrigin, 0, 0, 0);
         }
         java.util.Collections.shuffle(candidates);
         int spawned = 0;
+        int nearExisting = 0;
+        int failedSpawn = 0;
         for (Location candidate : candidates) {
             boolean tooClose = anchorsById.values().stream()
                     .anyMatch(anchor -> anchor.origin.getWorld().equals(candidate.getWorld())
                             && anchor.origin.distanceSquared(candidate) < 12 * 12);
             if (tooClose) {
+                nearExisting++;
                 continue;
             }
             if (spawnShrine(candidate, hp).isPresent()) {
                 spawned++;
+            } else {
+                failedSpawn++;
             }
             if (spawned >= count) {
                 break;
             }
         }
-        return spawned;
+        return new ShrineSpawnDiagnostics("random", spawned, wrongGround, unsafeSpace, nearOrigin, nearExisting, failedSpawn, candidates.size());
     }
 
     public int spawnFallbackShrines(Location origin, int count, int searchRadius, double hp) {
+        return spawnFallbackShrinesWithDiagnostics(origin, count, searchRadius, hp).spawned();
+    }
+
+    public ShrineSpawnDiagnostics spawnFallbackShrinesWithDiagnostics(Location origin, int count, int searchRadius, double hp) {
         if (origin == null || origin.getWorld() == null || count <= 0) {
-            return 0;
+            return ShrineSpawnDiagnostics.empty("fallback");
         }
         World world = origin.getWorld();
         int radius = Math.max(16, searchRadius);
         List<Location> candidates = new ArrayList<>();
+        int wrongGround = 0;
+        int unsafeSpace = 0;
+        int nearOrigin = 0;
         for (int x = -radius; x <= radius; x += 4) {
             for (int z = -radius; z <= radius; z += 4) {
                 Location sample = origin.clone().add(x, 0.0, z);
                 int surfaceY = world.getHighestBlockYAt(sample);
                 Block ground = world.getBlockAt(sample.getBlockX(), surfaceY - 1, sample.getBlockZ());
                 if (ground.getType().isAir() || !ground.getType().isSolid() || ground.isLiquid()) {
+                    wrongGround++;
                     continue;
                 }
                 Location spawn = ground.getLocation().add(0.5, 0.0, 0.5);
                 if (spawn.distanceSquared(origin) < 8 * 8) {
+                    nearOrigin++;
+                    continue;
+                }
+                if (!isCandidateSpaceClear(spawn.clone().add(0.0, 1.0, 0.0))) {
+                    unsafeSpace++;
                     continue;
                 }
                 candidates.add(spawn);
             }
         }
         if (candidates.isEmpty()) {
-            return 0;
+            return new ShrineSpawnDiagnostics("fallback", 0, wrongGround, unsafeSpace, nearOrigin, 0, 0, 0);
         }
         java.util.Collections.shuffle(candidates);
         int spawned = 0;
+        int nearExisting = 0;
+        int failedSpawn = 0;
         for (Location candidate : candidates) {
             boolean tooClose = anchorsById.values().stream()
                     .anyMatch(anchor -> anchor.origin.getWorld().equals(candidate.getWorld())
                             && anchor.origin.distanceSquared(candidate) < 10 * 10);
             if (tooClose) {
+                nearExisting++;
                 continue;
             }
             if (spawnShrine(candidate, hp).isPresent()) {
                 spawned++;
+            } else {
+                failedSpawn++;
             }
             if (spawned >= count) {
                 break;
             }
         }
-        return spawned;
+        return new ShrineSpawnDiagnostics("fallback", spawned, wrongGround, unsafeSpace, nearOrigin, nearExisting, failedSpawn, candidates.size());
     }
 
     public void cleanup() {
@@ -471,6 +510,67 @@ public class StrongholdShrineManager implements Listener {
         }
         if (anchor.entity() != null && anchor.entity().isValid() && !anchor.entity().isDead()) {
             anchor.entity().remove();
+        }
+    }
+
+    private boolean isCandidateSpaceClear(Location shrineBase) {
+        if (shrineBase == null || shrineBase.getWorld() == null) {
+            return false;
+        }
+        Block feet = shrineBase.getBlock();
+        Block head = shrineBase.clone().add(0.0, 1.0, 0.0).getBlock();
+        return isOpenOrReplaceable(feet) && isOpenOrReplaceable(head);
+    }
+
+    private boolean preparePlacementSpace(Location shrineBase) {
+        if (!isCandidateSpaceClear(shrineBase)) {
+            return false;
+        }
+        clearIfReplaceable(shrineBase.getBlock());
+        clearIfReplaceable(shrineBase.clone().add(0.0, 1.0, 0.0).getBlock());
+        return true;
+    }
+
+    private boolean isOpenOrReplaceable(Block block) {
+        if (block == null) {
+            return false;
+        }
+        Material type = block.getType();
+        return type.isAir() || block.isPassable() || isReplaceableVegetation(type);
+    }
+
+    private void clearIfReplaceable(Block block) {
+        if (block == null) {
+            return;
+        }
+        if (isReplaceableVegetation(block.getType())) {
+            block.setType(Material.AIR, false);
+        }
+    }
+
+    private boolean isReplaceableVegetation(Material material) {
+        if (material == null) {
+            return false;
+        }
+        return material == Material.SHORT_GRASS
+                || material == Material.TALL_GRASS
+                || material == Material.FERN
+                || material == Material.LARGE_FERN
+                || material == Material.VINE
+                || material == Material.SNOW
+                || material == Material.SNOW_BLOCK;
+    }
+
+    public record ShrineSpawnDiagnostics(String mode,
+                                         int spawned,
+                                         int rejectedWrongGround,
+                                         int rejectedUnsafeSpace,
+                                         int rejectedNearOrigin,
+                                         int rejectedNearExistingShrine,
+                                         int failedSpawnAttempt,
+                                         int candidateCount) {
+        public static ShrineSpawnDiagnostics empty(String mode) {
+            return new ShrineSpawnDiagnostics(mode, 0, 0, 0, 0, 0, 0, 0);
         }
     }
 

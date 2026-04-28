@@ -119,14 +119,33 @@ public class StrongholdRunManager implements Listener {
         stopRun(worldId);
 
         Location origin = player.getLocation().clone();
-        int shrines = shrineManager.spawnRandomShrines(origin, SHRINES_PER_RUN, 72, 250.0);
+        StrongholdShrineManager.ShrineSpawnDiagnostics randomDiag =
+                shrineManager.spawnRandomShrinesWithDiagnostics(origin, SHRINES_PER_RUN, 72, 250.0);
+        int shrines = randomDiag.spawned();
+        StrongholdShrineManager.ShrineSpawnDiagnostics fallbackDiag = null;
         if (shrines < SHRINES_PER_RUN) {
-            shrines += shrineManager.spawnFallbackShrines(origin, SHRINES_PER_RUN - shrines, 128, 250.0);
+            fallbackDiag = shrineManager.spawnFallbackShrinesWithDiagnostics(origin, SHRINES_PER_RUN - shrines, 128, 250.0);
+            shrines += fallbackDiag.spawned();
         }
         if (shrines > 0) {
             send(player, MessageType.INFO, "Placed " + ChatColor.WHITE + shrines + ChatColor.GRAY + " shrine(s) around the stronghold.");
         } else {
-            send(player, MessageType.WARNING, "Shrine debug: no shrines spawned for this run.");
+            StringBuilder debug = new StringBuilder("Shrine debug: no shrines spawned. Random candidates=")
+                    .append(randomDiag.candidateCount())
+                    .append(", wrongGround=").append(randomDiag.rejectedWrongGround())
+                    .append(", blockedSpace=").append(randomDiag.rejectedUnsafeSpace())
+                    .append(", nearOrigin=").append(randomDiag.rejectedNearOrigin())
+                    .append(", nearExisting=").append(randomDiag.rejectedNearExistingShrine())
+                    .append(", failedPlacement=").append(randomDiag.failedSpawnAttempt());
+            if (fallbackDiag != null) {
+                debug.append(" | Fallback candidates=").append(fallbackDiag.candidateCount())
+                        .append(", wrongGround=").append(fallbackDiag.rejectedWrongGround())
+                        .append(", blockedSpace=").append(fallbackDiag.rejectedUnsafeSpace())
+                        .append(", nearOrigin=").append(fallbackDiag.rejectedNearOrigin())
+                        .append(", nearExisting=").append(fallbackDiag.rejectedNearExistingShrine())
+                        .append(", failedPlacement=").append(fallbackDiag.failedSpawnAttempt());
+            }
+            send(player, MessageType.WARNING, debug.toString());
         }
 
         ActiveRun run = new ActiveRun(worldId, origin);
@@ -1001,9 +1020,13 @@ public class StrongholdRunManager implements Listener {
                             ChatColor.WHITE, resolveUpgradeSpellDisplay(choice.resultSpellId)));
                     lore.add(" ");
                     lore.add(TooltipUtil.sectionHeader("Spell Effect"));
-                    appendWrappedBulletBlock(lore, describeAutoCastSpell(choice.resultSpellId));
+                    StrongholdSpellTooltipUtil.appendSpellEffectLore(lore, choice.resultSpellId);
                     lore.add(TooltipUtil.sectionHeader("Upgrade Effect"));
-                    appendWrappedBulletBlock(lore, describeUpgradeEffect(choice));
+                    StrongholdSpellTooltipUtil.appendUpgradeDeltaLore(
+                            lore,
+                            choice.baseSpellId,
+                            rank,
+                            choice.type == UpgradeType.SPELL_UNLOCK);
                 } else if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
                     lore.add(TooltipUtil.sectionHeader("Global Cooldown"));
                     lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Cooldown Tier",
@@ -1016,7 +1039,6 @@ public class StrongholdRunManager implements Listener {
                             ChatColor.GREEN, "+" + choice.statAmount + " " + choice.statType.getDisplayName()));
                 }
                 lore.add(TooltipUtil.sectionDividerByPixels(150));
-                lore.add(TooltipUtil.selectionLine(true, "Choose this upgrade"));
                 lore.addAll(TooltipUtil.clickInstructions("to choose this upgrade", null));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
@@ -1236,50 +1258,6 @@ public class StrongholdRunManager implements Listener {
             }
             return new UpgradeChoice(UpgradeType.SPELL_UPGRADE, "Upgrade: " + upgraded.definition().displayName(),
                     "Improves an already owned loadout skill.", base, upgraded.definition().id(), null, 0);
-        }
-
-        private String describeAutoCastSpell(String spellId) {
-            if (spellId == null || spellId.isBlank()) {
-                return "Improves your loadout spell rotation.";
-            }
-            SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(spellId);
-            if (entry == null || entry.definition() == null) {
-                return "Improves your loadout spell rotation.";
-            }
-            return entry.definition().displayName() + " is added to your Stronghold loadout.";
-        }
-
-        private String describeUpgradeEffect(UpgradeChoice choice) {
-            if (choice == null) {
-                return "Strengthens your run loadout.";
-            }
-            if (choice.type == UpgradeType.SPELL_UNLOCK) {
-                return specificSpellUpgradeEffect(choice.resultSpellId, true);
-            }
-            if (choice.type == UpgradeType.SPELL_UPGRADE) {
-                return specificSpellUpgradeEffect(choice.resultSpellId, false);
-            }
-            if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
-                return "Reduces cooldowns on all loadout skills by 10%.";
-            }
-            if (choice.type == UpgradeType.STAT && choice.statType != null) {
-                return "Grants +" + choice.statAmount + " " + choice.statType.getDisplayName() + " for this run.";
-            }
-            return "Strengthens your run loadout.";
-        }
-
-        private String specificSpellUpgradeEffect(String spellId, boolean unlock) {
-            if (spellId == null || spellId.isBlank()) {
-                return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
-            }
-            SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(spellId);
-            if (entry == null || entry.definition() == null) {
-                return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
-            }
-            String name = entry.definition().displayName();
-            return unlock
-                    ? "Unlocks " + name + " for your Stronghold loadout."
-                    : "Upgrades " + name + " for stronger Stronghold performance.";
         }
 
         private void tickAutoCast() {
