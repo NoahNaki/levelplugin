@@ -1338,7 +1338,12 @@ public class StrongholdRunManager implements Listener {
 
         private void castAutoSpell(Player player, SpellRegistry.SpellEntry spellEntry) {
             try {
-                ensureCyclonePlaceholderWeapon(player, spellEntry.definition());
+                if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) {
+                    return;
+                }
+                if (SpellAccessUtil.getHeldWeaponRequirementFailure(player) != null) {
+                    return;
+                }
                 me.nakilex.levelplugin.spells.input.SpellInputEvent fakeInput =
                         new me.nakilex.levelplugin.spells.input.SpellInputEvent(
                                 player,
@@ -1349,26 +1354,6 @@ public class StrongholdRunManager implements Listener {
             } catch (Exception ignored) {
                 // Guard auto-cast loop from individual spell runtime issues.
             }
-        }
-
-        private void ensureCyclonePlaceholderWeapon(Player player, SpellDefinition definition) {
-            if (player == null || definition == null || definition.id() == null) {
-                return;
-            }
-            String spellId = definition.id().toLowerCase(Locale.ROOT);
-            if (!spellId.startsWith("warrior_execution_arc")) {
-                return;
-            }
-            if (SpellAccessUtil.isHoldingWeapon(player)) {
-                return;
-            }
-            ItemStack fallback = new ItemStack(Material.IRON_AXE);
-            ItemMeta meta = fallback.getItemMeta();
-            if (meta != null) {
-                meta.setDisplayName(ChatColor.GRAY + "Training Axe");
-                fallback.setItemMeta(meta);
-            }
-            player.getInventory().setItemInMainHand(fallback);
         }
 
         private void applyTempStatDelta(UUID playerId, StatsManager.StatType statType, int delta) {
