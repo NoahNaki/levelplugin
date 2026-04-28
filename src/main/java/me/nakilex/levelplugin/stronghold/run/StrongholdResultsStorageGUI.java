@@ -16,6 +16,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -31,9 +32,23 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
                                        StorageEvents storageEvents,
                                        ItemStack summaryItem,
                                        List<ItemStack> stashedItems) {
-        super(ownerKey, "stronghold_results", "run_", ChatColor.DARK_PURPLE + "Stronghold Results", storageEvents, true, 1);
+        super(ownerKey, "stronghold_results", "run_", "Stronghold Results", storageEvents, true, 1);
         this.summaryItem = summaryItem == null ? createFallbackSummary() : summaryItem.clone();
         seedItems(stashedItems);
+    }
+
+    @Override
+    protected String[] getSortOptions() {
+        return new String[]{"None", "Rarity ↓", "Rarity ↑", "Gear Score ↓"};
+    }
+
+    @Override
+    protected void sortItemsForMode(List<ItemStack> items, int mode) {
+        if (mode == 3) {
+            items.sort(Comparator.comparingInt(this::getItemGearScore).reversed());
+            return;
+        }
+        super.sortItemsForMode(items, mode);
     }
 
     @Override

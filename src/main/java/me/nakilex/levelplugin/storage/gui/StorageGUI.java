@@ -2,6 +2,9 @@ package me.nakilex.levelplugin.storage.gui;
 
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.data.CustomItem;
+import me.nakilex.levelplugin.items.managers.ItemManager;
+import me.nakilex.levelplugin.salvage.managers.SalvageManager;
 import me.nakilex.levelplugin.storage.data.FileHandler;
 import me.nakilex.levelplugin.storage.events.StorageEvents;
 import com.nexomc.nexo.api.NexoItems;
@@ -229,8 +232,9 @@ public class StorageGUI {
                     } else {
                         sortMode--;
                     }
-                    if (sortMode > 2) sortMode = 0;
-                    if (sortMode < 0) sortMode = 2;
+                    int maxSortMode = Math.max(0, getSortOptions().length - 1);
+                    if (sortMode > maxSortMode) sortMode = 0;
+                    if (sortMode < 0) sortMode = maxSortMode;
                     open(context.player());
                 }));
         registerWidget(widgetList, new ActionWidget(FILTER_SLOT, context -> createFilterButton(filterMode),
@@ -477,7 +481,7 @@ public class StorageGUI {
             lore.add(ChatColor.GRAY + "");
             lore.add(ChatColor.DARK_GRAY + "Sort the items");
             lore.add(" ");
-            String[] opts = {"None", "Rarity \u2193", "Rarity \u2191"};
+            String[] opts = getSortOptions();
             for (int i = 0; i < opts.length; i++) {
                 lore.add(rangeLine(i, mode, opts[i]));
             }
@@ -573,16 +577,40 @@ public class StorageGUI {
         for (int slot : STORAGE_SLOTS) {
             inv.setItem(slot, null);
         }
-        if (sortMode == 1) {
-            items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal).reversed());
-        } else if (sortMode == 2) {
-            items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal));
-        }
+        sortItemsForMode(items, sortMode);
         int idx = 0;
         for (int slot : STORAGE_SLOTS) {
             if (idx >= items.size()) break;
             inv.setItem(slot, items.get(idx++));
         }
+    }
+
+    protected String[] getSortOptions() {
+        return new String[]{"None", "Rarity ↓", "Rarity ↑"};
+    }
+
+    protected void sortItemsForMode(List<ItemStack> items, int mode) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        if (mode == 1) {
+            items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal).reversed());
+            return;
+        }
+        if (mode == 2) {
+            items.sort(java.util.Comparator.comparingInt(this::getRarityOrdinal));
+        }
+    }
+
+    protected int getItemGearScore(ItemStack item) {
+        if (item == null) {
+            return 0;
+        }
+        CustomItem customItem = ItemManager.getInstance().getCustomItemFromItemStack(item);
+        if (customItem == null) {
+            return 0;
+        }
+        return SalvageManager.getInstance().getTotalStats(customItem);
     }
 
     private Inventory buildFilteredInventory(Inventory source) {

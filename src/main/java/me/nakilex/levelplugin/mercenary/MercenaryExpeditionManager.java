@@ -9,7 +9,7 @@ import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.salvage.managers.SalvageManager;
-import me.nakilex.levelplugin.utils.NumberUtil;
+import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -19,6 +19,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.Instant;
 import java.util.*;
+
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 /**
  * Handles mercenary expeditions that leverage the dungeon list. The manager is
@@ -334,8 +337,10 @@ public class MercenaryExpeditionManager {
         }
         if (coins > 0) {
             economyManager.addCoins(player, coins, false);
-            player.sendMessage(ChatColor.YELLOW + "Unused loot was salvaged for "
-                    + ChatColor.GOLD + NumberUtil.formatCommas(coins) + ChatColor.YELLOW + " coins.");
+            send(player, MessageType.REWARD,
+                    "Unused loot was salvaged: "
+                            + CurrencyMessageUtil.formatAmount(CurrencyMessageUtil.Currency.COINS, coins)
+                            + ChatColor.GOLD + ".");
         }
     }
 
