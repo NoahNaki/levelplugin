@@ -89,9 +89,9 @@ public final class SpellCatalog {
         SpellDefinition blink = new SpellDefinition("mage_blink", "Blink", 14, true);
         SpellDefinition blinkPhase = new SpellDefinition("mage_blink_phase", "Blink: Phase Step", 14, true);
         SpellDefinition blinkRift = new SpellDefinition("mage_blink_rift", "Blink: Riftstride", 14, true);
-        registry.registerSpell(blink, new MageBlinkSpell(plugin, 8.0));
-        registry.registerSpell(blinkPhase, new MageBlinkSpell(plugin, 11.0));
-        registry.registerSpell(blinkRift, new MageBlinkSpell(plugin, 14.0));
+        registry.registerSpell(blink, new MageBlinkSpell(plugin, 8.0, 0.52, 0.45));
+        registry.registerSpell(blinkPhase, new MageBlinkSpell(plugin, 11.0, 0.58, 0.55));
+        registry.registerSpell(blinkRift, new MageBlinkSpell(plugin, 14.0, 0.66, 0.65));
         registry.registerProgression(new SpellProgression(blink.id(), java.util.List.of(blinkPhase.id(), blinkRift.id())));
         // Mobility spell archived for rework.
         // registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
@@ -302,9 +302,9 @@ public final class SpellCatalog {
         // SpellCastManager.setSpellCooldownMs("archer_skybound", 0L);
         SpellCastManager.setSpellCooldownMs("archer_arrow_rain", 9800L);
 
-        SpellCastManager.setSpellCooldownMs("rogue_arc_basic", 0L);
-        SpellCastManager.setSpellCooldownMs("rogue_arc_basic_tempest", 0L);
-        SpellCastManager.setSpellCooldownMs("rogue_arc_basic_reaper", 0L);
+        SpellCastManager.setSpellCooldownMs("rogue_arc_basic", 450L);
+        SpellCastManager.setSpellCooldownMs("rogue_arc_basic_tempest", 420L);
+        SpellCastManager.setSpellCooldownMs("rogue_arc_basic_reaper", 380L);
         SpellCastManager.setSpellCooldownMs("rogue_sky_ripper", 5600L);
         SpellCastManager.setSpellCooldownMs("rogue_sky_ripper_tempest", 5200L);
         SpellCastManager.setSpellCooldownMs("rogue_sky_ripper_execution", 4700L);

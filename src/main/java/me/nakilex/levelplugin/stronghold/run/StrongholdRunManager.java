@@ -25,10 +25,14 @@ import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Slime;
 import org.bukkit.block.Block;
+import org.bukkit.block.Container;
 import org.bukkit.block.data.Openable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -99,6 +103,10 @@ public class StrongholdRunManager implements Listener {
     private static final String BOSS_MOB_ID = "slime_king";
     private static final double KEY_DROP_CHANCE = 0.03;
     private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
+    private static final double WAVE_MOVE_SPEED_BONUS_PER_WAVE = 0.008;
+    private static final double WAVE_HEALTH_BONUS_PER_WAVE = 0.07;
+    private static final int MINIBOSS_SLIME_SIZE = 4;
+    private static final int BOSS_SLIME_SIZE = 6;
     private static final List<String> DEFAULT_MOBILITY_BASE_SPELLS = List.of(
             "mage_blink",
             "archer_skybound",
@@ -340,6 +348,9 @@ public class StrongholdRunManager implements Listener {
         if (event.getHand() != EquipmentSlot.HAND || !isRightClickAction(event.getAction())) {
             return;
         }
+        if (isContainerOpenInteraction(event)) {
+            return;
+        }
         if (!tryHandleStrongholdManualInput(event.getPlayer(), ManualCastTrigger.RIGHT_CLICK)) {
             return;
         }
@@ -391,6 +402,22 @@ public class StrongholdRunManager implements Listener {
 
     private boolean isLeftClickAction(Action action) {
         return action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
+    }
+
+    private boolean isContainerOpenInteraction(PlayerInteractEvent event) {
+        if (event == null || event.getAction() != Action.RIGHT_CLICK_BLOCK) {
+            return false;
+        }
+        Block clicked = event.getClickedBlock();
+        if (clicked == null) {
+            return false;
+        }
+        if (clicked.getState() instanceof Container) {
+            return true;
+        }
+        Material type = clicked.getType();
+        String typeName = type == null ? "" : type.name();
+        return typeName.contains("CHEST") || typeName.contains("BARREL") || typeName.endsWith("SHULKER_BOX");
     }
 
     private boolean tryHandleStrongholdManualInput(Player player, ManualCastTrigger trigger) {
@@ -690,6 +717,7 @@ public class StrongholdRunManager implements Listener {
                 if (mob == null) {
                     continue;
                 }
+                applyWaveMobScaling(mob, waveNumber, false);
                 spawned.add(mob.getUniqueId());
                 currentWaveSpawned.add(mob.getUniqueId());
                 mobMotionStates.put(mob.getUniqueId(), new MobMotionState(
@@ -715,9 +743,9 @@ public class StrongholdRunManager implements Listener {
         private int computeWaveSpawnCount(int waveNumber, int playerCount) {
             int safeWave = Math.max(1, waveNumber);
             int safePlayers = Math.max(1, playerCount);
-            int waveScaling = safeWave + (safeWave / 2);
-            int partyBonus = (safePlayers - 1) * 3;
-            return Math.min(40, 4 + waveScaling + partyBonus);
+            int waveScaling = safeWave + safeWave + (safeWave / 2);
+            int partyBonus = (safePlayers - 1) * 4;
+            return Math.min(52, 6 + waveScaling + partyBonus);
         }
 
         private void spawnMilestoneBossIfNeeded(World world, List<Player> players, int waveNumber) {
@@ -735,6 +763,8 @@ public class StrongholdRunManager implements Listener {
             if (boss == null) {
                 return;
             }
+            applyWaveMobScaling(boss, waveNumber, true);
+            applyKingSlimeSize(boss, waveNumber == 30 ? BOSS_SLIME_SIZE : MINIBOSS_SLIME_SIZE);
             spawned.add(boss.getUniqueId());
             currentWaveSpawned.add(boss.getUniqueId());
             mobMotionStates.put(boss.getUniqueId(), new MobMotionState(
@@ -748,6 +778,44 @@ public class StrongholdRunManager implements Listener {
                 String title = waveNumber == 30 ? ChatColor.DARK_RED + "Boss Appeared" : ChatColor.RED + "Mini-Boss Appeared";
                 player.sendTitle(title, ChatColor.WHITE + mobDisplay, 5, 50, 10);
             }
+        }
+
+        private void applyWaveMobScaling(LivingEntity mob, int waveNumber, boolean boss) {
+            if (mob == null) {
+                return;
+            }
+            int safeWave = Math.max(1, waveNumber);
+            double healthMultiplier = Math.min(4.0, 1.0 + (safeWave * WAVE_HEALTH_BONUS_PER_WAVE));
+            if (boss) {
+                healthMultiplier *= 1.35;
+            }
+            scaleAttributeBase(mob, Attribute.MAX_HEALTH, healthMultiplier);
+            AttributeInstance maxHealth = mob.getAttribute(Attribute.MAX_HEALTH);
+            if (maxHealth != null) {
+                mob.setHealth(Math.min(maxHealth.getValue(), maxHealth.getBaseValue()));
+            }
+
+            double speedMultiplier = Math.min(1.35, 1.0 + (safeWave * WAVE_MOVE_SPEED_BONUS_PER_WAVE) + (boss ? 0.05 : 0.0));
+            scaleAttributeBase(mob, Attribute.MOVEMENT_SPEED, speedMultiplier);
+        }
+
+        private void scaleAttributeBase(LivingEntity mob, Attribute attribute, double multiplier) {
+            if (mob == null || attribute == null) {
+                return;
+            }
+            AttributeInstance instance = mob.getAttribute(attribute);
+            if (instance == null) {
+                return;
+            }
+            double safeMultiplier = Math.max(0.01, multiplier);
+            instance.setBaseValue(Math.max(0.01, instance.getBaseValue() * safeMultiplier));
+        }
+
+        private void applyKingSlimeSize(LivingEntity entity, int size) {
+            if (!(entity instanceof Slime slime)) {
+                return;
+            }
+            slime.setSize(Math.max(1, size));
         }
 
         private String resolveMobDisplayName(String mobId) {

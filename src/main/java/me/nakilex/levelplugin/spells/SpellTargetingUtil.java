@@ -188,11 +188,12 @@ public final class SpellTargetingUtil {
         }
         Location candidate = lineTarget.clone();
         candidate.setY(candidate.getY() + 0.05);
-        Location safe = findNearestSafeLocation(candidate, 5);
+        boolean preferUpward = direction.getY() > 0.20;
+        Location safe = findNearestSafeLocation(candidate, 5, preferUpward);
         if (isUsableBlinkDestination(player, safe, direction)) {
             return safe;
         }
-        safe = findNearbySafeLocation(candidate, 2, 6);
+        safe = findNearbySafeLocation(candidate, 2, 6, preferUpward);
         if (isUsableBlinkDestination(player, safe, direction)) {
             return safe;
         }
@@ -215,7 +216,8 @@ public final class SpellTargetingUtil {
         for (double distance = maxDistance; distance >= minTravelDistance; distance -= 0.5) {
             Location probe = origin.clone().add(direction.clone().multiply(distance));
             probe.setY(probe.getY() + 0.05);
-            Location safe = findNearestSafeLocation(probe, 4);
+            boolean preferUpward = direction.getY() > 0.20;
+            Location safe = findNearestSafeLocation(probe, 4, preferUpward);
             if (isUsableBlinkDestination(player, safe, direction)) {
                 return safe;
             }
@@ -286,27 +288,43 @@ public final class SpellTargetingUtil {
     }
 
     public static Location findNearestSafeLocation(Location around, int verticalRange) {
+        return findNearestSafeLocation(around, verticalRange, false);
+    }
+
+    public static Location findNearestSafeLocation(Location around, int verticalRange, boolean preferUpward) {
         if (around == null || around.getWorld() == null) {
             return null;
         }
         int range = Math.max(0, verticalRange);
         for (int dy = 0; dy <= range; dy++) {
-            Location down = around.clone().add(0, -dy, 0);
-            if (isSafeTeleportLocation(down)) {
-                return snapToCenter(down);
-            }
             if (dy == 0) {
+                Location same = around.clone();
+                if (isSafeTeleportLocation(same)) {
+                    return snapToCenter(same);
+                }
                 continue;
             }
-            Location up = around.clone().add(0, dy, 0);
-            if (isSafeTeleportLocation(up)) {
-                return snapToCenter(up);
+            Location primary = preferUpward
+                    ? around.clone().add(0, dy, 0)
+                    : around.clone().add(0, -dy, 0);
+            if (isSafeTeleportLocation(primary)) {
+                return snapToCenter(primary);
+            }
+            Location secondary = preferUpward
+                    ? around.clone().add(0, -dy, 0)
+                    : around.clone().add(0, dy, 0);
+            if (isSafeTeleportLocation(secondary)) {
+                return snapToCenter(secondary);
             }
         }
         return null;
     }
 
     public static Location findNearbySafeLocation(Location around, int horizontalRadius, int verticalRange) {
+        return findNearbySafeLocation(around, horizontalRadius, verticalRange, false);
+    }
+
+    public static Location findNearbySafeLocation(Location around, int horizontalRadius, int verticalRange, boolean preferUpward) {
         if (around == null || around.getWorld() == null) {
             return null;
         }
@@ -318,7 +336,7 @@ public final class SpellTargetingUtil {
                         continue;
                     }
                     Location candidate = around.clone().add(dx, 0, dz);
-                    Location safe = findNearestSafeLocation(candidate, verticalRange);
+                    Location safe = findNearestSafeLocation(candidate, verticalRange, preferUpward);
                     if (safe != null) {
                         return safe;
                     }
