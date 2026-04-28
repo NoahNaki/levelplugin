@@ -95,6 +95,12 @@ public class StrongholdRunManager implements Listener {
     private static final String MINIBOSS_MOB_ID = "slime_king";
     private static final String BOSS_MOB_ID = "slime_king";
     private static final double KEY_DROP_CHANCE = 0.03;
+    private static final List<String> DEFAULT_MOBILITY_BASE_SPELLS = List.of(
+            "mage_blink",
+            "archer_skybound",
+            "rogue_razor_dash",
+            "warrior_titan_vault"
+    );
 
     private final Main plugin;
     private final StrongholdShrineManager shrineManager;
@@ -105,6 +111,7 @@ public class StrongholdRunManager implements Listener {
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final List<String> waveMobPool = List.of("forest_slime");
     private final Set<String> autoCastBasePool = new HashSet<>();
+    private final Set<String> mobilityBasePool = new HashSet<>();
 
     public StrongholdRunManager(Main plugin, StrongholdShrineManager shrineManager) {
         this.plugin = plugin;
@@ -439,6 +446,7 @@ public class StrongholdRunManager implements Listener {
 
     private void initializeAutoCastPool() {
         autoCastBasePool.clear();
+        mobilityBasePool.clear();
         SpellRegistry registry = SpellRegistry.getInstance();
         for (SpellProgression progression : registry.getAllProgressions()) {
             if (progression == null || progression.baseSpellId() == null) {
@@ -451,9 +459,17 @@ public class StrongholdRunManager implements Listener {
             }
             SpellDefinition definition = entry.definition();
             if (definition.movementSpell()) {
+                mobilityBasePool.add(baseId);
                 continue;
             }
             autoCastBasePool.add(baseId);
+        }
+        for (String mobilityBase : DEFAULT_MOBILITY_BASE_SPELLS) {
+            SpellRegistry.SpellEntry entry = registry.getSpell(mobilityBase);
+            if (entry == null || entry.definition() == null || !entry.definition().movementSpell()) {
+                continue;
+            }
+            mobilityBasePool.add(mobilityBase.toLowerCase(Locale.ROOT));
         }
         if (autoCastBasePool.isEmpty()) {
             autoCastBasePool.add("warrior_execution_arc");
@@ -1357,6 +1373,14 @@ public class StrongholdRunManager implements Listener {
                 return;
             }
             String base = choice.baseSpellId.toLowerCase(Locale.ROOT);
+            if (isMobilityBaseSpell(base) && state.ownedSpellRanks.getOrDefault(base, 0) <= 0) {
+                Set<String> ownedMobility = ownedMobilityBaseIds(state);
+                ownedMobility.remove(base);
+                if (!ownedMobility.isEmpty()) {
+                    send(player, MessageType.WARNING, "You can only have one mobility spell during a Stronghold run.");
+                    return;
+                }
+            }
             int nextRank = Math.max(1, state.ownedSpellRanks.getOrDefault(base, 0) + 1);
             state.ownedSpellRanks.put(base, nextRank);
             state.activeSpellByBase.put(base, choice.resultSpellId.toLowerCase(Locale.ROOT));
@@ -1372,6 +1396,18 @@ public class StrongholdRunManager implements Listener {
                 if (spellChoice != null) {
                     spellCandidates.add(spellChoice);
                 }
+            }
+            int mobilityOwnedCount = ownedMobilityBaseIds(state).size();
+            for (String baseId : mobilityBasePool) {
+                UpgradeChoice mobilityChoice = spellUpgradeChoiceFor(state, baseId);
+                if (mobilityChoice == null) {
+                    continue;
+                }
+                int rank = state.ownedSpellRanks.getOrDefault(baseId.toLowerCase(Locale.ROOT), 0);
+                if (rank <= 0 && mobilityOwnedCount > 0) {
+                    continue;
+                }
+                spellCandidates.add(mobilityChoice);
             }
 
             List<UpgradeChoice> rolled = new ArrayList<>();
@@ -1402,10 +1438,33 @@ public class StrongholdRunManager implements Listener {
         }
 
         private void refreshAutoCastPoolIfNeeded() {
-            if (!autoCastBasePool.isEmpty()) {
+            if (!autoCastBasePool.isEmpty() || !mobilityBasePool.isEmpty()) {
                 return;
             }
             initializeAutoCastPool();
+        }
+
+        private Set<String> ownedMobilityBaseIds(SurvivorState state) {
+            Set<String> owned = new HashSet<>();
+            if (state == null) {
+                return owned;
+            }
+            for (Map.Entry<String, Integer> entry : state.ownedSpellRanks.entrySet()) {
+                if (entry.getValue() == null || entry.getValue() <= 0) {
+                    continue;
+                }
+                if (isMobilityBaseSpell(entry.getKey())) {
+                    owned.add(entry.getKey().toLowerCase(Locale.ROOT));
+                }
+            }
+            return owned;
+        }
+
+        private boolean isMobilityBaseSpell(String baseSpellId) {
+            if (baseSpellId == null || baseSpellId.isBlank()) {
+                return false;
+            }
+            return mobilityBasePool.contains(baseSpellId.toLowerCase(Locale.ROOT));
         }
 
         private UpgradeChoice spellUpgradeChoiceFor(SurvivorState state, String baseSpellId) {
@@ -1456,6 +1515,15 @@ public class StrongholdRunManager implements Listener {
                 int currentRank = state.ownedSpellRanks.getOrDefault(baseId, 0);
                 String status = currentRank <= 0 ? "unlock" : "upgrade";
                 lines.add(baseId + " -> " + choice.resultSpellId + " (" + status + ", rank " + currentRank + ")");
+            });
+            mobilityBasePool.stream().sorted().forEach(baseId -> {
+                UpgradeChoice choice = spellUpgradeChoiceFor(state, baseId);
+                if (choice == null) {
+                    return;
+                }
+                int currentRank = state.ownedSpellRanks.getOrDefault(baseId, 0);
+                String status = currentRank <= 0 ? "unlock" : "upgrade";
+                lines.add(baseId + " -> " + choice.resultSpellId + " (" + status + ", rank " + currentRank + ", mobility)");
             });
             return lines;
         }
