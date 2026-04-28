@@ -34,6 +34,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
 import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
@@ -97,6 +98,7 @@ public class StrongholdRunManager implements Listener {
     private static final String MINIBOSS_MOB_ID = "slime_king";
     private static final String BOSS_MOB_ID = "slime_king";
     private static final double KEY_DROP_CHANCE = 0.03;
+    private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
     private static final List<String> DEFAULT_MOBILITY_BASE_SPELLS = List.of(
             "mage_blink",
             "archer_skybound",
@@ -114,6 +116,12 @@ public class StrongholdRunManager implements Listener {
     private final List<String> waveMobPool = List.of("forest_slime");
     private final Set<String> autoCastBasePool = new HashSet<>();
     private final Set<String> mobilityBasePool = new HashSet<>();
+
+    private enum ManualCastTrigger {
+        NONE,
+        RIGHT_CLICK,
+        LEFT_CLICK_BASIC
+    }
 
     public StrongholdRunManager(Main plugin, StrongholdShrineManager shrineManager) {
         this.plugin = plugin;
@@ -332,7 +340,7 @@ public class StrongholdRunManager implements Listener {
         if (event.getHand() != EquipmentSlot.HAND || !isRightClickAction(event.getAction())) {
             return;
         }
-        if (!tryHandleStrongholdMobilityInput(event.getPlayer())) {
+        if (!tryHandleStrongholdManualInput(event.getPlayer(), ManualCastTrigger.RIGHT_CLICK)) {
             return;
         }
         event.setCancelled(true);
@@ -343,7 +351,35 @@ public class StrongholdRunManager implements Listener {
         if (event == null || event.getPlayer() == null || event.getHand() != EquipmentSlot.HAND) {
             return;
         }
-        if (!tryHandleStrongholdMobilityInput(event.getPlayer())) {
+        if (!tryHandleStrongholdManualInput(event.getPlayer(), ManualCastTrigger.RIGHT_CLICK)) {
+            return;
+        }
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onStrongholdRogueArcInteract(PlayerInteractEvent event) {
+        if (event == null || event.getPlayer() == null) {
+            return;
+        }
+        if (event.getHand() != EquipmentSlot.HAND || !isLeftClickAction(event.getAction())) {
+            return;
+        }
+        if (!tryHandleStrongholdManualInput(event.getPlayer(), ManualCastTrigger.LEFT_CLICK_BASIC)) {
+            return;
+        }
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onStrongholdRogueArcBasicAttack(EntityDamageByEntityEvent event) {
+        if (event == null || !(event.getDamager() instanceof Player player)) {
+            return;
+        }
+        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) {
+            return;
+        }
+        if (!tryHandleStrongholdManualInput(player, ManualCastTrigger.LEFT_CLICK_BASIC)) {
             return;
         }
         event.setCancelled(true);
@@ -353,7 +389,11 @@ public class StrongholdRunManager implements Listener {
         return action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
     }
 
-    private boolean tryHandleStrongholdMobilityInput(Player player) {
+    private boolean isLeftClickAction(Action action) {
+        return action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
+    }
+
+    private boolean tryHandleStrongholdManualInput(Player player, ManualCastTrigger trigger) {
         if (player == null) {
             return false;
         }
@@ -361,7 +401,7 @@ public class StrongholdRunManager implements Listener {
         if (run == null) {
             return false;
         }
-        return run.tryManualCastMobilitySpell(player);
+        return run.tryManualCastSpell(player, trigger);
     }
 
     @EventHandler
@@ -534,7 +574,7 @@ public class StrongholdRunManager implements Listener {
         private final Map<UUID, MobMotionState> mobMotionStates = new HashMap<>();
         private final Map<UUID, SurvivorState> playerStates = new HashMap<>();
         private final Set<UUID> pausedPlayers = new HashSet<>();
-        private final Map<UUID, Long> lastMobilityCastAttemptAt = new HashMap<>();
+        private final Map<UUID, Long> lastManualCastAttemptAt = new HashMap<>();
 
         private BukkitTask task;
         private BukkitTask autoCastTask;
@@ -597,7 +637,7 @@ public class StrongholdRunManager implements Listener {
             spawned.clear();
             currentWaveSpawned.clear();
             mobMotionStates.clear();
-            lastMobilityCastAttemptAt.clear();
+            lastManualCastAttemptAt.clear();
             for (Map.Entry<UUID, SurvivorState> entry : new HashMap<>(playerStates).entrySet()) {
                 restorePlayerAfterRun(entry.getKey(), entry.getValue());
             }
@@ -1596,7 +1636,7 @@ public class StrongholdRunManager implements Listener {
                         continue;
                     }
                     SpellDefinition definition = spellEntry.definition();
-                    if (definition.movementSpell()) {
+                    if (manualCastTrigger(definition) != ManualCastTrigger.NONE) {
                         continue;
                     }
                     if (!shouldAutoCastSpellNow(player, definition.id())) {
@@ -1613,7 +1653,10 @@ public class StrongholdRunManager implements Listener {
             }
         }
 
-        private boolean tryManualCastMobilitySpell(Player player) {
+        private boolean tryManualCastSpell(Player player, ManualCastTrigger trigger) {
+            if (trigger == null || trigger == ManualCastTrigger.NONE) {
+                return false;
+            }
             if (player == null || pausedPlayers.contains(player.getUniqueId())) {
                 return false;
             }
@@ -1626,17 +1669,17 @@ public class StrongholdRunManager implements Listener {
                 return false;
             }
             long now = System.currentTimeMillis();
-            long lastAttemptAt = lastMobilityCastAttemptAt.getOrDefault(player.getUniqueId(), 0L);
-            if (now - lastAttemptAt < 80L) {
+            long lastAttemptAt = lastManualCastAttemptAt.getOrDefault(player.getUniqueId(), 0L);
+            if (now - lastAttemptAt < MANUAL_CAST_DEBOUNCE_MS) {
                 return false;
             }
-            lastMobilityCastAttemptAt.put(player.getUniqueId(), now);
+            lastManualCastAttemptAt.put(player.getUniqueId(), now);
             SurvivorState state = playerStates.get(player.getUniqueId());
-            SpellRegistry.SpellEntry mobilitySpell = resolveOwnedMobilitySpell(state);
-            if (mobilitySpell == null) {
+            SpellRegistry.SpellEntry manualSpell = resolveOwnedManualSpell(state, trigger);
+            if (manualSpell == null) {
                 return false;
             }
-            SpellDefinition definition = mobilitySpell.definition();
+            SpellDefinition definition = manualSpell.definition();
             SpellCastManager castManager = SpellCastManager.getInstance();
             long remainingCooldown = castManager.getRemainingCooldownMs(player, definition);
             if (SpellCastManager.areCooldownsEnabled() && remainingCooldown > 0L) {
@@ -1650,7 +1693,8 @@ public class StrongholdRunManager implements Listener {
                 send(player, MessageType.WARNING, "Not enough mana for " + definition.displayName() + " (" + manaCost + ").");
                 return true;
             }
-            return castSpell(player, mobilitySpell, createSyntheticInputEvent(player, "STRONGHOLD_MOBILITY"), true);
+            return castSpell(player, manualSpell, createSyntheticInputEvent(player, trigger == ManualCastTrigger.RIGHT_CLICK
+                    ? "STRONGHOLD_MOBILITY" : "STRONGHOLD_BASIC"), true);
         }
 
         private long computeAutoCastCooldownMs(Player player, SpellDefinition definition, SurvivorState state) {
@@ -1688,19 +1732,33 @@ public class StrongholdRunManager implements Listener {
                     .size();
         }
 
-        private SpellRegistry.SpellEntry resolveOwnedMobilitySpell(SurvivorState state) {
+        private SpellRegistry.SpellEntry resolveOwnedManualSpell(SurvivorState state, ManualCastTrigger trigger) {
             if (state == null || state.activeSpellByBase.isEmpty()) {
                 return null;
             }
             SpellRegistry registry = SpellRegistry.getInstance();
             for (String spellId : state.activeSpellByBase.values()) {
                 SpellRegistry.SpellEntry entry = registry.getSpell(spellId);
-                if (entry == null || entry.definition() == null || !entry.definition().movementSpell()) {
+                if (entry == null || entry.definition() == null || manualCastTrigger(entry.definition()) != trigger) {
                     continue;
                 }
                 return entry;
             }
             return null;
+        }
+
+        private ManualCastTrigger manualCastTrigger(SpellDefinition definition) {
+            if (definition == null || definition.id() == null) {
+                return ManualCastTrigger.NONE;
+            }
+            if (definition.movementSpell()) {
+                return ManualCastTrigger.RIGHT_CLICK;
+            }
+            String spellId = definition.id().toLowerCase(Locale.ROOT);
+            if (spellId.startsWith("rogue_arc_basic")) {
+                return ManualCastTrigger.LEFT_CLICK_BASIC;
+            }
+            return ManualCastTrigger.NONE;
         }
 
         private me.nakilex.levelplugin.spells.input.SpellInputEvent createSyntheticInputEvent(Player player, String inputSequence) {
