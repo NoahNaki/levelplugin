@@ -69,7 +69,7 @@ public class StrongholdRunManager implements Listener {
     private static final String UPGRADE_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Upgrades";
     private static final int UPGRADE_GUI_ROWS = 5;
     private static final int UPGRADE_GUI_SIZE = UPGRADE_GUI_ROWS * 9;
-    private static final int[] UPGRADE_CHOICE_SLOTS = {20, 22, 24};
+    private static final int[] UPGRADE_CHOICE_SLOTS = {11, 13, 15};
     private static final int UPGRADE_REROLL_SLOT = 31;
     private static final String RESULTS_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Results";
     private static final String RESULTS_CONFIRM_GUI_TITLE = ChatColor.DARK_RED + "Exit Stronghold Results?";
@@ -1017,7 +1017,9 @@ public class StrongholdRunManager implements Listener {
                 return;
             }
             ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-            GuiUtil.fillBorder(inv, filler);
+            for (int slot = 0; slot < inv.getSize(); slot++) {
+                inv.setItem(slot, filler);
+            }
             for (int i = 0; i < UPGRADE_CHOICE_SLOTS.length && i < state.pendingUpgrades.size(); i++) {
                 inv.setItem(UPGRADE_CHOICE_SLOTS[i], upgradeItem(state.pendingUpgrades.get(i), state));
             }
@@ -1025,11 +1027,18 @@ public class StrongholdRunManager implements Listener {
         }
 
         private ItemStack upgradeItem(UpgradeChoice choice, SurvivorState state) {
-            Material material = choice.type == UpgradeType.STAT ? Material.NETHER_STAR : Material.ENCHANTED_BOOK;
-            ItemStack item = new ItemStack(material);
+            ItemStack item;
+            if (choice.type == UpgradeType.SPELL_UNLOCK || choice.type == UpgradeType.SPELL_UPGRADE) {
+                item = GuiUtil.getNexoItem(resolveSpellUpgradeIconId(choice.resultSpellId), ChatColor.GOLD + choice.displayName);
+            } else {
+                Material material = choice.type == UpgradeType.STAT ? Material.NETHER_STAR : Material.ENCHANTED_BOOK;
+                item = new ItemStack(material);
+            }
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
-                meta.setDisplayName(ChatColor.GOLD + choice.displayName);
+                if (meta.getDisplayName() == null || meta.getDisplayName().isBlank()) {
+                    meta.setDisplayName(ChatColor.GOLD + choice.displayName);
+                }
                 List<String> lore = new ArrayList<>();
                 appendWrappedBulletBlock(lore, choice.description);
                 lore.add(" ");
@@ -1093,6 +1102,23 @@ public class StrongholdRunManager implements Listener {
                 return me.nakilex.levelplugin.utils.TextUtil.beautifyWords(spellId);
             }
             return entry.definition().displayName();
+        }
+
+        private String resolveSpellUpgradeIconId(String spellId) {
+            String normalized = spellId == null ? "" : spellId.toLowerCase(Locale.ROOT);
+            if (normalized.startsWith("mage_") || normalized.startsWith("meteor") || normalized.startsWith("blackhole")) {
+                return "aqua_affinity";
+            }
+            if (normalized.startsWith("warrior_")) {
+                return "sharpness";
+            }
+            if (normalized.startsWith("rogue_")) {
+                return "sweeping_edge";
+            }
+            if (normalized.startsWith("archer_")) {
+                return "power";
+            }
+            return "efficiency";
         }
 
         private ItemStack rerollItem() {
