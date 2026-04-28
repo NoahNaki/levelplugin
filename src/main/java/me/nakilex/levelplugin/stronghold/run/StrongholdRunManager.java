@@ -564,7 +564,7 @@ public class StrongholdRunManager implements Listener {
                 return;
             }
             currentWaveSpawned.clear();
-            int spawnCount = Math.min(10, 2 + waveNumber);
+            int spawnCount = computeWaveSpawnCount(waveNumber, players.size());
             for (int i = 0; i < spawnCount; i++) {
                 Player target = players.get(ThreadLocalRandom.current().nextInt(players.size()));
                 Location spawn = findSpawnNear(target.getLocation(), origin, 14.0, 30.0);
@@ -595,6 +595,14 @@ public class StrongholdRunManager implements Listener {
             for (Player player : players) {
                 send(player, MessageType.INFO, "Wave " + ChatColor.WHITE + waveNumber + ChatColor.GRAY + " started.");
             }
+        }
+
+        private int computeWaveSpawnCount(int waveNumber, int playerCount) {
+            int safeWave = Math.max(1, waveNumber);
+            int safePlayers = Math.max(1, playerCount);
+            int waveScaling = safeWave + (safeWave / 2);
+            int partyBonus = (safePlayers - 1) * 3;
+            return Math.min(40, 4 + waveScaling + partyBonus);
         }
 
         private void spawnMilestoneBossIfNeeded(World world, List<Player> players, int waveNumber) {

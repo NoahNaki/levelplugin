@@ -61,6 +61,7 @@ public class StrongholdShrineManager implements Listener {
     private static final int SHRINE_BONUS_COINS_MAX = 85;
     private static final double SHRINE_REWARD_GEAR_COMBAT_POWER = 45.0;
     private static final String SHRINE_FURNITURE_ID = "medievalpack_baner";
+    private static final double SHRINE_BASE_Y_OFFSET = 2.0;
 
     private final Main plugin;
     private final Map<UUID, ShrineAnchor> anchorsById = new HashMap<>();
@@ -78,7 +79,7 @@ public class StrongholdShrineManager implements Listener {
         World world = location.getWorld();
         double maxHp = Math.max(20.0, hp);
 
-        Location shrineBase = location.clone().add(0.0, 1.0, 0.0);
+        Location shrineBase = location.clone().add(0.0, SHRINE_BASE_Y_OFFSET, 0.0);
         if (!preparePlacementSpace(shrineBase)) {
             return Optional.empty();
         }
@@ -573,7 +574,7 @@ public class StrongholdShrineManager implements Listener {
             if (!isAllowedShrineGround(ground.getType(), grassOnly) || ground.isLiquid()) {
                 continue;
             }
-            Location shrineBase = ground.getLocation().add(0.5, 1.0, 0.5);
+            Location shrineBase = ground.getLocation().add(0.5, SHRINE_BASE_Y_OFFSET, 0.5);
             if (isCandidateSpaceClear(shrineBase)) {
                 return ground;
             }
