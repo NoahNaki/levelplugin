@@ -162,9 +162,8 @@ public class StrongholdShrineManager implements Listener {
         for (int x = -radius; x <= radius; x += 3) {
             for (int z = -radius; z <= radius; z += 3) {
                 Location sample = origin.clone().add(x, 0.0, z);
-                int surfaceY = world.getHighestBlockYAt(sample);
-                Block ground = world.getBlockAt(sample.getBlockX(), surfaceY - 1, sample.getBlockZ());
-                if (ground.getType() != Material.GRASS_BLOCK) {
+                Block ground = findGroundForShrine(sample, true);
+                if (ground == null) {
                     wrongGround++;
                     continue;
                 }
@@ -224,9 +223,8 @@ public class StrongholdShrineManager implements Listener {
         for (int x = -radius; x <= radius; x += 4) {
             for (int z = -radius; z <= radius; z += 4) {
                 Location sample = origin.clone().add(x, 0.0, z);
-                int surfaceY = world.getHighestBlockYAt(sample);
-                Block ground = world.getBlockAt(sample.getBlockX(), surfaceY - 1, sample.getBlockZ());
-                if (ground.getType().isAir() || !ground.getType().isSolid() || ground.isLiquid()) {
+                Block ground = findGroundForShrine(sample, false);
+                if (ground == null) {
                     wrongGround++;
                     continue;
                 }
@@ -559,6 +557,39 @@ public class StrongholdShrineManager implements Listener {
                 || material == Material.VINE
                 || material == Material.SNOW
                 || material == Material.SNOW_BLOCK;
+    }
+
+    private Block findGroundForShrine(Location sample, boolean grassOnly) {
+        if (sample == null || sample.getWorld() == null) {
+            return null;
+        }
+        World world = sample.getWorld();
+        int x = sample.getBlockX();
+        int z = sample.getBlockZ();
+        int highest = world.getHighestBlockYAt(sample);
+        int minY = world.getMinHeight() + 1;
+        for (int y = highest; y >= minY; y--) {
+            Block ground = world.getBlockAt(x, y, z);
+            if (!isAllowedShrineGround(ground.getType(), grassOnly) || ground.isLiquid()) {
+                continue;
+            }
+            Location shrineBase = ground.getLocation().add(0.5, 1.0, 0.5);
+            if (isCandidateSpaceClear(shrineBase)) {
+                return ground;
+            }
+        }
+        return null;
+    }
+
+    private boolean isAllowedShrineGround(Material groundType, boolean grassOnly) {
+        if (groundType == null || !groundType.isSolid()) {
+            return false;
+        }
+        if (grassOnly) {
+            return groundType == Material.GRASS_BLOCK;
+        }
+        String name = groundType.name();
+        return !name.contains("LEAVES") && !name.contains("GLASS");
     }
 
     public record ShrineSpawnDiagnostics(String mode,

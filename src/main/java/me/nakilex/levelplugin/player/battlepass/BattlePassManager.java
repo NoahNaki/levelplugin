@@ -498,7 +498,7 @@ public class BattlePassManager implements BattlePassProvider {
         if (newTier < tiers.size() && nextRequired > 0) {
             ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Next Tier Progress:");
             ChatFormatter.sendCenteredMessage(player,
-                    TooltipUtil.progressBar(clampedProgress, nextRequired, 20)
+                    TooltipUtil.expProgressBar(clampedProgress, nextRequired, 20)
                             + ChatColor.GRAY + " " + clampedProgress + "/" + nextRequired);
         } else {
             ChatFormatter.sendCenteredMessage(player, ChatColor.GREEN + "All battle pass tiers completed!");
