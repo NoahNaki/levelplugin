@@ -64,7 +64,7 @@ public class ViewProfileCommand implements TabExecutor {
                         + " | DEX " + statTotal(stats.baseDexterity, stats.bonusDexterity));
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "VIT " + statTotal(stats.baseVitality, stats.bonusVitality)
-                        + " | WIL " + statTotal(stats.baseWill, stats.bonusWill));
+                        + " | CDR " + String.format("%.1f%%", stats.cooldownReduction * 100.0));
         return true;
     }
 

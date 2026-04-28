@@ -70,10 +70,12 @@ public class StatsInventory {
 
         builder.setItem(22, createStatBook(
             "Intelligence", StatType.INT, ps.baseIntelligence, ps.bonusIntelligence, ps.skillPoints,
-            List.of("Improves magical prowess and max mana."),
+            List.of("Improves magical prowess and spell cooldown recovery."),
             new String[]{
-                "Each point: +0.5 magic dmg & +1 Mana.",
-                "Current max mana: " + ChatColor.YELLOW + ps.maxMana
+                "Each point: +0.5 magic damage.",
+                "Each point: +0.30% cooldown reduction.",
+                "Current cooldown reduction: " + ChatColor.YELLOW
+                        + String.format("%.1f%%", ps.cooldownReduction * 100.0)
             }
         ));
 
@@ -103,14 +105,7 @@ public class StatsInventory {
             }
         ));
 
-        builder.setItem(25, createStatBook(
-            "Will", StatType.WIL, ps.baseWill, ps.bonusWill, ps.skillPoints,
-            List.of("Boosts mana and mana regeneration."),
-            new String[]{
-                "Each point: +3 max mana & +0.25 mana/sec.",
-                "Current max mana: " + ChatColor.YELLOW + ps.maxMana
-            }
-        ));
+        builder.setItem(25, GuiUtil.createGuiItem(Material.GRAY_STAINED_GLASS_PANE, " ", List.of()));
         builder.setItem(13, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
         builder.setItem(8, createPlayerHead(player, ps, page));
         builder.setItem(40, null);
@@ -188,7 +183,6 @@ public class StatsInventory {
             lore.add(GuiUtil.formatStatName(StatsManager.StatType.INT) + ": " + ChatColor.WHITE + (ps.baseIntelligence + ps.bonusIntelligence) + ChatColor.GREEN + " (+" + ps.bonusIntelligence + ")");
             lore.add(GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": " + ChatColor.WHITE + (ps.baseDexterity + ps.bonusDexterity) + ChatColor.GREEN + " (+" + ps.bonusDexterity + ")");
             lore.add(GuiUtil.formatStatName(StatsManager.StatType.VIT) + ": " + ChatColor.RED + (ps.baseVitality + ps.bonusVitality) + ChatColor.GREEN + " (+" + ps.bonusVitality + ")");
-            lore.add(GuiUtil.formatStatName(StatsManager.StatType.WIL) + ": " + ChatColor.WHITE + (ps.baseWill + ps.bonusWill) + ChatColor.GREEN + " (+" + ps.bonusWill + ")");
             lore.add("");
 
             int gearScore = ItemUtil.calculateTotalGearScore(player);

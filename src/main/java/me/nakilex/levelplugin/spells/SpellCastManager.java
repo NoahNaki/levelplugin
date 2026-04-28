@@ -96,14 +96,23 @@ public class SpellCastManager {
     }
 
     public long getCooldownMs(SpellDefinition spell) {
+        return getCooldownMs(null, spell);
+    }
+
+    public long getCooldownMs(Player player, SpellDefinition spell) {
         if (spell == null) {
             return 0L;
         }
         Long configured = COOLDOWN_OVERRIDES_MS.get(spell.id().toLowerCase());
-        if (configured != null) {
-            return configured;
+        long baseCooldown = configured != null
+                ? configured
+                : Math.max(0L, Math.round(spell.baseManaCost() * 220.0));
+        if (player == null) {
+            return baseCooldown;
         }
-        return Math.max(0L, Math.round(spell.baseManaCost() * 220.0));
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        double reduction = Math.max(0.0, Math.min(0.75, stats.cooldownReduction));
+        return Math.max(0L, Math.round(baseCooldown * (1.0 - reduction)));
     }
 
     public long getRemainingCooldownMs(Player player, SpellDefinition spell) {
@@ -134,7 +143,7 @@ public class SpellCastManager {
         if (manaCostsEnabled && manaCost > 0) {
             stats.setCurrentMana(stats.getCurrentMana() - manaCost);
         }
-        long cooldownMs = getCooldownMs(spell);
+        long cooldownMs = getCooldownMs(player, spell);
         if (cooldownsEnabled && cooldownMs > 0L) {
             PLAYER_COOLDOWNS.computeIfAbsent(player.getUniqueId(), id -> new ConcurrentHashMap<>())
                     .put(spell.id().toLowerCase(), System.currentTimeMillis() + cooldownMs);

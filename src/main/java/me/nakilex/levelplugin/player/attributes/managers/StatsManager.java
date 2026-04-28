@@ -344,12 +344,12 @@ public class StatsManager {
         player.setHealthScale(20.0);
 
         // Recalculate other derived stats (e.g., mana, walk speed) as needed.
-        ps.maxMana = 50
-                + ((ps.baseIntelligence + ps.bonusIntelligence) * 1)
-                + ((ps.baseWill + ps.bonusWill) * 3);
+        ps.maxMana = 50;
         if (ps.currentMana > ps.maxMana) {
             ps.currentMana = ps.maxMana;
         }
+        int totalIntelligence = ps.baseIntelligence + ps.bonusIntelligence;
+        ps.cooldownReduction = Math.min(0.40, Math.max(0.0, totalIntelligence * 0.003));
 
         float newWalkSpeed = 0.20f + ((ps.baseAgility + ps.bonusAgility) * 0.0006f);
         if (newWalkSpeed > 1.0f) newWalkSpeed = 1.0f;
@@ -417,7 +417,6 @@ public class StatsManager {
         ps.bonusAgility      += ci.getAgi();
         ps.bonusIntelligence += ci.getIntel();
         ps.bonusDexterity    += ci.getDex();
-        ps.bonusWill         += ci.getWil();
         ps.bonusTechnique    += ci.getTec();
     }
 
@@ -428,7 +427,6 @@ public class StatsManager {
         ps.bonusAgility      -= ci.getAgi();
         ps.bonusIntelligence -= ci.getIntel();
         ps.bonusDexterity    -= ci.getDex();
-        ps.bonusWill         -= ci.getWil();
         ps.bonusTechnique    -= ci.getTec();
     }
 
@@ -478,8 +476,7 @@ public class StatsManager {
             }
 
             double baseRegenPerSec = 2.5;
-            double willBonus = (ps.baseWill + ps.bonusWill) * 0.25;
-            double totalRegen = baseRegenPerSec + willBonus;
+            double totalRegen = baseRegenPerSec;
 
             double perTickRegen = totalRegen / REGEN_TICKS_PER_SECOND;
             int wholeRegen = consumeRegenBuffer(ps, perTickRegen, RegenBuffer.MANA);
@@ -520,7 +517,6 @@ public class StatsManager {
         ps.bonusAgility      += newItem.getAgi();
         ps.bonusIntelligence += newItem.getIntel();
         ps.bonusDexterity    += newItem.getDex();
-        ps.bonusWill         += newItem.getWil();
         ps.bonusTechnique    += newItem.getTec();
 
         recalcDerivedStats(player);
@@ -536,7 +532,7 @@ public class StatsManager {
             case INT: return ps.baseIntelligence + ps.bonusIntelligence;
             case DEX: return ps.baseDexterity + ps.bonusDexterity;
             case VIT: return ps.baseVitality + ps.bonusVitality;
-            case WIL: return ps.baseWill + ps.bonusWill;
+            case WIL: return 0;
             case TEC: return ps.baseTechnique + ps.bonusTechnique;
             default: return 0;
         }
@@ -554,6 +550,7 @@ public class StatsManager {
         public int maxMana = 50;
         public int currentMana = 50;
         public double attackSpeed = 0.8; // attacks per second
+        public double cooldownReduction = 0.0;
         public int skillPoints = 0;
         public double healthRegenBuffer = 0.0;
         public double manaRegenBuffer = 0.0;
@@ -641,6 +638,6 @@ public class StatsManager {
          * Vitality first followed by the six primary attributes.
          */
         public static final List<StatType> DISPLAY_ORDER =
-                java.util.List.of(VIT, STR, AGI, INT, DEX, WIL);
+                java.util.List.of(VIT, STR, AGI, INT, DEX);
     }
 }

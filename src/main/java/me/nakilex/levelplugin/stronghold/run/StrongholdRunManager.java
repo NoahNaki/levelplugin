@@ -1309,7 +1309,7 @@ public class StrongholdRunManager implements Listener {
                     if (!shouldAutoCastSpellNow(player, definition.id())) {
                         continue;
                     }
-                    long cooldown = computeAutoCastCooldownMs(definition, state);
+                    long cooldown = computeAutoCastCooldownMs(player, definition, state);
                     long last = state.lastCastAtBySpell.getOrDefault(spellId, 0L);
                     if (now - last < cooldown) {
                         continue;
@@ -1320,11 +1320,11 @@ public class StrongholdRunManager implements Listener {
             }
         }
 
-        private long computeAutoCastCooldownMs(SpellDefinition definition, SurvivorState state) {
+        private long computeAutoCastCooldownMs(Player player, SpellDefinition definition, SurvivorState state) {
             if (definition == null) {
                 return BASE_AUTOCAST_COOLDOWN_MS;
             }
-            long cooldown = Math.max(BASE_AUTOCAST_COOLDOWN_MS, SpellCastManager.getInstance().getCooldownMs(definition));
+            long cooldown = Math.max(BASE_AUTOCAST_COOLDOWN_MS, SpellCastManager.getInstance().getCooldownMs(player, definition));
             int tier = state == null ? 0 : Math.max(0, state.cooldownUpgradeTier);
             double multiplier = Math.max(0.45, 1.0 - (tier * 0.10));
             return Math.max(600L, Math.round(cooldown * multiplier));
