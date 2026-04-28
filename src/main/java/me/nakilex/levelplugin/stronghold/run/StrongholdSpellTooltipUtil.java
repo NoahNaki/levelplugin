@@ -37,7 +37,7 @@ public final class StrongholdSpellTooltipUtil {
                     appendHighlightedBullet(lore, "Bombards a zone with ", ChatColor.RED, "multi-hit area volleys", ".");
             case "archer_windguard" ->
                     appendHighlightedBullet(lore, "Applies a support windguard for ", ChatColor.AQUA, "speed and rotation safety", ".");
-            case "rogue_arc_basic" ->
+            case "rogue_arc_basic", "rogue_arc_basic_tempest", "rogue_arc_basic_reaper" ->
                     appendHighlightedBullet(lore, "Delivers quick melee slashes with ", ChatColor.RED, "steady front-line DPS", ".");
             case "rogue_sky_ripper", "rogue_sky_ripper_tempest", "rogue_sky_ripper_execution" ->
                     appendHighlightedBullet(lore, "Performs chained strikes for ", ChatColor.RED, "combo burst damage", " followed by an empowered aerial slam.");

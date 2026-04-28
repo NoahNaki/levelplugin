@@ -142,6 +142,8 @@ public final class SpellCatalog {
         SpellDefinition rogueNightfallLungeJudgement = new SpellDefinition("rogue_phantom_cross_judgement", "Nightfall Lunge: Judgement", 18, false);
 
         SpellDefinition rogueArcBasic = new SpellDefinition("rogue_arc_basic", "Rogue Arc Slash", 0, false);
+        SpellDefinition rogueArcBasicTempest = new SpellDefinition("rogue_arc_basic_tempest", "Rogue Arc Slash: Tempest Arc", 0, false);
+        SpellDefinition rogueArcBasicReaper = new SpellDefinition("rogue_arc_basic_reaper", "Rogue Arc Slash: Reaper Crescent", 0, false);
 
         registry.registerSpell(rogueShadowFlurry, new RogueShadowFlurrySpell(plugin, 4, 6.0, 0.8, 80, 2.6, 7.4));
         registry.registerSpell(rogueShadowFlurryTempest, new RogueShadowFlurrySpell(plugin, 6, 7.6, 1.2, 120, 3.8, 13.0));
@@ -159,10 +161,17 @@ public final class SpellCatalog {
         registry.registerSpell(rogueNightfallLungeCyclone, new RogueNightfallLungeSpell(plugin, 6, 7.5, 0.88, 8.8, 1.0, 17.0));
         registry.registerSpell(rogueNightfallLungeJudgement, new RogueNightfallLungeSpell(plugin, 8, 8.6, 1.2, 10.6, 1.25, 23.0));
 
-        registry.registerSpell(rogueArcBasic, new RogueArcBasicAttackSpell());
+        registry.registerSpell(rogueArcBasic, new RogueArcBasicAttackSpell(1.2, 1.0, 1.55, 3.4,
+                3.8, 72.0, 5.0, 1.0, 1.0));
+        registry.registerSpell(rogueArcBasicTempest, new RogueArcBasicAttackSpell(1.25, 1.0, 1.7, 3.9,
+                4.6, 76.0, 5.8, 1.22, 1.18));
+        registry.registerSpell(rogueArcBasicReaper, new RogueArcBasicAttackSpell(1.3, 1.05, 1.85, 4.5,
+                5.6, 80.0, 6.9, 1.46, 1.34));
 
         registry.registerProgression(new SpellProgression(rogueShadowFlurry.id(), java.util.List.of(
                 rogueShadowFlurryTempest.id(), rogueShadowFlurryExecution.id())));
+        registry.registerProgression(new SpellProgression(rogueArcBasic.id(), java.util.List.of(
+                rogueArcBasicTempest.id(), rogueArcBasicReaper.id())));
         registry.registerProgression(new SpellProgression(rogueSmokeBomb.id(), java.util.List.of(
                 rogueSmokeBombObscure.id(), rogueSmokeBombDread.id())));
         registry.registerProgression(new SpellProgression(rogueRazorDash.id(), java.util.List.of(
@@ -294,6 +303,8 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("archer_arrow_rain", 9800L);
 
         SpellCastManager.setSpellCooldownMs("rogue_arc_basic", 0L);
+        SpellCastManager.setSpellCooldownMs("rogue_arc_basic_tempest", 0L);
+        SpellCastManager.setSpellCooldownMs("rogue_arc_basic_reaper", 0L);
         SpellCastManager.setSpellCooldownMs("rogue_sky_ripper", 5600L);
         SpellCastManager.setSpellCooldownMs("rogue_sky_ripper_tempest", 5200L);
         SpellCastManager.setSpellCooldownMs("rogue_sky_ripper_execution", 4700L);

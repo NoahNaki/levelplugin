@@ -32,15 +32,27 @@ public final class ArcSlashCombatUtil {
                               Location orientation,
                               double damage,
                               double damageRadius) {
+        strike(caster, center, orientation, damage, damageRadius, 1.0, 1.0);
+    }
+
+    public static void strike(Player caster,
+                              Location center,
+                              Location orientation,
+                              double damage,
+                              double damageRadius,
+                              double travelScale,
+                              double radiusScale) {
         if (caster == null || center == null || orientation == null || center.getWorld() == null) {
             return;
         }
         ArcSlashDebugManager.ArcSlashConfig config = ARC_PRESET.copy();
         ThreadLocalRandom random = ThreadLocalRandom.current();
-        double radiusX = random.nextDouble(config.radiusXMin(), config.radiusXMax());
-        double radiusZ = random.nextDouble(config.radiusZMin(), config.radiusZMax());
+        double safeRadiusScale = Math.max(0.35, radiusScale);
+        double safeTravelScale = Math.max(0.35, travelScale);
+        double radiusX = random.nextDouble(config.radiusXMin(), config.radiusXMax()) * safeRadiusScale;
+        double radiusZ = random.nextDouble(config.radiusZMin(), config.radiusZMax()) * safeRadiusScale;
         double baseTilt = random.nextDouble(config.baseTiltMin(), config.baseTiltMax());
-        double travelDistance = config.travelDistance() * 0.125;
+        double travelDistance = config.travelDistance() * 0.125 * safeTravelScale;
         int renderTicks = Math.max(1, (int) Math.round(config.ticks() * 0.7));
         Vector direction = orientation.getDirection().clone().setY(0.0);
         if (direction.lengthSquared() <= 0.0001) {
@@ -128,6 +140,16 @@ public final class ArcSlashCombatUtil {
                                      double upOffset,
                                      double damage,
                                      double damageRadius) {
+        strikeForward(caster, forwardDistance, upOffset, damage, damageRadius, 1.0, 1.0);
+    }
+
+    public static void strikeForward(Player caster,
+                                     double forwardDistance,
+                                     double upOffset,
+                                     double damage,
+                                     double damageRadius,
+                                     double travelScale,
+                                     double radiusScale) {
         if (caster == null) {
             return;
         }
@@ -141,7 +163,7 @@ public final class ArcSlashCombatUtil {
                 .add(0.0, upOffset, 0.0);
         Location orientation = caster.getLocation().clone();
         orientation.setDirection(center.toVector().subtract(caster.getLocation().toVector()));
-        strike(caster, center, orientation, damage, damageRadius);
+        strike(caster, center, orientation, damage, damageRadius, travelScale, radiusScale);
     }
 
     public static int applyConeDamage(Player caster,
