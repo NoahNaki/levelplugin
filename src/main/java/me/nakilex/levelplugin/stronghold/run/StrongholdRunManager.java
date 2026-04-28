@@ -1028,8 +1028,14 @@ public class StrongholdRunManager implements Listener {
 
         private ItemStack upgradeItem(UpgradeChoice choice, SurvivorState state) {
             ItemStack item;
+            int spellCurrentRank = state == null || choice == null || choice.baseSpellId == null
+                    ? 0
+                    : state.ownedSpellRanks.getOrDefault(choice.baseSpellId, 0);
             if (choice.type == UpgradeType.SPELL_UNLOCK || choice.type == UpgradeType.SPELL_UPGRADE) {
-                item = GuiUtil.getNexoItem(resolveSpellUpgradeIconId(choice.resultSpellId), ChatColor.GOLD + choice.displayName);
+                int nextRank = choice.type == UpgradeType.SPELL_UNLOCK
+                        ? 1
+                        : Math.max(1, spellCurrentRank + 1);
+                item = createSpellUpgradeItem(choice.displayName, choice.resultSpellId, nextRank);
             } else {
                 Material material = choice.type == UpgradeType.STAT ? Material.NETHER_STAR : Material.ENCHANTED_BOOK;
                 item = new ItemStack(material);
@@ -1043,10 +1049,9 @@ public class StrongholdRunManager implements Listener {
                 appendWrappedBulletBlock(lore, choice.description);
                 lore.add(" ");
                 if (choice.type == UpgradeType.SPELL_UNLOCK || choice.type == UpgradeType.SPELL_UPGRADE) {
-                    int rank = state.ownedSpellRanks.getOrDefault(choice.baseSpellId, 0);
                     lore.add(TooltipUtil.sectionHeader("Spell Upgrade"));
                     lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Current Rank",
-                            ChatColor.WHITE, String.valueOf(rank)));
+                            ChatColor.WHITE, String.valueOf(spellCurrentRank)));
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Next Spell",
                             ChatColor.WHITE, resolveUpgradeSpellDisplay(choice.resultSpellId)));
                     lore.add(" ");
@@ -1056,7 +1061,7 @@ public class StrongholdRunManager implements Listener {
                     StrongholdSpellTooltipUtil.appendUpgradeDeltaLore(
                             lore,
                             choice.baseSpellId,
-                            rank,
+                            spellCurrentRank,
                             choice.type == UpgradeType.SPELL_UNLOCK);
                 } else if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
                     lore.add(TooltipUtil.sectionHeader("Global Cooldown"));
@@ -1104,7 +1109,29 @@ public class StrongholdRunManager implements Listener {
             return entry.definition().displayName();
         }
 
-        private String resolveSpellUpgradeIconId(String spellId) {
+        private ItemStack createSpellUpgradeItem(String displayName, String spellId, int nextRank) {
+            String iconBaseId = resolveSpellUpgradeBaseIconId(spellId);
+            for (String iconId : resolveTieredIconCandidates(iconBaseId, nextRank)) {
+                ItemStack candidate = GuiUtil.getNexoItem(iconId, ChatColor.GOLD + displayName);
+                if (candidate.getType() != Material.BARRIER) {
+                    return candidate;
+                }
+            }
+            return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.GOLD + displayName, List.of());
+        }
+
+        private List<String> resolveTieredIconCandidates(String baseIconId, int rank) {
+            if (baseIconId == null || baseIconId.isBlank()) {
+                return List.of("efficiency");
+            }
+            int safeRank = Math.max(1, rank);
+            if (safeRank <= 1) {
+                return List.of(baseIconId, "efficiency");
+            }
+            return List.of(baseIconId + "_" + safeRank, baseIconId, "efficiency");
+        }
+
+        private String resolveSpellUpgradeBaseIconId(String spellId) {
             String normalized = spellId == null ? "" : spellId.toLowerCase(Locale.ROOT);
             if (normalized.startsWith("mage_") || normalized.startsWith("meteor") || normalized.startsWith("blackhole")) {
                 return "aqua_affinity";
