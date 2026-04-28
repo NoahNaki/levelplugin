@@ -189,11 +189,11 @@ public final class SpellTargetingUtil {
         Location candidate = lineTarget.clone();
         candidate.setY(candidate.getY() + 0.05);
         boolean preferUpward = direction.getY() > 0.20;
-        Location safe = findNearestSafeLocation(candidate, 5, preferUpward);
+        Location safe = findNearestBlinkLocation(candidate, 5, preferUpward);
         if (isUsableBlinkDestination(player, safe, direction)) {
             return safe;
         }
-        safe = findNearbySafeLocation(candidate, 2, 6, preferUpward);
+        safe = findNearbyBlinkLocation(candidate, 2, 6, preferUpward);
         if (isUsableBlinkDestination(player, safe, direction)) {
             return safe;
         }
@@ -217,7 +217,7 @@ public final class SpellTargetingUtil {
             Location probe = origin.clone().add(direction.clone().multiply(distance));
             probe.setY(probe.getY() + 0.05);
             boolean preferUpward = direction.getY() > 0.20;
-            Location safe = findNearestSafeLocation(probe, 4, preferUpward);
+            Location safe = findNearestBlinkLocation(probe, 4, preferUpward);
             if (isUsableBlinkDestination(player, safe, direction)) {
                 return safe;
             }
@@ -346,11 +346,72 @@ public final class SpellTargetingUtil {
         return null;
     }
 
+    public static Location findNearestBlinkLocation(Location around, int verticalRange, boolean preferUpward) {
+        if (around == null || around.getWorld() == null) {
+            return null;
+        }
+        int range = Math.max(0, verticalRange);
+        for (int dy = 0; dy <= range; dy++) {
+            if (dy == 0) {
+                Location same = around.clone();
+                if (isBlinkSpaceClear(same)) {
+                    return snapToCenter(same);
+                }
+                continue;
+            }
+            Location primary = preferUpward
+                    ? around.clone().add(0, dy, 0)
+                    : around.clone().add(0, -dy, 0);
+            if (isBlinkSpaceClear(primary)) {
+                return snapToCenter(primary);
+            }
+            Location secondary = preferUpward
+                    ? around.clone().add(0, -dy, 0)
+                    : around.clone().add(0, dy, 0);
+            if (isBlinkSpaceClear(secondary)) {
+                return snapToCenter(secondary);
+            }
+        }
+        return null;
+    }
+
+    public static Location findNearbyBlinkLocation(Location around, int horizontalRadius, int verticalRange, boolean preferUpward) {
+        if (around == null || around.getWorld() == null) {
+            return null;
+        }
+        int hz = Math.max(0, horizontalRadius);
+        for (int r = 0; r <= hz; r++) {
+            for (int dx = -r; dx <= r; dx++) {
+                for (int dz = -r; dz <= r; dz++) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) != r) {
+                        continue;
+                    }
+                    Location candidate = around.clone().add(dx, 0, dz);
+                    Location safe = findNearestBlinkLocation(candidate, verticalRange, preferUpward);
+                    if (safe != null) {
+                        return safe;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
     private static boolean isPassableForPlayer(Block block) {
         if (block == null) {
             return false;
         }
         return block.isPassable() || block.getType().isAir();
+    }
+
+    private static boolean isBlinkSpaceClear(Location location) {
+        if (location == null || location.getWorld() == null) {
+            return false;
+        }
+        World world = location.getWorld();
+        Block feet = world.getBlockAt(location);
+        Block head = world.getBlockAt(location.clone().add(0, 1, 0));
+        return isPassableForPlayer(feet) && isPassableForPlayer(head);
     }
 
     private static Location snapToCenter(Location location) {
