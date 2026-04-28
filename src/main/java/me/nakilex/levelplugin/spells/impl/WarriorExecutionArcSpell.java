@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
-import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -45,9 +44,7 @@ public class WarriorExecutionArcSpell implements SpellHandler {
         Player caster = context.player();
         ItemStack hand = caster.getInventory().getItemInMainHand();
         if (hand == null || hand.getType().isAir() || hand.getType() == Material.AIR) {
-            ChatMessageUtil.send(caster, ChatMessageUtil.MessageType.WARNING,
-                    "Hold your weapon to cast Cyclone Brand.");
-            return;
+            hand = new ItemStack(Material.IRON_AXE);
         }
 
         ArmorStand[] stands = new ArmorStand[] {

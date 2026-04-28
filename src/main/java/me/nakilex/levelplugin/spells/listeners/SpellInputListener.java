@@ -305,7 +305,6 @@ public class SpellInputListener implements Listener {
                     leftClick ? "Left" : "Right");
             return;
         }
-        sendClickDebug(player, leftClick);
         PlayerSettings settings = settingsManager.getSettings(player);
         SpellInputMode mode = settings.getSpellInputMode();
         boolean archerFamily = isArcherFamily(player);
@@ -317,6 +316,9 @@ public class SpellInputListener implements Listener {
     }
 
     private void dispatch(Player player, SpellInputType type, SpellInputMode mode, String sequence) {
+        if (isSpellSlotCast(type) && isStrongholdRunActive(player)) {
+            return;
+        }
         if (type == SpellInputType.BASIC_ATTACK && !canDispatchBasicAttack(player)) {
             return;
         }
@@ -324,7 +326,6 @@ public class SpellInputListener implements Listener {
         if (isSpellSlotCast(type)) {
             resetComboTracker(player);
         }
-        sendSpellCastIndicator(player, type);
     }
 
     private void resetComboTracker(Player player) {
@@ -351,11 +352,6 @@ public class SpellInputListener implements Listener {
         }
     }
 
-    private void sendClickDebug(Player player, boolean leftClick) {
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Click " + (leftClick ? "Left" : "Right") + " Class: " + getPlayerClassName(player));
-    }
-
     private boolean isMageBasicFallbackAllowed(Player player, boolean leftClick) {
         if (player == null || !leftClick) {
             return false;
@@ -378,21 +374,12 @@ public class SpellInputListener implements Listener {
         return true;
     }
 
-    private void sendSpellCastIndicator(Player player, SpellInputType type) {
-        if (type != SpellInputType.SPELL_1
-                && type != SpellInputType.SPELL_2
-                && type != SpellInputType.SPELL_3
-                && type != SpellInputType.SPELL_4) {
-            return;
+    private boolean isStrongholdRunActive(Player player) {
+        if (player == null) {
+            return false;
         }
-        int spellNumber = type.ordinal();
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "Spell " + spellNumber + " " + getPlayerClassName(player) + " Casted");
-    }
-
-    private String getPlayerClassName(Player player) {
-        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
-        return playerClass != null ? playerClass.getDisplayName() : "Unknown";
+        var runManager = Main.getInstance().getStrongholdRunManager();
+        return runManager != null && runManager.getStageStatus(player.getUniqueId()) != null;
     }
 
     private boolean isHoldingValidClassWeapon(Player player) {

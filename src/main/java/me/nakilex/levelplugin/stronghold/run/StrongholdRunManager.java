@@ -120,12 +120,13 @@ public class StrongholdRunManager implements Listener {
 
         Location origin = player.getLocation().clone();
         int shrines = shrineManager.spawnRandomShrines(origin, SHRINES_PER_RUN, 72, 250.0);
+        if (shrines < SHRINES_PER_RUN) {
+            shrines += shrineManager.spawnFallbackShrines(origin, SHRINES_PER_RUN - shrines, 128, 250.0);
+        }
         if (shrines > 0) {
             send(player, MessageType.INFO, "Placed " + ChatColor.WHITE + shrines + ChatColor.GRAY + " shrine(s) around the stronghold.");
         } else {
-            send(player, MessageType.WARNING, "Shrine debug: no shrines spawned for this run. "
-                    + ChatColor.GRAY + "(target=" + ChatColor.WHITE + SHRINES_PER_RUN
-                    + ChatColor.GRAY + ", radius=72, maxDistance=250.0)");
+            send(player, MessageType.WARNING, "Shrine debug: no shrines spawned for this run.");
         }
 
         ActiveRun run = new ActiveRun(worldId, origin);

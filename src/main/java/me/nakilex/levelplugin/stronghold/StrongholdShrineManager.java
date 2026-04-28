@@ -186,6 +186,50 @@ public class StrongholdShrineManager implements Listener {
         return spawned;
     }
 
+    public int spawnFallbackShrines(Location origin, int count, int searchRadius, double hp) {
+        if (origin == null || origin.getWorld() == null || count <= 0) {
+            return 0;
+        }
+        World world = origin.getWorld();
+        int radius = Math.max(16, searchRadius);
+        List<Location> candidates = new ArrayList<>();
+        for (int x = -radius; x <= radius; x += 4) {
+            for (int z = -radius; z <= radius; z += 4) {
+                Location sample = origin.clone().add(x, 0.0, z);
+                int surfaceY = world.getHighestBlockYAt(sample);
+                Block ground = world.getBlockAt(sample.getBlockX(), surfaceY - 1, sample.getBlockZ());
+                if (ground.getType().isAir() || !ground.getType().isSolid() || ground.isLiquid()) {
+                    continue;
+                }
+                Location spawn = ground.getLocation().add(0.5, 0.0, 0.5);
+                if (spawn.distanceSquared(origin) < 8 * 8) {
+                    continue;
+                }
+                candidates.add(spawn);
+            }
+        }
+        if (candidates.isEmpty()) {
+            return 0;
+        }
+        java.util.Collections.shuffle(candidates);
+        int spawned = 0;
+        for (Location candidate : candidates) {
+            boolean tooClose = anchorsById.values().stream()
+                    .anyMatch(anchor -> anchor.origin.getWorld().equals(candidate.getWorld())
+                            && anchor.origin.distanceSquared(candidate) < 10 * 10);
+            if (tooClose) {
+                continue;
+            }
+            if (spawnShrine(candidate, hp).isPresent()) {
+                spawned++;
+            }
+            if (spawned >= count) {
+                break;
+            }
+        }
+        return spawned;
+    }
+
     public void cleanup() {
         for (ActiveShrineEvent event : new ArrayList<>(activeByAnchor.values())) {
             event.stop();
