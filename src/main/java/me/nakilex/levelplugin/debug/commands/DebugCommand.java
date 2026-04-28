@@ -556,7 +556,27 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output|endsession <player>>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output|spells|endsession <player>>");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("spells")) {
+                    var runManager = Main.getInstance().getStrongholdRunManager();
+                    if (runManager == null) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Stronghold run manager unavailable.");
+                        return true;
+                    }
+                    List<String> possibilities = runManager.getSpellPossibilities(strongholdPlayer);
+                    if (possibilities.isEmpty()) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
+                                "No active Stronghold run spell possibilities available.");
+                        return true;
+                    }
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.INFO,
+                            "Current Stronghold spell possibilities:");
+                    for (String line : possibilities) {
+                        strongholdPlayer.sendMessage(ChatColor.DARK_GRAY + "- " + ChatColor.GRAY + line);
+                    }
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("endsession")) {
@@ -616,7 +636,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output|endsession <player>>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output|spells|endsession <player>>");
                     return true;
                 }
                 if (args[2].equalsIgnoreCase("test")) {
@@ -874,7 +894,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate", "overlap", "templates", "assets", "output", "endsession").stream()
+            return List.of("generate", "overlap", "templates", "assets", "output", "spells", "endsession").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("endsession")) {

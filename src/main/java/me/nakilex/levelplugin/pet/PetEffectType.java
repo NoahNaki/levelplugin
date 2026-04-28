@@ -111,6 +111,12 @@ public enum PetEffectType {
     CHEST_PROXIMITY_OPEN("chest_proximity_open", "Lock Whisper",
             value -> "Auto-opens nearby loot chests within "
                     + ChatColor.GOLD + formatFlat(value) + ChatColor.GRAY + " blocks"),
+    STRONGHOLD_WAVE_RIDER("stronghold_wave_rider", "Wave Rider",
+            value -> {
+                int waveBonus = Math.max(0, (int) Math.floor(value));
+                return ChatColor.AQUA + "+" + waveBonus + ChatColor.GRAY
+                        + (waveBonus == 1 ? " Stronghold wave per stage" : " Stronghold waves per stage");
+            }),
     ITEM_MAGNET("item_magnet", "Treasure Magnet",
             value -> "Pulls dropped items within "
                     + ChatColor.AQUA + formatFlat(value) + ChatColor.GRAY + " blocks");

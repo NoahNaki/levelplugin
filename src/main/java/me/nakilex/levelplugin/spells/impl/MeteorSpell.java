@@ -20,6 +20,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class MeteorSpell implements SpellHandler {
     private static final String MODEL_ID = "meteor_of_doom";
@@ -38,15 +39,27 @@ public class MeteorSpell implements SpellHandler {
     private final double dotDamage;
     private final double flowerRadius;
     private final int flowerPetals;
+    private final int emberfallCount;
+    private final double emberfallRadius;
+    private final double emberfallDamageFactor;
 
     public MeteorSpell(Main plugin, ParticleService particleService) {
-        this(plugin, particleService, 18.0, 12.0, 5.5, 3.5, 2.0, 4.8, 6);
+        this(plugin, particleService, 18.0, 12.0, 5.5, 3.5, 2.0, 4.8, 6, 0, 0.0, 0.0);
     }
 
     public MeteorSpell(Main plugin, ParticleService particleService,
                        double spawnHeight, double impactDamage, double impactRadius,
                        double dotRadius, double dotDamage,
                        double flowerRadius, int flowerPetals) {
+        this(plugin, particleService, spawnHeight, impactDamage, impactRadius, dotRadius, dotDamage,
+                flowerRadius, flowerPetals, 0, 0.0, 0.0);
+    }
+
+    public MeteorSpell(Main plugin, ParticleService particleService,
+                       double spawnHeight, double impactDamage, double impactRadius,
+                       double dotRadius, double dotDamage,
+                       double flowerRadius, int flowerPetals,
+                       int emberfallCount, double emberfallRadius, double emberfallDamageFactor) {
         this.plugin = plugin;
         this.particleService = particleService;
         this.spawnHeight = spawnHeight;
@@ -56,6 +69,9 @@ public class MeteorSpell implements SpellHandler {
         this.dotDamage = dotDamage;
         this.flowerRadius = flowerRadius;
         this.flowerPetals = flowerPetals;
+        this.emberfallCount = Math.max(0, emberfallCount);
+        this.emberfallRadius = Math.max(0.0, emberfallRadius);
+        this.emberfallDamageFactor = Math.max(0.0, emberfallDamageFactor);
     }
 
     @Override
@@ -129,9 +145,35 @@ public class MeteorSpell implements SpellHandler {
         spawnOrangeGroundFlower(impact);
         world.playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 1.3f, 0.8f);
         applyMeteorImpactDamage(caster, impact);
+        triggerEmberfall(caster, impact);
         particleService.renderPreset(caster, ElementalPresets.BURNING_SIGIL, impact);
         SpellEffectUtil.startDamageOverTime(plugin, caster, impact, dotRadius, dotDamage,
                 DOT_PERIOD_TICKS, DOT_DURATION_TICKS);
+    }
+
+    private void triggerEmberfall(Player caster, Location impact) {
+        if (emberfallCount <= 0 || emberfallRadius <= 0.0 || emberfallDamageFactor <= 0.0 || impact.getWorld() == null) {
+            return;
+        }
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        for (int i = 0; i < emberfallCount; i++) {
+            double angle = random.nextDouble(0.0, Math.PI * 2.0);
+            double distance = random.nextDouble(emberfallRadius * 0.35, emberfallRadius);
+            Location emberImpact = impact.clone().add(Math.cos(angle) * distance, 0.0, Math.sin(angle) * distance);
+            int delayTicks = 4 + (i * 3);
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> spawnEmberImpact(caster, emberImpact), delayTicks);
+        }
+    }
+
+    private void spawnEmberImpact(Player caster, Location center) {
+        World world = center.getWorld();
+        if (world == null) {
+            return;
+        }
+        world.spawnParticle(Particle.FLAME, center.clone().add(0.0, 0.2, 0.0), 20, 0.45, 0.15, 0.45, 0.01);
+        world.spawnParticle(Particle.LAVA, center.clone().add(0.0, 0.2, 0.0), 8, 0.35, 0.08, 0.35, 0.02);
+        world.playSound(center, Sound.ENTITY_BLAZE_SHOOT, 0.55f, 1.3f);
+        SpellEffectUtil.applyAreaDamage(caster, center, Math.max(1.6, dotRadius * 0.9), impactDamage * emberfallDamageFactor);
     }
 
     private void applyMeteorImpactDamage(Player caster, Location impact) {

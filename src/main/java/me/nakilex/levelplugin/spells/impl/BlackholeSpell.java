@@ -22,10 +22,20 @@ public class BlackholeSpell implements SpellHandler {
     private final double tickDamage;
     private final int durationTicks;
     private final double collapseDamage;
+    private final int eventHorizonArcs;
+    private final double eventHorizonDamage;
+    private final double eventHorizonSpinPerTick;
 
     public BlackholeSpell(Main plugin, double pullRadius, double dotRadius,
                           double pullStrength, double tickDamage,
                           int durationTicks, double collapseDamage) {
+        this(plugin, pullRadius, dotRadius, pullStrength, tickDamage, durationTicks, collapseDamage, 0, 0.0, 0.0);
+    }
+
+    public BlackholeSpell(Main plugin, double pullRadius, double dotRadius,
+                          double pullStrength, double tickDamage,
+                          int durationTicks, double collapseDamage,
+                          int eventHorizonArcs, double eventHorizonDamage, double eventHorizonSpinPerTick) {
         this.plugin = plugin;
         this.pullRadius = pullRadius;
         this.dotRadius = dotRadius;
@@ -33,6 +43,9 @@ public class BlackholeSpell implements SpellHandler {
         this.tickDamage = tickDamage;
         this.durationTicks = durationTicks;
         this.collapseDamage = collapseDamage;
+        this.eventHorizonArcs = Math.max(0, eventHorizonArcs);
+        this.eventHorizonDamage = Math.max(0.0, eventHorizonDamage);
+        this.eventHorizonSpinPerTick = Math.max(0.0, eventHorizonSpinPerTick);
     }
 
     @Override
@@ -60,6 +73,7 @@ public class BlackholeSpell implements SpellHandler {
                 SpellEffectUtil.spawnRingParticles(center, pullRadius, Particle.WITCH, 48, 0.15);
                 SpellEffectUtil.spawnRingParticles(center, dotRadius, Particle.ENCHANT, 28, 0.1);
                 world.spawnParticle(Particle.PORTAL, center, 36, dotRadius * 0.4, 0.4, dotRadius * 0.4, 0.25);
+                applyEventHorizonArcs(caster, center, elapsed);
                 if (elapsed % 10 == 0) {
                     world.playSound(center, Sound.BLOCK_BEACON_AMBIENT, 0.35f, 0.65f);
                 }
@@ -83,5 +97,26 @@ public class BlackholeSpell implements SpellHandler {
                 }
             }
         }.runTaskTimer(plugin, 0L, 5L);
+    }
+
+    private void applyEventHorizonArcs(Player caster, Location center, int elapsed) {
+        if (eventHorizonArcs <= 0 || eventHorizonDamage <= 0.0 || center.getWorld() == null) {
+            return;
+        }
+        World world = center.getWorld();
+        double baseAngle = elapsed * eventHorizonSpinPerTick;
+        for (int i = 0; i < eventHorizonArcs; i++) {
+            double angle = baseAngle + ((Math.PI * 2.0 * i) / eventHorizonArcs);
+            Location ringPoint = center.clone().add(Math.cos(angle) * pullRadius, 0.35, Math.sin(angle) * pullRadius);
+            world.spawnParticle(Particle.END_ROD, ringPoint, 1, 0.0, 0.0, 0.0, 0.0);
+            world.spawnParticle(Particle.ELECTRIC_SPARK, ringPoint, 2, 0.03, 0.03, 0.03, 0.0);
+            for (LivingEntity target : SpellEffectUtil.getLivingTargets(ringPoint, 1.35, living -> !living.equals(caster))) {
+                SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, eventHorizonDamage);
+                Vector inward = center.toVector().subtract(target.getLocation().toVector());
+                if (inward.lengthSquared() > 0.0001) {
+                    target.setVelocity(target.getVelocity().multiply(0.72).add(inward.normalize().multiply(pullStrength * 0.8)));
+                }
+            }
+        }
     }
 }

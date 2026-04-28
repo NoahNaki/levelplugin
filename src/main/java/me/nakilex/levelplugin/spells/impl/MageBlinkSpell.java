@@ -10,14 +10,23 @@ import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 public class MageBlinkSpell implements SpellHandler {
     private final Main plugin;
     private final double maxDistance;
+    private final double momentumStrength;
+    private final double maxUpwardMomentum;
 
     public MageBlinkSpell(Main plugin, double maxDistance) {
+        this(plugin, maxDistance, 0.55, 0.50);
+    }
+
+    public MageBlinkSpell(Main plugin, double maxDistance, double momentumStrength, double maxUpwardMomentum) {
         this.plugin = plugin;
         this.maxDistance = maxDistance;
+        this.momentumStrength = Math.max(0.0, momentumStrength);
+        this.maxUpwardMomentum = Math.max(0.0, maxUpwardMomentum);
     }
 
     @Override
@@ -36,13 +45,30 @@ public class MageBlinkSpell implements SpellHandler {
 
         destination.setYaw(caster.getLocation().getYaw());
         destination.setPitch(caster.getLocation().getPitch());
-        TeleportUtils.safeTeleport(caster, destination, true);
+        Vector blinkMomentum = computeBlinkMomentum(origin, destination);
+        TeleportUtils.safeTeleport(caster, destination, false);
 
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (blinkMomentum != null) {
+                caster.setVelocity(blinkMomentum.clone());
+            }
             Location landed = caster.getLocation().clone().add(0.0, 1.0, 0.0);
             caster.getWorld().spawnParticle(Particle.END_ROD, landed, 24, 0.4, 0.55, 0.4, 0.02);
             caster.getWorld().spawnParticle(Particle.PORTAL, landed, 42, 0.4, 0.55, 0.4, 0.21);
             caster.getWorld().playSound(caster.getLocation(), Sound.ENTITY_ILLUSIONER_CAST_SPELL, 0.6f, 1.55f);
         }, 1L);
+    }
+
+    private Vector computeBlinkMomentum(Location origin, Location destination) {
+        if (origin == null || destination == null || momentumStrength <= 0.0) {
+            return null;
+        }
+        Vector travel = destination.toVector().subtract(origin.toVector());
+        if (travel.lengthSquared() <= 0.0001) {
+            return null;
+        }
+        Vector launch = travel.normalize().multiply(momentumStrength);
+        launch.setY(Math.min(maxUpwardMomentum, Math.max(-0.2, launch.getY())));
+        return launch;
     }
 }
