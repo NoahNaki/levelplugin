@@ -450,7 +450,7 @@ public class StrongholdRunManager implements Listener {
                 continue;
             }
             SpellDefinition definition = entry.definition();
-            if (definition.movementSpell() || definition.baseManaCost() <= 0) {
+            if (definition.movementSpell()) {
                 continue;
             }
             autoCastBasePool.add(baseId);
@@ -1241,8 +1241,8 @@ public class StrongholdRunManager implements Listener {
                 return;
             }
             state.rerollAnimating = true;
-            final int cycles = 8;
-            final long intervalTicks = 3L;
+            final int cycles = 10;
+            final long intervalTicks = 1L;
             new org.bukkit.scheduler.BukkitRunnable() {
                 private int cycle;
 
@@ -1262,9 +1262,7 @@ public class StrongholdRunManager implements Listener {
                             online.updateInventory();
                         }
                         cycle++;
-                        if (cycle % 2 == 0) {
-                            online.playSound(online.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.35f, 1.75f);
-                        }
+                        online.playSound(online.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.40f, 1.85f);
                         return;
                     }
                     state.pendingUpgrades = rollUpgradeChoices(state, 3);
