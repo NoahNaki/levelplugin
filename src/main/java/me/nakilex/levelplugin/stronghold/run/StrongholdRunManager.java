@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.SpellContext;
@@ -640,10 +641,33 @@ public class StrongholdRunManager implements Listener {
                     return;
                 }
                 secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
-                wave++;
+                int waveStep = computeWaveAdvance(playersInWorld(world));
+                wave = Math.min(MAX_WAVE, wave + waveStep);
                 spawnWave(world, wave);
             }, 20L, 20L);
             this.autoCastTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickAutoCast, 20L, AUTOCAST_TICK_INTERVAL);
+        }
+
+        private List<Player> playersInWorld(World world) {
+            if (world == null) {
+                return List.of();
+            }
+            return world.getPlayers().stream().filter(Player::isOnline).toList();
+        }
+
+        private int computeWaveAdvance(List<Player> players) {
+            int bonus = 0;
+            if (plugin.getPetManager() != null && players != null) {
+                for (Player player : players) {
+                    if (player == null) {
+                        continue;
+                    }
+                    double effectValue = plugin.getPetManager()
+                            .getActiveEffectValue(player.getUniqueId(), PetEffectType.STRONGHOLD_WAVE_RIDER);
+                    bonus = Math.max(bonus, Math.max(0, (int) Math.floor(effectValue)));
+                }
+            }
+            return Math.max(1, 1 + bonus);
         }
 
         private void stop() {

@@ -183,6 +183,20 @@ pets:
     - type: LOW_HEALTH_DAMAGE
       base: 0.05
       per-level: 0.001
+  wave_rider:
+    name: §cWave Rider
+    rarity: RARE
+    models:
+    - cubee-ender_pearl
+    max-level: 100
+    xp-per-level: 150
+    owned-stats:
+      agi: 3
+      int: 2
+    effects:
+    - type: STRONGHOLD_WAVE_RIDER
+      base: 2
+      per-level: 0
   crimson_bloom:
     name: §cCrimson Bloom
     rarity: RARE
