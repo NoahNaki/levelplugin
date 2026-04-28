@@ -223,6 +223,17 @@ public class StrongholdRunManager implements Listener {
         return run.getStageStatus(playerId);
     }
 
+    public List<String> getSpellPossibilities(Player player) {
+        if (player == null || !player.isOnline()) {
+            return List.of();
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null) {
+            return List.of();
+        }
+        return run.getSpellPossibilities(player.getUniqueId());
+    }
+
     private void stopRun(UUID worldId) {
         ActiveRun existing = activeRuns.remove(worldId);
         if (existing != null) {
@@ -1133,17 +1144,53 @@ public class StrongholdRunManager implements Listener {
 
         private String resolveSpellUpgradeBaseIconId(String spellId) {
             String normalized = spellId == null ? "" : spellId.toLowerCase(Locale.ROOT);
-            if (normalized.startsWith("mage_") || normalized.startsWith("meteor") || normalized.startsWith("blackhole")) {
-                return "aqua_affinity";
+            if (normalized.startsWith("mage_fireball")) {
+                return "flame";
             }
-            if (normalized.startsWith("warrior_")) {
-                return "sharpness";
+            if (normalized.startsWith("meteor")) {
+                return "fire_aspect";
             }
-            if (normalized.startsWith("rogue_")) {
+            if (normalized.startsWith("blackhole")) {
+                return "curse_of_binding";
+            }
+            if (normalized.startsWith("mage_heal")) {
+                return "mending";
+            }
+            if (normalized.startsWith("archer_quickshot")) {
+                return "power";
+            }
+            if (normalized.startsWith("archer_homing_barrage")) {
+                return "multishot";
+            }
+            if (normalized.startsWith("archer_arrow_rain")) {
+                return "piercing";
+            }
+            if (normalized.startsWith("archer_windguard")) {
+                return "feather_falling";
+            }
+            if (normalized.startsWith("rogue_arc_basic")) {
                 return "sweeping_edge";
             }
-            if (normalized.startsWith("archer_")) {
-                return "power";
+            if (normalized.startsWith("rogue_sky_ripper")) {
+                return "sharpness";
+            }
+            if (normalized.startsWith("rogue_phantom_cross")) {
+                return "knockback";
+            }
+            if (normalized.startsWith("rogue_veil_counter")) {
+                return "curse_of_vanishing";
+            }
+            if (normalized.startsWith("warrior_earthquake")) {
+                return "density";
+            }
+            if (normalized.startsWith("warrior_rupture_cyclone")) {
+                return "breach";
+            }
+            if (normalized.startsWith("warrior_execution_arc")) {
+                return "smite";
+            }
+            if (normalized.startsWith("warrior_guarded_resolve")) {
+                return "protection";
             }
             return "efficiency";
         }
@@ -1163,20 +1210,18 @@ public class StrongholdRunManager implements Listener {
                 player.closeInventory();
                 return;
             }
+            if (state.rerollAnimating) {
+                send(player, MessageType.WARNING, "Reroll animation in progress.");
+                return;
+            }
             if (slot == UPGRADE_REROLL_SLOT) {
-                state.pendingUpgrades = rollUpgradeChoices(state, 3);
-                Inventory top = player.getOpenInventory() == null ? null : player.getOpenInventory().getTopInventory();
-                if (top != null && top.getSize() == UPGRADE_GUI_SIZE) {
-                    populateUpgradeInventory(top, state);
-                    player.updateInventory();
-                }
-                send(player, MessageType.INFO, "Rerolled Stronghold upgrades.");
+                playRerollAnimation(player, state);
                 return;
             }
             int idx = switch (slot) {
-                case 20 -> 0;
-                case 22 -> 1;
-                case 24 -> 2;
+                case 11 -> 0;
+                case 13 -> 1;
+                case 15 -> 2;
                 default -> -1;
             };
             if (idx < 0 || idx >= state.pendingUpgrades.size()) {
@@ -1189,6 +1234,50 @@ public class StrongholdRunManager implements Listener {
             state.skipNextUpgradeReopen = true;
             setUpgradePausedState(player, state, false);
             player.closeInventory();
+        }
+
+        private void playRerollAnimation(Player player, SurvivorState state) {
+            if (player == null || state == null || state.rerollAnimating) {
+                return;
+            }
+            state.rerollAnimating = true;
+            final int cycles = 8;
+            final long intervalTicks = 3L;
+            new org.bukkit.scheduler.BukkitRunnable() {
+                private int cycle;
+
+                @Override
+                public void run() {
+                    Player online = Bukkit.getPlayer(player.getUniqueId());
+                    if (online == null || !online.isOnline()) {
+                        state.rerollAnimating = false;
+                        cancel();
+                        return;
+                    }
+                    if (cycle < cycles) {
+                        state.pendingUpgrades = rollUpgradeChoices(state, 3);
+                        Inventory top = online.getOpenInventory() == null ? null : online.getOpenInventory().getTopInventory();
+                        if (top != null && top.getSize() == UPGRADE_GUI_SIZE) {
+                            populateUpgradeInventory(top, state);
+                            online.updateInventory();
+                        }
+                        cycle++;
+                        if (cycle % 2 == 0) {
+                            online.playSound(online.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.35f, 1.75f);
+                        }
+                        return;
+                    }
+                    state.pendingUpgrades = rollUpgradeChoices(state, 3);
+                    Inventory top = online.getOpenInventory() == null ? null : online.getOpenInventory().getTopInventory();
+                    if (top != null && top.getSize() == UPGRADE_GUI_SIZE) {
+                        populateUpgradeInventory(top, state);
+                        online.updateInventory();
+                    }
+                    state.rerollAnimating = false;
+                    send(online, MessageType.INFO, "Rerolled Stronghold upgrades.");
+                    cancel();
+                }
+            }.runTaskTimer(plugin, 0L, intervalTicks);
         }
 
         private void handleUpgradeClose(Player player) {
@@ -1352,6 +1441,25 @@ public class StrongholdRunManager implements Listener {
             }
             return new UpgradeChoice(UpgradeType.SPELL_UPGRADE, "Upgrade: " + upgraded.definition().displayName(),
                     "Improves an already owned loadout skill.", base, upgraded.definition().id(), null, 0);
+        }
+
+        private List<String> getSpellPossibilities(UUID playerId) {
+            SurvivorState state = playerStates.get(playerId);
+            if (state == null) {
+                return List.of();
+            }
+            refreshAutoCastPoolIfNeeded();
+            List<String> lines = new ArrayList<>();
+            autoCastBasePool.stream().sorted().forEach(baseId -> {
+                UpgradeChoice choice = spellUpgradeChoiceFor(state, baseId);
+                if (choice == null) {
+                    return;
+                }
+                int currentRank = state.ownedSpellRanks.getOrDefault(baseId, 0);
+                String status = currentRank <= 0 ? "unlock" : "upgrade";
+                lines.add(baseId + " -> " + choice.resultSpellId + " (" + status + ", rank " + currentRank + ")");
+            });
+            return lines;
         }
 
         private void tickAutoCast() {
@@ -1786,6 +1894,7 @@ public class StrongholdRunManager implements Listener {
         private List<UpgradeChoice> pendingUpgrades = List.of();
         private boolean awaitingUpgradeSelection;
         private boolean skipNextUpgradeReopen;
+        private boolean rerollAnimating;
         private boolean upgradePaused;
         private int cooldownUpgradeTier;
         private int keysCollected;
