@@ -291,6 +291,33 @@ public final class WarriorCombatUtil {
         }
     }
 
+    public static void runGroundRippleWave(Main plugin,
+                                           World world,
+                                           Location center,
+                                           double maxRadius,
+                                           double radiusStep,
+                                           long intervalTicks) {
+        if (plugin == null || world == null || center == null) {
+            return;
+        }
+        final double safeMaxRadius = Math.max(0.6, maxRadius);
+        final double safeStep = Math.max(0.25, radiusStep);
+        final long safeInterval = Math.max(1L, intervalTicks);
+        new BukkitRunnable() {
+            private double currentRadius = safeStep;
+
+            @Override
+            public void run() {
+                if (currentRadius > safeMaxRadius + 0.001) {
+                    cancel();
+                    return;
+                }
+                spawnGroundRipple(plugin, world, center, Math.min(currentRadius, safeMaxRadius));
+                currentRadius += safeStep;
+            }
+        }.runTaskTimer(plugin, 0L, safeInterval);
+    }
+
     private static void spawnRippleFallingBlock(Main plugin, Location spawn, org.bukkit.block.data.BlockData data, Location center) {
         if (plugin == null || spawn == null || data == null || spawn.getWorld() == null) {
             return;

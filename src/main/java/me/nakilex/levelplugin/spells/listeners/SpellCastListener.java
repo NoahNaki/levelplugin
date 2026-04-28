@@ -30,6 +30,10 @@ public class SpellCastListener implements Listener {
         if (entry == null) {
             return;
         }
+        String resolvedBaseSpellId = entry.definition().id();
+        if (playerClass == null || !SpellRegistry.getInstance().isSpellBoundForClass(resolvedBaseSpellId, playerClass)) {
+            return;
+        }
         String effectiveSpellId = SpellProgressionManager.getInstance()
                 .getEffectiveSpellId(player.getUniqueId(), entry.definition().id());
         SpellRegistry.SpellEntry effectiveEntry = SpellRegistry.getInstance().getSpell(effectiveSpellId);

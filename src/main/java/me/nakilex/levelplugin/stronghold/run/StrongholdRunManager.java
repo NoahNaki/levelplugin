@@ -405,10 +405,28 @@ public class StrongholdRunManager implements Listener {
 
     private void initializeAutoCastPool() {
         autoCastBasePool.clear();
-        autoCastBasePool.add("warrior_execution_arc");
-        autoCastBasePool.add("warrior_earthquake");
-        autoCastBasePool.add("warrior_rupture_cyclone");
-        autoCastBasePool.add("warrior_guarded_resolve");
+        SpellRegistry registry = SpellRegistry.getInstance();
+        for (SpellProgression progression : registry.getAllProgressions()) {
+            if (progression == null || progression.baseSpellId() == null) {
+                continue;
+            }
+            String baseId = progression.baseSpellId().toLowerCase(Locale.ROOT);
+            SpellRegistry.SpellEntry entry = registry.getSpell(baseId);
+            if (entry == null || entry.definition() == null) {
+                continue;
+            }
+            SpellDefinition definition = entry.definition();
+            if (definition.movementSpell() || definition.baseManaCost() <= 0) {
+                continue;
+            }
+            autoCastBasePool.add(baseId);
+        }
+        if (autoCastBasePool.isEmpty()) {
+            autoCastBasePool.add("warrior_execution_arc");
+            autoCastBasePool.add("warrior_earthquake");
+            autoCastBasePool.add("warrior_rupture_cyclone");
+            autoCastBasePool.add("warrior_guarded_resolve");
+        }
     }
 
     private int xpRequiredForLevel(int level) {
@@ -1221,15 +1239,14 @@ public class StrongholdRunManager implements Listener {
         }
 
         private String describeAutoCastSpell(String spellId) {
-            if (spellId == null) {
-                return "Improves your loadout damage rotation.";
+            if (spellId == null || spellId.isBlank()) {
+                return "Improves your loadout spell rotation.";
             }
-            String id = spellId.toLowerCase(Locale.ROOT);
-            if (id.startsWith("warrior_execution_arc")) return "Sweeping melee cyclone strikes nearby enemies.";
-            if (id.startsWith("warrior_earthquake")) return "Ground slam that damages and staggers nearby packs.";
-            if (id.startsWith("warrior_rupture_cyclone")) return "Rapid cyclone hits around your position.";
-            if (id.startsWith("warrior_guarded_resolve")) return "Defensive resolve pulse that stabilizes pressure.";
-            return "Improves your loadout damage rotation.";
+            SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(spellId);
+            if (entry == null || entry.definition() == null) {
+                return "Improves your loadout spell rotation.";
+            }
+            return entry.definition().displayName() + " is added to your Stronghold loadout.";
         }
 
         private String describeUpgradeEffect(UpgradeChoice choice) {
@@ -1252,15 +1269,17 @@ public class StrongholdRunManager implements Listener {
         }
 
         private String specificSpellUpgradeEffect(String spellId, boolean unlock) {
-            if (spellId == null) {
+            if (spellId == null || spellId.isBlank()) {
                 return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
             }
-            String id = spellId.toLowerCase(Locale.ROOT);
-            if (id.startsWith("warrior_earthquake")) return "Increases slam impact and area pressure on nearby enemies.";
-            if (id.startsWith("warrior_execution_arc")) return "Improves rotational strike damage for close-range clear.";
-            if (id.startsWith("warrior_rupture_cyclone")) return "Boosts cyclone hit consistency and sustained pressure.";
-            if (id.startsWith("warrior_guarded_resolve")) return "Improves defensive uptime and run stability.";
-            return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
+            SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(spellId);
+            if (entry == null || entry.definition() == null) {
+                return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
+            }
+            String name = entry.definition().displayName();
+            return unlock
+                    ? "Unlocks " + name + " for your Stronghold loadout."
+                    : "Upgrades " + name + " for stronger Stronghold performance.";
         }
 
         private void tickAutoCast() {
