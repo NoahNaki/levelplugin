@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellDefinition;
 import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
+import me.nakilex.levelplugin.spells.SpellAccessUtil;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -75,6 +76,7 @@ public class StrongholdRunManager implements Listener {
     private static final int MAX_WAVE = 30;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
     private static final int BASE_XP_REQUIRED = 100;
+    private static final int MAX_ACTIVE_STRONGHOLD_SPELLS = 4;
     private static final double MIN_ENEMY_SPAWN_RADIUS = 5.0;
     private static final long BASE_AUTOCAST_COOLDOWN_MS = 1_400L;
     private static final long STUCK_PULL_DELAY_MS = 4_000L;
@@ -99,12 +101,6 @@ public class StrongholdRunManager implements Listener {
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final List<String> waveMobPool = List.of("forest_slime");
     private final Set<String> autoCastBasePool = new HashSet<>();
-    private final Set<String> excludedAutoCastSpellIds = Set.of(
-            "mage_blink", "mage_blink_phase", "mage_blink_rift",
-            "archer_skybound",
-            "rogue_razor_dash", "rogue_razor_dash_rift", "rogue_razor_dash_shade",
-            "warrior_titan_vault"
-    );
 
     public StrongholdRunManager(Main plugin, StrongholdShrineManager shrineManager) {
         this.plugin = plugin;
@@ -123,9 +119,33 @@ public class StrongholdRunManager implements Listener {
         stopRun(worldId);
 
         Location origin = player.getLocation().clone();
-        int shrines = shrineManager.spawnRandomShrines(origin, SHRINES_PER_RUN, 72, 250.0);
+        StrongholdShrineManager.ShrineSpawnDiagnostics randomDiag =
+                shrineManager.spawnRandomShrinesWithDiagnostics(origin, SHRINES_PER_RUN, 72, 250.0);
+        int shrines = randomDiag.spawned();
+        StrongholdShrineManager.ShrineSpawnDiagnostics fallbackDiag = null;
+        if (shrines < SHRINES_PER_RUN) {
+            fallbackDiag = shrineManager.spawnFallbackShrinesWithDiagnostics(origin, SHRINES_PER_RUN - shrines, 128, 250.0);
+            shrines += fallbackDiag.spawned();
+        }
         if (shrines > 0) {
             send(player, MessageType.INFO, "Placed " + ChatColor.WHITE + shrines + ChatColor.GRAY + " shrine(s) around the stronghold.");
+        } else {
+            StringBuilder debug = new StringBuilder("Shrine debug: no shrines spawned. Random candidates=")
+                    .append(randomDiag.candidateCount())
+                    .append(", wrongGround=").append(randomDiag.rejectedWrongGround())
+                    .append(", blockedSpace=").append(randomDiag.rejectedUnsafeSpace())
+                    .append(", nearOrigin=").append(randomDiag.rejectedNearOrigin())
+                    .append(", nearExisting=").append(randomDiag.rejectedNearExistingShrine())
+                    .append(", failedPlacement=").append(randomDiag.failedSpawnAttempt());
+            if (fallbackDiag != null) {
+                debug.append(" | Fallback candidates=").append(fallbackDiag.candidateCount())
+                        .append(", wrongGround=").append(fallbackDiag.rejectedWrongGround())
+                        .append(", blockedSpace=").append(fallbackDiag.rejectedUnsafeSpace())
+                        .append(", nearOrigin=").append(fallbackDiag.rejectedNearOrigin())
+                        .append(", nearExisting=").append(fallbackDiag.rejectedNearExistingShrine())
+                        .append(", failedPlacement=").append(fallbackDiag.failedSpawnAttempt());
+            }
+            send(player, MessageType.WARNING, debug.toString());
         }
 
         ActiveRun run = new ActiveRun(worldId, origin);
@@ -405,44 +425,27 @@ public class StrongholdRunManager implements Listener {
     private void initializeAutoCastPool() {
         autoCastBasePool.clear();
         SpellRegistry registry = SpellRegistry.getInstance();
-        for (String spellId : baseSpellIds()) {
-            SpellRegistry.SpellEntry entry = registry.getSpell(spellId);
-            if (entry == null) {
+        for (SpellProgression progression : registry.getAllProgressions()) {
+            if (progression == null || progression.baseSpellId() == null) {
+                continue;
+            }
+            String baseId = progression.baseSpellId().toLowerCase(Locale.ROOT);
+            SpellRegistry.SpellEntry entry = registry.getSpell(baseId);
+            if (entry == null || entry.definition() == null) {
                 continue;
             }
             SpellDefinition definition = entry.definition();
-            if (definition == null || definition.movementSpell()) {
+            if (definition.movementSpell() || definition.baseManaCost() <= 0) {
                 continue;
             }
-            if (excludedAutoCastSpellIds.contains(definition.id().toLowerCase(Locale.ROOT))) {
-                continue;
-            }
-            if (!isAllowedAutoCastSpellId(definition.id())) {
-                continue;
-            }
-            autoCastBasePool.add(definition.id().toLowerCase(Locale.ROOT));
+            autoCastBasePool.add(baseId);
         }
-    }
-
-    private boolean isAllowedAutoCastSpellId(String spellId) {
-        if (spellId == null || spellId.isBlank()) {
-            return false;
+        if (autoCastBasePool.isEmpty()) {
+            autoCastBasePool.add("warrior_execution_arc");
+            autoCastBasePool.add("warrior_earthquake");
+            autoCastBasePool.add("warrior_rupture_cyclone");
+            autoCastBasePool.add("warrior_guarded_resolve");
         }
-        String normalized = spellId.toLowerCase(Locale.ROOT);
-        return normalized.startsWith("mage_")
-                || normalized.startsWith("archer_")
-                || normalized.equals("meteor")
-                || normalized.equals("blackhole");
-    }
-
-    private Set<String> baseSpellIds() {
-        Set<String> ids = new HashSet<>();
-        for (SpellProgression progression : SpellRegistry.getInstance().getAllProgressions()) {
-            if (progression != null && progression.baseSpellId() != null) {
-                ids.add(progression.baseSpellId().toLowerCase(Locale.ROOT));
-            }
-        }
-        return ids;
     }
 
     private int xpRequiredForLevel(int level) {
@@ -893,6 +896,11 @@ public class StrongholdRunManager implements Listener {
             state.savedArmorContents = cloneItemArray(player.getInventory().getArmorContents());
             state.savedExtraContents = cloneItemArray(player.getInventory().getExtraContents());
             state.savedOffHand = player.getInventory().getItemInOffHand() == null ? null : player.getInventory().getItemInOffHand().clone();
+            if (plugin.getGemsManager() != null) {
+                int gems = plugin.getGemsManager().getTotalUnits(player);
+                state.startingGems = gems;
+                state.maxGemsDuringRun = gems;
+            }
 
             PlayerClassManager.getInstance().setPlayerClass(player, PlayerClass.VILLAGER);
             state.progressBar = Bukkit.createBossBar("", BarColor.PURPLE, BarStyle.SOLID);
@@ -1001,24 +1009,32 @@ public class StrongholdRunManager implements Listener {
             if (meta != null) {
                 meta.setDisplayName(ChatColor.GOLD + choice.displayName);
                 List<String> lore = new ArrayList<>();
-                lore.addAll(TooltipUtil.bulletList(choice.description));
+                appendWrappedBulletBlock(lore, choice.description);
+                lore.add(" ");
                 if (choice.type == UpgradeType.SPELL_UNLOCK || choice.type == UpgradeType.SPELL_UPGRADE) {
                     int rank = state.ownedSpellRanks.getOrDefault(choice.baseSpellId, 0);
+                    lore.add(TooltipUtil.sectionHeader("Spell Upgrade"));
                     lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Current Rank",
                             ChatColor.WHITE, String.valueOf(rank)));
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Next Spell",
                             ChatColor.WHITE, resolveUpgradeSpellDisplay(choice.resultSpellId)));
                     lore.add(" ");
-                    lore.add(ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Spell Effect");
-                    lore.addAll(TooltipUtil.bulletList(describeAutoCastSpell(choice.resultSpellId)));
-                    lore.add(ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Upgrade Effect");
-                    lore.addAll(TooltipUtil.bulletList(describeUpgradeEffect(choice)));
+                    lore.add(TooltipUtil.sectionHeader("Spell Effect"));
+                    StrongholdSpellTooltipUtil.appendSpellEffectLore(lore, choice.resultSpellId);
+                    lore.add(TooltipUtil.sectionHeader("Upgrade Effect"));
+                    StrongholdSpellTooltipUtil.appendUpgradeDeltaLore(
+                            lore,
+                            choice.baseSpellId,
+                            rank,
+                            choice.type == UpgradeType.SPELL_UNLOCK);
                 } else if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
+                    lore.add(TooltipUtil.sectionHeader("Global Cooldown"));
                     lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Cooldown Tier",
                             ChatColor.WHITE, String.valueOf(state.cooldownUpgradeTier)));
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Effect",
                             ChatColor.GREEN, "-10% global skill cooldown"));
                 } else if (choice.statType != null) {
+                    lore.add(TooltipUtil.sectionHeader("Temporary Bonus"));
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Temporary Bonus",
                             ChatColor.GREEN, "+" + choice.statAmount + " " + choice.statType.getDisplayName()));
                 }
@@ -1026,8 +1042,24 @@ public class StrongholdRunManager implements Listener {
                 lore.addAll(TooltipUtil.clickInstructions("to choose this upgrade", null));
                 meta.setLore(lore);
                 item.setItemMeta(meta);
+                TooltipUtil.centerItemName(item);
             }
             return item;
+        }
+
+        private void appendWrappedBulletBlock(List<String> lore, String description) {
+            if (lore == null || description == null || description.isBlank()) {
+                return;
+            }
+            List<String> wrapped = TooltipUtil.wrapLoreLine(ChatColor.GRAY + description.trim(), 210,
+                    ChatColor.DARK_GRAY + "  " + ChatColor.GRAY);
+            if (wrapped.isEmpty()) {
+                return;
+            }
+            lore.add(TooltipUtil.bulletLine(wrapped.get(0)));
+            for (int i = 1; i < wrapped.size(); i++) {
+                lore.add(wrapped.get(i));
+            }
         }
 
         private String resolveUpgradeSpellDisplay(String spellId) {
@@ -1199,9 +1231,13 @@ public class StrongholdRunManager implements Listener {
             SpellRegistry registry = SpellRegistry.getInstance();
             String base = baseSpellId.toLowerCase(Locale.ROOT);
             int rank = state.ownedSpellRanks.getOrDefault(base, 0);
+            int ownedCount = (int) state.ownedSpellRanks.values().stream().filter(value -> value != null && value > 0).count();
             if (rank <= 0) {
+                if (ownedCount >= MAX_ACTIVE_STRONGHOLD_SPELLS) {
+                    return null;
+                }
                 SpellRegistry.SpellEntry baseEntry = registry.getSpell(base);
-                if (baseEntry == null) {
+                if (baseEntry == null || baseEntry.definition() == null) {
                     return null;
                 }
                 return new UpgradeChoice(UpgradeType.SPELL_UNLOCK, "Unlock " + baseEntry.definition().displayName(),
@@ -1217,79 +1253,11 @@ public class StrongholdRunManager implements Listener {
             }
             String nextSpell = progression.upgradeSpellIds().get(nextIndex);
             SpellRegistry.SpellEntry upgraded = registry.getSpell(nextSpell);
-            if (upgraded == null) {
+            if (upgraded == null || upgraded.definition() == null) {
                 return null;
             }
             return new UpgradeChoice(UpgradeType.SPELL_UPGRADE, "Upgrade: " + upgraded.definition().displayName(),
                     "Improves an already owned loadout skill.", base, upgraded.definition().id(), null, 0);
-        }
-
-        private String describeAutoCastSpell(String spellId) {
-            if (spellId == null) {
-                return "Improves your loadout damage rotation.";
-            }
-            String id = spellId.toLowerCase(Locale.ROOT);
-            if (id.startsWith("mage_fireball")) return "Shoots firebolts at enemies in front of you.";
-            if (id.startsWith("mage_meteor")) return "Drops a meteor at target ground, dealing area damage.";
-            if (id.startsWith("blackhole")) return "Creates a pull zone that damages enemies over time.";
-            if (id.startsWith("archer_quickshot")) return "Rapidly fires arrows at nearby enemies.";
-            if (id.startsWith("archer_homing_barrage")) return "Launches homing arrows that lock onto nearby targets.";
-            if (id.startsWith("archer_arrow_rain")) return "Bombards a target area with repeated arrow volleys.";
-            if (id.startsWith("rogue_razor_dash")) return "Dash-slashes through targets for burst damage.";
-            if (id.startsWith("warrior_earthquake")) return "Slams the ground and damages enemies in an area.";
-            if (id.startsWith("warrior_arc_slash")) return "Sends a frontal arc slash through enemies.";
-            return "Improves your loadout damage rotation.";
-        }
-
-        private String describeUpgradeEffect(UpgradeChoice choice) {
-            if (choice == null) {
-                return "Strengthens your run loadout.";
-            }
-            if (choice.type == UpgradeType.SPELL_UNLOCK) {
-                return specificSpellUpgradeEffect(choice.resultSpellId, true);
-            }
-            if (choice.type == UpgradeType.SPELL_UPGRADE) {
-                return specificSpellUpgradeEffect(choice.resultSpellId, false);
-            }
-            if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
-                return "Reduces cooldowns on all loadout skills by 10%.";
-            }
-            if (choice.type == UpgradeType.STAT && choice.statType != null) {
-                return "Grants +" + choice.statAmount + " " + choice.statType.getDisplayName() + " for this run.";
-            }
-            return "Strengthens your run loadout.";
-        }
-
-        private String specificSpellUpgradeEffect(String spellId, boolean unlock) {
-            if (spellId == null) {
-                return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
-            }
-            String id = spellId.toLowerCase(Locale.ROOT);
-            if (id.startsWith("archer_homing_barrage")) {
-                return "Turns barrage arrows into homing shots that seek nearby targets.";
-            }
-            if (id.startsWith("mage_fireball_chain")) {
-                return "Adds chain hits so fireballs jump to nearby enemies after impact.";
-            }
-            if (id.startsWith("mage_fireball")) {
-                return "Upgrades fireball damage and improves pressure on clustered enemies.";
-            }
-            if (id.startsWith("meteor")) {
-                return "Increases meteor impact pressure with stronger area burst.";
-            }
-            if (id.startsWith("blackhole")) {
-                return "Strengthens blackhole pull-zone damage and control.";
-            }
-            if (id.startsWith("archer_arrow_rain")) {
-                return "Improves arrow rain volley pressure over the target area.";
-            }
-            if (id.startsWith("warrior_earthquake")) {
-                return "Improves slam impact to hit surrounding enemies harder.";
-            }
-            if (id.startsWith("rogue_razor_dash")) {
-                return "Empowers dash slashes for stronger burst through targets.";
-            }
-            return unlock ? "Adds a new skill to your loadout." : "Boosts a skill already in your loadout.";
         }
 
         private void tickAutoCast() {
@@ -1307,16 +1275,19 @@ public class StrongholdRunManager implements Listener {
                     continue;
                 }
                 SurvivorState state = entry.getValue();
+                if (plugin.getGemsManager() != null) {
+                    state.maxGemsDuringRun = Math.max(state.maxGemsDuringRun, plugin.getGemsManager().getTotalUnits(player));
+                }
                 for (String spellId : state.activeSpellByBase.values()) {
-                    if (requiresLockTarget(spellId) && findNearestLockTarget(player, 18.0) == null) {
-                        continue;
-                    }
                     SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(spellId);
-                    if (spellEntry == null) {
+                    if (spellEntry == null || spellEntry.definition() == null) {
                         continue;
                     }
                     SpellDefinition definition = spellEntry.definition();
-                    long cooldown = computeAutoCastCooldownMs(definition, state);
+                    if (!shouldAutoCastSpellNow(player, definition.id())) {
+                        continue;
+                    }
+                    long cooldown = computeAutoCastCooldownMs(player, definition, state);
                     long last = state.lastCastAtBySpell.getOrDefault(spellId, 0L);
                     if (now - last < cooldown) {
                         continue;
@@ -1327,30 +1298,25 @@ public class StrongholdRunManager implements Listener {
             }
         }
 
-        private long computeAutoCastCooldownMs(SpellDefinition definition, SurvivorState state) {
+        private long computeAutoCastCooldownMs(Player player, SpellDefinition definition, SurvivorState state) {
             if (definition == null) {
                 return BASE_AUTOCAST_COOLDOWN_MS;
             }
-            String spellId = definition.id() == null ? "" : definition.id().toLowerCase(Locale.ROOT);
-            long cooldown = Math.max(BASE_AUTOCAST_COOLDOWN_MS, SpellCastManager.getInstance().getCooldownMs(definition));
-            if (spellId.startsWith("mage_fireball")) {
-                cooldown = Math.max(cooldown, 2_200L);
-            } else if (spellId.startsWith("archer_quickshot")) {
-                cooldown = Math.max(cooldown, 1_850L);
-            }
+            long cooldown = Math.max(BASE_AUTOCAST_COOLDOWN_MS, SpellCastManager.getInstance().getCooldownMs(player, definition));
             int tier = state == null ? 0 : Math.max(0, state.cooldownUpgradeTier);
             double multiplier = Math.max(0.45, 1.0 - (tier * 0.10));
             return Math.max(600L, Math.round(cooldown * multiplier));
         }
 
-        private boolean requiresLockTarget(String spellId) {
-            if (spellId == null) {
+        private boolean shouldAutoCastSpellNow(Player player, String spellId) {
+            if (player == null || spellId == null || spellId.isBlank()) {
                 return false;
             }
             String normalized = spellId.toLowerCase(Locale.ROOT);
-            return normalized.contains("homing")
-                    || normalized.contains("seeker")
-                    || normalized.startsWith("archer_quickshot");
+            if (normalized.startsWith("warrior_guarded_resolve")) {
+                return countNearbyEnemies(player, 7.0) >= 3 || player.getHealth() <= Math.max(6.0, player.getMaxHealth() * 0.70);
+            }
+            return findNearestLockTarget(player, 16.0) != null;
         }
 
         private LivingEntity findNearestLockTarget(Player caster, double range) {
@@ -1361,8 +1327,20 @@ public class StrongholdRunManager implements Listener {
                     .orElse(null);
         }
 
+        private int countNearbyEnemies(Player player, double radius) {
+            return me.nakilex.levelplugin.spells.SpellEffectUtil
+                    .getLivingTargets(player.getLocation(), Math.max(2.0, radius), living -> !living.equals(player))
+                    .size();
+        }
+
         private void castAutoSpell(Player player, SpellRegistry.SpellEntry spellEntry) {
             try {
+                if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) {
+                    return;
+                }
+                if (SpellAccessUtil.getHeldWeaponRequirementFailure(player) != null) {
+                    return;
+                }
                 me.nakilex.levelplugin.spells.input.SpellInputEvent fakeInput =
                         new me.nakilex.levelplugin.spells.input.SpellInputEvent(
                                 player,
@@ -1470,6 +1448,13 @@ public class StrongholdRunManager implements Listener {
                         online.teleport(back);
                     }
                     openPendingResultsAfterTeleport(online);
+                }
+                if (plugin.getGemsManager() != null) {
+                    int current = plugin.getGemsManager().getTotalUnits(online);
+                    int persisted = Math.max(current, Math.max(state.startingGems, state.maxGemsDuringRun));
+                    if (persisted > current) {
+                        plugin.getGemsManager().setTotalUnits(online, persisted);
+                    }
                 }
             }
         }
@@ -1710,6 +1695,8 @@ public class StrongholdRunManager implements Listener {
         private boolean upgradePaused;
         private int cooldownUpgradeTier;
         private int keysCollected;
+        private int startingGems;
+        private int maxGemsDuringRun;
         private final List<ItemStack> lootStash = new ArrayList<>();
         private ItemStack[] savedStorageContents = new ItemStack[0];
         private ItemStack[] savedArmorContents = new ItemStack[0];

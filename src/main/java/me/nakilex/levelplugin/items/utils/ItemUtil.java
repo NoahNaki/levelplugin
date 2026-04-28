@@ -322,20 +322,14 @@ public class ItemUtil {
 
         // --- Class Requirement ---
         String clsReqRaw = cItem.getClassRequirement();
-        if (wType != null) {
-            clsReqRaw = switch (wType) {
-                case WAND -> "MAGE";
-                case BOW -> "ARCHER";
-                case SHOVEL, AXE -> "WARRIOR";
-                case SWORD -> "ROGUE";
-            };
-        }
         me.nakilex.levelplugin.player.classes.data.PlayerClass reqClass = null;
         if (clsReqRaw != null && !clsReqRaw.isBlank()) {
             reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
         }
 
-        if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
+        if (me.nakilex.levelplugin.player.classes.data.ClassUtil.isClassSystemEnabled()
+                && reqClass != null
+                && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
             me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
             if (player != null) {
                 playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager
@@ -758,7 +752,9 @@ public class ItemUtil {
             reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
         }
 
-        if (reqClass != null && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
+        if (me.nakilex.levelplugin.player.classes.data.ClassUtil.isClassSystemEnabled()
+                && reqClass != null
+                && reqClass != me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) {
             me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass = null;
             if (player != null) {
                 playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager

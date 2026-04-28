@@ -44,7 +44,7 @@ public class StatsInventory {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border();
 
-        builder.setItem(19, createStatBook(
+        builder.setItem(20, createStatBook(
             "Strength", StatType.STR, ps.baseStrength, ps.bonusStrength, ps.skillPoints,
             List.of("Boosts melee damage and adds a bit of health."),
             new String[]{
@@ -57,7 +57,7 @@ public class StatsInventory {
         double dodgePercent = totalAgility / (totalAgility + 200.0) * 100.0;
         dodgePercent = Math.round(dodgePercent * 100.0) / 100.0;
 
-        builder.setItem(20, createStatBook(
+        builder.setItem(21, createStatBook(
             "Agility", StatType.AGI, ps.baseAgility, ps.bonusAgility, ps.skillPoints,
             List.of("Improves your speed and dodge chance."),
             new String[]{
@@ -68,12 +68,14 @@ public class StatsInventory {
             }
         ));
 
-        builder.setItem(21, createStatBook(
+        builder.setItem(22, createStatBook(
             "Intelligence", StatType.INT, ps.baseIntelligence, ps.bonusIntelligence, ps.skillPoints,
-            List.of("Improves magical prowess and max mana."),
+            List.of("Improves magical prowess and spell cooldown recovery."),
             new String[]{
-                "Each point: +0.5 magic dmg & +1 Mana.",
-                "Current max mana: " + ChatColor.YELLOW + ps.maxMana
+                "Each point: +0.5 magic damage.",
+                "Each point: +0.30% cooldown reduction.",
+                "Current cooldown reduction: " + ChatColor.YELLOW
+                        + String.format("%.1f%%", ps.cooldownReduction * 100.0)
             }
         ));
 
@@ -103,24 +105,7 @@ public class StatsInventory {
             }
         ));
 
-        builder.setItem(25, createStatBook(
-            "Will", StatType.WIL, ps.baseWill, ps.bonusWill, ps.skillPoints,
-            List.of("Boosts mana and mana regeneration."),
-            new String[]{
-                "Each point: +3 max mana & +0.25 mana/sec.",
-                "Current max mana: " + ChatColor.YELLOW + ps.maxMana
-            }
-        ));
-
-        double atkSpeed = 0.5 * (1.0 + 0.0075 * (ps.baseTechnique + ps.bonusTechnique));
-        builder.setItem(22, createStatBook(
-            "Technique", StatType.TEC, ps.baseTechnique, ps.bonusTechnique, ps.skillPoints,
-            List.of("Amplifies attack speed and all damage."),
-            new String[]{
-                "+0.75% atk speed & +0.1 dmg per point.",
-                "Current atk speed: " + ChatColor.YELLOW + String.format("%.2f", atkSpeed) + " attacks/s"
-            }
-        ));
+        builder.setItem(25, GuiUtil.createGuiItem(Material.GRAY_STAINED_GLASS_PANE, " ", List.of()));
         builder.setItem(13, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
         builder.setItem(8, createPlayerHead(player, ps, page));
         builder.setItem(40, null);
@@ -198,8 +183,6 @@ public class StatsInventory {
             lore.add(GuiUtil.formatStatName(StatsManager.StatType.INT) + ": " + ChatColor.WHITE + (ps.baseIntelligence + ps.bonusIntelligence) + ChatColor.GREEN + " (+" + ps.bonusIntelligence + ")");
             lore.add(GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": " + ChatColor.WHITE + (ps.baseDexterity + ps.bonusDexterity) + ChatColor.GREEN + " (+" + ps.bonusDexterity + ")");
             lore.add(GuiUtil.formatStatName(StatsManager.StatType.VIT) + ": " + ChatColor.RED + (ps.baseVitality + ps.bonusVitality) + ChatColor.GREEN + " (+" + ps.bonusVitality + ")");
-            lore.add(GuiUtil.formatStatName(StatsManager.StatType.WIL) + ": " + ChatColor.WHITE + (ps.baseWill + ps.bonusWill) + ChatColor.GREEN + " (+" + ps.bonusWill + ")");
-            lore.add(GuiUtil.formatStatName(StatsManager.StatType.TEC) + ": " + ChatColor.WHITE + (ps.baseTechnique + ps.bonusTechnique) + ChatColor.GREEN + " (+" + ps.bonusTechnique + ")");
             lore.add("");
 
             int gearScore = ItemUtil.calculateTotalGearScore(player);

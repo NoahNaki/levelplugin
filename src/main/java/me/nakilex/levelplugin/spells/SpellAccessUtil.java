@@ -38,9 +38,7 @@ public final class SpellAccessUtil {
         }
         PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
         ItemStack mainHand = player.getInventory().getItemInMainHand();
-        CustomItem customItem = ItemManager.getInstance().getCustomItemFromItemStack(mainHand);
-        PlayerClass required = customItem == null ? null : PlayerClass.fromString(customItem.getClassRequirement());
-        return ClassUtil.canUseWeapon(playerClass, mainHand, required);
+        return ClassUtil.isValidWeaponForClass(playerClass, mainHand);
     }
 
     public static String getHeldWeaponRequirementFailure(Player player) {
@@ -54,11 +52,6 @@ public final class SpellAccessUtil {
         }
         if (customItem.isBroken()) {
             return customItem.getBaseName() + " is broken and cannot cast skills.";
-        }
-        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
-        PlayerClass required = PlayerClass.fromString(customItem.getClassRequirement());
-        if (!ClassUtil.meetsRequirement(playerClass, required)) {
-            return "You are not the right class to cast skills with " + customItem.getBaseName() + ".";
         }
         int playerLevel = LevelManager.getInstance().getLevel(player);
         if (playerLevel < customItem.getLevelRequirement()) {

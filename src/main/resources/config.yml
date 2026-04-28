@@ -3,8 +3,12 @@ features:
   environment: true
   trade: true
   auction-house: true
+  booster-system: false
+  class-system: false
   essence-system: false
   quests: true
+  arena-system: false
+  duel-system: false
 debug:
   chunk-loading: false
   mythic-skill-damage: false

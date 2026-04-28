@@ -79,7 +79,7 @@ public class LifeSkillRewardManager {
                 statReward(5, skillName, StatType.STR, 1, "+1 Strength"),
                 giftReward(6, skillName, "heroic_token"),
                 coinReward(7, skillName, 600),
-                statReward(8, skillName, StatType.WIL, 1, "+1 Will"),
+                statReward(8, skillName, StatType.INT, 1, "+1 Intelligence"),
                 giftReward(9, skillName, "adventurers_feast"),
                 statReward(10, skillName, StatType.AGI, 1, "+1 Agility"),
                 coinReward(11, skillName, 800),
@@ -88,7 +88,7 @@ public class LifeSkillRewardManager {
                 statReward(14, skillName, StatType.VIT, 2, "+2 Vitality"),
                 giftReward(15, skillName, "blossom_bundle"),
                 coinReward(16, skillName, 1200),
-                statReward(17, skillName, StatType.TEC, 2, "+2 Technique"),
+                statReward(17, skillName, StatType.INT, 2, "+2 Intelligence"),
                 giftReward(18, skillName, "heroic_token"),
                 coinReward(19, skillName, 1400),
                 statReward(20, skillName, StatType.STR, 3, "+3 Strength"),
@@ -98,7 +98,7 @@ public class LifeSkillRewardManager {
                 coinReward(24, skillName, 1800)
         ));
 
-        List<StatType> statCycle = List.of(StatType.VIT, StatType.STR, StatType.AGI, StatType.DEX, StatType.WIL, StatType.TEC);
+        List<StatType> statCycle = List.of(StatType.VIT, StatType.STR, StatType.AGI, StatType.DEX, StatType.INT);
         String[] gifts = {"blossom_bundle", "heroic_token", "adventurers_feast"};
         int statIndex = 0;
         int giftIndex = 0;
@@ -163,7 +163,7 @@ public class LifeSkillRewardManager {
             case AGI -> "Agility";
             case INT -> "Intelligence";
             case DEX -> "Dexterity";
-            case WIL -> "Will";
+            case WIL -> "Intelligence";
             case TEC -> "Technique";
         };
     }

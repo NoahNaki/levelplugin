@@ -53,7 +53,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
             ItemStatType.AGI,
             ItemStatType.INTEL,
             ItemStatType.DEX,
-            ItemStatType.WIL,
             ItemStatType.TEC
     );
 
@@ -291,7 +290,6 @@ public class ItemsBrowser implements CommandExecutor, Listener {
         labels.put(ItemStatType.AGI, GuiUtil.formatStatName(StatsManager.StatType.AGI));
         labels.put(ItemStatType.INTEL, GuiUtil.formatStatName(StatsManager.StatType.INT));
         labels.put(ItemStatType.DEX, GuiUtil.formatStatName(StatsManager.StatType.DEX));
-        labels.put(ItemStatType.WIL, GuiUtil.formatStatName(StatsManager.StatType.WIL));
         labels.put(ItemStatType.TEC, GuiUtil.formatStatName(StatsManager.StatType.TEC));
         return labels;
     }

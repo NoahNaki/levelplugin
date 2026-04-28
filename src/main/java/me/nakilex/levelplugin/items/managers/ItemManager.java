@@ -108,23 +108,9 @@ public class ItemManager {
                 ItemRarity rarity = ItemRarity.valueOf(
                     itemsConfig.getString(path + "rarity", "COMMON").toUpperCase());
                 int levelReq      = itemsConfig.getInt(path + "level_requirement", 1);
-                String classReq   = itemsConfig.getString(path + "class_requirement", "ANY");
+                String classReq   = "ANY";
                 Material material = Material.valueOf(
                     itemsConfig.getString(path + "material", "STONE").toUpperCase());
-                if (ArmorType.fromMaterial(material) != null) {
-                    classReq = "ANY";
-                }
-                // Normalize class requirement based on weapon family if mismatched
-                me.nakilex.levelplugin.items.data.WeaponType wt =
-                        me.nakilex.levelplugin.items.data.WeaponType.matchType(new org.bukkit.inventory.ItemStack(material));
-                if (wt != null) {
-                    classReq = switch (wt) {
-                        case WAND -> "MAGE";
-                        case BOW -> "ARCHER";
-                        case SHOVEL, AXE -> "WARRIOR";
-                        case SWORD -> "ROGUE";
-                    };
-                }
 
                 StatRange hpRange    = StatRange.fromString(
                     itemsConfig.getString(path + "hp", "0-0"));
@@ -138,10 +124,8 @@ public class ItemManager {
                     itemsConfig.getString(path + "intel", "0-0"));
                 StatRange dexRange   = StatRange.fromString(
                     itemsConfig.getString(path + "dex", "0-0"));
-                StatRange wilRange   = StatRange.fromString(
-                    itemsConfig.getString(path + "wil", "0-0"));
-                StatRange tecRange   = StatRange.fromString(
-                    itemsConfig.getString(path + "tec", "0-0"));
+                StatRange wilRange   = new StatRange(0, 0);
+                StatRange tecRange   = new StatRange(0, 0);
 
                 addTemplate(numericId, name, rarity, levelReq, classReq, material,
                         hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange);
@@ -168,27 +152,12 @@ public class ItemManager {
 
                 org.bukkit.configuration.ConfigurationSection reqSection = section.getConfigurationSection("requirements");
                 int levelReq = reqSection != null ? reqSection.getInt("level", 1) : 1;
-                String classReq = resolveClassRequirement(reqSection != null ? reqSection.getStringList("classes") : null);
+                String classReq = "ANY";
 
                 org.bukkit.configuration.ConfigurationSection visuals = section.getConfigurationSection("visuals");
                 Material material = visuals != null
                         ? Material.valueOf(visuals.getString("baseMaterial", "STONE").toUpperCase())
                         : Material.STONE;
-                if (ArmorType.fromMaterial(material) != null) {
-                    classReq = "ANY";
-                }
-
-                me.nakilex.levelplugin.items.data.WeaponType wt =
-                        me.nakilex.levelplugin.items.data.WeaponType.matchType(new org.bukkit.inventory.ItemStack(material));
-                if (wt != null) {
-                    classReq = switch (wt) {
-                        case WAND -> "MAGE";
-                        case BOW -> "ARCHER";
-                        case SHOVEL, AXE -> "WARRIOR";
-                        case SWORD -> "ROGUE";
-                    };
-                }
-
                 org.bukkit.configuration.ConfigurationSection statsSection = section.getConfigurationSection("stats");
                 StatRange hpRange = parseStatRange(statsSection, "hp");
                 StatRange defRange = parseStatRange(statsSection, "def");
@@ -196,8 +165,8 @@ public class ItemManager {
                 StatRange agiRange = parseStatRange(statsSection, "agi");
                 StatRange intelRange = parseStatRange(statsSection, "intel");
                 StatRange dexRange = parseStatRange(statsSection, "dex");
-                StatRange wilRange = parseStatRange(statsSection, "wil");
-                StatRange tecRange = parseStatRange(statsSection, "tec");
+                StatRange wilRange = new StatRange(0, 0);
+                StatRange tecRange = new StatRange(0, 0);
 
                 addTemplate(numericId, name, rarity, levelReq, classReq, material,
                         hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange);
@@ -335,8 +304,8 @@ public class ItemManager {
         ranges.put(StatSlot.AGI, agiRange);
         ranges.put(StatSlot.INT, intelRange);
         ranges.put(StatSlot.DEX, dexRange);
-        ranges.put(StatSlot.WIL, wilRange);
-        ranges.put(StatSlot.TEC, tecRange);
+        ranges.put(StatSlot.WIL, new StatRange(0, 0));
+        ranges.put(StatSlot.TEC, new StatRange(0, 0));
 
         for (StatSlot slot : NON_VITALITY_STAT_ORDER) {
             if (isRangeNonZero(ranges.get(slot))) {
@@ -426,14 +395,10 @@ public class ItemManager {
             StatSlot.STR,
             StatSlot.AGI,
             StatSlot.INT,
-            StatSlot.DEX,
-            StatSlot.WIL,
-            StatSlot.TEC
+            StatSlot.DEX
     );
 
     private static final List<StatSlot> TRIM_PRIORITY = List.of(
-            StatSlot.TEC,
-            StatSlot.WIL,
             StatSlot.DEX,
             StatSlot.INT,
             StatSlot.AGI,

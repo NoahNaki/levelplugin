@@ -38,11 +38,6 @@ import me.nakilex.levelplugin.debug.commands.MageFireballDebugCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
 import me.nakilex.levelplugin.player.attributes.commands.LifeSkillCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
-import me.nakilex.levelplugin.player.classes.commands.ClassCommand;
-import me.nakilex.levelplugin.player.classes.commands.GenClassCommand;
-import me.nakilex.levelplugin.player.classes.commands.EssenceCommand;
-import me.nakilex.levelplugin.player.classes.commands.EssenceUpgradeCommand;
-import me.nakilex.levelplugin.player.classes.commands.SealingCharmCommand;
 import me.nakilex.levelplugin.player.level.commands.AddXPCommand;
 import me.nakilex.levelplugin.player.mining.commands.MiningLevelCommand;
 import me.nakilex.levelplugin.player.farming.commands.FarmingLevelCommand;
@@ -107,6 +102,7 @@ import me.nakilex.levelplugin.utils.commands.BlockGlowCommand;
 import me.nakilex.levelplugin.utils.commands.CenterTooltipCommand;
 import me.nakilex.levelplugin.utils.commands.EndDialogCommand;
 import me.nakilex.levelplugin.utils.commands.EmptyTabCompleter;
+import me.nakilex.levelplugin.utils.FeatureFlagUtil;
 import me.nakilex.levelplugin.pathfinding.PathfindingCommand;
 import me.nakilex.levelplugin.pathfinding.PathfindingManager;
 import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
@@ -120,7 +116,11 @@ import me.nakilex.levelplugin.chat.RollCommand;
 import me.nakilex.levelplugin.server.ConnectCommand;
 import me.nakilex.levelplugin.server.HubCommand;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
+import org.bukkit.ChatColor;
+import org.bukkit.command.Command;
+import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.command.TabExecutor;
 import me.nakilex.levelplugin.pathfinding.MercenaryManager;
 
 public class CommandRegistry {
@@ -230,44 +230,24 @@ public class CommandRegistry {
         me.nakilex.levelplugin.items.commands.GenerateItemCommand genItemCmd = new me.nakilex.levelplugin.items.commands.GenerateItemCommand();
         plugin.getCommand("genitem").setExecutor(genItemCmd);
         plugin.getCommand("genitem").setTabCompleter(genItemCmd);
-        GenClassCommand genClassCmd = new GenClassCommand();
-        plugin.getCommand("genclass").setExecutor(genClassCmd);
-        plugin.getCommand("genclass").setTabCompleter(genClassCmd);
-        boolean essenceEnabled = plugin.getCustomConfig().getBoolean("features.essence-system", false);
-        if (essenceEnabled) {
-            plugin.getCommand("essence").setExecutor(new EssenceCommand());
-            EssenceUpgradeCommand essenceUpgradeCmd = new EssenceUpgradeCommand();
-            plugin.getCommand("essenceupgrade").setExecutor(essenceUpgradeCmd);
-            plugin.getCommand("essenceupgrade").setTabCompleter(essenceUpgradeCmd);
-            SealingCharmCommand sealingCharmCmd = new SealingCharmCommand();
-            plugin.getCommand("sealingcharm").setExecutor(sealingCharmCmd);
-            plugin.getCommand("sealingcharm").setTabCompleter(sealingCharmCmd);
-        } else {
-            org.bukkit.command.CommandExecutor disabled = (sender, command, label, args) -> {
-                sender.sendMessage(org.bukkit.ChatColor.RED + "Essence system is temporarily disabled.");
-                return true;
-            };
-            plugin.getCommand("essence").setExecutor(disabled);
-            plugin.getCommand("essenceupgrade").setExecutor(disabled);
-            plugin.getCommand("sealingcharm").setExecutor(disabled);
-        }
         EndDialogCommand endDialogCommand = new EndDialogCommand();
         plugin.getCommand("enddialog").setExecutor(endDialogCommand);
         plugin.getCommand("enddialog").setTabCompleter(endDialogCommand);
         SetLevelCommand setLevelCmd = new SetLevelCommand(plugin);
         plugin.getCommand("setlevel").setExecutor(setLevelCmd);
         plugin.getCommand("setlevel").setTabCompleter(setLevelCmd);
-        ClassCommand classCmd = new ClassCommand();
-        plugin.getCommand("class").setExecutor(classCmd);
-        plugin.getCommand("class").setTabCompleter(classCmd);
-        plugin.getCommand("subclass").setExecutor(new me.nakilex.levelplugin.player.classes.commands.SubclassCommand());
         plugin.getCommand("balance").setExecutor(new BalanceCommand(economyManager));
         AddCoinsCommand addCoinsCmd = new AddCoinsCommand(economyManager);
         plugin.getCommand("addcoins").setExecutor(addCoinsCmd);
         plugin.getCommand("addcoins").setTabCompleter(addCoinsCmd);
-        BoosterCommand boosterCommand = new BoosterCommand(2.0);
-        plugin.getCommand("booster").setExecutor(boosterCommand);
-        plugin.getCommand("booster").setTabCompleter(boosterCommand);
+        boolean boosterSystemEnabled = FeatureFlagUtil.isEnabled("features.booster-system", false);
+        if (boosterSystemEnabled) {
+            BoosterCommand boosterCommand = new BoosterCommand(2.0);
+            plugin.getCommand("booster").setExecutor(boosterCommand);
+            plugin.getCommand("booster").setTabCompleter(boosterCommand);
+        } else {
+            registerArchivedCommand(plugin.getCommand("booster"), "Booster");
+        }
         plugin.getCommand("blacksmith").setExecutor(new BlacksmithCommand(blacksmithGUI));
         HorseCommand horseCommand = new HorseCommand(horseManager, horseGUI);
         plugin.getCommand("horse").setExecutor(horseCommand);
@@ -296,12 +276,22 @@ public class CommandRegistry {
         TradeCommand tradeCmd = new TradeCommand();
         plugin.getCommand("trade").setExecutor(tradeCmd);
         plugin.getCommand("trade").setTabCompleter(tradeCmd);
-        DuelCommand duelCommand = new DuelCommand();
-        plugin.getCommand("duel").setExecutor(duelCommand);
-        plugin.getCommand("duel").setTabCompleter(duelCommand);
-        ArenaCommand arenaCmd = new ArenaCommand(plugin.getArenaQueueGUI(), plugin.getArenaQueueManager());
-        plugin.getCommand("arena").setExecutor(arenaCmd);
-        plugin.getCommand("arena").setTabCompleter(arenaCmd);
+        boolean duelSystemEnabled = FeatureFlagUtil.isEnabled("features.duel-system", false);
+        if (duelSystemEnabled) {
+            DuelCommand duelCommand = new DuelCommand();
+            plugin.getCommand("duel").setExecutor(duelCommand);
+            plugin.getCommand("duel").setTabCompleter(duelCommand);
+        } else {
+            registerArchivedCommand(plugin.getCommand("duel"), "Duel");
+        }
+        boolean arenaSystemEnabled = FeatureFlagUtil.isEnabled("features.arena-system", false);
+        if (arenaSystemEnabled && plugin.getArenaQueueGUI() != null && plugin.getArenaQueueManager() != null) {
+            ArenaCommand arenaCmd = new ArenaCommand(plugin.getArenaQueueGUI(), plugin.getArenaQueueManager());
+            plugin.getCommand("arena").setExecutor(arenaCmd);
+            plugin.getCommand("arena").setTabCompleter(arenaCmd);
+        } else {
+            registerArchivedCommand(plugin.getCommand("arena"), "Arena");
+        }
         StrongholdCommand strongholdCmd = new StrongholdCommand(
                 plugin,
                 plugin.getStrongholdQueueGUI(),
@@ -502,5 +492,22 @@ public class CommandRegistry {
                 cmd.setTabCompleter(empty);
             }
         }
+    }
+
+    private static void registerArchivedCommand(PluginCommand command, String systemName) {
+        TabExecutor archivedHandler = new TabExecutor() {
+            @Override
+            public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+                sender.sendMessage(ChatColor.RED + systemName + " system is currently archived.");
+                return true;
+            }
+
+            @Override
+            public java.util.List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+                return java.util.Collections.emptyList();
+            }
+        };
+        command.setExecutor(archivedHandler);
+        command.setTabCompleter(archivedHandler);
     }
 }

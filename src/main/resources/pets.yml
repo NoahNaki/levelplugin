@@ -34,12 +34,15 @@ pets:
     max-level: 50
     xp-per-level: 100
     owned-stats:
+      vit: 2
       agi: 2
-      wil: 3
     effects:
-    - type: MOVEMENT_MANA_REDUCTION
-      base: 0.15
-      per-level: 0.002
+    - type: CUSTOM_MOB_GUARD
+      base: 0.04
+      per-level: 0.0009
+    - type: STATIONARY_REGEN
+      base: 0.004
+      per-level: 0.00008
   skyhopper:
     name: §aSkyhopper
     rarity: UNCOMMON
@@ -317,9 +320,12 @@ pets:
       str: 4
       dex: 3
     effects:
-    - type: HUNT_MARK
-      base: 0.01
-      per-level: 0.0002
+    - type: BOSS_DAMAGE
+      base: 0.06
+      per-level: 0.001
+    - type: CUSTOM_MOB_DAMAGE
+      base: 0.045
+      per-level: 0.0009
   chorus_binder:
     name: §dChorus Binder
     rarity: EPIC
@@ -429,9 +435,12 @@ pets:
       str: 8
       dex: 4
     effects:
-    - type: MARK_RUPTURE
-      base: 0.05
-      per-level: 0.0008
+    - type: LAST_STAND
+      base: 1
+      per-level: 0
+    - type: LOW_HEALTH_DAMAGE
+      base: 0.12
+      per-level: 0.0012
   air_dragon:
     name: §6Air Dragon
     rarity: LEGENDARY

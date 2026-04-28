@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.classes.managers;
 
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -25,6 +26,9 @@ public class PlayerClassManager {
     private PlayerClassManager() {}
 
     public PlayerClass getPlayerClass(UUID uuid) {
+        if (!ClassUtil.isClassSystemEnabled()) {
+            return PlayerClass.VILLAGER;
+        }
         if (uuid == null) {
             return PlayerClass.VILLAGER;
         }
@@ -42,6 +46,9 @@ public class PlayerClassManager {
     }
 
     public void setPlayerClass(UUID uuid, PlayerClass playerClass) {
+        if (!ClassUtil.isClassSystemEnabled()) {
+            return;
+        }
         if (uuid == null) {
             return;
         }

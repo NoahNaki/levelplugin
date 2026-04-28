@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.spells;
 
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 
@@ -27,7 +28,7 @@ public record SpellBinding(String spellId,
     }
 
     public boolean matches(PlayerClass playerClass, SpellInputMode mode, String sequence, SpellInputType type) {
-        if (playerClass == null || !classPredicate.test(playerClass)) {
+        if (ClassUtil.isClassSystemEnabled() && (playerClass == null || !classPredicate.test(playerClass))) {
             return false;
         }
         if (inputType != null) {

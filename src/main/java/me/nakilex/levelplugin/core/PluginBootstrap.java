@@ -374,20 +374,32 @@ public class PluginBootstrap {
         farmingRewardsConfig = new me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig(plugin);
         fishingRewardsConfig = new me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig(plugin);
         woodcuttingConfig = new me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig(plugin);
-        boosterManager = new GlobalBoosterManager(plugin, 2.0);
+        boolean boosterSystemEnabled = customConfig.getBoolean("features.booster-system", false);
+        if (boosterSystemEnabled) {
+            boosterManager = new GlobalBoosterManager(plugin, 2.0);
+        } else {
+            plugin.getLogger().info("Booster system is archived and will not be initialized.");
+        }
         economyManager = new EconomyManager(plugin);
         lifeSkillRewardManager = new me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager(plugin);
         itemUpgradeManager = new ItemUpgradeManager(plugin);
         itemRepairManager = new ItemRepairManager();
         partyManager = new PartyManager();
-        arenaRatingManager = new ArenaRatingManager(playerConfig);
-        arenaQueueManager = new ArenaQueueManager(arenaRatingManager, partyManager);
-        arenaQueueGUI = new ArenaQueueGUI(arenaQueueManager, arenaRatingManager);
+        boolean arenaSystemEnabled = customConfig.getBoolean("features.arena-system", false);
+        if (arenaSystemEnabled) {
+            arenaRatingManager = new ArenaRatingManager(playerConfig);
+            arenaQueueManager = new ArenaQueueManager(arenaRatingManager, partyManager);
+            arenaQueueGUI = new ArenaQueueGUI(arenaQueueManager, arenaRatingManager);
+        } else {
+            plugin.getLogger().info("Arena system is archived and will not be initialized.");
+        }
         strongholdQueueManager = new StrongholdQueueManager(partyManager);
         strongholdQueueGUI = new StrongholdQueueGUI(strongholdQueueManager);
         strongholdShrineManager = new StrongholdShrineManager(plugin);
         strongholdRunManager = new StrongholdRunManager(plugin, strongholdShrineManager);
-        arenaInstanceManager = new ArenaInstanceManager(plugin);
+        if (arenaSystemEnabled) {
+            arenaInstanceManager = new ArenaInstanceManager(plugin);
+        }
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.init(plugin);
@@ -417,17 +429,21 @@ public class PluginBootstrap {
         battlePassGUI = battlePassManager.getGui();
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
-        arenaQueueManager.setScoreboardManager(scoreboardManager);
+        if (arenaQueueManager != null) {
+            arenaQueueManager.setScoreboardManager(scoreboardManager);
+        }
         scoreboardManager.setStrongholdQueueManager(strongholdQueueManager);
         scoreboardManager.setStrongholdRunManager(strongholdRunManager);
-        arenaCombatTracker = new ArenaCombatTracker();
-        arenaMatchManager = new ArenaMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
-        arenaTeamMatchManager = new ArenaTeamMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
-        arenaQueueManager.setMatchCheck(arenaMatchManager::isInMatch);
-        arenaQueueManager.addMatchCheck(arenaTeamMatchManager::isInMatch);
-        arenaQueueManager.setMatchHandler(ArenaMode.ONE_VS_ONE, arenaMatchManager::startMatch);
-        arenaQueueManager.setMatchHandler(ArenaMode.TWO_VS_TWO, arenaTeamMatchManager::startMatch);
-        arenaQueueManager.setQueueUpdateListener(arenaQueueGUI::refresh);
+        if (arenaSystemEnabled && arenaQueueManager != null && arenaRatingManager != null && arenaInstanceManager != null && arenaQueueGUI != null) {
+            arenaCombatTracker = new ArenaCombatTracker();
+            arenaMatchManager = new ArenaMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
+            arenaTeamMatchManager = new ArenaTeamMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);
+            arenaQueueManager.setMatchCheck(arenaMatchManager::isInMatch);
+            arenaQueueManager.addMatchCheck(arenaTeamMatchManager::isInMatch);
+            arenaQueueManager.setMatchHandler(ArenaMode.ONE_VS_ONE, arenaMatchManager::startMatch);
+            arenaQueueManager.setMatchHandler(ArenaMode.TWO_VS_TWO, arenaTeamMatchManager::startMatch);
+            arenaQueueManager.setQueueUpdateListener(arenaQueueGUI::refresh);
+        }
         strongholdQueueManager.setQueueUpdateListener(() -> {
             strongholdQueueGUI.refresh();
             if (scoreboardManager != null) {
@@ -625,7 +641,11 @@ public class PluginBootstrap {
 
         furnitureGuiMapper = new me.nakilex.levelplugin.nexo.FurnitureGuiMapper();
         furnitureGuiMapper.register("quest_board", player -> mercenaryExpeditionGUI.open(player));
-        furnitureGuiMapper.register("altar", player -> ClassEssenceUpgradeGUI.openInvest(player, null));
+        boolean essenceSystemEnabled = me.nakilex.levelplugin.utils.FeatureFlagUtil.isEnabled("features.class-system", false)
+                && me.nakilex.levelplugin.utils.FeatureFlagUtil.isEnabled("features.essence-system", false);
+        if (essenceSystemEnabled) {
+            furnitureGuiMapper.register("altar", player -> ClassEssenceUpgradeGUI.openInvest(player, null));
+        }
         java.util.List.of(
                 "portal_decoration_animated_v1_portal_1",
                 "portal_decoration_animated_v1_portal_2",
@@ -1103,6 +1123,18 @@ public class PluginBootstrap {
         }
         if (!customConfig.contains("features.quests")) {
             customConfig.set("features.quests", true);
+        }
+        if (!customConfig.contains("features.booster-system")) {
+            customConfig.set("features.booster-system", false);
+        }
+        if (!customConfig.contains("features.class-system")) {
+            customConfig.set("features.class-system", false);
+        }
+        if (!customConfig.contains("features.arena-system")) {
+            customConfig.set("features.arena-system", false);
+        }
+        if (!customConfig.contains("features.duel-system")) {
+            customConfig.set("features.duel-system", false);
         }
         if (!customConfig.contains("debug.chunk-loading")) {
             customConfig.set("debug.chunk-loading", false);
