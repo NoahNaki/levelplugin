@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.particles.presets.ElementalPresets;
 import me.nakilex.levelplugin.spells.SpellContext;
+import me.nakilex.levelplugin.stronghold.run.StrongholdRunManager;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellHandler;
 import me.nakilex.levelplugin.spells.SpellTargetingUtil;
@@ -142,12 +143,13 @@ public class MeteorSpell implements SpellHandler {
         }
         world.spawnParticle(Particle.EXPLOSION, impact, 1, 0.0, 0.0, 0.0, 0.0);
         world.spawnParticle(Particle.LAVA, impact, 36, 0.9, 0.4, 0.9, 0.03);
-        spawnOrangeGroundFlower(impact);
+        spawnOrangeGroundFlower(caster, impact);
         world.playSound(impact, Sound.ENTITY_GENERIC_EXPLODE, 1.3f, 0.8f);
-        applyMeteorImpactDamage(caster, impact);
+        double radiusMultiplier = getMeteorRadiusMultiplier(caster);
+        applyMeteorImpactDamage(caster, impact, radiusMultiplier);
         triggerEmberfall(caster, impact);
         particleService.renderPreset(caster, ElementalPresets.BURNING_SIGIL, impact);
-        SpellEffectUtil.startDamageOverTime(plugin, caster, impact, dotRadius, dotDamage,
+        SpellEffectUtil.startDamageOverTime(plugin, caster, impact, dotRadius * radiusMultiplier, dotDamage,
                 DOT_PERIOD_TICKS, DOT_DURATION_TICKS);
     }
 
@@ -176,9 +178,10 @@ public class MeteorSpell implements SpellHandler {
         SpellEffectUtil.applyAreaDamage(caster, center, Math.max(1.6, dotRadius * 0.9), impactDamage * emberfallDamageFactor);
     }
 
-    private void applyMeteorImpactDamage(Player caster, Location impact) {
-        double horizontalRadiusSq = impactRadius * impactRadius;
-        for (LivingEntity target : SpellEffectUtil.getLivingTargets(impact, impactRadius + 6.0, living -> !living.equals(caster))) {
+    private void applyMeteorImpactDamage(Player caster, Location impact, double radiusMultiplier) {
+        double scaledImpactRadius = impactRadius * Math.max(1.0, radiusMultiplier);
+        double horizontalRadiusSq = scaledImpactRadius * scaledImpactRadius;
+        for (LivingEntity target : SpellEffectUtil.getLivingTargets(impact, scaledImpactRadius + 6.0, living -> !living.equals(caster))) {
             Vector delta = target.getLocation().toVector().subtract(impact.toVector());
             double horizontalSq = (delta.getX() * delta.getX()) + (delta.getZ() * delta.getZ());
             if (horizontalSq > horizontalRadiusSq) {
@@ -191,7 +194,7 @@ public class MeteorSpell implements SpellHandler {
         }
     }
 
-    private void spawnOrangeGroundFlower(Location impact) {
+    private void spawnOrangeGroundFlower(Player caster, Location impact) {
         World world = impact.getWorld();
         if (world == null) {
             return;
@@ -205,9 +208,17 @@ public class MeteorSpell implements SpellHandler {
         }
         for (int i = 0; i < 64; i++) {
             double angle = (Math.PI * 2.0 * i) / 64.0;
-            double x = Math.cos(angle) * impactRadius;
-            double z = Math.sin(angle) * impactRadius;
+            double ringRadius = impactRadius * Math.max(1.0, getMeteorRadiusMultiplier(caster));
+            double x = Math.cos(angle) * ringRadius;
+            double z = Math.sin(angle) * ringRadius;
             world.spawnParticle(Particle.DUST, impact.clone().add(x, 0.1, z), 1, 0.0, 0.0, 0.0, 0.0, METEOR_ORANGE_DUST);
         }
     }
+    private double getMeteorRadiusMultiplier(Player caster) {
+        if (caster == null) {
+            return 1.0;
+        }
+        return caster.getScoreboardTags().contains(StrongholdRunManager.STRONGHOLD_MAGE_METEOR_RADIUS_TAG) ? 3.0 : 1.0;
+    }
+
 }
