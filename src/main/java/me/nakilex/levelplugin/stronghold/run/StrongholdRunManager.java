@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.SpellContext;
@@ -377,9 +378,6 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        if (!StrongholdWorldUtil.isStrongholdWorld(player.getWorld())) {
-            return;
-        }
         Block clicked = event.getClickedBlock();
         if (!isLockedStrongholdDoor(clicked)) {
             return;
@@ -412,6 +410,9 @@ public class StrongholdRunManager implements Listener {
         if (isContainerOpenInteraction(event)) {
             return;
         }
+        if (plugin.getDialogManager() != null && plugin.getDialogManager().isDialogLockActive(event.getPlayer())) {
+            return;
+        }
         if (!tryHandleStrongholdManualInput(event.getPlayer(), ManualCastTrigger.RIGHT_CLICK)) {
             return;
         }
@@ -421,6 +422,10 @@ public class StrongholdRunManager implements Listener {
     @EventHandler
     public void onStrongholdMobilityEntityInteract(PlayerInteractEntityEvent event) {
         if (event == null || event.getPlayer() == null || event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+        if (NpcApi.getRegistry().isNPC(event.getRightClicked())
+                || (plugin.getDialogManager() != null && plugin.getDialogManager().isDialogLockActive(event.getPlayer()))) {
             return;
         }
         if (!tryHandleStrongholdManualInput(event.getPlayer(), ManualCastTrigger.RIGHT_CLICK)) {
@@ -1838,8 +1843,22 @@ public class StrongholdRunManager implements Listener {
                 return "";
             }
             String normalized = spellId.toLowerCase(Locale.ROOT);
-            SpellProgression progression = SpellRegistry.getInstance().getProgression(normalized);
-            return progression == null ? normalized : progression.baseSpellId().toLowerCase(Locale.ROOT);
+            SpellRegistry registry = SpellRegistry.getInstance();
+            SpellProgression progression = registry.getProgression(normalized);
+            if (progression != null) {
+                return progression.baseSpellId().toLowerCase(Locale.ROOT);
+            }
+            for (SpellProgression candidate : registry.getAllProgressions()) {
+                if (candidate == null || candidate.upgradeSpellIds() == null) {
+                    continue;
+                }
+                for (String upgradeId : candidate.upgradeSpellIds()) {
+                    if (upgradeId != null && upgradeId.equalsIgnoreCase(normalized)) {
+                        return candidate.baseSpellId().toLowerCase(Locale.ROOT);
+                    }
+                }
+            }
+            return normalized;
         }
 
         private int getSpellCharges(SurvivorState state, String baseSpellId) {
@@ -1998,6 +2017,19 @@ public class StrongholdRunManager implements Listener {
                     .size();
         }
 
+
+        private String spellArchetypeKey(String spellId) {
+            if (spellId == null || spellId.isBlank()) {
+                return "";
+            }
+            String id = spellId.toLowerCase(Locale.ROOT);
+            if (id.startsWith("mage_") || id.startsWith("meteor") || id.startsWith("blackhole")) {
+                return "mage";
+            }
+            int idx = id.indexOf('_');
+            return idx <= 0 ? "" : id.substring(0, idx);
+        }
+
         private void applyArchetypeBuff(Player player, SurvivorState state) {
             if (player == null || state == null) {
                 return;
@@ -2005,10 +2037,8 @@ public class StrongholdRunManager implements Listener {
             Map<String, Integer> classCounts = new HashMap<>();
             for (String spellId : state.activeSpellByBase.values()) {
                 if (spellId == null) continue;
-                String key = spellId.toLowerCase(Locale.ROOT);
-                int idx = key.indexOf('_');
-                if (idx <= 0) continue;
-                String clazz = key.substring(0, idx);
+                String clazz = spellArchetypeKey(spellId);
+                if (clazz == null || clazz.isBlank()) continue;
                 classCounts.merge(clazz, 1, Integer::sum);
             }
             String buff = "None";

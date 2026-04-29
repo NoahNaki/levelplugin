@@ -30,7 +30,7 @@ public final class StrongholdSpellTooltipUtil {
             case "mage_heal", "mage_heal_rejuvenation", "mage_heal_party" ->
                     appendHighlightedBullet(lore, "Restores health with a ", ChatColor.GREEN, "support pulse", " for survivability.");
             case "mage_blink", "mage_blink_phase", "mage_blink_rift" ->
-                    appendHighlightedBullet(lore, "Blink is ", ChatColor.AQUA, "MANA FREE", " in Stronghold, uses rank-based charges, and refills " + ChatColor.WHITE + ChatColor.BOLD + "1 charge every 4s" + ChatColor.GRAY + ". Riftstride adds a " + ChatColor.GOLD + ChatColor.BOLD + "flame sphere burst" + ChatColor.GRAY + " on arrival.");
+                    appendHighlightedBullet(lore, "Blink is ", ChatColor.AQUA, "MANA FREE", " in Stronghold, uses rank-based charges, and refills " + ChatColor.WHITE + "1 charge every 4s" + ChatColor.GRAY + ". Riftstride adds a " + ChatColor.GOLD + "flame sphere burst" + ChatColor.GRAY + " on arrival.");
             case "archer_quickshot_basic", "archer_quickshot_seeker", "archer_quickshot_payload" ->
                     appendHighlightedBullet(lore, "Fires precision volleys with ", ChatColor.RED, "rapid ranged hits", ", stronger homing, and payload explosions.");
             case "archer_homing_barrage" ->
@@ -71,7 +71,7 @@ public final class StrongholdSpellTooltipUtil {
             case "mage_heal" ->
                     appendHighlightedBullet(lore, "Rank " + currentRank + " → " + nextRank + ": improves ", ChatColor.GREEN, "healing, mana restore, and shield strength", ".");
             case "mage_blink" ->
-                    appendHighlightedBullet(lore, "Rank " + currentRank + " → " + nextRank + ": grants ", ChatColor.AQUA, "+1 BLINK CHARGE", " in Stronghold (" + ChatColor.WHITE + ChatColor.BOLD + "1 charge / 4s" + ChatColor.GRAY + "). Highest rank unlocks a " + ChatColor.GOLD + ChatColor.BOLD + "fiery sphere burst" + ChatColor.GRAY + " on arrival.");
+                    appendHighlightedBullet(lore, "Rank " + currentRank + " → " + nextRank + ": grants ", ChatColor.AQUA, "+1 BLINK CHARGE", " in Stronghold (" + ChatColor.WHITE + "1 charge / 4s" + ChatColor.GRAY + "). Highest rank unlocks a " + ChatColor.GOLD + "fiery sphere burst" + ChatColor.GRAY + " on arrival.");
             case "blackhole" ->
                     appendHighlightedBullet(lore, "Rank " + currentRank + " → " + nextRank + ": drastically improves ", ChatColor.DARK_PURPLE, "pull radius, horizon arc pressure, and collapse burst", ".");
             case "meteor" ->
