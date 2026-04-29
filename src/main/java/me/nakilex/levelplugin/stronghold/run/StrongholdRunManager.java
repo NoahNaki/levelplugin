@@ -234,6 +234,9 @@ public class StrongholdRunManager implements Listener {
         activeRuns.put(worldId, run);
         run.start();
         send(player, MessageType.SUCCESS, "Stronghold waves started.");
+        if (plugin.getQuestManager() != null) {
+            plugin.getQuestManager().handleStrongholdEnter(player);
+        }
     }
 
     public void stopAll() {
@@ -391,6 +394,9 @@ public class StrongholdRunManager implements Listener {
         openable.setOpen(true);
         clicked.setBlockData(openable);
         send(player, MessageType.SUCCESS, ChatColor.GOLD + "Stronghold Key used. Gate opened.");
+        if (plugin.getQuestManager() != null) {
+            plugin.getQuestManager().handleStrongholdKeyUse(player);
+        }
     }
 
     @EventHandler
@@ -822,6 +828,12 @@ public class StrongholdRunManager implements Listener {
             for (Player player : players) {
                 StageProgress progress = toStageProgress(waveNumber);
                 send(player, MessageType.INFO, "Stage " + ChatColor.WHITE + progress.stage() + ChatColor.GRAY + "-" + ChatColor.WHITE + progress.wave() + ChatColor.GRAY + " started.");
+                if (plugin.getQuestManager() != null) {
+                    plugin.getQuestManager().handleStrongholdWaveClear(player, waveNumber);
+                    if (progress.wave() == WAVES_PER_STAGE) {
+                        plugin.getQuestManager().handleStrongholdStageComplete(player, progress.stage());
+                    }
+                }
             }
         }
 
