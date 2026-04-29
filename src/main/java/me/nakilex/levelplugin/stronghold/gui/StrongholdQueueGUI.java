@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.stronghold.gui;
 import me.nakilex.levelplugin.stronghold.StrongholdGearBand;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
+import me.nakilex.levelplugin.stronghold.StrongholdStartupProfiler;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
@@ -51,6 +52,11 @@ public class StrongholdQueueGUI implements Listener {
     }
 
     public void open(Player player) {
+        StrongholdStartupProfiler profiler = StrongholdStartupProfiler.startOrContinue(Main.getInstance(), player);
+        if (profiler != null) {
+            long step = profiler.stepStarted("Open stronghold queue GUI");
+            profiler.stepFinished("Open stronghold queue GUI", step);
+        }
         Inventory inv = GuiBuilder.create(GUI_SIZE, TITLE)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .fillEmptySlots(false)
@@ -175,6 +181,8 @@ public class StrongholdQueueGUI implements Listener {
             return;
         }
 
+        StrongholdStartupProfiler profiler = StrongholdStartupProfiler.startOrContinue(Main.getInstance(), player);
+        long queueStep = profiler == null ? 0L : profiler.stepStarted("Queue join request (" + mode.name() + ")");
         StrongholdQueueManager.QueueJoinOutcome outcome = queueManager.join(player, mode);
         if (outcome.result() == StrongholdQueueManager.QueueJoinResult.JOINED
                 || outcome.result() == StrongholdQueueManager.QueueJoinResult.STARTED) {
@@ -186,6 +194,9 @@ public class StrongholdQueueGUI implements Listener {
             send(player, MessageType.ERROR, outcome.message() == null
                     ? ChatColor.RED + "Unable to join Stronghold queue."
                     : outcome.message());
+        }
+        if (profiler != null) {
+            profiler.stepFinished("Queue join request (" + mode.name() + ")", queueStep);
         }
         refreshOpenInventories();
     }

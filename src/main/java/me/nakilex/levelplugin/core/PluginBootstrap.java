@@ -458,7 +458,7 @@ public class PluginBootstrap {
                 return;
             }
             Bukkit.getScheduler().runTask(plugin, () -> {
-                StrongholdStartupProfiler profiler = StrongholdStartupProfiler.start(plugin, soloPlayer);
+                StrongholdStartupProfiler profiler = StrongholdStartupProfiler.startOrContinue(plugin, soloPlayer);
                 long stepStart = profiler == null ? 0L : profiler.stepStarted("Capture return location");
                 strongholdRunManager.captureReturnLocation(soloPlayer);
                 if (profiler != null) {

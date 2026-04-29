@@ -6,12 +6,14 @@ import org.bukkit.entity.Player;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Lightweight console profiler for tracking stronghold startup latency.
  */
 public final class StrongholdStartupProfiler {
     private static final String PREFIX = "[StrongholdStartupTiming] ";
+    private static final Map<UUID, StrongholdStartupProfiler> ACTIVE_SESSIONS = new ConcurrentHashMap<>();
 
     private final Main plugin;
     private final UUID playerId;
@@ -28,10 +30,19 @@ public final class StrongholdStartupProfiler {
     }
 
     public static StrongholdStartupProfiler start(Main plugin, Player player) {
-        if (plugin == null) {
+        if (plugin == null || player == null) {
             return null;
         }
-        return new StrongholdStartupProfiler(plugin, player);
+        StrongholdStartupProfiler profiler = new StrongholdStartupProfiler(plugin, player);
+        ACTIVE_SESSIONS.put(player.getUniqueId(), profiler);
+        return profiler;
+    }
+
+    public static StrongholdStartupProfiler startOrContinue(Main plugin, Player player) {
+        if (plugin == null || player == null) {
+            return null;
+        }
+        return ACTIVE_SESSIONS.computeIfAbsent(player.getUniqueId(), ignored -> new StrongholdStartupProfiler(plugin, player));
     }
 
     public long stepStarted(String stepName) {
@@ -55,6 +66,7 @@ public final class StrongholdStartupProfiler {
             return;
         }
         log("Session summary -> slowest=" + slowest.getKey() + " (" + slowest.getValue() + "ms), total=" + totalMs + "ms.");
+        ACTIVE_SESSIONS.remove(playerId);
     }
 
     private void log(String message) {
