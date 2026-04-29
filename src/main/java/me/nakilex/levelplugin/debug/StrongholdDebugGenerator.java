@@ -5586,7 +5586,7 @@ public final class StrongholdDebugGenerator {
     }
 
     public record AssetScatterConfig(int totalCount, int treePercent, int ruinPercent, int rockPercent) {
-        private static final int DEFAULT_TOTAL_COUNT = 500;
+        private static final int DEFAULT_TOTAL_COUNT = 300;
         private static final int DEFAULT_TREE_PERCENT = 85;
         private static final int DEFAULT_RUIN_PERCENT = 5;
         private static final int DEFAULT_ROCK_PERCENT = 10;
