@@ -22,6 +22,7 @@ public class AnimatedLeaderboard {
     private static final int PROGRESS_SEGMENT_COUNT = 4;
     private static final int PROGRESS_SEGMENT_SIZE = PROGRESS_TOTAL_UNITS / PROGRESS_SEGMENT_COUNT;
     private static final boolean DEBUG_PROGRESS_TIMING = true;
+    private static final int MAX_UNITS_PER_UPDATE = 3;
 
     private final JavaPlugin plugin;
     private final LeaderboardDataProvider dataProvider;
@@ -39,6 +40,7 @@ public class AnimatedLeaderboard {
     private int barCount = 0;
     private double progressAccumulator = 0.0D;
     private long lastProgressUpdateNanos = 0L;
+    private long lastProgressAdvanceNanos = 0L;
     private boolean transitioning = false;
     private BukkitTask tickTask;
 
@@ -81,6 +83,7 @@ public class AnimatedLeaderboard {
         barCount = 0;
         progressAccumulator = 0.0D;
         lastProgressUpdateNanos = 0L;
+        lastProgressAdvanceNanos = 0L;
     }
 
     public void next() { transitionTo(boardType.next()); }
@@ -88,7 +91,7 @@ public class AnimatedLeaderboard {
     private void startProgressTask() {
         tickTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (transitioning) return;
-            if (advanceProgressBar()) {
+            if (advanceProgressBar(System.nanoTime())) {
                 transitionTo(boardType.next());
                 return;
             }
@@ -98,12 +101,24 @@ public class AnimatedLeaderboard {
     }
 
 
-    private boolean advanceProgressBar() {
-        progressAccumulator += PROGRESS_TOTAL_UNITS / (double) cycleDuration;
-        int unitsToAdd = (int) progressAccumulator;
+    private boolean advanceProgressBar(long nowNanos) {
+        if (lastProgressAdvanceNanos == 0L) {
+            lastProgressAdvanceNanos = nowNanos;
+            return false;
+        }
+
+        long elapsedNanos = nowNanos - lastProgressAdvanceNanos;
+        lastProgressAdvanceNanos = nowNanos;
+        double elapsedSeconds = Math.max(0.0D, elapsedNanos / 1_000_000_000.0D);
+        double cycleSeconds = cycleDuration / 20.0D;
+        double unitsPerSecond = PROGRESS_TOTAL_UNITS / cycleSeconds;
+
+        progressAccumulator += elapsedSeconds * unitsPerSecond;
+        int unitsToAdd = Math.min(MAX_UNITS_PER_UPDATE, (int) progressAccumulator);
         if (unitsToAdd <= 0) {
             return false;
         }
+
         progressAccumulator -= unitsToAdd;
         barCount += unitsToAdd;
         if (barCount > PROGRESS_TOTAL_UNITS) {
@@ -130,6 +145,7 @@ public class AnimatedLeaderboard {
         if (transitioning) return;
         transitioning = true;
         barCount = 0;
+        lastProgressAdvanceNanos = 0L;
         animateTitleBounce(next, () -> animateRowsOut(() -> {
             boardType = next;
             applyBoard(boardType);
@@ -148,7 +164,7 @@ public class AnimatedLeaderboard {
         List<LeaderboardEntry> entries = dataProvider.getEntries(type, rowCount);
         for (int i = 0; i < rowCount; i++) {
             LeaderboardEntry e = i < entries.size() ? entries.get(i) : new LeaderboardEntry("NONE", 0, 0);
-            rows.get(i).setText(ChatColor.WHITE + "#" + (i + 1) + " " + e.name(), type.color() + type.format(e));
+            rows.get(i).setText(type.color() + "#" + (i + 1) + ChatColor.WHITE + " " + e.name(), type.color() + type.format(e));
         }
     }
 
