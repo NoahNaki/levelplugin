@@ -15,6 +15,7 @@ import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.SpellAccessUtil;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
+import me.nakilex.levelplugin.stronghold.StrongholdStartupProfiler;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
@@ -191,10 +192,14 @@ public class StrongholdRunManager implements Listener {
     private StageProgress toStageProgress(int absoluteWave) { int safe=Math.max(1, absoluteWave); int stage=((safe-1)/WAVES_PER_STAGE)+1; int waveIn=((safe-1)%WAVES_PER_STAGE)+1; return new StageProgress(stage,waveIn,safe); }
 
     public void startSoloRun(Player player) {
-        startSoloRun(player, null);
+        startSoloRun(player, null, null);
     }
 
     public void startSoloRun(Player player, Integer startingStage) {
+        startSoloRun(player, startingStage, null);
+    }
+
+    public void startSoloRun(Player player, Integer startingStage, StrongholdStartupProfiler profiler) {
         if (player == null || !player.isOnline()) {
             return;
         }
@@ -203,15 +208,27 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         UUID worldId = world.getUID();
+        long stepStart = profiler == null ? 0L : profiler.stepStarted("Stop existing run state");
         stopRun(worldId);
+        if (profiler != null) {
+            profiler.stepFinished("Stop existing run state", stepStart);
+        }
 
         Location origin = player.getLocation().clone();
+        stepStart = profiler == null ? 0L : profiler.stepStarted("Spawn random shrines");
         StrongholdShrineManager.ShrineSpawnDiagnostics randomDiag =
                 shrineManager.spawnRandomShrinesWithDiagnostics(origin, SHRINES_PER_RUN, 72, 250.0);
+        if (profiler != null) {
+            profiler.stepFinished("Spawn random shrines", stepStart);
+        }
         int shrines = randomDiag.spawned();
         StrongholdShrineManager.ShrineSpawnDiagnostics fallbackDiag = null;
         if (shrines < SHRINES_PER_RUN) {
+            stepStart = profiler == null ? 0L : profiler.stepStarted("Spawn fallback shrines");
             fallbackDiag = shrineManager.spawnFallbackShrinesWithDiagnostics(origin, SHRINES_PER_RUN - shrines, 128, 250.0);
+            if (profiler != null) {
+                profiler.stepFinished("Spawn fallback shrines", stepStart);
+            }
             shrines += fallbackDiag.spawned();
         }
         if (shrines > 0) {
@@ -235,12 +252,23 @@ public class StrongholdRunManager implements Listener {
             send(player, MessageType.WARNING, debug.toString());
         }
 
+        stepStart = profiler == null ? 0L : profiler.stepStarted("Initialize ActiveRun and begin waves");
         ActiveRun run = new ActiveRun(worldId, origin, startingStage);
         activeRuns.put(worldId, run);
         run.start();
+        if (profiler != null) {
+            profiler.stepFinished("Initialize ActiveRun and begin waves", stepStart);
+        }
         send(player, MessageType.SUCCESS, "Stronghold waves started.");
         if (plugin.getQuestManager() != null) {
+            stepStart = profiler == null ? 0L : profiler.stepStarted("Quest hook: handleStrongholdEnter");
             plugin.getQuestManager().handleStrongholdEnter(player);
+            if (profiler != null) {
+                profiler.stepFinished("Quest hook: handleStrongholdEnter", stepStart);
+            }
+        }
+        if (profiler != null) {
+            profiler.summary();
         }
     }
 

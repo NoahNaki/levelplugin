@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
 import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
+import me.nakilex.levelplugin.stronghold.StrongholdStartupProfiler;
 import me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI;
 import me.nakilex.levelplugin.stronghold.run.StrongholdRunManager;
 import org.bukkit.scheduler.BukkitTask;
@@ -457,8 +458,17 @@ public class PluginBootstrap {
                 return;
             }
             Bukkit.getScheduler().runTask(plugin, () -> {
+                StrongholdStartupProfiler profiler = StrongholdStartupProfiler.start(plugin, soloPlayer);
+                long stepStart = profiler == null ? 0L : profiler.stepStarted("Capture return location");
                 strongholdRunManager.captureReturnLocation(soloPlayer);
+                if (profiler != null) {
+                    profiler.stepFinished("Capture return location", stepStart);
+                }
+                stepStart = profiler == null ? 0L : profiler.stepStarted("Generate stronghold world/templates");
                 boolean started = me.nakilex.levelplugin.debug.StrongholdDebugGenerator.generateTest(soloPlayer);
+                if (profiler != null) {
+                    profiler.stepFinished("Generate stronghold world/templates", stepStart);
+                }
                 if (!started) {
                     me.nakilex.levelplugin.utils.ChatMessageUtil.send(
                             soloPlayer,
@@ -466,7 +476,13 @@ public class PluginBootstrap {
                             "Failed to start a solo Stronghold run.");
                     return;
                 }
-                Bukkit.getScheduler().runTaskLater(plugin, () -> strongholdRunManager.startSoloRun(soloPlayer), 40L);
+                final long waitStart = profiler == null ? 0L : profiler.stepStarted("Wait before wave startup (40 ticks)");
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (profiler != null) {
+                        profiler.stepFinished("Wait before wave startup (40 ticks)", waitStart);
+                    }
+                    strongholdRunManager.startSoloRun(soloPlayer, null, profiler);
+                }, 40L);
             });
         });
         strongholdQueueTickTask = Bukkit.getScheduler().runTaskTimer(plugin, strongholdQueueManager::tick, 20L, 20L);
