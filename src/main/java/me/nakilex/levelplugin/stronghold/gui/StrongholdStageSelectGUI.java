@@ -41,7 +41,7 @@ public class StrongholdStageSelectGUI implements Listener {
             }
             ItemStack stageItem = unlocked
                     ? GuiUtil.createGuiItem(Material.ENDER_EYE, ChatColor.LIGHT_PURPLE + "Stage " + st + "-1", lore)
-                    : GuiUtil.getNexoItem("locked", ChatColor.RED + "Locked Stage", lore);
+                    : GuiUtil.getNexoItem("lock", ChatColor.RED + "Locked Stage", lore);
             inv.setItem(slot, stageItem);
             slot++; if(slot%9==8) slot+=2;
         }

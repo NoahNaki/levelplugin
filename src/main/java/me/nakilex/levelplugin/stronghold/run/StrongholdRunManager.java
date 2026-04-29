@@ -1919,29 +1919,30 @@ public class StrongholdRunManager implements Listener {
             }
             String buff = "None";
             if (classCounts.getOrDefault("rogue", 0) >= 3) {
-                player.setAllowFlight(true);
-                buff = "Rogue Trinity";
+                PlayerClassManager.getInstance().setPlayerClass(player, PlayerClass.ROGUE);
+                buff = "Rogue Trinity: Double Jump Arc";
             } else {
                 player.setFlying(false);
                 player.setAllowFlight(false);
+                PlayerClassManager.getInstance().setPlayerClass(player, PlayerClass.VILLAGER);
             }
             if (classCounts.getOrDefault("warrior", 0) >= 3) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 0, true, false, false));
-                buff = "Warrior Trinity";
+                buff = "Warrior Trinity: Resist";
             }
             if (classCounts.getOrDefault("mage", 0) >= 3) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 60, 0, true, false, false));
-                buff = "Mage Trinity";
+                buff = "Mage Trinity: Regen";
             }
             if (classCounts.getOrDefault("archer", 0) >= 3) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 0, true, false, false));
-                buff = "Archer Trinity";
+                buff = "Archer Trinity: Haste";
             }
             if (classCounts.getOrDefault("rogue", 0) >= 1 && classCounts.getOrDefault("warrior", 0) >= 1
                     && classCounts.getOrDefault("mage", 0) >= 1 && classCounts.getOrDefault("archer", 0) >= 1) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 0, true, false, false));
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 0, true, false, false));
-                buff = "Prismatic Surge";
+                buff = "Prismatic Surge: Speed+Power";
             }
             state.activeArchetypeBuff = buff;
         }
