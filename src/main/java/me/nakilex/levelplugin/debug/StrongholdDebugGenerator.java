@@ -225,6 +225,8 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_MIN_TOTAL_REQUEST = 32;
     private static final int DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET = 700;
     private static final int POST_TELEPORT_ENHANCEMENT_DELAY_TICKS = 80;
+    private static final int FAR_ENHANCEMENT_DELAY_TICKS = 200;
+    private static final int NEAR_ENHANCEMENT_RADIUS_BLOCKS = 96;
     private static final int BORDER_FOREST_START_DELAY_TICKS = 5;
     private static final int BORDER_FOREST_TICK_INTERVAL = 1;
     private static final int BORDER_FOREST_BATCH_SIZE = 10;
@@ -1524,14 +1526,22 @@ public final class StrongholdDebugGenerator {
             return;
         }
         Main plugin = Main.getInstance();
+        int centerX = player == null ? 0 : player.getLocation().getBlockX();
+        int centerZ = player == null ? 0 : player.getLocation().getBlockZ();
+        TemplatePastePlan enhancementPlan = buildTemplatePastePlan(
+                placed,
+                centerX,
+                centerZ,
+                NEAR_ENHANCEMENT_RADIUS_BLOCKS
+        );
         if (plugin == null) {
             pastePlacedTemplates(world, deferredTemplates);
             applyTemplateMarkerActions(sourceWorld, world, deferredTemplates, random);
-            AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY, player);
-            Bounds2D footprint = combinedBounds2D(placed);
+            AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, enhancementPlan.coreTemplates(), occupied, random, fallbackY, player);
+            Bounds2D footprint = combinedBounds2D(enhancementPlan.coreTemplates());
             scheduleDetachedAssetPasting(world, assetSummary.placements(), player, () ->
                     scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY, () ->
-                            applyStrongholdFloorNoise(world, placed)
+                            applyStrongholdFloorNoise(world, enhancementPlan.coreTemplates())
                     ));
             return;
         }
@@ -1542,12 +1552,23 @@ public final class StrongholdDebugGenerator {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             pastePlacedTemplates(world, deferredTemplates);
             applyTemplateMarkerActions(sourceWorld, world, deferredTemplates, random);
-            AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY, player);
-            Bounds2D footprint = combinedBounds2D(placed);
+            AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, enhancementPlan.coreTemplates(), occupied, random, fallbackY, player);
+            Bounds2D footprint = combinedBounds2D(enhancementPlan.coreTemplates());
             scheduleDetachedAssetPasting(world, assetSummary.placements(), player, () ->
                     scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY, () ->
-                            applyStrongholdFloorNoise(world, placed, true)
+                            applyStrongholdFloorNoise(world, enhancementPlan.coreTemplates(), true)
                     ));
+            if (!enhancementPlan.deferredTemplates().isEmpty()) {
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    AssetPlacementSummary farAssetSummary = placeDetachedAssets(sourceWorld, world,
+                            enhancementPlan.deferredTemplates(), occupied, random, fallbackY, player);
+                    Bounds2D farFootprint = combinedBounds2D(enhancementPlan.deferredTemplates());
+                    scheduleDetachedAssetPasting(world, farAssetSummary.placements(), player, () ->
+                            scheduleOrganicBorderForest(sourceWorld, world, farFootprint, occupied, player, fallbackY, () ->
+                                    applyStrongholdFloorNoise(world, enhancementPlan.deferredTemplates(), false)
+                            ));
+                }, FAR_ENHANCEMENT_DELAY_TICKS);
+            }
         }, POST_TELEPORT_ENHANCEMENT_DELAY_TICKS);
     }
 
