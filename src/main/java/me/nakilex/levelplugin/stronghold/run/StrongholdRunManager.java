@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellDefinition;
@@ -1919,12 +1920,12 @@ public class StrongholdRunManager implements Listener {
             }
             String buff = "None";
             if (classCounts.getOrDefault("rogue", 0) >= 3) {
-                PlayerClassManager.getInstance().setPlayerClass(player, PlayerClass.ROGUE);
-                buff = "Rogue Trinity: Double Jump Arc";
+                DoubleJumpListener.setExternalBonusJumps(player.getUniqueId(), 1);
+                DoubleJumpListener.setExternalArcSlashOnJump(player.getUniqueId(), true);
+                buff = "Rogue Trinity: +1 Air Jump Arc";
             } else {
-                player.setFlying(false);
-                player.setAllowFlight(false);
-                PlayerClassManager.getInstance().setPlayerClass(player, PlayerClass.VILLAGER);
+                DoubleJumpListener.setExternalBonusJumps(player.getUniqueId(), 0);
+                DoubleJumpListener.setExternalArcSlashOnJump(player.getUniqueId(), false);
             }
             if (classCounts.getOrDefault("warrior", 0) >= 3) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 0, true, false, false));
@@ -2085,6 +2086,8 @@ public class StrongholdRunManager implements Listener {
             Player online = Bukkit.getPlayer(playerId);
             if (online != null && online.isOnline()) {
                 online.setInvisible(false);
+                DoubleJumpListener.setExternalBonusJumps(playerId, 0);
+                DoubleJumpListener.setExternalArcSlashOnJump(playerId, false);
                 online.setAllowFlight(false);
                 online.setFlying(false);
                 PlayerClassManager.getInstance().setPlayerClass(online, state.originalClass);
