@@ -377,8 +377,7 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        ActiveRun run = activeRuns.get(player.getWorld().getUID());
-        if (run == null) {
+        if (!StrongholdWorldUtil.isStrongholdWorld(player.getWorld())) {
             return;
         }
         Block clicked = event.getClickedBlock();
@@ -886,7 +885,8 @@ public class StrongholdRunManager implements Listener {
             }
             StageProgress progress = toStageProgress(waveNumber);
             double healthMultiplier = Math.pow(1.0 + stageScalingConfig.stageHealthGrowth(), progress.stage() - 1)
-                    * Math.pow(1.0 + stageScalingConfig.waveHealthGrowth(), progress.wave() - 1);
+                    * Math.pow(1.0 + stageScalingConfig.waveHealthGrowth(), progress.wave() - 1)
+                    * 1.10;
             if (boss) {
                 healthMultiplier *= 1.35;
             }
@@ -1871,9 +1871,14 @@ public class StrongholdRunManager implements Listener {
                 return;
             }
             state.lastMobilityChargeRefillAt = nowMs;
-            for (String baseSpellId : mobilityBasePool) {
-                String base = baseSpellId == null ? "" : baseSpellId.toLowerCase(Locale.ROOT);
-                if (base.isBlank() || getMaxSpellCharges(state, base) <= 0) {
+            for (Map.Entry<String, String> entry : state.activeSpellByBase.entrySet()) {
+                String base = entry.getKey() == null ? "" : entry.getKey().toLowerCase(Locale.ROOT);
+                String spellId = entry.getValue();
+                SpellRegistry.SpellEntry spellEntry = spellId == null ? null : SpellRegistry.getInstance().getSpell(spellId);
+                if (base.isBlank() || spellEntry == null || spellEntry.definition() == null || !spellEntry.definition().movementSpell()) {
+                    continue;
+                }
+                if (getMaxSpellCharges(state, base) <= 0) {
                     continue;
                 }
                 addSpellCharges(state, base, 1);
