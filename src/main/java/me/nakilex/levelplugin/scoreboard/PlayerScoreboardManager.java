@@ -448,13 +448,19 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             }
             idx++; line--;
 
-            current[idx] = ChatColor.GRAY + "Wave: " + ChatColor.WHITE + strongholdStage.wave();
+            current[idx] = ChatColor.GRAY + "Stage: " + ChatColor.WHITE + strongholdStage.stage() + ChatColor.GRAY + "-" + ChatColor.WHITE + strongholdStage.wave();
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }
             idx++; line--;
 
             current[idx] = ChatColor.GRAY + "Enemies: " + ChatColor.WHITE + strongholdStage.enemiesRemaining();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = ChatColor.GRAY + "Buff: " + ChatColor.WHITE + (strongholdStage.archetypeBuff() == null ? "None" : strongholdStage.archetypeBuff());
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }

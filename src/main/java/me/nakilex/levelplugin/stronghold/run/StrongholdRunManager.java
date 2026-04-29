@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellDefinition;
@@ -56,7 +57,12 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.configuration.file.YamlConfiguration;
+import java.io.File;
+import java.io.IOException;
 import org.bukkit.util.Vector;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -85,7 +91,8 @@ public class StrongholdRunManager implements Listener {
     private static final int SHRINES_PER_RUN = 1;
     private static final int FIRST_WAVE_DELAY_SECONDS = 3;
     private static final int WAVE_INTERVAL_SECONDS = 5;
-    private static final int MAX_WAVE = 30;
+    private static final int WAVES_PER_STAGE = 30;
+    private static final int MAX_ABSOLUTE_WAVE = 300;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
     private static final int BASE_XP_REQUIRED = 100;
     private static final int MAX_ACTIVE_STRONGHOLD_SPELLS = 4;
@@ -104,8 +111,11 @@ public class StrongholdRunManager implements Listener {
     private static final String BOSS_MOB_ID = "slime_king";
     private static final double KEY_DROP_CHANCE = 0.03;
     private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
-    private static final double WAVE_MOVE_SPEED_BONUS_PER_WAVE = 0.008;
-    private static final double WAVE_HEALTH_BONUS_PER_WAVE = 0.07;
+    private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.15;
+    private static final double DEFAULT_STAGE_DAMAGE_GROWTH = 0.10;
+    private static final double DEFAULT_WAVE_HEALTH_GROWTH = 0.02;
+    private static final double DEFAULT_WAVE_DAMAGE_GROWTH = 0.015;
+    private static final double DEFAULT_WAVE_MOVE_SPEED_GROWTH = 0.003;
     private static final int MINIBOSS_SLIME_SIZE = 4;
     private static final int BOSS_SLIME_SIZE = 6;
     private static final List<String> DEFAULT_MOBILITY_BASE_SPELLS = List.of(
@@ -125,6 +135,10 @@ public class StrongholdRunManager implements Listener {
     private final List<String> waveMobPool = List.of("forest_slime");
     private final Set<String> autoCastBasePool = new HashSet<>();
     private final Set<String> mobilityBasePool = new HashSet<>();
+    private final Map<UUID, Integer> highestAbsoluteWaveByPlayer = new HashMap<>();
+    private File progressionFile;
+    private YamlConfiguration progressionConfig;
+    private StageScalingConfig stageScalingConfig = new StageScalingConfig(DEFAULT_STAGE_HEALTH_GROWTH, DEFAULT_STAGE_DAMAGE_GROWTH, DEFAULT_WAVE_HEALTH_GROWTH, DEFAULT_WAVE_DAMAGE_GROWTH, DEFAULT_WAVE_MOVE_SPEED_GROWTH);
 
     private enum ManualCastTrigger {
         NONE,
@@ -135,9 +149,47 @@ public class StrongholdRunManager implements Listener {
     public StrongholdRunManager(Main plugin, StrongholdShrineManager shrineManager) {
         this.plugin = plugin;
         this.shrineManager = shrineManager;
+        loadProgressionData();
     }
 
+    private void loadProgressionData() {
+        progressionFile = new File(plugin.getDataFolder(), "stronghold_progression.yml");
+        progressionConfig = YamlConfiguration.loadConfiguration(progressionFile);
+        stageScalingConfig = new StageScalingConfig(
+                Math.max(0.0, progressionConfig.getDouble("scaling.stage-health-growth", DEFAULT_STAGE_HEALTH_GROWTH)),
+                Math.max(0.0, progressionConfig.getDouble("scaling.stage-damage-growth", DEFAULT_STAGE_DAMAGE_GROWTH)),
+                Math.max(0.0, progressionConfig.getDouble("scaling.wave-health-growth", DEFAULT_WAVE_HEALTH_GROWTH)),
+                Math.max(0.0, progressionConfig.getDouble("scaling.wave-damage-growth", DEFAULT_WAVE_DAMAGE_GROWTH)),
+                Math.max(0.0, progressionConfig.getDouble("scaling.wave-speed-growth", DEFAULT_WAVE_MOVE_SPEED_GROWTH)));
+        if (progressionConfig.isConfigurationSection("players")) {
+            for (String key : progressionConfig.getConfigurationSection("players").getKeys(false)) {
+                try { highestAbsoluteWaveByPlayer.put(UUID.fromString(key), Math.max(0, progressionConfig.getInt("players."+key+".highest-absolute-wave", 0))); } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    private void saveProgressionData() {
+        if (progressionConfig == null || progressionFile == null) return;
+        progressionConfig.set("scaling.stage-health-growth", stageScalingConfig.stageHealthGrowth());
+        progressionConfig.set("scaling.stage-damage-growth", stageScalingConfig.stageDamageGrowth());
+        progressionConfig.set("scaling.wave-health-growth", stageScalingConfig.waveHealthGrowth());
+        progressionConfig.set("scaling.wave-damage-growth", stageScalingConfig.waveDamageGrowth());
+        progressionConfig.set("scaling.wave-speed-growth", stageScalingConfig.waveSpeedGrowth());
+        for (var e: highestAbsoluteWaveByPlayer.entrySet()) progressionConfig.set("players."+e.getKey()+".highest-absolute-wave", e.getValue());
+        try { progressionConfig.save(progressionFile); } catch (IOException ex) { ex.printStackTrace(); }
+    }
+
+    public StageScalingConfig getStageScalingConfig() { return stageScalingConfig; }
+    public void updateStageScalingConfig(StageScalingConfig config) { if (config==null) return; this.stageScalingConfig=config; saveProgressionData(); }
+    public StageProgress getHighestStageProgress(UUID playerId) { int w=Math.max(0, highestAbsoluteWaveByPlayer.getOrDefault(playerId,0)); return toStageProgress(w); }
+
+    private StageProgress toStageProgress(int absoluteWave) { int safe=Math.max(1, absoluteWave); int stage=((safe-1)/WAVES_PER_STAGE)+1; int waveIn=((safe-1)%WAVES_PER_STAGE)+1; return new StageProgress(stage,waveIn,safe); }
+
     public void startSoloRun(Player player) {
+        startSoloRun(player, null);
+    }
+
+    public void startSoloRun(Player player, Integer startingStage) {
         if (player == null || !player.isOnline()) {
             return;
         }
@@ -178,7 +230,7 @@ public class StrongholdRunManager implements Listener {
             send(player, MessageType.WARNING, debug.toString());
         }
 
-        ActiveRun run = new ActiveRun(worldId, origin);
+        ActiveRun run = new ActiveRun(worldId, origin, startingStage);
         activeRuns.put(worldId, run);
         run.start();
         send(player, MessageType.SUCCESS, "Stronghold waves started.");
@@ -607,17 +659,24 @@ public class StrongholdRunManager implements Listener {
         private BukkitTask task;
         private BukkitTask autoCastTask;
         private int wave = 0;
+        private final Integer selectedStartingStage;
         private int secondsUntilNextWave = FIRST_WAVE_DELAY_SECONDS;
 
-        private ActiveRun(UUID worldId, Location origin) {
+        private ActiveRun(UUID worldId, Location origin, Integer selectedStartingStage) {
             this.worldId = worldId;
             this.origin = origin;
+            this.selectedStartingStage = selectedStartingStage;
         }
 
         private void start() {
             World runWorld = plugin.getServer().getWorld(worldId);
             if (runWorld != null) {
                 initializePlayers(runWorld);
+                int checkpoint = playersInWorld(runWorld).stream().mapToInt(p -> highestAbsoluteWaveByPlayer.getOrDefault(p.getUniqueId(), 1)).max().orElse(1);
+                if (selectedStartingStage != null && selectedStartingStage > 0) {
+                    checkpoint = ((Math.max(1, selectedStartingStage) - 1) * WAVES_PER_STAGE) + 1;
+                }
+                wave = Math.max(0, checkpoint - 1);
             }
             this.task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
                 World world = plugin.getServer().getWorld(worldId);
@@ -631,9 +690,8 @@ public class StrongholdRunManager implements Listener {
                 if (countAliveCurrentWave() > 0) {
                     return;
                 }
-                if (wave >= MAX_WAVE) {
-                    endRunAndShowRewardsForAllPlayers(ChatColor.GREEN + "Wave " + ChatColor.WHITE + MAX_WAVE
-                            + ChatColor.GREEN + " cleared! Stronghold run complete.");
+                if (wave >= MAX_ABSOLUTE_WAVE) {
+                    endRunAndShowRewardsForAllPlayers(ChatColor.GREEN + "Stage cap reached. Stronghold run complete.");
                     return;
                 }
                 if (secondsUntilNextWave > 0) {
@@ -642,7 +700,7 @@ public class StrongholdRunManager implements Listener {
                 }
                 secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
                 int waveStep = computeWaveAdvance(playersInWorld(world));
-                wave = Math.min(MAX_WAVE, wave + waveStep);
+                wave = Math.min(MAX_ABSOLUTE_WAVE, wave + waveStep);
                 spawnWave(world, wave);
             }, 20L, 20L);
             this.autoCastTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickAutoCast, 20L, AUTOCAST_TICK_INTERVAL);
@@ -719,6 +777,8 @@ public class StrongholdRunManager implements Listener {
             if (state == null) {
                 return;
             }
+            highestAbsoluteWaveByPlayer.merge(player.getUniqueId(), Math.max(1, wave), Math::max);
+            saveProgressionData();
             StrongholdResultsStorageGUI result = createSessionResultGui(player, state);
             pendingResultInventories.put(player.getUniqueId(), result);
             stopRun(worldId);
@@ -760,7 +820,8 @@ public class StrongholdRunManager implements Listener {
             }
             spawnMilestoneBossIfNeeded(world, players, waveNumber);
             for (Player player : players) {
-                send(player, MessageType.INFO, "Wave " + ChatColor.WHITE + waveNumber + ChatColor.GRAY + " started.");
+                StageProgress progress = toStageProgress(waveNumber);
+                send(player, MessageType.INFO, "Stage " + ChatColor.WHITE + progress.stage() + ChatColor.GRAY + "-" + ChatColor.WHITE + progress.wave() + ChatColor.GRAY + " started.");
             }
         }
 
@@ -808,19 +869,19 @@ public class StrongholdRunManager implements Listener {
             if (mob == null) {
                 return;
             }
-            int safeWave = Math.max(1, waveNumber);
-            double healthMultiplier = Math.min(4.0, 1.0 + (safeWave * WAVE_HEALTH_BONUS_PER_WAVE));
+            StageProgress progress = toStageProgress(waveNumber);
+            double healthMultiplier = Math.pow(1.0 + stageScalingConfig.stageHealthGrowth(), progress.stage() - 1)
+                    * Math.pow(1.0 + stageScalingConfig.waveHealthGrowth(), progress.wave() - 1);
             if (boss) {
                 healthMultiplier *= 1.35;
             }
-            scaleAttributeBase(mob, Attribute.MAX_HEALTH, healthMultiplier);
+            scaleAttributeBase(mob, Attribute.MAX_HEALTH, Math.min(20.0, healthMultiplier));
             AttributeInstance maxHealth = mob.getAttribute(Attribute.MAX_HEALTH);
             if (maxHealth != null) {
                 mob.setHealth(Math.min(maxHealth.getValue(), maxHealth.getBaseValue()));
             }
-
-            double speedMultiplier = Math.min(1.35, 1.0 + (safeWave * WAVE_MOVE_SPEED_BONUS_PER_WAVE) + (boss ? 0.05 : 0.0));
-            scaleAttributeBase(mob, Attribute.MOVEMENT_SPEED, speedMultiplier);
+            double speedMultiplier = 1.0 + ((progress.stage() - 1) * stageScalingConfig.waveSpeedGrowth()) + ((progress.wave() - 1) * (stageScalingConfig.waveSpeedGrowth() * 0.5));
+            scaleAttributeBase(mob, Attribute.MOVEMENT_SPEED, Math.min(1.5, speedMultiplier));
         }
 
         private void scaleAttributeBase(LivingEntity mob, Attribute attribute, double multiplier) {
@@ -899,6 +960,8 @@ public class StrongholdRunManager implements Listener {
             for (Map.Entry<UUID, SurvivorState> entry : new HashMap<>(playerStates).entrySet()) {
                 UUID playerId = entry.getKey();
                 SurvivorState state = entry.getValue();
+                highestAbsoluteWaveByPlayer.merge(playerId, Math.max(1, wave), Math::max);
+                saveProgressionData();
                 Player player = Bukkit.getPlayer(playerId);
                 if (player == null || !player.isOnline()) {
                     continue;
@@ -1121,6 +1184,7 @@ public class StrongholdRunManager implements Listener {
             state.progressBar = Bukkit.createBossBar("", BarColor.PURPLE, BarStyle.SOLID);
             state.progressBar.addPlayer(player);
             state.progressBar.setVisible(true);
+            state.pendingUpgradeSelections = 1;
             state.pendingUpgrades = rollUpgradeChoices(state, 3);
             updateProgressBar(player, state);
             send(player, MessageType.INFO, "Stronghold start: class set to " + ChatColor.WHITE + "Classless" + ChatColor.GRAY + ".");
@@ -1145,17 +1209,18 @@ public class StrongholdRunManager implements Listener {
             }
             state.xp += amount;
             int required = xpRequiredForLevel(state.level);
-            boolean leveledUp = false;
+            int levelsGained = 0;
             while (state.xp >= required) {
                 state.xp -= required;
                 state.level++;
-                leveledUp = true;
+                levelsGained++;
                 required = xpRequiredForLevel(state.level);
             }
             updateProgressBar(player, state);
-            if (leveledUp) {
+            if (levelsGained > 0) {
                 send(player, MessageType.SUCCESS,
                         "Rank up! " + ChatColor.WHITE + "Run Rank " + state.level + ChatColor.GRAY + " reached.");
+                state.pendingUpgradeSelections += levelsGained;
                 state.pendingUpgrades = rollUpgradeChoices(state, 3);
                 openUpgradeGui(player, state);
             }
@@ -1174,7 +1239,9 @@ public class StrongholdRunManager implements Listener {
             if (playerId == null || !playerStates.containsKey(playerId)) {
                 return null;
             }
-            return new StageStatus(Math.max(1, wave), countAliveAllSpawned());
+            StageProgress progress = toStageProgress(Math.max(1, wave));
+            SurvivorState state = playerStates.get(playerId);
+            return new StageStatus(progress.stage(), progress.wave(), countAliveAllSpawned(), state == null ? "None" : state.activeArchetypeBuff);
         }
 
         private void updateProgressBar(Player player, SurvivorState state) {
@@ -1423,6 +1490,7 @@ public class StrongholdRunManager implements Listener {
             applyUpgrade(player, state, selected);
             state.pendingUpgrades = List.of();
             state.awaitingUpgradeSelection = false;
+            state.pendingUpgradeSelections = Math.max(0, state.pendingUpgradeSelections - 1);
             state.skipNextUpgradeReopen = true;
             setUpgradePausedState(player, state, false);
             player.closeInventory();
@@ -1722,6 +1790,7 @@ public class StrongholdRunManager implements Listener {
                 if (plugin.getGemsManager() != null) {
                     state.maxGemsDuringRun = Math.max(state.maxGemsDuringRun, plugin.getGemsManager().getTotalUnits(player));
                 }
+                applyArchetypeBuff(player, state);
                 for (String spellId : state.activeSpellByBase.values()) {
                     SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(spellId);
                     if (spellEntry == null || spellEntry.definition() == null) {
@@ -1745,11 +1814,8 @@ public class StrongholdRunManager implements Listener {
             }
         }
 
-        private boolean tryManualCastSpell(Player player, ManualCastTrigger trigger) {
-            if (trigger == null || trigger == ManualCastTrigger.NONE) {
-                return false;
-            }
-            if (player == null || pausedPlayers.contains(player.getUniqueId())) {
+        private boolean hasValidStrongholdWeapon(Player player, boolean notifyFailure) {
+            if (player == null) {
                 return false;
             }
             if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) {
@@ -1757,7 +1823,22 @@ public class StrongholdRunManager implements Listener {
             }
             String requirementFailure = SpellAccessUtil.getHeldWeaponRequirementFailure(player);
             if (requirementFailure != null) {
-                send(player, MessageType.WARNING, requirementFailure);
+                if (notifyFailure) {
+                    send(player, MessageType.WARNING, requirementFailure);
+                }
+                return false;
+            }
+            return true;
+        }
+
+        private boolean tryManualCastSpell(Player player, ManualCastTrigger trigger) {
+            if (trigger == null || trigger == ManualCastTrigger.NONE) {
+                return false;
+            }
+            if (player == null || pausedPlayers.contains(player.getUniqueId())) {
+                return false;
+            }
+            if (!hasValidStrongholdWeapon(player, true)) {
                 return false;
             }
             long now = System.currentTimeMillis();
@@ -1824,6 +1905,49 @@ public class StrongholdRunManager implements Listener {
                     .size();
         }
 
+        private void applyArchetypeBuff(Player player, SurvivorState state) {
+            if (player == null || state == null) {
+                return;
+            }
+            Map<String, Integer> classCounts = new HashMap<>();
+            for (String spellId : state.activeSpellByBase.values()) {
+                if (spellId == null) continue;
+                String key = spellId.toLowerCase(Locale.ROOT);
+                int idx = key.indexOf('_');
+                if (idx <= 0) continue;
+                String clazz = key.substring(0, idx);
+                classCounts.merge(clazz, 1, Integer::sum);
+            }
+            String buff = "None";
+            if (classCounts.getOrDefault("rogue", 0) >= 3) {
+                DoubleJumpListener.setExternalBonusJumps(player.getUniqueId(), 1);
+                DoubleJumpListener.setExternalArcSlashOnJump(player.getUniqueId(), true);
+                buff = "Rogue Trinity: +1 Air Jump Arc";
+            } else {
+                DoubleJumpListener.setExternalBonusJumps(player.getUniqueId(), 0);
+                DoubleJumpListener.setExternalArcSlashOnJump(player.getUniqueId(), false);
+            }
+            if (classCounts.getOrDefault("warrior", 0) >= 3) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 0, true, false, false));
+                buff = "Warrior Trinity: Resist";
+            }
+            if (classCounts.getOrDefault("mage", 0) >= 3) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 60, 0, true, false, false));
+                buff = "Mage Trinity: Regen";
+            }
+            if (classCounts.getOrDefault("archer", 0) >= 3) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 0, true, false, false));
+                buff = "Archer Trinity: Haste";
+            }
+            if (classCounts.getOrDefault("rogue", 0) >= 1 && classCounts.getOrDefault("warrior", 0) >= 1
+                    && classCounts.getOrDefault("mage", 0) >= 1 && classCounts.getOrDefault("archer", 0) >= 1) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 0, true, false, false));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 0, true, false, false));
+                buff = "Prismatic Surge: Speed+Power";
+            }
+            state.activeArchetypeBuff = buff;
+        }
+
         private SpellRegistry.SpellEntry resolveOwnedManualSpell(SurvivorState state, ManualCastTrigger trigger) {
             if (state == null || state.activeSpellByBase.isEmpty()) {
                 return null;
@@ -1867,6 +1991,9 @@ public class StrongholdRunManager implements Listener {
                                   boolean consumeResources) {
             try {
                 if (player == null || spellEntry == null || spellEntry.definition() == null || inputEvent == null) {
+                    return false;
+                }
+                if (!hasValidStrongholdWeapon(player, false)) {
                     return false;
                 }
                 if (consumeResources && !SpellCastManager.getInstance().tryConsumeResources(player, spellEntry.definition())) {
@@ -1959,6 +2086,10 @@ public class StrongholdRunManager implements Listener {
             Player online = Bukkit.getPlayer(playerId);
             if (online != null && online.isOnline()) {
                 online.setInvisible(false);
+                DoubleJumpListener.setExternalBonusJumps(playerId, 0);
+                DoubleJumpListener.setExternalArcSlashOnJump(playerId, false);
+                online.setAllowFlight(false);
+                online.setFlying(false);
                 PlayerClassManager.getInstance().setPlayerClass(online, state.originalClass);
                 online.getInventory().setStorageContents(cloneItemArray(state.savedStorageContents));
                 online.getInventory().setArmorContents(cloneItemArray(state.savedArmorContents));
@@ -2220,6 +2351,8 @@ public class StrongholdRunManager implements Listener {
         private boolean awaitingUpgradeSelection;
         private boolean skipNextUpgradeReopen;
         private boolean rerollAnimating;
+        private int pendingUpgradeSelections;
+        private String activeArchetypeBuff = "None";
         private boolean upgradePaused;
         private int cooldownUpgradeTier;
         private int keysCollected;
@@ -2252,8 +2385,11 @@ public class StrongholdRunManager implements Listener {
                                  int statAmount) {
     }
 
-    public record StageStatus(int wave, int enemiesRemaining) {
+    public record StageStatus(int stage, int wave, int enemiesRemaining, String archetypeBuff) {
     }
+
+    public record StageProgress(int stage, int wave, int absoluteWave) {}
+    public record StageScalingConfig(double stageHealthGrowth, double stageDamageGrowth, double waveHealthGrowth, double waveDamageGrowth, double waveSpeedGrowth) {}
 
     private static final class MobMotionState {
         private Location lastLocation;

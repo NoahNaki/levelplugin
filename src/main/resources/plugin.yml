@@ -301,7 +301,7 @@ commands:
     usage: /enchant
   debug:
     description: Developer debug tools
-    usage: /debug [mobinfo|tps|siege|drops|hand|chatgame|expedition|dungeonexpedition|spellinput|spellcooldown|spellmanacost|beaconentity|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|cityowner|citymax|stronghold]
+    usage: /debug [mobinfo|tps|siege|drops|hand|chatgame|expedition|dungeonexpedition|spellinput|spellcooldown|spellmanacost|beaconentity|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|cityowner|citymax|stronghold|strongholdxp]
   se:
     description: Spawn an entity with ModelEngine models for testing
     usage: /se <entity> <model...> | /se list | /se inspect [verbose] | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop]

@@ -34,6 +34,8 @@ public class DoubleJumpListener implements Listener {
     private static final double MAX_FORWARD_VELOCITY     = 1.2;
     private static final long MOMENTUM_WINDOW_MS         = 2500L;
     private final Map<UUID, Integer> remainingJumps = new HashMap<>();
+    private static final Map<UUID, Integer> externalBonusJumps = new HashMap<>();
+    private static final Map<UUID, Boolean> externalArcSlashJump = new HashMap<>();
     private final Map<UUID, Long> lastJumpMillis = new HashMap<>();
 
     private int getBaseAirJumps(PlayerClass playerClass) {
@@ -44,7 +46,20 @@ public class DoubleJumpListener implements Listener {
         return 0;
     }
 
-    @EventHandler
+    
+    public static void setExternalBonusJumps(UUID playerId, int bonus) {
+        if (playerId == null) return;
+        if (bonus <= 0) externalBonusJumps.remove(playerId);
+        else externalBonusJumps.put(playerId, bonus);
+    }
+
+    public static void setExternalArcSlashOnJump(UUID playerId, boolean enabled) {
+        if (playerId == null) return;
+        if (!enabled) externalArcSlashJump.remove(playerId);
+        else externalArcSlashJump.put(playerId, true);
+    }
+
+@EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         PlayerClass playerClass = StatsManager.getInstance()
@@ -101,7 +116,7 @@ public class DoubleJumpListener implements Listener {
             player.getWorld().playSound(player.getLocation(),
                 Sound.ENTITY_BAT_TAKEOFF, 1.0f, 1.0f);
 
-            if (ClassUtil.isRogueFamily(ps.playerClass)) {
+            if (ClassUtil.isRogueFamily(ps.playerClass) || externalArcSlashJump.getOrDefault(player.getUniqueId(), false)) {
                 Main plugin = Main.getInstance();
                 ArcSlashCombatUtil.strikeForward(player, 1.35, 1.0, 3.8, 1.65);
                 plugin.getServer().getScheduler().runTaskLater(plugin,
@@ -142,6 +157,7 @@ public class DoubleJumpListener implements Listener {
             return 0;
         }
         double bonus = petManager.getActiveEffectValue(playerId, PetEffectType.EXTRA_JUMP);
-        return (int) Math.floor(Math.max(0.0, bonus));
+        int external = Math.max(0, externalBonusJumps.getOrDefault(playerId, 0));
+        return (int) Math.floor(Math.max(0.0, bonus)) + external;
     }
 }

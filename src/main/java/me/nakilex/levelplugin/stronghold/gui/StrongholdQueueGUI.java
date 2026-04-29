@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.stronghold.gui;
 import me.nakilex.levelplugin.stronghold.StrongholdGearBand;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -18,6 +19,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
@@ -67,6 +69,11 @@ public class StrongholdQueueGUI implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) return;
         if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (event.getRawSlot() == 11 && (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT)) {
+            event.setCancelled(true);
+            new StrongholdStageSelectGUI().open(player);
+            return;
+        }
         if (handleWidgetClick(event, player)) {
             return;
         }
@@ -130,6 +137,11 @@ public class StrongholdQueueGUI implements Listener {
                 lore.add(ChatColor.GRAY + "Avg Gear: " + ChatColor.WHITE + avg);
                 lore.add(ChatColor.GRAY + "Band: " + band.display());
             });
+            var runManager = Main.getInstance() == null ? null : Main.getInstance().getStrongholdRunManager();
+            if (runManager != null) {
+                var best = runManager.getHighestStageProgress(viewerId);
+                lore.add(ChatColor.GRAY + "Best Checkpoint: " + ChatColor.WHITE + best.stage() + "-" + best.wave());
+            }
             lore.add(" ");
             lore.add(ChatColor.GREEN + "" + ChatColor.BOLD + queueManager.getQueuePopulation(mode)
                     + ChatColor.GRAY + " players in queue!");
@@ -139,7 +151,7 @@ public class StrongholdQueueGUI implements Listener {
             } else if (queuedThis) {
                 lore.addAll(TooltipUtil.clickInstructions("to leave this queue", null));
             } else {
-                lore.addAll(TooltipUtil.clickInstructions("to join this queue", null));
+                lore.addAll(TooltipUtil.clickInstructions("to join this queue", "to open stage selection"));
             }
             meta.setLore(lore);
             item.setItemMeta(meta);
