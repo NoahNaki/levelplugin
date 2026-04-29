@@ -56,6 +56,9 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.configuration.file.YamlConfiguration;
+import java.io.File;
+import java.io.IOException;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
@@ -85,7 +88,8 @@ public class StrongholdRunManager implements Listener {
     private static final int SHRINES_PER_RUN = 1;
     private static final int FIRST_WAVE_DELAY_SECONDS = 3;
     private static final int WAVE_INTERVAL_SECONDS = 5;
-    private static final int MAX_WAVE = 30;
+    private static final int WAVES_PER_STAGE = 30;
+    private static final int MAX_ABSOLUTE_WAVE = 300;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
     private static final int BASE_XP_REQUIRED = 100;
     private static final int MAX_ACTIVE_STRONGHOLD_SPELLS = 4;
@@ -104,8 +108,11 @@ public class StrongholdRunManager implements Listener {
     private static final String BOSS_MOB_ID = "slime_king";
     private static final double KEY_DROP_CHANCE = 0.03;
     private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
-    private static final double WAVE_MOVE_SPEED_BONUS_PER_WAVE = 0.008;
-    private static final double WAVE_HEALTH_BONUS_PER_WAVE = 0.07;
+    private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.15;
+    private static final double DEFAULT_STAGE_DAMAGE_GROWTH = 0.10;
+    private static final double DEFAULT_WAVE_HEALTH_GROWTH = 0.02;
+    private static final double DEFAULT_WAVE_DAMAGE_GROWTH = 0.015;
+    private static final double DEFAULT_WAVE_MOVE_SPEED_GROWTH = 0.003;
     private static final int MINIBOSS_SLIME_SIZE = 4;
     private static final int BOSS_SLIME_SIZE = 6;
     private static final List<String> DEFAULT_MOBILITY_BASE_SPELLS = List.of(
@@ -125,6 +132,10 @@ public class StrongholdRunManager implements Listener {
     private final List<String> waveMobPool = List.of("forest_slime");
     private final Set<String> autoCastBasePool = new HashSet<>();
     private final Set<String> mobilityBasePool = new HashSet<>();
+    private final Map<UUID, Integer> highestAbsoluteWaveByPlayer = new HashMap<>();
+    private File progressionFile;
+    private YamlConfiguration progressionConfig;
+    private StageScalingConfig stageScalingConfig = new StageScalingConfig(DEFAULT_STAGE_HEALTH_GROWTH, DEFAULT_STAGE_DAMAGE_GROWTH, DEFAULT_WAVE_HEALTH_GROWTH, DEFAULT_WAVE_DAMAGE_GROWTH, DEFAULT_WAVE_MOVE_SPEED_GROWTH);
 
     private enum ManualCastTrigger {
         NONE,
@@ -135,7 +146,41 @@ public class StrongholdRunManager implements Listener {
     public StrongholdRunManager(Main plugin, StrongholdShrineManager shrineManager) {
         this.plugin = plugin;
         this.shrineManager = shrineManager;
+        loadProgressionData();
     }
+
+    private void loadProgressionData() {
+        progressionFile = new File(plugin.getDataFolder(), "stronghold_progression.yml");
+        progressionConfig = YamlConfiguration.loadConfiguration(progressionFile);
+        stageScalingConfig = new StageScalingConfig(
+                Math.max(0.0, progressionConfig.getDouble("scaling.stage-health-growth", DEFAULT_STAGE_HEALTH_GROWTH)),
+                Math.max(0.0, progressionConfig.getDouble("scaling.stage-damage-growth", DEFAULT_STAGE_DAMAGE_GROWTH)),
+                Math.max(0.0, progressionConfig.getDouble("scaling.wave-health-growth", DEFAULT_WAVE_HEALTH_GROWTH)),
+                Math.max(0.0, progressionConfig.getDouble("scaling.wave-damage-growth", DEFAULT_WAVE_DAMAGE_GROWTH)),
+                Math.max(0.0, progressionConfig.getDouble("scaling.wave-speed-growth", DEFAULT_WAVE_MOVE_SPEED_GROWTH)));
+        if (progressionConfig.isConfigurationSection("players")) {
+            for (String key : progressionConfig.getConfigurationSection("players").getKeys(false)) {
+                try { highestAbsoluteWaveByPlayer.put(UUID.fromString(key), Math.max(0, progressionConfig.getInt("players."+key+".highest-absolute-wave", 0))); } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    private void saveProgressionData() {
+        if (progressionConfig == null || progressionFile == null) return;
+        progressionConfig.set("scaling.stage-health-growth", stageScalingConfig.stageHealthGrowth());
+        progressionConfig.set("scaling.stage-damage-growth", stageScalingConfig.stageDamageGrowth());
+        progressionConfig.set("scaling.wave-health-growth", stageScalingConfig.waveHealthGrowth());
+        progressionConfig.set("scaling.wave-damage-growth", stageScalingConfig.waveDamageGrowth());
+        progressionConfig.set("scaling.wave-speed-growth", stageScalingConfig.waveSpeedGrowth());
+        for (var e: highestAbsoluteWaveByPlayer.entrySet()) progressionConfig.set("players."+e.getKey()+".highest-absolute-wave", e.getValue());
+        try { progressionConfig.save(progressionFile); } catch (IOException ex) { ex.printStackTrace(); }
+    }
+
+    public StageScalingConfig getStageScalingConfig() { return stageScalingConfig; }
+    public void updateStageScalingConfig(StageScalingConfig config) { if (config==null) return; this.stageScalingConfig=config; saveProgressionData(); }
+    public StageProgress getHighestStageProgress(UUID playerId) { int w=Math.max(0, highestAbsoluteWaveByPlayer.getOrDefault(playerId,0)); return toStageProgress(w); }
+
+    private StageProgress toStageProgress(int absoluteWave) { int safe=Math.max(1, absoluteWave); int stage=((safe-1)/WAVES_PER_STAGE)+1; int waveIn=((safe-1)%WAVES_PER_STAGE)+1; return new StageProgress(stage,waveIn,safe); }
 
     public void startSoloRun(Player player) {
         if (player == null || !player.isOnline()) {
@@ -618,6 +663,8 @@ public class StrongholdRunManager implements Listener {
             World runWorld = plugin.getServer().getWorld(worldId);
             if (runWorld != null) {
                 initializePlayers(runWorld);
+                int checkpoint = playersInWorld(runWorld).stream().mapToInt(p -> highestAbsoluteWaveByPlayer.getOrDefault(p.getUniqueId(), 1)).max().orElse(1);
+                wave = Math.max(0, checkpoint - 1);
             }
             this.task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
                 World world = plugin.getServer().getWorld(worldId);
@@ -631,9 +678,8 @@ public class StrongholdRunManager implements Listener {
                 if (countAliveCurrentWave() > 0) {
                     return;
                 }
-                if (wave >= MAX_WAVE) {
-                    endRunAndShowRewardsForAllPlayers(ChatColor.GREEN + "Wave " + ChatColor.WHITE + MAX_WAVE
-                            + ChatColor.GREEN + " cleared! Stronghold run complete.");
+                if (wave >= MAX_ABSOLUTE_WAVE) {
+                    endRunAndShowRewardsForAllPlayers(ChatColor.GREEN + "Stage cap reached. Stronghold run complete.");
                     return;
                 }
                 if (secondsUntilNextWave > 0) {
@@ -642,7 +688,7 @@ public class StrongholdRunManager implements Listener {
                 }
                 secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
                 int waveStep = computeWaveAdvance(playersInWorld(world));
-                wave = Math.min(MAX_WAVE, wave + waveStep);
+                wave = Math.min(MAX_ABSOLUTE_WAVE, wave + waveStep);
                 spawnWave(world, wave);
             }, 20L, 20L);
             this.autoCastTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickAutoCast, 20L, AUTOCAST_TICK_INTERVAL);
@@ -760,7 +806,8 @@ public class StrongholdRunManager implements Listener {
             }
             spawnMilestoneBossIfNeeded(world, players, waveNumber);
             for (Player player : players) {
-                send(player, MessageType.INFO, "Wave " + ChatColor.WHITE + waveNumber + ChatColor.GRAY + " started.");
+                StageProgress progress = toStageProgress(waveNumber);
+                send(player, MessageType.INFO, "Stage " + ChatColor.WHITE + progress.stage() + ChatColor.GRAY + "-" + ChatColor.WHITE + progress.wave() + ChatColor.GRAY + " started.");
             }
         }
 
@@ -808,19 +855,19 @@ public class StrongholdRunManager implements Listener {
             if (mob == null) {
                 return;
             }
-            int safeWave = Math.max(1, waveNumber);
-            double healthMultiplier = Math.min(4.0, 1.0 + (safeWave * WAVE_HEALTH_BONUS_PER_WAVE));
+            StageProgress progress = toStageProgress(waveNumber);
+            double healthMultiplier = Math.pow(1.0 + stageScalingConfig.stageHealthGrowth(), progress.stage() - 1)
+                    * Math.pow(1.0 + stageScalingConfig.waveHealthGrowth(), progress.wave() - 1);
             if (boss) {
                 healthMultiplier *= 1.35;
             }
-            scaleAttributeBase(mob, Attribute.MAX_HEALTH, healthMultiplier);
+            scaleAttributeBase(mob, Attribute.MAX_HEALTH, Math.min(20.0, healthMultiplier));
             AttributeInstance maxHealth = mob.getAttribute(Attribute.MAX_HEALTH);
             if (maxHealth != null) {
                 mob.setHealth(Math.min(maxHealth.getValue(), maxHealth.getBaseValue()));
             }
-
-            double speedMultiplier = Math.min(1.35, 1.0 + (safeWave * WAVE_MOVE_SPEED_BONUS_PER_WAVE) + (boss ? 0.05 : 0.0));
-            scaleAttributeBase(mob, Attribute.MOVEMENT_SPEED, speedMultiplier);
+            double speedMultiplier = 1.0 + ((progress.stage() - 1) * stageScalingConfig.waveSpeedGrowth()) + ((progress.wave() - 1) * (stageScalingConfig.waveSpeedGrowth() * 0.5));
+            scaleAttributeBase(mob, Attribute.MOVEMENT_SPEED, Math.min(1.5, speedMultiplier));
         }
 
         private void scaleAttributeBase(LivingEntity mob, Attribute attribute, double multiplier) {
@@ -899,6 +946,8 @@ public class StrongholdRunManager implements Listener {
             for (Map.Entry<UUID, SurvivorState> entry : new HashMap<>(playerStates).entrySet()) {
                 UUID playerId = entry.getKey();
                 SurvivorState state = entry.getValue();
+                highestAbsoluteWaveByPlayer.merge(playerId, Math.max(1, wave), Math::max);
+                saveProgressionData();
                 Player player = Bukkit.getPlayer(playerId);
                 if (player == null || !player.isOnline()) {
                     continue;
@@ -1174,7 +1223,8 @@ public class StrongholdRunManager implements Listener {
             if (playerId == null || !playerStates.containsKey(playerId)) {
                 return null;
             }
-            return new StageStatus(Math.max(1, wave), countAliveAllSpawned());
+            StageProgress progress = toStageProgress(Math.max(1, wave));
+            return new StageStatus(progress.stage(), progress.wave(), countAliveAllSpawned());
         }
 
         private void updateProgressBar(Player player, SurvivorState state) {
@@ -2252,8 +2302,11 @@ public class StrongholdRunManager implements Listener {
                                  int statAmount) {
     }
 
-    public record StageStatus(int wave, int enemiesRemaining) {
+    public record StageStatus(int stage, int wave, int enemiesRemaining) {
     }
+
+    public record StageProgress(int stage, int wave, int absoluteWave) {}
+    public record StageScalingConfig(double stageHealthGrowth, double stageDamageGrowth, double waveHealthGrowth, double waveDamageGrowth, double waveSpeedGrowth) {}
 
     private static final class MobMotionState {
         private Location lastLocation;

@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.gui.StrongholdAssetDebugGUI;
 import me.nakilex.levelplugin.debug.gui.StrongholdTemplateDebugGUI;
+import me.nakilex.levelplugin.debug.gui.StrongholdScalingDebugGUI;
 import me.nakilex.levelplugin.debug.gui.WarriorCycloneDebugGUI;
 import me.nakilex.levelplugin.debug.MobStatusDebugItem;
 import me.nakilex.levelplugin.debug.SpellInputDebugItem;
@@ -556,7 +557,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output|spells|endsession <player>>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|scaling|output|spells|endsession <player>>");
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("spells")) {
@@ -609,6 +610,10 @@ public class DebugCommand implements TabExecutor {
                     StrongholdTemplateDebugGUI.getInstance().open(strongholdPlayer);
                     return true;
                 }
+                if (args[1].equalsIgnoreCase("scaling")) {
+                    StrongholdScalingDebugGUI.getInstance().open(strongholdPlayer);
+                    return true;
+                }
                 if (args[1].equalsIgnoreCase("output")) {
                     boolean outputEnabled = StrongholdDebugGenerator.toggleStrongholdConsoleOutput();
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
@@ -636,7 +641,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|output|spells|endsession <player>>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|scaling|output|spells|endsession <player>>");
                     return true;
                 }
                 if (args[2].equalsIgnoreCase("test")) {

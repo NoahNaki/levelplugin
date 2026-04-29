@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.stronghold.gui;
 import me.nakilex.levelplugin.stronghold.StrongholdGearBand;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -130,6 +131,11 @@ public class StrongholdQueueGUI implements Listener {
                 lore.add(ChatColor.GRAY + "Avg Gear: " + ChatColor.WHITE + avg);
                 lore.add(ChatColor.GRAY + "Band: " + band.display());
             });
+            var runManager = Main.getInstance() == null ? null : Main.getInstance().getStrongholdRunManager();
+            if (runManager != null) {
+                var best = runManager.getHighestStageProgress(viewerId);
+                lore.add(ChatColor.GRAY + "Best Checkpoint: " + ChatColor.WHITE + best.stage() + "-" + best.wave());
+            }
             lore.add(" ");
             lore.add(ChatColor.GREEN + "" + ChatColor.BOLD + queueManager.getQueuePopulation(mode)
                     + ChatColor.GRAY + " players in queue!");
