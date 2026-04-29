@@ -1373,7 +1373,7 @@ public class StrongholdRunManager implements Listener {
                 } else if (choice.statType != null) {
                     lore.add(TooltipUtil.sectionHeader("Temporary Bonus"));
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Temporary Bonus",
-                            ChatColor.GREEN, "+" + choice.statAmount + " " + choice.statType.getDisplayName()));
+                            ChatColor.GREEN, "+" + choice.statAmount + "% " + choice.statType.getDisplayName()));
                 }
                 lore.add(TooltipUtil.sectionDividerByPixels(150));
                 lore.addAll(TooltipUtil.clickInstructions("to choose this upgrade", null));

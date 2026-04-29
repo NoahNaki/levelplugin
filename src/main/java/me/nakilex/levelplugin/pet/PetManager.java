@@ -81,6 +81,7 @@ public class PetManager {
     private final Map<UUID, Long> lastStandImmuneUntil = new HashMap<>();
     private final Map<UUID, Long> lastStandBuffUntil = new HashMap<>();
     private final Map<UUID, Map<StatType, Integer>> appliedOwnershipStats = new HashMap<>();
+    private final Map<UUID, Integer> extraPetSlots = new HashMap<>();
 
     public PetManager(Main plugin) {
         this.plugin = plugin;
@@ -211,7 +212,37 @@ public class PetManager {
     }
 
     public int getMaxEquippablePets(UUID ownerId) {
-        return 1;
+        if (ownerId == null) {
+            return 1;
+        }
+        int bonus = extraPetSlots.computeIfAbsent(ownerId, this::loadExtraPetSlots);
+        return Math.max(1, 1 + bonus);
+    }
+
+    public int grantExtraPetSlots(UUID ownerId, int amount) {
+        if (ownerId == null || amount <= 0) {
+            return getMaxEquippablePets(ownerId);
+        }
+        int currentBonus = extraPetSlots.computeIfAbsent(ownerId, this::loadExtraPetSlots);
+        int updatedBonus = Math.max(0, currentBonus + amount);
+        extraPetSlots.put(ownerId, updatedBonus);
+        saveExtraPetSlots(ownerId, updatedBonus);
+        return 1 + updatedBonus;
+    }
+
+    private int loadExtraPetSlots(UUID ownerId) {
+        if (ownerId == null || plugin.getCustomConfig() == null) {
+            return 0;
+        }
+        return Math.max(0, plugin.getCustomConfig().getInt("pet.extra-slots." + ownerId, 0));
+    }
+
+    private void saveExtraPetSlots(UUID ownerId, int value) {
+        if (ownerId == null || plugin.getCustomConfig() == null) {
+            return;
+        }
+        plugin.getCustomConfig().set("pet.extra-slots." + ownerId, Math.max(0, value));
+        plugin.saveCustomConfig();
     }
 
     public void handlePlayerJoin(Player player) {

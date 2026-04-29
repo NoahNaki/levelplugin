@@ -107,6 +107,7 @@ public class QuestManager {
         Quest abandonedCastle = new me.nakilex.levelplugin.quests.def.AbandonedCastleQuest();
         Quest wakePerry = new me.nakilex.levelplugin.quests.def.WakePerryQuest();
         Quest strongholdInitiation = new me.nakilex.levelplugin.quests.def.StrongholdInitiationQuest();
+        Quest strongholdBeastbond = new me.nakilex.levelplugin.quests.def.StrongholdBeastbondQuest();
         registerQuest(nb);
         registerQuest(cultistCulling);
         registerQuest(seras);
@@ -129,6 +130,7 @@ public class QuestManager {
         registerQuest(abandonedCastle);
         registerQuest(wakePerry);
         registerQuest(strongholdInitiation);
+        registerQuest(strongholdBeastbond);
         registerNpcQuest("Seras", me.nakilex.levelplugin.quests.def.SerasQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.ID);
@@ -171,6 +173,8 @@ public class QuestManager {
                 me.nakilex.levelplugin.quests.def.OfficeErrandsQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.StrongholdInitiationQuest.NPC_ID,
                 me.nakilex.levelplugin.quests.def.StrongholdInitiationQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.StrongholdBeastbondQuest.NPC_ID,
+                me.nakilex.levelplugin.quests.def.StrongholdBeastbondQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
