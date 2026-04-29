@@ -1199,6 +1199,11 @@ public class PetManager {
                 ticks += 1;
                 Location ownerLoc = player.getLocation();
                 Location petLoc = anchor.getLocation();
+                if (ownerLoc.getWorld() == null || petLoc.getWorld() == null
+                        || !ownerLoc.getWorld().getUID().equals(petLoc.getWorld().getUID())) {
+                    anchor.teleport(faceTarget(ownerLoc.clone().add(0.8, 0.4, 0.8), ownerLoc, FOLLOW_TURN_SMOOTHING));
+                    return;
+                }
                 double bob = Math.sin(ticks / 20.0) * 0.12;
                 Location desired = ownerLoc.clone().add(0.8, 0.4 + bob, 0.8);
                 desired = faceTarget(desired, ownerLoc, FOLLOW_TURN_SMOOTHING);
