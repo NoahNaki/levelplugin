@@ -104,6 +104,7 @@ public class StrongholdRunManager implements Listener {
     private static final double STUCK_MOVE_EPSILON_SQ = 0.20 * 0.20;
     private static final double STUCK_PULL_DISTANCE = 6.0;
     private static final long MOB_RELOCATE_COOLDOWN_MS = 2_500L;
+    private static final long MOBILITY_CHARGE_REFILL_MS = 4_000L;
     private static final double MOB_RELOCATE_TRIGGER_DISTANCE = 30.0;
     private static final double MOB_RELOCATE_MIN_RADIUS = 4.0;
     private static final double MOB_RELOCATE_MAX_RADIUS = 10.0;
@@ -1808,6 +1809,7 @@ public class StrongholdRunManager implements Listener {
                     state.maxGemsDuringRun = Math.max(state.maxGemsDuringRun, plugin.getGemsManager().getTotalUnits(player));
                 }
                 applyArchetypeBuff(player, state);
+                refillMobilityCharges(state, now);
                 for (String spellId : state.activeSpellByBase.values()) {
                     SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(spellId);
                     if (spellEntry == null || spellEntry.definition() == null) {
@@ -1847,12 +1849,35 @@ public class StrongholdRunManager implements Listener {
             return Math.max(0, state.spellChargesByBase.getOrDefault(baseSpellId.toLowerCase(Locale.ROOT), 0));
         }
 
+        private int getMaxSpellCharges(SurvivorState state, String baseSpellId) {
+            if (state == null || baseSpellId == null || baseSpellId.isBlank()) {
+                return 0;
+            }
+            return Math.max(0, state.ownedSpellRanks.getOrDefault(baseSpellId.toLowerCase(Locale.ROOT), 0));
+        }
+
         private void addSpellCharges(SurvivorState state, String baseSpellId, int amount) {
             if (state == null || baseSpellId == null || baseSpellId.isBlank() || amount <= 0) {
                 return;
             }
             String base = baseSpellId.toLowerCase(Locale.ROOT);
-            state.spellChargesByBase.merge(base, amount, Integer::sum);
+            int maxCharges = getMaxSpellCharges(state, base);
+            int current = getSpellCharges(state, base);
+            state.spellChargesByBase.put(base, Math.min(maxCharges, current + amount));
+        }
+
+        private void refillMobilityCharges(SurvivorState state, long nowMs) {
+            if (state == null || nowMs - state.lastMobilityChargeRefillAt < MOBILITY_CHARGE_REFILL_MS) {
+                return;
+            }
+            state.lastMobilityChargeRefillAt = nowMs;
+            for (String baseSpellId : mobilityBasePool) {
+                String base = baseSpellId == null ? "" : baseSpellId.toLowerCase(Locale.ROOT);
+                if (base.isBlank() || getMaxSpellCharges(state, base) <= 0) {
+                    continue;
+                }
+                addSpellCharges(state, base, 1);
+            }
         }
 
         private boolean consumeSpellCharge(SurvivorState state, String baseSpellId) {
@@ -2407,6 +2432,7 @@ public class StrongholdRunManager implements Listener {
         private final Map<String, Integer> ownedSpellRanks = new HashMap<>();
         private final Map<String, String> activeSpellByBase = new HashMap<>();
         private final Map<String, Integer> spellChargesByBase = new HashMap<>();
+        private long lastMobilityChargeRefillAt;
         private final Map<String, Long> lastCastAtBySpell = new HashMap<>();
         private final Map<StatsManager.StatType, Integer> tempStatBonuses = new EnumMap<>(StatsManager.StatType.class);
         private BossBar progressBar;
