@@ -219,7 +219,7 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_PATCH_COUNT = 12;
     private static final int DETACHED_ASSET_PATCH_RADIUS = 26;
     private static final int DETACHED_ASSET_AREA_PADDING = 24;
-    private static final int DETACHED_ASSET_MAX_ATTEMPTS = 3000;
+    private static final int DETACHED_ASSET_MAX_ATTEMPTS = 1600;
     private static final int DETACHED_ASSET_SOFT_TIME_BUDGET_MS = 4000;
     private static final int DETACHED_ASSET_CONSECUTIVE_MISS_ABORT = 140;
     private static final int DETACHED_ASSET_MIN_TOTAL_REQUEST = 32;
@@ -733,7 +733,8 @@ public final class StrongholdDebugGenerator {
                                                              List<PlacedTemplate> placedTemplates,
                                                              Set<Long> occupied,
                                                              Random random,
-                                                             int fallbackY) {
+                                                             int fallbackY,
+                                                             Player playerContext) {
         if (sourceWorld == null || world == null || placedTemplates == null || placedTemplates.isEmpty() || occupied == null) {
             return AssetPlacementSummary.empty();
         }
@@ -742,7 +743,7 @@ public final class StrongholdDebugGenerator {
             logDetachedAssetDebug("No detached templates loaded from source world '" + sourceWorld.getName() + "'.");
             return AssetPlacementSummary.empty();
         }
-        AssetScatterConfig config = assetScatterConfig == null ? AssetScatterConfig.defaults() : assetScatterConfig;
+        AssetScatterConfig config = resolvedScatterConfig(playerContext);
         AssetDistributionCounts counts = config.computeCounts();
         int totalRequested = counts.totalRequested();
         if (totalRequested <= 0) {
@@ -855,6 +856,15 @@ public final class StrongholdDebugGenerator {
                 preview,
                 List.copyOf(queuedPlacements)
         );
+    }
+
+    private static AssetScatterConfig resolvedScatterConfig(Player playerContext) {
+        AssetScatterConfig config = assetScatterConfig == null ? AssetScatterConfig.defaults() : assetScatterConfig;
+        if (playerContext == null || playerContext.hasPermission("levelplugin.admin")) {
+            return config;
+        }
+        int reducedTotal = Math.max(120, (int) Math.round(config.totalCount() * 0.55D));
+        return config.withTotalCount(reducedTotal);
     }
 
     private static AssetDistributionCounts clampAssetDistributionForFootprint(AssetDistributionCounts requested,
@@ -1517,7 +1527,7 @@ public final class StrongholdDebugGenerator {
         if (plugin == null) {
             pastePlacedTemplates(world, deferredTemplates);
             applyTemplateMarkerActions(sourceWorld, world, deferredTemplates, random);
-            AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY);
+            AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY, player);
             Bounds2D footprint = combinedBounds2D(placed);
             scheduleDetachedAssetPasting(world, assetSummary.placements(), player, () ->
                     scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY, () ->
@@ -1532,7 +1542,7 @@ public final class StrongholdDebugGenerator {
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             pastePlacedTemplates(world, deferredTemplates);
             applyTemplateMarkerActions(sourceWorld, world, deferredTemplates, random);
-            AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY);
+            AssetPlacementSummary assetSummary = placeDetachedAssets(sourceWorld, world, placed, occupied, random, fallbackY, player);
             Bounds2D footprint = combinedBounds2D(placed);
             scheduleDetachedAssetPasting(world, assetSummary.placements(), player, () ->
                     scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY, () ->
