@@ -410,3 +410,12 @@ commands:
   dpsdummy:
     description: Manage DPS training dummies
     usage: /dpsdummy <spawn|select|despawn|list>
+
+  animatedlb:
+    description: Manage animated world leaderboard
+    usage: /animatedlb <spawn|remove|reload|next>
+    permission: levelplugin.animatedlb
+
+permissions:
+  levelplugin.animatedlb:
+    default: op
