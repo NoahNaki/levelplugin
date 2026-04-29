@@ -108,7 +108,6 @@ public class EconomyManager {
     private void updateLeaderboard() {
         if (plugin instanceof me.nakilex.levelplugin.Main main) {
             if (main.getLeaderboardManager() != null) {
-                main.getLeaderboardManager().updateType(me.nakilex.levelplugin.leaderboards.LeaderboardType.BALANCE);
             }
         }
     }

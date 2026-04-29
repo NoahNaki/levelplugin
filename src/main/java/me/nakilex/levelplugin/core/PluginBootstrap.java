@@ -228,6 +228,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
     private me.nakilex.levelplugin.leaderboards.LeaderboardManager leaderboardManager;
     private me.nakilex.levelplugin.leaderboards.DuelStatsManager duelStatsManager;
+    private me.nakilex.levelplugin.animatedlb.LeaderboardManager animatedLbManager;
     private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseManager auctionHouseManager;
     private me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI auctionHouseGUI;
@@ -471,6 +472,7 @@ public class PluginBootstrap {
         strongholdQueueTickTask = Bukkit.getScheduler().runTaskTimer(plugin, strongholdQueueManager::tick, 20L, 20L);
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
+        animatedLbManager = new me.nakilex.levelplugin.animatedlb.LeaderboardManager(plugin);
         partyGlowManager = new PartyGlowManager(plugin, partyManager, scoreboardManager::getBoard);
         friendGlowManager = new FriendGlowManager(plugin, friendManager, scoreboardManager::getBoard);
         visibilityManager = new PlayerVisibilityManager(plugin, friendManager, settingsManager);
@@ -634,6 +636,11 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.maintenance.MaintenanceCommand(maintenanceManager);
         plugin.getCommand("maintenance").setExecutor(maintenanceCmd);
         plugin.getCommand("maintenance").setTabCompleter(maintenanceCmd);
+        me.nakilex.levelplugin.animatedlb.AnimatedLeaderboardPlugin animatedLbCmd =
+                new me.nakilex.levelplugin.animatedlb.AnimatedLeaderboardPlugin(animatedLbManager);
+        plugin.getCommand("animatedlb").setExecutor(animatedLbCmd);
+        plugin.getCommand("animatedlb").setTabCompleter(animatedLbCmd);
+
         me.nakilex.levelplugin.guild.siege.GuildSiegeCommand siegeCmd =
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeCommand(guildSiegeManager);
         plugin.getCommand("siege").setExecutor(siegeCmd);
@@ -875,6 +882,7 @@ public class PluginBootstrap {
             guildSiegeManager.save();
         }
         if (leaderboardManager != null) leaderboardManager.removeAll();
+        if (animatedLbManager != null) animatedLbManager.remove();
         if (duelStatsManager != null) duelStatsManager.save();
         if (townStageManager != null) townStageManager.despawnAll();
         if (buildingStageManager != null) buildingStageManager.despawnAll();

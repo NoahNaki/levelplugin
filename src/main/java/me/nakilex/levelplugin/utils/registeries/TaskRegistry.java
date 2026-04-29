@@ -14,8 +14,6 @@ import me.nakilex.levelplugin.quests.tasks.QuestPathTask;
 import me.nakilex.levelplugin.quests.tasks.QuestPlayTimeTask;
 import me.nakilex.levelplugin.waypoints.bukkit.BukkitPathfindingService;
 import me.nakilex.levelplugin.world.LeafParticleTask;
-import me.nakilex.levelplugin.leaderboards.LeaderboardUpdateTask;
-import me.nakilex.levelplugin.leaderboards.LeaderboardManager;
 import me.nakilex.levelplugin.utils.AnnouncementTimingUtil;
 import org.bukkit.entity.Player;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
@@ -41,10 +39,6 @@ public class TaskRegistry {
             new ScoreboardTask(sbManager).runTaskTimer(plugin, 40L, 40L);
         }
 
-        LeaderboardManager lbManager = plugin.getLeaderboardManager();
-        if (lbManager != null) {
-            new LeaderboardUpdateTask(lbManager).runTaskTimer(plugin, 200L, 200L);
-        }
 
         new LeafParticleTask(plugin).runTaskTimer(plugin, 20L, 20L);
 
