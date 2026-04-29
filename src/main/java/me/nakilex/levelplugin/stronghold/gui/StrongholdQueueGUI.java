@@ -151,7 +151,7 @@ public class StrongholdQueueGUI implements Listener {
             } else if (queuedThis) {
                 lore.addAll(TooltipUtil.clickInstructions("to leave this queue", null));
             } else {
-                lore.addAll(TooltipUtil.clickInstructions("to join this queue", null));
+                lore.addAll(TooltipUtil.clickInstructions("to join this queue", "to open stage selection"));
             }
             meta.setLore(lore);
             item.setItemMeta(meta);
