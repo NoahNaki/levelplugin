@@ -219,8 +219,8 @@ public class AnimatedLeaderboard {
                             ? getSlideDistance() * eased
                             : -getSlideDistance() + (getSlideDistance() * eased);
                     byte opacity = out
-                            ? (byte) (-1 - (126 * rowT))
-                            : (byte) (-127 + (126 * rowT));
+                            ? (byte) (-1 - (126 * eased))
+                            : (byte) (-127 + (126 * eased));
 
                     row.teleportWithOffset(origin, getSlideVector(distance));
                     row.setOpacity(opacity);
