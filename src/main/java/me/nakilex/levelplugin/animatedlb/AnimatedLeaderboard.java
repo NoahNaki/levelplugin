@@ -18,10 +18,10 @@ import java.util.List;
 public class AnimatedLeaderboard {
     private static final byte VISIBLE_OPACITY = (byte) -1;
     private static final byte INVISIBLE_OPACITY = (byte) -127;
-    private static final int PROGRESS_TOTAL_UNITS = 204;
-    private static final int PROGRESS_INCREMENT_PER_TICK = 2;
+    private static final int PROGRESS_TOTAL_UNITS = 44;
     private static final int PROGRESS_SEGMENT_COUNT = 4;
-    private static final int PROGRESS_SEGMENT_SIZE = 51;
+    private static final int PROGRESS_SEGMENT_SIZE = PROGRESS_TOTAL_UNITS / PROGRESS_SEGMENT_COUNT;
+    private static final boolean DEBUG_PROGRESS_TIMING = true;
 
     private final JavaPlugin plugin;
     private final LeaderboardDataProvider dataProvider;
@@ -37,6 +37,8 @@ public class AnimatedLeaderboard {
     private TextDisplay subtitle;
     private BoardType boardType = BoardType.STRONGHOLD_STAGE;
     private int barCount = 0;
+    private double progressAccumulator = 0.0D;
+    private long lastProgressUpdateNanos = 0L;
     private boolean transitioning = false;
     private BukkitTask tickTask;
 
@@ -77,6 +79,8 @@ public class AnimatedLeaderboard {
         progressSegments.clear();
         transitioning = false;
         barCount = 0;
+        progressAccumulator = 0.0D;
+        lastProgressUpdateNanos = 0L;
     }
 
     public void next() { transitionTo(boardType.next()); }
@@ -84,14 +88,42 @@ public class AnimatedLeaderboard {
     private void startProgressTask() {
         tickTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (transitioning) return;
-            barCount += PROGRESS_INCREMENT_PER_TICK;
-            if (barCount > PROGRESS_TOTAL_UNITS) {
-                barCount = 0;
+            if (advanceProgressBar()) {
                 transitionTo(boardType.next());
                 return;
             }
             renderProgressBar(barCount);
+            debugProgressTick();
         }, 1L, 1L);
+    }
+
+
+    private boolean advanceProgressBar() {
+        progressAccumulator += PROGRESS_TOTAL_UNITS / (double) cycleDuration;
+        int unitsToAdd = (int) progressAccumulator;
+        if (unitsToAdd <= 0) {
+            return false;
+        }
+        progressAccumulator -= unitsToAdd;
+        barCount += unitsToAdd;
+        if (barCount > PROGRESS_TOTAL_UNITS) {
+            barCount = 0;
+            progressAccumulator = 0.0D;
+            return true;
+        }
+        return false;
+    }
+
+    private void debugProgressTick() {
+        if (!DEBUG_PROGRESS_TIMING) return;
+        long now = System.nanoTime();
+        long deltaMs = lastProgressUpdateNanos == 0L ? 0L : (now - lastProgressUpdateNanos) / 1_000_000L;
+        lastProgressUpdateNanos = now;
+        plugin.getLogger().info("[AnimatedLB] board=" + boardType.name()
+                + " barCount=" + barCount + "/" + PROGRESS_TOTAL_UNITS
+                + " accumulator=" + String.format(java.util.Locale.US, "%.3f", progressAccumulator)
+                + " tickDeltaMs=" + deltaMs
+                + " transitioning=" + transitioning);
     }
 
     private void transitionTo(BoardType next) {
@@ -105,6 +137,7 @@ public class AnimatedLeaderboard {
             animateRowsIn(() -> animateTitleTyping(boardType, () -> {
                 transitioning = false;
                 barCount = 0;
+                progressAccumulator = 0.0D;
                 renderProgressBar(barCount);
             }));
         }));
