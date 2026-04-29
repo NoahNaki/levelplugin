@@ -130,24 +130,44 @@ public class AnimatedLeaderboard {
     }
 
     private void runRowAnimation(boolean out, Runnable after) {
-        final int duration = getRowDurationTicks();
+        final int rowDuration = getRowDurationTicks();
+        final int rowDelayTicks = 1;
+        final int totalDuration = rowDuration + ((rows.size() - 1) * rowDelayTicks);
+
         new BukkitRunnable() {
             int tick = 0;
+
             @Override
             public void run() {
-                double t = Math.min(1D, tick / (double) duration);
-                double eased = ease(t);
-                double distance = out ? getSlideDistance() * eased : -getSlideDistance() + (getSlideDistance() * eased);
-                byte opacity = out
-                        ? (byte) (-1 - (126 * t))
-                        : (byte) (-127 + (126 * t));
-                Vector slideOffset = getSlideVector(distance);
                 for (RowDisplay row : rows) {
-                    row.teleportWithOffset(origin, slideOffset);
+                    int rowStartTick = row.index() * rowDelayTicks;
+                    int rowLocalTick = tick - rowStartTick;
+
+                    if (rowLocalTick < 0) {
+                        if (out) {
+                            row.teleportToBase(origin);
+                            row.setOpacity(VISIBLE_OPACITY);
+                        } else {
+                            row.teleportWithOffset(origin, getSlideVector(-getSlideDistance()));
+                            row.setOpacity(INVISIBLE_OPACITY);
+                        }
+                        continue;
+                    }
+
+                    double rowT = clamp(rowLocalTick / (double) rowDuration, 0.0, 1.0);
+                    double eased = ease(rowT);
+                    double distance = out
+                            ? getSlideDistance() * eased
+                            : -getSlideDistance() + (getSlideDistance() * eased);
+                    byte opacity = out
+                            ? (byte) (-1 - (126 * rowT))
+                            : (byte) (-127 + (126 * rowT));
+
+                    row.teleportWithOffset(origin, getSlideVector(distance));
                     row.setOpacity(opacity);
                 }
 
-                if (tick++ >= duration) {
+                if (tick++ >= totalDuration) {
                     cancel();
                     if (out) {
                         rows.forEach(r -> r.setOpacity(INVISIBLE_OPACITY));
@@ -230,4 +250,5 @@ public class AnimatedLeaderboard {
     private double localZ(double x) { int yaw = normalizeYaw(origin.getYaw()); return yaw == 90 ? -x : yaw == 270 ? x : 0; }
     private int normalizeYaw(float yaw) { int y = ((Math.round(yaw / 90f) * 90) % 360 + 360) % 360; return switch (y) { case 90, 180, 270 -> y; default -> 0; }; }
     private double ease(double t) { return (3 * t * t) - (2 * t * t * t); }
+    private double clamp(double value, double min, double max) { return Math.max(min, Math.min(max, value)); }
 }
