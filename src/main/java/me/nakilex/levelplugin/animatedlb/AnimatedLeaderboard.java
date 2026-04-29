@@ -187,18 +187,19 @@ public class AnimatedLeaderboard {
     private void runRowAnimation(boolean out, Runnable after) {
         final int rowDuration = getRowDurationTicks();
         final int rowDelayTicks = 1;
-        final int totalDuration = rowDuration + ((rows.size() - 1) * rowDelayTicks);
 
         new BukkitRunnable() {
             int tick = 0;
 
             @Override
             public void run() {
+                boolean allRowsFinished = true;
                 for (RowDisplay row : rows) {
                     int rowStartTick = row.index() * rowDelayTicks;
                     int rowLocalTick = tick - rowStartTick;
 
                     if (rowLocalTick < 0) {
+                        allRowsFinished = false;
                         if (out) {
                             row.teleportToBase(origin);
                             row.setOpacity(VISIBLE_OPACITY);
@@ -210,6 +211,9 @@ public class AnimatedLeaderboard {
                     }
 
                     double rowT = clamp(rowLocalTick / (double) rowDuration, 0.0, 1.0);
+                    if (rowT < 1.0D) {
+                        allRowsFinished = false;
+                    }
                     double eased = ease(rowT);
                     double distance = out
                             ? getSlideDistance() * eased
@@ -222,7 +226,8 @@ public class AnimatedLeaderboard {
                     row.setOpacity(opacity);
                 }
 
-                if (tick++ >= totalDuration) {
+                tick++;
+                if (allRowsFinished) {
                     cancel();
                     if (out) {
                         rows.forEach(r -> r.setOpacity(INVISIBLE_OPACITY));
