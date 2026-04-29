@@ -19,6 +19,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
@@ -68,6 +69,11 @@ public class StrongholdQueueGUI implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         if (!GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) return;
         if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (event.getRawSlot() == 11 && (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT)) {
+            event.setCancelled(true);
+            new StrongholdStageSelectGUI().open(player);
+            return;
+        }
         if (handleWidgetClick(event, player)) {
             return;
         }

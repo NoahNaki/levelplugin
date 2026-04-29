@@ -60,6 +60,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.io.IOException;
 import org.bukkit.util.Vector;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -183,6 +185,10 @@ public class StrongholdRunManager implements Listener {
     private StageProgress toStageProgress(int absoluteWave) { int safe=Math.max(1, absoluteWave); int stage=((safe-1)/WAVES_PER_STAGE)+1; int waveIn=((safe-1)%WAVES_PER_STAGE)+1; return new StageProgress(stage,waveIn,safe); }
 
     public void startSoloRun(Player player) {
+        startSoloRun(player, null);
+    }
+
+    public void startSoloRun(Player player, Integer startingStage) {
         if (player == null || !player.isOnline()) {
             return;
         }
@@ -223,7 +229,7 @@ public class StrongholdRunManager implements Listener {
             send(player, MessageType.WARNING, debug.toString());
         }
 
-        ActiveRun run = new ActiveRun(worldId, origin);
+        ActiveRun run = new ActiveRun(worldId, origin, startingStage);
         activeRuns.put(worldId, run);
         run.start();
         send(player, MessageType.SUCCESS, "Stronghold waves started.");
@@ -652,11 +658,13 @@ public class StrongholdRunManager implements Listener {
         private BukkitTask task;
         private BukkitTask autoCastTask;
         private int wave = 0;
+        private final Integer selectedStartingStage;
         private int secondsUntilNextWave = FIRST_WAVE_DELAY_SECONDS;
 
-        private ActiveRun(UUID worldId, Location origin) {
+        private ActiveRun(UUID worldId, Location origin, Integer selectedStartingStage) {
             this.worldId = worldId;
             this.origin = origin;
+            this.selectedStartingStage = selectedStartingStage;
         }
 
         private void start() {
@@ -664,6 +672,9 @@ public class StrongholdRunManager implements Listener {
             if (runWorld != null) {
                 initializePlayers(runWorld);
                 int checkpoint = playersInWorld(runWorld).stream().mapToInt(p -> highestAbsoluteWaveByPlayer.getOrDefault(p.getUniqueId(), 1)).max().orElse(1);
+                if (selectedStartingStage != null && selectedStartingStage > 0) {
+                    checkpoint = ((Math.max(1, selectedStartingStage) - 1) * WAVES_PER_STAGE) + 1;
+                }
                 wave = Math.max(0, checkpoint - 1);
             }
             this.task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
@@ -765,6 +776,8 @@ public class StrongholdRunManager implements Listener {
             if (state == null) {
                 return;
             }
+            highestAbsoluteWaveByPlayer.merge(player.getUniqueId(), Math.max(1, wave), Math::max);
+            saveProgressionData();
             StrongholdResultsStorageGUI result = createSessionResultGui(player, state);
             pendingResultInventories.put(player.getUniqueId(), result);
             stopRun(worldId);
@@ -1170,6 +1183,7 @@ public class StrongholdRunManager implements Listener {
             state.progressBar = Bukkit.createBossBar("", BarColor.PURPLE, BarStyle.SOLID);
             state.progressBar.addPlayer(player);
             state.progressBar.setVisible(true);
+            state.pendingUpgradeSelections = 1;
             state.pendingUpgrades = rollUpgradeChoices(state, 3);
             updateProgressBar(player, state);
             send(player, MessageType.INFO, "Stronghold start: class set to " + ChatColor.WHITE + "Classless" + ChatColor.GRAY + ".");
@@ -1194,17 +1208,18 @@ public class StrongholdRunManager implements Listener {
             }
             state.xp += amount;
             int required = xpRequiredForLevel(state.level);
-            boolean leveledUp = false;
+            int levelsGained = 0;
             while (state.xp >= required) {
                 state.xp -= required;
                 state.level++;
-                leveledUp = true;
+                levelsGained++;
                 required = xpRequiredForLevel(state.level);
             }
             updateProgressBar(player, state);
-            if (leveledUp) {
+            if (levelsGained > 0) {
                 send(player, MessageType.SUCCESS,
                         "Rank up! " + ChatColor.WHITE + "Run Rank " + state.level + ChatColor.GRAY + " reached.");
+                state.pendingUpgradeSelections += levelsGained;
                 state.pendingUpgrades = rollUpgradeChoices(state, 3);
                 openUpgradeGui(player, state);
             }
@@ -1224,7 +1239,8 @@ public class StrongholdRunManager implements Listener {
                 return null;
             }
             StageProgress progress = toStageProgress(Math.max(1, wave));
-            return new StageStatus(progress.stage(), progress.wave(), countAliveAllSpawned());
+            SurvivorState state = playerStates.get(playerId);
+            return new StageStatus(progress.stage(), progress.wave(), countAliveAllSpawned(), state == null ? "None" : state.activeArchetypeBuff);
         }
 
         private void updateProgressBar(Player player, SurvivorState state) {
@@ -1473,6 +1489,7 @@ public class StrongholdRunManager implements Listener {
             applyUpgrade(player, state, selected);
             state.pendingUpgrades = List.of();
             state.awaitingUpgradeSelection = false;
+            state.pendingUpgradeSelections = Math.max(0, state.pendingUpgradeSelections - 1);
             state.skipNextUpgradeReopen = true;
             setUpgradePausedState(player, state, false);
             player.closeInventory();
@@ -1772,6 +1789,7 @@ public class StrongholdRunManager implements Listener {
                 if (plugin.getGemsManager() != null) {
                     state.maxGemsDuringRun = Math.max(state.maxGemsDuringRun, plugin.getGemsManager().getTotalUnits(player));
                 }
+                applyArchetypeBuff(player, state);
                 for (String spellId : state.activeSpellByBase.values()) {
                     SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(spellId);
                     if (spellEntry == null || spellEntry.definition() == null) {
@@ -1884,6 +1902,48 @@ public class StrongholdRunManager implements Listener {
             return me.nakilex.levelplugin.spells.SpellEffectUtil
                     .getLivingTargets(player.getLocation(), Math.max(2.0, radius), living -> !living.equals(player))
                     .size();
+        }
+
+        private void applyArchetypeBuff(Player player, SurvivorState state) {
+            if (player == null || state == null) {
+                return;
+            }
+            Map<String, Integer> classCounts = new HashMap<>();
+            for (String spellId : state.activeSpellByBase.values()) {
+                if (spellId == null) continue;
+                String key = spellId.toLowerCase(Locale.ROOT);
+                int idx = key.indexOf('_');
+                if (idx <= 0) continue;
+                String clazz = key.substring(0, idx);
+                classCounts.merge(clazz, 1, Integer::sum);
+            }
+            String buff = "None";
+            if (classCounts.getOrDefault("rogue", 0) >= 3) {
+                player.setAllowFlight(true);
+                buff = "Rogue Trinity";
+            } else {
+                player.setFlying(false);
+                player.setAllowFlight(false);
+            }
+            if (classCounts.getOrDefault("warrior", 0) >= 3) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE, 60, 0, true, false, false));
+                buff = "Warrior Trinity";
+            }
+            if (classCounts.getOrDefault("mage", 0) >= 3) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 60, 0, true, false, false));
+                buff = "Mage Trinity";
+            }
+            if (classCounts.getOrDefault("archer", 0) >= 3) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 0, true, false, false));
+                buff = "Archer Trinity";
+            }
+            if (classCounts.getOrDefault("rogue", 0) >= 1 && classCounts.getOrDefault("warrior", 0) >= 1
+                    && classCounts.getOrDefault("mage", 0) >= 1 && classCounts.getOrDefault("archer", 0) >= 1) {
+                player.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH, 60, 0, true, false, false));
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 0, true, false, false));
+                buff = "Prismatic Surge";
+            }
+            state.activeArchetypeBuff = buff;
         }
 
         private SpellRegistry.SpellEntry resolveOwnedManualSpell(SurvivorState state, ManualCastTrigger trigger) {
@@ -2024,6 +2084,8 @@ public class StrongholdRunManager implements Listener {
             Player online = Bukkit.getPlayer(playerId);
             if (online != null && online.isOnline()) {
                 online.setInvisible(false);
+                online.setAllowFlight(false);
+                online.setFlying(false);
                 PlayerClassManager.getInstance().setPlayerClass(online, state.originalClass);
                 online.getInventory().setStorageContents(cloneItemArray(state.savedStorageContents));
                 online.getInventory().setArmorContents(cloneItemArray(state.savedArmorContents));
@@ -2285,6 +2347,8 @@ public class StrongholdRunManager implements Listener {
         private boolean awaitingUpgradeSelection;
         private boolean skipNextUpgradeReopen;
         private boolean rerollAnimating;
+        private int pendingUpgradeSelections;
+        private String activeArchetypeBuff = "None";
         private boolean upgradePaused;
         private int cooldownUpgradeTier;
         private int keysCollected;
@@ -2317,7 +2381,7 @@ public class StrongholdRunManager implements Listener {
                                  int statAmount) {
     }
 
-    public record StageStatus(int stage, int wave, int enemiesRemaining) {
+    public record StageStatus(int stage, int wave, int enemiesRemaining, String archetypeBuff) {
     }
 
     public record StageProgress(int stage, int wave, int absoluteWave) {}
