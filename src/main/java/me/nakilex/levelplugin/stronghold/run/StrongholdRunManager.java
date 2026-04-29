@@ -1795,11 +1795,8 @@ public class StrongholdRunManager implements Listener {
             }
         }
 
-        private boolean tryManualCastSpell(Player player, ManualCastTrigger trigger) {
-            if (trigger == null || trigger == ManualCastTrigger.NONE) {
-                return false;
-            }
-            if (player == null || pausedPlayers.contains(player.getUniqueId())) {
+        private boolean hasValidStrongholdWeapon(Player player, boolean notifyFailure) {
+            if (player == null) {
                 return false;
             }
             if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) {
@@ -1807,7 +1804,22 @@ public class StrongholdRunManager implements Listener {
             }
             String requirementFailure = SpellAccessUtil.getHeldWeaponRequirementFailure(player);
             if (requirementFailure != null) {
-                send(player, MessageType.WARNING, requirementFailure);
+                if (notifyFailure) {
+                    send(player, MessageType.WARNING, requirementFailure);
+                }
+                return false;
+            }
+            return true;
+        }
+
+        private boolean tryManualCastSpell(Player player, ManualCastTrigger trigger) {
+            if (trigger == null || trigger == ManualCastTrigger.NONE) {
+                return false;
+            }
+            if (player == null || pausedPlayers.contains(player.getUniqueId())) {
+                return false;
+            }
+            if (!hasValidStrongholdWeapon(player, true)) {
                 return false;
             }
             long now = System.currentTimeMillis();
@@ -1917,6 +1929,9 @@ public class StrongholdRunManager implements Listener {
                                   boolean consumeResources) {
             try {
                 if (player == null || spellEntry == null || spellEntry.definition() == null || inputEvent == null) {
+                    return false;
+                }
+                if (!hasValidStrongholdWeapon(player, false)) {
                     return false;
                 }
                 if (consumeResources && !SpellCastManager.getInstance().tryConsumeResources(player, spellEntry.definition())) {
