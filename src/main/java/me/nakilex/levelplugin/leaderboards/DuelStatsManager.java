@@ -3,7 +3,6 @@ package me.nakilex.levelplugin.leaderboards;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import me.nakilex.levelplugin.leaderboards.LeaderboardType;
 
 import java.io.File;
 import java.io.IOException;
@@ -43,9 +42,6 @@ public class DuelStatsManager {
         String path = "players." + id + ".wins";
         config.set(path, getWins(id) + 1);
         save();
-        if (plugin.getLeaderboardManager() != null) {
-            plugin.getLeaderboardManager().updateType(LeaderboardType.DUELS);
-        }
     }
 
     public java.util.Map<String, Object> getAll() {

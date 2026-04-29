@@ -31,7 +31,7 @@ public class AnimatedLeaderboard {
     private final List<TextDisplay> progressSegments = new ArrayList<>();
     private TextDisplay title;
     private TextDisplay subtitle;
-    private BoardType boardType = BoardType.KILLS;
+    private BoardType boardType = BoardType.STRONGHOLD_STAGE;
     private int progressTick = 0;
     private boolean transitioning = false;
     private BukkitTask tickTask;
@@ -108,8 +108,8 @@ public class AnimatedLeaderboard {
         title.setText(type.color() + type.icon() + " " + type.title());
         List<LeaderboardEntry> entries = dataProvider.getEntries(type, rowCount);
         for (int i = 0; i < rowCount; i++) {
-            LeaderboardEntry e = i < entries.size() ? entries.get(i) : new LeaderboardEntry("NONE", 0);
-            rows.get(i).setText(ChatColor.WHITE + "#" + (i + 1) + " " + e.name(), type.color() + type.format(e.value()));
+            LeaderboardEntry e = i < entries.size() ? entries.get(i) : new LeaderboardEntry("NONE", 0, 0);
+            rows.get(i).setText(ChatColor.WHITE + "#" + (i + 1) + " " + e.name(), type.color() + type.format(e));
         }
     }
 

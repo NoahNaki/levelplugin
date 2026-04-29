@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.animatedlb;
 
+import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -9,9 +10,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class LeaderboardManager {
     private final JavaPlugin plugin;
     private AnimatedLeaderboard board;
-    private LeaderboardDataProvider provider = new MockLeaderboardDataProvider();
+    private final LeaderboardDataProvider provider;
 
-    public LeaderboardManager(JavaPlugin plugin) { this.plugin = plugin; }
+    public LeaderboardManager(JavaPlugin plugin) {
+        this.plugin = plugin;
+        this.provider = plugin instanceof Main main ? new PlayerStatsLeaderboardDataProvider(main) : new MockLeaderboardDataProvider();
+    }
 
     public void reload() { plugin.reloadConfig(); }
 

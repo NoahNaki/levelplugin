@@ -4,7 +4,6 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
-import me.nakilex.levelplugin.leaderboards.LeaderboardType;
 import me.nakilex.levelplugin.mob.managers.ChatToggleManager;
 import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
 import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
@@ -473,7 +472,6 @@ public class SettingsGUI implements Listener {
         settings.toggleBalancePublic();
         me.nakilex.levelplugin.Main main = me.nakilex.levelplugin.Main.getInstance();
         if (main != null && main.getLeaderboardManager() != null) {
-            main.getLeaderboardManager().updateType(LeaderboardType.BALANCE);
         }
         openSettingsMenu(player);
     }

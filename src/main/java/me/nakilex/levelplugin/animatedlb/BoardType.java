@@ -2,20 +2,20 @@ package me.nakilex.levelplugin.animatedlb;
 
 import org.bukkit.ChatColor;
 
-import java.text.DecimalFormat;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 public enum BoardType {
-    KILLS("KILLS LEADERBOARD", "⚔", ChatColor.RED, v -> String.valueOf((int) v.doubleValue())),
-    DEATHS("DEATHS LEADERBOARD", "☠", ChatColor.DARK_PURPLE, v -> String.valueOf((int) v.doubleValue())),
-    MONEY("MONEY LEADERBOARD", "⛁", ChatColor.GOLD, v -> "$" + new DecimalFormat("#,###").format(v));
+    STRONGHOLD_STAGE("STRONGHOLD PROGRESSION", "⚔", ChatColor.LIGHT_PURPLE,
+            (e, type) -> "S" + (int) e.primaryValue() + "-W" + (int) e.secondaryValue()),
+    POWER("POWER RANKING", "✦", ChatColor.AQUA,
+            (e, type) -> "GS " + (int) e.primaryValue() + " • LV " + (int) e.secondaryValue());
 
     private final String title;
     private final String icon;
     private final ChatColor color;
-    private final Function<Double, String> formatter;
+    private final BiFunction<LeaderboardEntry, BoardType, String> formatter;
 
-    BoardType(String title, String icon, ChatColor color, Function<Double, String> formatter) {
+    BoardType(String title, String icon, ChatColor color, BiFunction<LeaderboardEntry, BoardType, String> formatter) {
         this.title = title;
         this.icon = icon;
         this.color = color;
@@ -25,7 +25,7 @@ public enum BoardType {
     public String title() { return title; }
     public String icon() { return icon; }
     public ChatColor color() { return color; }
-    public String format(double value) { return formatter.apply(value); }
+    public String format(LeaderboardEntry entry) { return formatter.apply(entry, this); }
 
     public BoardType next() {
         BoardType[] values = values();

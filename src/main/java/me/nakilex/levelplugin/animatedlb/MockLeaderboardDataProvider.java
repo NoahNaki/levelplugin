@@ -9,12 +9,11 @@ public class MockLeaderboardDataProvider implements LeaderboardDataProvider {
     public List<LeaderboardEntry> getEntries(BoardType type, int limit) {
         List<LeaderboardEntry> entries = new ArrayList<>();
         for (int i = 0; i < limit; i++) {
-            double value = switch (type) {
-                case KILLS -> ThreadLocalRandom.current().nextInt(20, 700);
-                case DEATHS -> ThreadLocalRandom.current().nextInt(1, 250);
-                case MONEY -> ThreadLocalRandom.current().nextInt(5_000, 850_000);
-            };
-            entries.add(new LeaderboardEntry("Player" + (i + 1), value));
+            if (type == BoardType.STRONGHOLD_STAGE) {
+                entries.add(new LeaderboardEntry("Player" + (i + 1), ThreadLocalRandom.current().nextInt(1, 30), ThreadLocalRandom.current().nextInt(1, 6)));
+            } else {
+                entries.add(new LeaderboardEntry("Player" + (i + 1), ThreadLocalRandom.current().nextInt(50, 1500), ThreadLocalRandom.current().nextInt(1, 60)));
+            }
         }
         return entries;
     }
