@@ -112,7 +112,7 @@ public class StrongholdRunManager implements Listener {
     private static final double MOB_RELOCATE_AXIS_OFFSET = 5.0;
     private static final double MOB_RELOCATE_AXIS_JITTER = 1.5;
     private static final String MINIBOSS_MOB_ID = "slime_king";
-    private static final String BOSS_MOB_ID = "slime_king";
+    private static final String BOSS_MOB_ID = "giant_zombie";
     private static final double KEY_DROP_CHANCE = 0.03;
     private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
     private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.15;
@@ -1618,7 +1618,12 @@ public class StrongholdRunManager implements Listener {
                 }
                 if (living instanceof Mob mob) {
                     mob.setTarget(null);
+                    mob.setAware(!frozen);
                     mob.setAI(!frozen);
+                }
+                if (frozen) {
+                    living.setVelocity(new Vector(0.0, 0.0, 0.0));
+                    living.setNoDamageTicks(10);
                 }
             }
         }
@@ -1632,7 +1637,7 @@ public class StrongholdRunManager implements Listener {
                 state.tempStatBonuses.merge(choice.statType, choice.statAmount, Integer::sum);
                 applyTempStatDelta(player.getUniqueId(), choice.statType, choice.statAmount);
                 send(player, MessageType.SUCCESS, "Stronghold buff: " + ChatColor.GREEN + "+" + choice.statAmount
-                        + " " + choice.statType.getDisplayName() + ChatColor.GRAY + " (temporary).");
+                        + "% " + choice.statType.getDisplayName() + ChatColor.GRAY + " (temporary).");
                 return;
             }
             if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
@@ -1695,10 +1700,10 @@ public class StrongholdRunManager implements Listener {
 
             if (rolled.size() < count) {
                 List<UpgradeChoice> statCandidates = new ArrayList<>(List.of(
-                        new UpgradeChoice(UpgradeType.STAT, "Power Surge", "Temporary Strength boost for this run only.", null, null, StatsManager.StatType.STR, 2),
-                        new UpgradeChoice(UpgradeType.STAT, "Swiftfoot", "Temporary Agility boost for this run only.", null, null, StatsManager.StatType.AGI, 2),
-                        new UpgradeChoice(UpgradeType.STAT, "Arcane Focus", "Temporary Intelligence boost for this run only.", null, null, StatsManager.StatType.INT, 2),
-                        new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost for this run only.", null, null, StatsManager.StatType.VIT, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Power Surge", "Temporary Strength boost (+2%) for this run only.", null, null, StatsManager.StatType.STR, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Swiftfoot", "Temporary Agility boost (+2%) for this run only.", null, null, StatsManager.StatType.AGI, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Arcane Focus", "Temporary Intelligence boost (+2%) for this run only.", null, null, StatsManager.StatType.INT, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost (+2%) for this run only.", null, null, StatsManager.StatType.VIT, 2),
                         new UpgradeChoice(UpgradeType.GLOBAL_COOLDOWN, "Arcane Tempo", "Reduce all loadout skill cooldowns globally by 10%.", null, null, null, 0)
                 ));
                 while (!statCandidates.isEmpty() && rolled.size() < count) {
@@ -1708,7 +1713,7 @@ public class StrongholdRunManager implements Listener {
             }
 
             while (rolled.size() < count) {
-                rolled.add(new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost for this run only.", null, null, StatsManager.StatType.VIT, 2));
+                rolled.add(new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost (+2%) for this run only.", null, null, StatsManager.StatType.VIT, 2));
             }
             return rolled;
         }
