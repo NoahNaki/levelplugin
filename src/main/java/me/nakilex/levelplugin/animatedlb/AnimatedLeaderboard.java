@@ -215,12 +215,14 @@ public class AnimatedLeaderboard {
                         allRowsFinished = false;
                     }
                     double eased = ease(rowT);
+                    double travelT = out ? rowT : eased;
+                    double fadeT = out ? rowT : eased;
                     double distance = out
-                            ? getSlideDistance() * eased
-                            : -getSlideDistance() + (getSlideDistance() * eased);
+                            ? getSlideDistance() * travelT
+                            : -getSlideDistance() + (getSlideDistance() * travelT);
                     byte opacity = out
-                            ? (byte) (-1 - (126 * eased))
-                            : (byte) (-127 + (126 * eased));
+                            ? (byte) (-1 - (126 * fadeT))
+                            : (byte) (-127 + (126 * fadeT));
 
                     row.teleportWithOffset(origin, getSlideVector(distance));
                     row.setOpacity(opacity);
