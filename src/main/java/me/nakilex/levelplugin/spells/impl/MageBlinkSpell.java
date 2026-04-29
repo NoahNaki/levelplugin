@@ -72,16 +72,30 @@ public class MageBlinkSpell implements SpellHandler {
         if (center == null || center.getWorld() == null) {
             return;
         }
-        double radius = 3.2;
-        for (double theta = 0.0; theta < Math.PI; theta += Math.PI / 12.0) {
-            for (double phi = 0.0; phi < Math.PI * 2.0; phi += Math.PI / 12.0) {
-                double x = radius * Math.sin(theta) * Math.cos(phi);
-                double y = radius * Math.cos(theta);
-                double z = radius * Math.sin(theta) * Math.sin(phi);
-                center.getWorld().spawnParticle(Particle.FLAME, center.clone().add(x, y, z), 1, 0, 0, 0, 0.01);
+        final int steps = 8;
+        final double maxRadius = 3.6;
+        new org.bukkit.scheduler.BukkitRunnable() {
+            int tick = 0;
+
+            @Override
+            public void run() {
+                if (tick >= steps || center.getWorld() == null) {
+                    center.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, center, 2, 0.2, 0.2, 0.2, 0.0);
+                    cancel();
+                    return;
+                }
+                double radius = maxRadius * ((tick + 1.0) / steps);
+                for (double theta = 0.0; theta < Math.PI; theta += Math.PI / 12.0) {
+                    for (double phi = 0.0; phi < Math.PI * 2.0; phi += Math.PI / 12.0) {
+                        double x = radius * Math.sin(theta) * Math.cos(phi);
+                        double y = radius * Math.cos(theta);
+                        double z = radius * Math.sin(theta) * Math.sin(phi);
+                        center.getWorld().spawnParticle(Particle.FLAME, center.clone().add(x, y, z), 1, 0, 0, 0, 0.01);
+                    }
+                }
+                tick++;
             }
-        }
-        center.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, center, 2, 0.15, 0.15, 0.15, 0.0);
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private Vector computeBlinkMomentum(Location origin, Location destination) {

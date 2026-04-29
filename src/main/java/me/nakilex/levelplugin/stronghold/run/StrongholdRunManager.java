@@ -118,6 +118,7 @@ public class StrongholdRunManager implements Listener {
     private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.15;
     private static final double DEFAULT_STAGE_DAMAGE_GROWTH = 0.10;
     private static final double DEFAULT_WAVE_HEALTH_GROWTH = 0.02;
+    private static final double EXTRA_WAVE_HEALTH_SCALING = 0.15;
     private static final double DEFAULT_WAVE_DAMAGE_GROWTH = 0.015;
     private static final double DEFAULT_WAVE_MOVE_SPEED_GROWTH = 0.003;
     private static final int MINIBOSS_SLIME_SIZE = 2;
@@ -895,6 +896,7 @@ public class StrongholdRunManager implements Listener {
             StageProgress progress = toStageProgress(waveNumber);
             double healthMultiplier = Math.pow(1.0 + stageScalingConfig.stageHealthGrowth(), progress.stage() - 1)
                     * Math.pow(1.0 + stageScalingConfig.waveHealthGrowth(), progress.wave() - 1)
+                    * Math.pow(1.0 + EXTRA_WAVE_HEALTH_SCALING, progress.wave() - 1)
                     * 1.10;
             if (boss) {
                 healthMultiplier *= 1.35;
