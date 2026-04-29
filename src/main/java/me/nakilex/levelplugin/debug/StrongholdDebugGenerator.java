@@ -3531,6 +3531,10 @@ public final class StrongholdDebugGenerator {
         }
         Set<String> seenPlacements = new HashSet<>();
         int perConnectorBudget = Math.max(1, maxPlacements / Math.max(1, currentConnectors.size()));
+        List<RotatedCandidateConnector> rotatedCandidates = buildRotatedCandidates(candidateSpecs, currentSide);
+        if (rotatedCandidates.isEmpty()) {
+            return placements;
+        }
 
         // Pass 1: ensure each connector slot contributes options before one slot monopolizes the cap.
         for (BlockVector3 currentConnector : currentConnectors) {
@@ -3538,7 +3542,7 @@ public final class StrongholdDebugGenerator {
                     current,
                     currentSide,
                     currentConnector,
-                    candidateSpecs,
+                    rotatedCandidates,
                     occupied,
                     enforceOverlap,
                     perConnectorBudget,
@@ -3561,7 +3565,7 @@ public final class StrongholdDebugGenerator {
                     current,
                     currentSide,
                     currentConnector,
-                    candidateSpecs,
+                    rotatedCandidates,
                     occupied,
                     enforceOverlap,
                     Integer.MAX_VALUE,
@@ -3580,7 +3584,7 @@ public final class StrongholdDebugGenerator {
     private static int enumerateFromConnector(PlacedTemplate current,
                                               BlockFace currentSide,
                                               BlockVector3 currentConnector,
-                                              List<TemplateSpec> candidateSpecs,
+                                              List<RotatedCandidateConnector> rotatedCandidates,
                                               Set<Long> occupied,
                                               boolean enforceOverlap,
                                               int limitForConnector,
@@ -3590,40 +3594,55 @@ public final class StrongholdDebugGenerator {
                                               boolean allowOverlapSlide) {
         int added = 0;
         BlockVector3 worldConnector = current.origin.add(currentConnector);
-        for (TemplateSpec spec : candidateSpecs) {
-            for (int rot = 0; rot < 4; rot++) {
-                RotatedTemplate rotated = rotateTemplate(spec.template, rot);
-                List<BlockVector3> candidateConnectors = rotated.connectors.get(opposite(currentSide));
-                if (candidateConnectors == null || candidateConnectors.isEmpty()) {
+        for (RotatedCandidateConnector candidate : rotatedCandidates) {
+            for (BlockVector3 candidateConnector : candidate.connectors()) {
+                BlockVector3 idealOrigin = worldConnector.subtract(candidateConnector);
+                BlockVector3 origin = allowOverlapSlide
+                        ? adjustedOriginForOverlap(candidate.spec(), occupied, candidate.rotated().blocks, idealOrigin, currentSide)
+                        : idealOrigin;
+                if (!connectorDriftWithinLimit(idealOrigin, origin, candidate.spec())) {
                     continue;
                 }
-                for (BlockVector3 candidateConnector : candidateConnectors) {
-                    BlockVector3 idealOrigin = worldConnector.subtract(candidateConnector);
-                    BlockVector3 origin = allowOverlapSlide
-                            ? adjustedOriginForOverlap(spec, occupied, rotated.blocks, idealOrigin, currentSide)
-                            : idealOrigin;
-                    if (!connectorDriftWithinLimit(idealOrigin, origin, spec)) {
-                        continue;
-                    }
-                    if (enforceOverlap && !isOverlapWithinThreshold(occupied, rotated.blocks, origin, maxOverlapPercent)) {
-                        continue;
-                    }
-                    PlacedTemplate placed = new PlacedTemplate(spec, rot, origin);
-                    placed.incomingSide = opposite(currentSide);
-                    placed.markUsed(opposite(currentSide));
-                    String key = placementKey(placed);
-                    if (!seenPlacements.add(key)) {
-                        continue;
-                    }
-                    out.add(placed);
-                    added++;
-                    if (added >= limitForConnector || out.size() >= maxPlacements) {
-                        return added;
-                    }
+                if (enforceOverlap && !isOverlapWithinThreshold(occupied, candidate.rotated().blocks, origin, maxOverlapPercent)) {
+                    continue;
+                }
+                PlacedTemplate placed = new PlacedTemplate(candidate.spec(), candidate.rotation(), origin);
+                placed.incomingSide = opposite(currentSide);
+                placed.markUsed(opposite(currentSide));
+                String key = placementKey(placed);
+                if (!seenPlacements.add(key)) {
+                    continue;
+                }
+                out.add(placed);
+                added++;
+                if (added >= limitForConnector || out.size() >= maxPlacements) {
+                    return added;
                 }
             }
         }
         return added;
+    }
+
+    private static List<RotatedCandidateConnector> buildRotatedCandidates(List<TemplateSpec> candidateSpecs, BlockFace side) {
+        if (candidateSpecs == null || candidateSpecs.isEmpty() || side == null) {
+            return List.of();
+        }
+        List<RotatedCandidateConnector> candidates = new ArrayList<>();
+        BlockFace targetSide = opposite(side);
+        for (TemplateSpec spec : candidateSpecs) {
+            if (spec == null || spec.template == null) {
+                continue;
+            }
+            for (int rotation = 0; rotation < 4; rotation++) {
+                RotatedTemplate rotated = rotateTemplate(spec.template, rotation);
+                List<BlockVector3> connectors = rotated.connectors.get(targetSide);
+                if (connectors == null || connectors.isEmpty()) {
+                    continue;
+                }
+                candidates.add(new RotatedCandidateConnector(spec, rotation, rotated, connectors));
+            }
+        }
+        return candidates;
     }
 
     private static boolean areBothLarge(TemplateSpec a, TemplateSpec b) {
@@ -3982,7 +4001,10 @@ public final class StrongholdDebugGenerator {
                                                     Map<BlockVector3, BlockData> blocks,
                                                     BlockVector3 origin,
                                                     double thresholdPercent) {
-        return isOverlapWithinThreshold(occupied, blocks == null ? List.of() : blocks.keySet(), origin, thresholdPercent);
+        if (blocks == null || blocks.isEmpty()) {
+            return false;
+        }
+        return isOverlapWithinThreshold(occupied, blocks.keySet(), origin, thresholdPercent, blocks.size());
     }
 
     private static boolean isOverlapWithinThreshold(Set<Long> occupied,
@@ -5274,6 +5296,12 @@ public final class StrongholdDebugGenerator {
     }
 
     private record PlacementAttempt(PlacedTemplate connector, PlacedTemplate placed) {
+    }
+
+    private record RotatedCandidateConnector(TemplateSpec spec,
+                                             int rotation,
+                                             RotatedTemplate rotated,
+                                             List<BlockVector3> connectors) {
     }
 
     private record TemplatePastePlan(List<PlacedTemplate> coreTemplates, List<PlacedTemplate> deferredTemplates) {
