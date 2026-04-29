@@ -109,6 +109,7 @@ public final class StrongholdDebugGenerator {
     private static final double VEGETATION_SCALE = 6.0D;
     private static final double FLOWER_THRESHOLD = 0.94D;
     private static final double TALL_GRASS_THRESHOLD = 0.80D;
+    private static final double SHORT_GRASS_THRESHOLD = 0.58D;
     private static final int FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 1500;
     private static final boolean FLOOR_NOISE_FORCE_LOAD_CHUNKS = true;
     private static final int STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER = 3;
@@ -223,6 +224,7 @@ public final class StrongholdDebugGenerator {
     private static final int DETACHED_ASSET_CONSECUTIVE_MISS_ABORT = 140;
     private static final int DETACHED_ASSET_MIN_TOTAL_REQUEST = 32;
     private static final int DETACHED_ASSET_BLOCKS_PER_ASSET_TARGET = 700;
+    private static final int POST_TELEPORT_ENHANCEMENT_DELAY_TICKS = 80;
     private static final int BORDER_FOREST_START_DELAY_TICKS = 5;
     private static final int BORDER_FOREST_TICK_INTERVAL = 1;
     private static final int BORDER_FOREST_BATCH_SIZE = 10;
@@ -1251,7 +1253,9 @@ public final class StrongholdDebugGenerator {
                         continue;
                     }
                 }
-                above.setType(Material.SHORT_GRASS, false);
+                if (vegetationNoise >= SHORT_GRASS_THRESHOLD) {
+                    above.setType(Material.SHORT_GRASS, false);
+                }
             }
         }
     }
@@ -1534,7 +1538,7 @@ public final class StrongholdDebugGenerator {
                     scheduleOrganicBorderForest(sourceWorld, world, footprint, occupied, player, fallbackY, () ->
                             applyStrongholdFloorNoise(world, placed, true)
                     ));
-        }, 2L);
+        }, POST_TELEPORT_ENHANCEMENT_DELAY_TICKS);
     }
 
     private static TemplatePastePlan buildTemplatePastePlan(List<PlacedTemplate> placedTemplates,
