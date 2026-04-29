@@ -899,7 +899,7 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate", "overlap", "templates", "assets", "output", "spells", "endsession").stream()
+            return List.of("generate", "overlap", "templates", "assets", "scaling", "output", "spells", "endsession").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("endsession")) {
