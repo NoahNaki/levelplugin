@@ -30,7 +30,6 @@ public class AnimatedLeaderboard {
     private final List<RowDisplay> rows = new ArrayList<>();
     private final List<TextDisplay> progressSegments = new ArrayList<>();
     private TextDisplay title;
-    private TextDisplay subtitle;
     private BoardType boardType = BoardType.STRONGHOLD_STAGE;
     private int progressTick = 0;
     private boolean transitioning = false;
@@ -49,7 +48,6 @@ public class AnimatedLeaderboard {
     public void spawn() {
         remove();
         title = spawnText(0, 2.2, "");
-        subtitle = spawnText(0, 1.9, ChatColor.GRAY + "LAST 30 DAYS");
         for (int i = 0; i < 4; i++) {
             progressSegments.add(spawnText((i - 1.5) * 0.52, 1.55, ""));
         }
@@ -109,7 +107,7 @@ public class AnimatedLeaderboard {
         List<LeaderboardEntry> entries = dataProvider.getEntries(type, rowCount);
         for (int i = 0; i < rowCount; i++) {
             LeaderboardEntry e = i < entries.size() ? entries.get(i) : new LeaderboardEntry("NONE", 0, 0);
-            rows.get(i).setText(ChatColor.WHITE + "#" + (i + 1) + " " + e.name(), type.color() + type.format(e));
+            rows.get(i).setText(type.color() + "#" + (i + 1) + " " + ChatColor.WHITE + e.name(), type.color() + type.format(e));
         }
     }
 
