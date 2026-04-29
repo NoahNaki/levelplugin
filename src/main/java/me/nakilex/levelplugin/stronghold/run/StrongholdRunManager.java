@@ -1640,6 +1640,9 @@ public class StrongholdRunManager implements Listener {
             int nextRank = Math.max(1, state.ownedSpellRanks.getOrDefault(base, 0) + 1);
             state.ownedSpellRanks.put(base, nextRank);
             state.activeSpellByBase.put(base, choice.resultSpellId.toLowerCase(Locale.ROOT));
+            if (isMobilityBaseSpell(base)) {
+                addSpellCharges(state, base, 1);
+            }
             send(player, MessageType.SUCCESS, "Skill upgrade unlocked: "
                     + ChatColor.WHITE + choice.displayName + ChatColor.GRAY + ".");
         }
@@ -1826,6 +1829,43 @@ public class StrongholdRunManager implements Listener {
             }
         }
 
+        private String normalizeBaseSpellId(String spellId) {
+            if (spellId == null || spellId.isBlank()) {
+                return "";
+            }
+            String normalized = spellId.toLowerCase(Locale.ROOT);
+            SpellProgression progression = SpellRegistry.getInstance().getProgression(normalized);
+            return progression == null ? normalized : progression.baseSpellId().toLowerCase(Locale.ROOT);
+        }
+
+        private int getSpellCharges(SurvivorState state, String baseSpellId) {
+            if (state == null || baseSpellId == null || baseSpellId.isBlank()) {
+                return 0;
+            }
+            return Math.max(0, state.spellChargesByBase.getOrDefault(baseSpellId.toLowerCase(Locale.ROOT), 0));
+        }
+
+        private void addSpellCharges(SurvivorState state, String baseSpellId, int amount) {
+            if (state == null || baseSpellId == null || baseSpellId.isBlank() || amount <= 0) {
+                return;
+            }
+            String base = baseSpellId.toLowerCase(Locale.ROOT);
+            state.spellChargesByBase.merge(base, amount, Integer::sum);
+        }
+
+        private boolean consumeSpellCharge(SurvivorState state, String baseSpellId) {
+            if (state == null || baseSpellId == null || baseSpellId.isBlank()) {
+                return false;
+            }
+            String base = baseSpellId.toLowerCase(Locale.ROOT);
+            int current = getSpellCharges(state, base);
+            if (current <= 0) {
+                return false;
+            }
+            state.spellChargesByBase.put(base, current - 1);
+            return true;
+        }
+
         private boolean hasValidStrongholdWeapon(Player player, boolean notifyFailure) {
             if (player == null) {
                 return false;
@@ -1865,6 +1905,11 @@ public class StrongholdRunManager implements Listener {
                 return false;
             }
             SpellDefinition definition = manualSpell.definition();
+            String baseSpellId = normalizeBaseSpellId(definition.id());
+            if (definition.movementSpell() && getSpellCharges(state, baseSpellId) <= 0) {
+                send(player, MessageType.WARNING, definition.displayName() + " has no charges left.");
+                return true;
+            }
             SpellCastManager castManager = SpellCastManager.getInstance();
             long remainingCooldown = castManager.getRemainingCooldownMs(player, definition);
             if (SpellCastManager.areCooldownsEnabled() && remainingCooldown > 0L) {
@@ -1878,8 +1923,12 @@ public class StrongholdRunManager implements Listener {
                 send(player, MessageType.WARNING, "Not enough mana for " + definition.displayName() + " (" + manaCost + ").");
                 return true;
             }
-            return castSpell(player, manualSpell, createSyntheticInputEvent(player, trigger == ManualCastTrigger.RIGHT_CLICK
+            boolean casted = castSpell(player, manualSpell, createSyntheticInputEvent(player, trigger == ManualCastTrigger.RIGHT_CLICK
                     ? "STRONGHOLD_MOBILITY" : "STRONGHOLD_BASIC"), true);
+            if (casted && definition.movementSpell()) {
+                consumeSpellCharge(state, baseSpellId);
+            }
+            return casted;
         }
 
         private long computeAutoCastCooldownMs(Player player, SpellDefinition definition, SurvivorState state) {
@@ -2354,6 +2403,7 @@ public class StrongholdRunManager implements Listener {
         private final PlayerClass originalClass;
         private final Map<String, Integer> ownedSpellRanks = new HashMap<>();
         private final Map<String, String> activeSpellByBase = new HashMap<>();
+        private final Map<String, Integer> spellChargesByBase = new HashMap<>();
         private final Map<String, Long> lastCastAtBySpell = new HashMap<>();
         private final Map<StatsManager.StatType, Integer> tempStatBonuses = new EnumMap<>(StatsManager.StatType.class);
         private BossBar progressBar;

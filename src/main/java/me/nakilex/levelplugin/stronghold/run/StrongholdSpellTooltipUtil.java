@@ -29,6 +29,8 @@ public final class StrongholdSpellTooltipUtil {
                     appendHighlightedBullet(lore, "Calls down a meteor strike for ", ChatColor.RED, "high impact area damage", " with emberfall chain impacts at higher ranks.");
             case "mage_heal", "mage_heal_rejuvenation", "mage_heal_party" ->
                     appendHighlightedBullet(lore, "Restores health with a ", ChatColor.GREEN, "support pulse", " for survivability.");
+            case "mage_blink", "mage_blink_phase", "mage_blink_rift" ->
+                    appendHighlightedBullet(lore, "Blink is ", ChatColor.AQUA, "mana free", " in Stronghold and uses rank-based charges. Riftstride adds a flame sphere burst on arrival.");
             case "archer_quickshot_basic", "archer_quickshot_seeker", "archer_quickshot_payload" ->
                     appendHighlightedBullet(lore, "Fires precision volleys with ", ChatColor.RED, "rapid ranged hits", ", stronger homing, and payload explosions.");
             case "archer_homing_barrage" ->
@@ -68,6 +70,8 @@ public final class StrongholdSpellTooltipUtil {
                     appendHighlightedBullet(lore, "Rank " + currentRank + " → " + nextRank + ": improves ", ChatColor.AQUA, "blocked hits, duration, and party coverage", ".");
             case "mage_heal" ->
                     appendHighlightedBullet(lore, "Rank " + currentRank + " → " + nextRank + ": improves ", ChatColor.GREEN, "healing, mana restore, and shield strength", ".");
+            case "mage_blink" ->
+                    appendHighlightedBullet(lore, "Rank " + currentRank + " → " + nextRank + ": grants ", ChatColor.AQUA, "+1 Blink charge", " in Stronghold. Highest rank unlocks a fiery sphere burst on arrival.");
             case "blackhole" ->
                     appendHighlightedBullet(lore, "Rank " + currentRank + " → " + nextRank + ": drastically improves ", ChatColor.DARK_PURPLE, "pull radius, horizon arc pressure, and collapse burst", ".");
             case "meteor" ->

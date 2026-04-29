@@ -86,12 +86,12 @@ public final class SpellCatalog {
         registry.registerProgression(new SpellProgression(heal.id(), java.util.List.of(healRegen.id(), healParty.id())));
         registry.registerBinding(SpellBinding.forInputType(heal.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
 
-        SpellDefinition blink = new SpellDefinition("mage_blink", "Blink", 14, true);
-        SpellDefinition blinkPhase = new SpellDefinition("mage_blink_phase", "Blink: Phase Step", 14, true);
-        SpellDefinition blinkRift = new SpellDefinition("mage_blink_rift", "Blink: Riftstride", 14, true);
+        SpellDefinition blink = new SpellDefinition("mage_blink", "Blink", 0, true);
+        SpellDefinition blinkPhase = new SpellDefinition("mage_blink_phase", "Blink: Phase Step", 0, true);
+        SpellDefinition blinkRift = new SpellDefinition("mage_blink_rift", "Blink: Riftstride", 0, true);
         registry.registerSpell(blink, new MageBlinkSpell(plugin, 8.0, 0.52, 0.45));
         registry.registerSpell(blinkPhase, new MageBlinkSpell(plugin, 11.0, 0.58, 0.55));
-        registry.registerSpell(blinkRift, new MageBlinkSpell(plugin, 14.0, 0.66, 0.65));
+        registry.registerSpell(blinkRift, new MageBlinkSpell(plugin, 14.0, 0.66, 0.65, true));
         registry.registerProgression(new SpellProgression(blink.id(), java.util.List.of(blinkPhase.id(), blinkRift.id())));
         // Mobility spell archived for rework.
         // registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));

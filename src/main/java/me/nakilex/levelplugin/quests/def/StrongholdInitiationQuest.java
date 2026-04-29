@@ -10,7 +10,7 @@ import java.util.List;
 
 public class StrongholdInitiationQuest extends Quest {
     public static final String ID = "strongholdinitiation";
-    public static final int NPC_ID = 999001; // Placeholder NPC id. Replace in production.
+    public static final int NPC_ID = 4708; // Placeholder NPC id; replace as needed.
 
     public StrongholdInitiationQuest() {
         super(
