@@ -112,7 +112,7 @@ public final class StrongholdDebugGenerator {
     private static final double SHORT_GRASS_THRESHOLD = 0.58D;
     private static final int FLOOR_NOISE_SOFT_TIME_BUDGET_MS = 1500;
     private static final boolean FLOOR_NOISE_FORCE_LOAD_CHUNKS = true;
-    private static final int STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER = 3;
+    private static final int STRONGHOLD_FLOOR_NOISE_PADDING_MULTIPLIER = 1;
     private static final int STRONGHOLD_CORE_PASTE_RADIUS_BLOCKS = 190;
     private static final int DETACHED_ASSET_BATCH_SIZE = 16;
     private static final List<Material> FLOOR_FLOWER_OPTIONS = List.of(
