@@ -106,6 +106,8 @@ public class QuestManager {
         Quest gamblersGambit = new me.nakilex.levelplugin.quests.def.GamblersGambitQuest();
         Quest abandonedCastle = new me.nakilex.levelplugin.quests.def.AbandonedCastleQuest();
         Quest wakePerry = new me.nakilex.levelplugin.quests.def.WakePerryQuest();
+        Quest strongholdInitiation = new me.nakilex.levelplugin.quests.def.StrongholdInitiationQuest();
+        Quest strongholdBeastbond = new me.nakilex.levelplugin.quests.def.StrongholdBeastbondQuest();
         registerQuest(nb);
         registerQuest(cultistCulling);
         registerQuest(seras);
@@ -127,6 +129,8 @@ public class QuestManager {
         registerQuest(gamblersGambit);
         registerQuest(abandonedCastle);
         registerQuest(wakePerry);
+        registerQuest(strongholdInitiation);
+        registerQuest(strongholdBeastbond);
         registerNpcQuest("Seras", me.nakilex.levelplugin.quests.def.SerasQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.NPC_NAME,
                 me.nakilex.levelplugin.quests.def.MarketBeginningsQuest.ID);
@@ -167,6 +171,10 @@ public class QuestManager {
                 me.nakilex.levelplugin.quests.def.AbandonedCastleQuest.ID);
         registerNpcQuest(me.nakilex.levelplugin.quests.def.OfficeErrandsQuest.JANITOR_NPC_ID,
                 me.nakilex.levelplugin.quests.def.OfficeErrandsQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.StrongholdInitiationQuest.NPC_ID,
+                me.nakilex.levelplugin.quests.def.StrongholdInitiationQuest.ID);
+        registerNpcQuest(me.nakilex.levelplugin.quests.def.StrongholdBeastbondQuest.NPC_ID,
+                me.nakilex.levelplugin.quests.def.StrongholdBeastbondQuest.ID);
         plugin.getLogger().info("Registered " + quests.size() + " quests.");
     }
 
@@ -1243,6 +1251,36 @@ public class QuestManager {
         updateObjectiveWithAny(player, QuestObjectiveType.DUNGEON_COMPLETE, target);
     }
 
+    public void handleStrongholdEnter(Player player) {
+        if (player == null) {
+            return;
+        }
+        updateObjectiveWithAny(player, QuestObjectiveType.STRONGHOLD_ENTER, "ANY");
+    }
+
+    public void handleStrongholdWaveClear(Player player, int absoluteWave) {
+        if (player == null) {
+            return;
+        }
+        updateObjectiveWithAny(player, QuestObjectiveType.STRONGHOLD_WAVE_CLEAR, "ANY");
+        updateObjective(player, QuestObjectiveType.STRONGHOLD_WAVE_CLEAR, "WAVE_" + Math.max(1, absoluteWave), 1);
+    }
+
+    public void handleStrongholdStageComplete(Player player, int stage) {
+        if (player == null) {
+            return;
+        }
+        updateObjectiveWithAny(player, QuestObjectiveType.STRONGHOLD_STAGE_COMPLETE, "ANY");
+        updateObjective(player, QuestObjectiveType.STRONGHOLD_STAGE_COMPLETE, "STAGE_" + Math.max(1, stage), 1);
+    }
+
+    public void handleStrongholdKeyUse(Player player) {
+        if (player == null) {
+            return;
+        }
+        updateObjectiveWithAny(player, QuestObjectiveType.STRONGHOLD_KEY_USE, "ANY");
+    }
+
     private void handleBlacksmithService(Player player, String itemId) {
         updateObjectiveWithAny(player, QuestObjectiveType.BLACKSMITH_SERVICE, itemId);
     }
@@ -1566,6 +1604,20 @@ public class QuestManager {
                     return "Complete a dungeon run";
                 }
                 return "Complete the " + beautifyName(obj.getTarget()) + " dungeon";
+            case STRONGHOLD_ENTER:
+                return "Enter a Stronghold run";
+            case STRONGHOLD_WAVE_CLEAR:
+                if (obj.getTarget() == null || obj.getTarget().equalsIgnoreCase("ANY")) {
+                    return "Clear Stronghold waves";
+                }
+                return "Clear " + beautifyName(obj.getTarget()) + " in Stronghold";
+            case STRONGHOLD_STAGE_COMPLETE:
+                if (obj.getTarget() == null || obj.getTarget().equalsIgnoreCase("ANY")) {
+                    return "Complete Stronghold stages";
+                }
+                return "Complete " + beautifyName(obj.getTarget()) + " in Stronghold";
+            case STRONGHOLD_KEY_USE:
+                return "Use a Stronghold key";
             default:
                 return obj.getTarget();
         }

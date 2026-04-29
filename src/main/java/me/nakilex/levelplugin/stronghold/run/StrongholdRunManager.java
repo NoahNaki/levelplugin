@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.SpellContext;
@@ -94,7 +95,9 @@ public class StrongholdRunManager implements Listener {
     private static final int WAVES_PER_STAGE = 30;
     private static final int MAX_ABSOLUTE_WAVE = 300;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
-    private static final int BASE_XP_REQUIRED = 100;
+    private static final int BASE_XP_REQUIRED = 160;
+    private static final int XP_PER_RANK_STEP = 70;
+    public static final String STRONGHOLD_MAGE_METEOR_RADIUS_TAG = "lp_stronghold_mage_meteor_x3";
     private static final int MAX_ACTIVE_STRONGHOLD_SPELLS = 4;
     private static final double MIN_ENEMY_SPAWN_RADIUS = 5.0;
     private static final long BASE_AUTOCAST_COOLDOWN_MS = 1_400L;
@@ -102,22 +105,24 @@ public class StrongholdRunManager implements Listener {
     private static final double STUCK_MOVE_EPSILON_SQ = 0.20 * 0.20;
     private static final double STUCK_PULL_DISTANCE = 6.0;
     private static final long MOB_RELOCATE_COOLDOWN_MS = 2_500L;
+    private static final long MOBILITY_CHARGE_REFILL_MS = 4_000L;
     private static final double MOB_RELOCATE_TRIGGER_DISTANCE = 30.0;
     private static final double MOB_RELOCATE_MIN_RADIUS = 4.0;
     private static final double MOB_RELOCATE_MAX_RADIUS = 10.0;
     private static final double MOB_RELOCATE_AXIS_OFFSET = 5.0;
     private static final double MOB_RELOCATE_AXIS_JITTER = 1.5;
     private static final String MINIBOSS_MOB_ID = "slime_king";
-    private static final String BOSS_MOB_ID = "slime_king";
+    private static final String BOSS_MOB_ID = "giant_zombie";
     private static final double KEY_DROP_CHANCE = 0.03;
     private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
     private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.15;
     private static final double DEFAULT_STAGE_DAMAGE_GROWTH = 0.10;
     private static final double DEFAULT_WAVE_HEALTH_GROWTH = 0.02;
+    private static final double EXTRA_WAVE_HEALTH_SCALING = 0.15;
     private static final double DEFAULT_WAVE_DAMAGE_GROWTH = 0.015;
     private static final double DEFAULT_WAVE_MOVE_SPEED_GROWTH = 0.003;
-    private static final int MINIBOSS_SLIME_SIZE = 4;
-    private static final int BOSS_SLIME_SIZE = 6;
+    private static final int MINIBOSS_SLIME_SIZE = 2;
+    private static final int BOSS_SLIME_SIZE = 3;
     private static final List<String> DEFAULT_MOBILITY_BASE_SPELLS = List.of(
             "mage_blink",
             "archer_skybound",
@@ -234,6 +239,9 @@ public class StrongholdRunManager implements Listener {
         activeRuns.put(worldId, run);
         run.start();
         send(player, MessageType.SUCCESS, "Stronghold waves started.");
+        if (plugin.getQuestManager() != null) {
+            plugin.getQuestManager().handleStrongholdEnter(player);
+        }
     }
 
     public void stopAll() {
@@ -272,7 +280,11 @@ public class StrongholdRunManager implements Listener {
     }
 
     public boolean tryConsumeStrongholdKey(Player player) {
-        return consumeFirstMatchingItem(player, this::isStrongholdKey);
+        boolean consumed = consumeFirstMatchingItem(player, this::isStrongholdKey);
+        if (consumed && player != null && plugin.getQuestManager() != null) {
+            plugin.getQuestManager().handleStrongholdKeyUse(player);
+        }
+        return consumed;
     }
 
     public boolean storeLootToResultStorage(Player player, ItemStack stack) {
@@ -371,10 +383,6 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         Player player = event.getPlayer();
-        ActiveRun run = activeRuns.get(player.getWorld().getUID());
-        if (run == null) {
-            return;
-        }
         Block clicked = event.getClickedBlock();
         if (!isLockedStrongholdDoor(clicked)) {
             return;
@@ -391,6 +399,9 @@ public class StrongholdRunManager implements Listener {
         openable.setOpen(true);
         clicked.setBlockData(openable);
         send(player, MessageType.SUCCESS, ChatColor.GOLD + "Stronghold Key used. Gate opened.");
+        if (plugin.getQuestManager() != null) {
+            plugin.getQuestManager().handleStrongholdKeyUse(player);
+        }
     }
 
     @EventHandler
@@ -404,6 +415,9 @@ public class StrongholdRunManager implements Listener {
         if (isContainerOpenInteraction(event)) {
             return;
         }
+        if (plugin.getDialogManager() != null && plugin.getDialogManager().isDialogLockActive(event.getPlayer())) {
+            return;
+        }
         if (!tryHandleStrongholdManualInput(event.getPlayer(), ManualCastTrigger.RIGHT_CLICK)) {
             return;
         }
@@ -413,6 +427,10 @@ public class StrongholdRunManager implements Listener {
     @EventHandler
     public void onStrongholdMobilityEntityInteract(PlayerInteractEntityEvent event) {
         if (event == null || event.getPlayer() == null || event.getHand() != EquipmentSlot.HAND) {
+            return;
+        }
+        if (NpcApi.getRegistry().isNPC(event.getRightClicked())
+                || (plugin.getDialogManager() != null && plugin.getDialogManager().isDialogLockActive(event.getPlayer()))) {
             return;
         }
         if (!tryHandleStrongholdManualInput(event.getPlayer(), ManualCastTrigger.RIGHT_CLICK)) {
@@ -643,7 +661,7 @@ public class StrongholdRunManager implements Listener {
 
     private int xpRequiredForLevel(int level) {
         int safeLevel = Math.max(1, level);
-        return BASE_XP_REQUIRED + ((safeLevel - 1) * 45);
+        return BASE_XP_REQUIRED + ((safeLevel - 1) * XP_PER_RANK_STEP);
     }
 
     private final class ActiveRun {
@@ -822,6 +840,12 @@ public class StrongholdRunManager implements Listener {
             for (Player player : players) {
                 StageProgress progress = toStageProgress(waveNumber);
                 send(player, MessageType.INFO, "Stage " + ChatColor.WHITE + progress.stage() + ChatColor.GRAY + "-" + ChatColor.WHITE + progress.wave() + ChatColor.GRAY + " started.");
+                if (plugin.getQuestManager() != null) {
+                    plugin.getQuestManager().handleStrongholdWaveClear(player, waveNumber);
+                    if (progress.wave() == WAVES_PER_STAGE) {
+                        plugin.getQuestManager().handleStrongholdStageComplete(player, progress.stage());
+                    }
+                }
             }
         }
 
@@ -871,7 +895,9 @@ public class StrongholdRunManager implements Listener {
             }
             StageProgress progress = toStageProgress(waveNumber);
             double healthMultiplier = Math.pow(1.0 + stageScalingConfig.stageHealthGrowth(), progress.stage() - 1)
-                    * Math.pow(1.0 + stageScalingConfig.waveHealthGrowth(), progress.wave() - 1);
+                    * Math.pow(1.0 + stageScalingConfig.waveHealthGrowth(), progress.wave() - 1)
+                    * Math.pow(1.0 + EXTRA_WAVE_HEALTH_SCALING, progress.wave() - 1)
+                    * 1.10;
             if (boss) {
                 healthMultiplier *= 1.35;
             }
@@ -901,6 +927,11 @@ public class StrongholdRunManager implements Listener {
                 return;
             }
             slime.setSize(Math.max(1, size));
+            scaleAttributeBase(slime, Attribute.MAX_HEALTH, 10.0);
+            AttributeInstance maxHealth = slime.getAttribute(Attribute.MAX_HEALTH);
+            if (maxHealth != null) {
+                slime.setHealth(Math.min(maxHealth.getValue(), maxHealth.getBaseValue()));
+            }
         }
 
         private String resolveMobDisplayName(String mobId) {
@@ -1342,7 +1373,7 @@ public class StrongholdRunManager implements Listener {
                 } else if (choice.statType != null) {
                     lore.add(TooltipUtil.sectionHeader("Temporary Bonus"));
                     lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Temporary Bonus",
-                            ChatColor.GREEN, "+" + choice.statAmount + " " + choice.statType.getDisplayName()));
+                            ChatColor.GREEN, "+" + choice.statAmount + "% " + choice.statType.getDisplayName()));
                 }
                 lore.add(TooltipUtil.sectionDividerByPixels(150));
                 lore.addAll(TooltipUtil.clickInstructions("to choose this upgrade", null));
@@ -1589,7 +1620,12 @@ public class StrongholdRunManager implements Listener {
                 }
                 if (living instanceof Mob mob) {
                     mob.setTarget(null);
+                    mob.setAware(!frozen);
                     mob.setAI(!frozen);
+                }
+                if (frozen) {
+                    living.setVelocity(new Vector(0.0, 0.0, 0.0));
+                    living.setNoDamageTicks(10);
                 }
             }
         }
@@ -1603,7 +1639,7 @@ public class StrongholdRunManager implements Listener {
                 state.tempStatBonuses.merge(choice.statType, choice.statAmount, Integer::sum);
                 applyTempStatDelta(player.getUniqueId(), choice.statType, choice.statAmount);
                 send(player, MessageType.SUCCESS, "Stronghold buff: " + ChatColor.GREEN + "+" + choice.statAmount
-                        + " " + choice.statType.getDisplayName() + ChatColor.GRAY + " (temporary).");
+                        + "% " + choice.statType.getDisplayName() + ChatColor.GRAY + " (temporary).");
                 return;
             }
             if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
@@ -1628,6 +1664,9 @@ public class StrongholdRunManager implements Listener {
             int nextRank = Math.max(1, state.ownedSpellRanks.getOrDefault(base, 0) + 1);
             state.ownedSpellRanks.put(base, nextRank);
             state.activeSpellByBase.put(base, choice.resultSpellId.toLowerCase(Locale.ROOT));
+            if (isMobilityBaseSpell(base)) {
+                addSpellCharges(state, base, 1);
+            }
             send(player, MessageType.SUCCESS, "Skill upgrade unlocked: "
                     + ChatColor.WHITE + choice.displayName + ChatColor.GRAY + ".");
         }
@@ -1663,10 +1702,10 @@ public class StrongholdRunManager implements Listener {
 
             if (rolled.size() < count) {
                 List<UpgradeChoice> statCandidates = new ArrayList<>(List.of(
-                        new UpgradeChoice(UpgradeType.STAT, "Power Surge", "Temporary Strength boost for this run only.", null, null, StatsManager.StatType.STR, 2),
-                        new UpgradeChoice(UpgradeType.STAT, "Swiftfoot", "Temporary Agility boost for this run only.", null, null, StatsManager.StatType.AGI, 2),
-                        new UpgradeChoice(UpgradeType.STAT, "Arcane Focus", "Temporary Intelligence boost for this run only.", null, null, StatsManager.StatType.INT, 2),
-                        new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost for this run only.", null, null, StatsManager.StatType.VIT, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Power Surge", "Temporary Strength boost (+2%) for this run only.", null, null, StatsManager.StatType.STR, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Swiftfoot", "Temporary Agility boost (+2%) for this run only.", null, null, StatsManager.StatType.AGI, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Arcane Focus", "Temporary Intelligence boost (+2%) for this run only.", null, null, StatsManager.StatType.INT, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost (+2%) for this run only.", null, null, StatsManager.StatType.VIT, 2),
                         new UpgradeChoice(UpgradeType.GLOBAL_COOLDOWN, "Arcane Tempo", "Reduce all loadout skill cooldowns globally by 10%.", null, null, null, 0)
                 ));
                 while (!statCandidates.isEmpty() && rolled.size() < count) {
@@ -1676,7 +1715,7 @@ public class StrongholdRunManager implements Listener {
             }
 
             while (rolled.size() < count) {
-                rolled.add(new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost for this run only.", null, null, StatsManager.StatType.VIT, 2));
+                rolled.add(new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost (+2%) for this run only.", null, null, StatsManager.StatType.VIT, 2));
             }
             return rolled;
         }
@@ -1791,6 +1830,7 @@ public class StrongholdRunManager implements Listener {
                     state.maxGemsDuringRun = Math.max(state.maxGemsDuringRun, plugin.getGemsManager().getTotalUnits(player));
                 }
                 applyArchetypeBuff(player, state);
+                refillMobilityCharges(state, now);
                 for (String spellId : state.activeSpellByBase.values()) {
                     SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(spellId);
                     if (spellEntry == null || spellEntry.definition() == null) {
@@ -1812,6 +1852,85 @@ public class StrongholdRunManager implements Listener {
                     state.lastCastAtBySpell.put(spellId, now);
                 }
             }
+        }
+
+        private String normalizeBaseSpellId(String spellId) {
+            if (spellId == null || spellId.isBlank()) {
+                return "";
+            }
+            String normalized = spellId.toLowerCase(Locale.ROOT);
+            SpellRegistry registry = SpellRegistry.getInstance();
+            SpellProgression progression = registry.getProgression(normalized);
+            if (progression != null) {
+                return progression.baseSpellId().toLowerCase(Locale.ROOT);
+            }
+            for (SpellProgression candidate : registry.getAllProgressions()) {
+                if (candidate == null || candidate.upgradeSpellIds() == null) {
+                    continue;
+                }
+                for (String upgradeId : candidate.upgradeSpellIds()) {
+                    if (upgradeId != null && upgradeId.equalsIgnoreCase(normalized)) {
+                        return candidate.baseSpellId().toLowerCase(Locale.ROOT);
+                    }
+                }
+            }
+            return normalized;
+        }
+
+        private int getSpellCharges(SurvivorState state, String baseSpellId) {
+            if (state == null || baseSpellId == null || baseSpellId.isBlank()) {
+                return 0;
+            }
+            return Math.max(0, state.spellChargesByBase.getOrDefault(baseSpellId.toLowerCase(Locale.ROOT), 0));
+        }
+
+        private int getMaxSpellCharges(SurvivorState state, String baseSpellId) {
+            if (state == null || baseSpellId == null || baseSpellId.isBlank()) {
+                return 0;
+            }
+            return Math.max(0, state.ownedSpellRanks.getOrDefault(baseSpellId.toLowerCase(Locale.ROOT), 0));
+        }
+
+        private void addSpellCharges(SurvivorState state, String baseSpellId, int amount) {
+            if (state == null || baseSpellId == null || baseSpellId.isBlank() || amount <= 0) {
+                return;
+            }
+            String base = baseSpellId.toLowerCase(Locale.ROOT);
+            int maxCharges = getMaxSpellCharges(state, base);
+            int current = getSpellCharges(state, base);
+            state.spellChargesByBase.put(base, Math.min(maxCharges, current + amount));
+        }
+
+        private void refillMobilityCharges(SurvivorState state, long nowMs) {
+            if (state == null || nowMs - state.lastMobilityChargeRefillAt < MOBILITY_CHARGE_REFILL_MS) {
+                return;
+            }
+            state.lastMobilityChargeRefillAt = nowMs;
+            for (Map.Entry<String, String> entry : state.activeSpellByBase.entrySet()) {
+                String base = entry.getKey() == null ? "" : entry.getKey().toLowerCase(Locale.ROOT);
+                String spellId = entry.getValue();
+                SpellRegistry.SpellEntry spellEntry = spellId == null ? null : SpellRegistry.getInstance().getSpell(spellId);
+                if (base.isBlank() || spellEntry == null || spellEntry.definition() == null || !spellEntry.definition().movementSpell()) {
+                    continue;
+                }
+                if (getMaxSpellCharges(state, base) <= 0) {
+                    continue;
+                }
+                addSpellCharges(state, base, 1);
+            }
+        }
+
+        private boolean consumeSpellCharge(SurvivorState state, String baseSpellId) {
+            if (state == null || baseSpellId == null || baseSpellId.isBlank()) {
+                return false;
+            }
+            String base = baseSpellId.toLowerCase(Locale.ROOT);
+            int current = getSpellCharges(state, base);
+            if (current <= 0) {
+                return false;
+            }
+            state.spellChargesByBase.put(base, current - 1);
+            return true;
         }
 
         private boolean hasValidStrongholdWeapon(Player player, boolean notifyFailure) {
@@ -1853,6 +1972,14 @@ public class StrongholdRunManager implements Listener {
                 return false;
             }
             SpellDefinition definition = manualSpell.definition();
+            String baseSpellId = normalizeBaseSpellId(definition.id());
+            if (definition.movementSpell() && getSpellCharges(state, baseSpellId) <= 0) {
+                long elapsedMs = Math.max(0L, now - state.lastMobilityChargeRefillAt);
+                long remainingMs = Math.max(0L, MOBILITY_CHARGE_REFILL_MS - elapsedMs);
+                int seconds = Math.max(1, (int) Math.ceil(remainingMs / 1000.0));
+                send(player, MessageType.WARNING, definition.displayName() + " has no charges left. Next charge in " + seconds + "s.");
+                return true;
+            }
             SpellCastManager castManager = SpellCastManager.getInstance();
             long remainingCooldown = castManager.getRemainingCooldownMs(player, definition);
             if (SpellCastManager.areCooldownsEnabled() && remainingCooldown > 0L) {
@@ -1866,8 +1993,12 @@ public class StrongholdRunManager implements Listener {
                 send(player, MessageType.WARNING, "Not enough mana for " + definition.displayName() + " (" + manaCost + ").");
                 return true;
             }
-            return castSpell(player, manualSpell, createSyntheticInputEvent(player, trigger == ManualCastTrigger.RIGHT_CLICK
+            boolean casted = castSpell(player, manualSpell, createSyntheticInputEvent(player, trigger == ManualCastTrigger.RIGHT_CLICK
                     ? "STRONGHOLD_MOBILITY" : "STRONGHOLD_BASIC"), true);
+            if (casted && definition.movementSpell()) {
+                consumeSpellCharge(state, baseSpellId);
+            }
+            return casted;
         }
 
         private long computeAutoCastCooldownMs(Player player, SpellDefinition definition, SurvivorState state) {
@@ -1905,6 +2036,19 @@ public class StrongholdRunManager implements Listener {
                     .size();
         }
 
+
+        private String spellArchetypeKey(String spellId) {
+            if (spellId == null || spellId.isBlank()) {
+                return "";
+            }
+            String id = spellId.toLowerCase(Locale.ROOT);
+            if (id.startsWith("mage_") || id.startsWith("meteor") || id.startsWith("blackhole")) {
+                return "mage";
+            }
+            int idx = id.indexOf('_');
+            return idx <= 0 ? "" : id.substring(0, idx);
+        }
+
         private void applyArchetypeBuff(Player player, SurvivorState state) {
             if (player == null || state == null) {
                 return;
@@ -1912,13 +2056,12 @@ public class StrongholdRunManager implements Listener {
             Map<String, Integer> classCounts = new HashMap<>();
             for (String spellId : state.activeSpellByBase.values()) {
                 if (spellId == null) continue;
-                String key = spellId.toLowerCase(Locale.ROOT);
-                int idx = key.indexOf('_');
-                if (idx <= 0) continue;
-                String clazz = key.substring(0, idx);
+                String clazz = spellArchetypeKey(spellId);
+                if (clazz == null || clazz.isBlank()) continue;
                 classCounts.merge(clazz, 1, Integer::sum);
             }
             String buff = "None";
+            player.removeScoreboardTag(STRONGHOLD_MAGE_METEOR_RADIUS_TAG);
             if (classCounts.getOrDefault("rogue", 0) >= 3) {
                 DoubleJumpListener.setExternalBonusJumps(player.getUniqueId(), 1);
                 DoubleJumpListener.setExternalArcSlashOnJump(player.getUniqueId(), true);
@@ -1932,8 +2075,8 @@ public class StrongholdRunManager implements Listener {
                 buff = "Warrior Trinity: Resist";
             }
             if (classCounts.getOrDefault("mage", 0) >= 3) {
-                player.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION, 60, 0, true, false, false));
-                buff = "Mage Trinity: Regen";
+                player.addScoreboardTag(STRONGHOLD_MAGE_METEOR_RADIUS_TAG);
+                buff = "Mage Trinity: Meteor AoE x3";
             }
             if (classCounts.getOrDefault("archer", 0) >= 3) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SPEED, 60, 0, true, false, false));
@@ -2342,6 +2485,8 @@ public class StrongholdRunManager implements Listener {
         private final PlayerClass originalClass;
         private final Map<String, Integer> ownedSpellRanks = new HashMap<>();
         private final Map<String, String> activeSpellByBase = new HashMap<>();
+        private final Map<String, Integer> spellChargesByBase = new HashMap<>();
+        private long lastMobilityChargeRefillAt;
         private final Map<String, Long> lastCastAtBySpell = new HashMap<>();
         private final Map<StatsManager.StatType, Integer> tempStatBonuses = new EnumMap<>(StatsManager.StatType.class);
         private BossBar progressBar;
