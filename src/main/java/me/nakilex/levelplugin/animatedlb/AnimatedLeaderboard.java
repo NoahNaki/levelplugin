@@ -5,14 +5,20 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Transformation;
+import org.bukkit.util.Vector;
+import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class AnimatedLeaderboard {
+    private static final byte VISIBLE_OPACITY = (byte) -1;
+    private static final byte INVISIBLE_OPACITY = (byte) -127;
+
     private final JavaPlugin plugin;
     private final LeaderboardDataProvider dataProvider;
     private final Location origin;
@@ -22,50 +28,80 @@ public class AnimatedLeaderboard {
     private final double animationSpeed;
     private final List<TextDisplay> allDisplays = new ArrayList<>();
     private final List<RowDisplay> rows = new ArrayList<>();
+    private final List<TextDisplay> progressSegments = new ArrayList<>();
     private TextDisplay title;
     private TextDisplay subtitle;
-    private final List<TextDisplay> progressSegments = new ArrayList<>();
     private BoardType boardType = BoardType.KILLS;
     private int progressTick = 0;
+    private boolean transitioning = false;
     private BukkitTask tickTask;
 
     public AnimatedLeaderboard(JavaPlugin plugin, LeaderboardDataProvider dataProvider, Location origin, float scale, int cycleDuration, int rowCount, double animationSpeed) {
-        this.plugin = plugin; this.dataProvider = dataProvider; this.origin = origin; this.scale = scale;
-        this.cycleDuration = Math.max(20, cycleDuration); this.rowCount = rowCount; this.animationSpeed = Math.max(0.1, animationSpeed);
+        this.plugin = plugin;
+        this.dataProvider = dataProvider;
+        this.origin = origin;
+        this.scale = scale;
+        this.cycleDuration = Math.max(20, cycleDuration);
+        this.rowCount = rowCount;
+        this.animationSpeed = Math.max(0.1, animationSpeed);
     }
 
     public void spawn() {
         remove();
         title = spawnText(0, 2.2, "");
         subtitle = spawnText(0, 1.9, ChatColor.GRAY + "LAST 30 DAYS");
-        for (int i = 0; i < 4; i++) progressSegments.add(spawnText((i - 1.5) * 0.52, 1.55, ""));
+        for (int i = 0; i < 4; i++) {
+            progressSegments.add(spawnText((i - 1.5) * 0.52, 1.55, ""));
+        }
         for (int i = 0; i < rowCount; i++) {
             double y = 1.2 - (i * 0.24);
-            rows.add(new RowDisplay(spawnText(-0.95, y, ""), spawnText(0.95, y, "")));
+            Vector leftBase = new Vector(localX(-0.95), y, localZ(-0.95));
+            Vector rightBase = new Vector(localX(0.95), y, localZ(0.95));
+            RowDisplay row = new RowDisplay(spawnText(-0.95, y, ""), spawnText(0.95, y, ""), leftBase, rightBase, i);
+            row.setOpacity(VISIBLE_OPACITY);
+            rows.add(row);
         }
         applyBoard(boardType);
         startProgressTask();
     }
 
-    public void remove() { if (tickTask != null) tickTask.cancel(); allDisplays.forEach(d -> { if (d != null && d.isValid()) d.remove();}); allDisplays.clear(); rows.clear(); progressSegments.clear(); }
+    public void remove() {
+        if (tickTask != null) tickTask.cancel();
+        allDisplays.forEach(d -> { if (d != null && d.isValid()) d.remove(); });
+        allDisplays.clear();
+        rows.clear();
+        progressSegments.clear();
+        transitioning = false;
+        progressTick = 0;
+    }
+
     public void next() { transitionTo(boardType.next()); }
 
     private void startProgressTask() {
         tickTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            progressTick++; renderProgress();
-            if (progressTick >= cycleDuration) { progressTick = 0; transitionTo(boardType.next()); }
+            if (transitioning) return;
+            progressTick++;
+            renderProgress();
+            if (progressTick >= cycleDuration) {
+                transitionTo(boardType.next());
+            }
         }, 1L, 1L);
     }
 
     private void transitionTo(BoardType next) {
-        boardType = next;
-        bounceTitle();
-        slideRows(false, 0.9);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+        if (transitioning) return;
+        transitioning = true;
+        progressTick = 0;
+        animateTitleBounce(next, () -> animateRowsOut(() -> {
+            boardType = next;
             applyBoard(boardType);
-            slideRows(true, -0.9);
-            typeTitle();
-        }, Math.max(4L, Math.round(10 / animationSpeed)));
+            teleportRowsToEntrySide();
+            animateRowsIn(() -> animateTitleTyping(boardType, () -> {
+                transitioning = false;
+                progressTick = 0;
+                renderProgress();
+            }));
+        }));
     }
 
     private void applyBoard(BoardType type) {
@@ -73,14 +109,92 @@ public class AnimatedLeaderboard {
         List<LeaderboardEntry> entries = dataProvider.getEntries(type, rowCount);
         for (int i = 0; i < rowCount; i++) {
             LeaderboardEntry e = i < entries.size() ? entries.get(i) : new LeaderboardEntry("NONE", 0);
-            RowDisplay row = rows.get(i);
-            row.left().setText(ChatColor.WHITE + "#" + (i + 1) + " " + e.name());
-            row.right().setText(type.color() + type.format(e.value()));
+            rows.get(i).setText(ChatColor.WHITE + "#" + (i + 1) + " " + e.name(), type.color() + type.format(e.value()));
         }
     }
 
+    private void animateRowsOut(Runnable after) {
+        runRowAnimation(true, after);
+    }
+
+    private void teleportRowsToEntrySide() {
+        Vector offset = getSlideVector(-getSlideDistance());
+        for (RowDisplay row : rows) {
+            row.setOpacity(INVISIBLE_OPACITY);
+            row.teleportWithOffset(origin, offset);
+        }
+    }
+
+    private void animateRowsIn(Runnable after) {
+        runRowAnimation(false, after);
+    }
+
+    private void runRowAnimation(boolean out, Runnable after) {
+        final int duration = getRowDurationTicks();
+        new BukkitRunnable() {
+            int tick = 0;
+            @Override
+            public void run() {
+                double t = Math.min(1D, tick / (double) duration);
+                double eased = ease(t);
+                double distance = out ? getSlideDistance() * eased : -getSlideDistance() + (getSlideDistance() * eased);
+                byte opacity = out
+                        ? (byte) (-1 - (126 * t))
+                        : (byte) (-127 + (126 * t));
+                Vector slideOffset = getSlideVector(distance);
+                for (RowDisplay row : rows) {
+                    row.teleportWithOffset(origin, slideOffset);
+                    row.setOpacity(opacity);
+                }
+
+                if (tick++ >= duration) {
+                    cancel();
+                    if (out) {
+                        rows.forEach(r -> r.setOpacity(INVISIBLE_OPACITY));
+                    } else {
+                        rows.forEach(r -> {
+                            r.teleportToBase(origin);
+                            r.setOpacity(VISIBLE_OPACITY);
+                        });
+                    }
+                    after.run();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void animateTitleBounce(BoardType next, Runnable after) {
+        title.setText(next.color() + next.icon() + " " + next.title());
+        title.setInterpolationDuration(4);
+        title.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(scale * 1.2f), new AxisAngle4f()));
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            title.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(scale), new AxisAngle4f()));
+            after.run();
+        }, 5L);
+    }
+
+    private void animateTitleTyping(BoardType type, Runnable after) {
+        String full = type.color() + type.icon() + " " + type.title();
+        title.setText("");
+        new BukkitRunnable() {
+            int idx = 0;
+            @Override
+            public void run() {
+                if (idx >= full.length()) {
+                    cancel();
+                    title.setText(full);
+                    after.run();
+                    return;
+                }
+                idx++;
+                title.setText(full.substring(0, idx));
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
     private void renderProgress() {
-        int total = 44; int filled = (int) ((progressTick / (double) cycleDuration) * total);
+        int total = 44;
+        int filled = (int) ((progressTick / (double) cycleDuration) * total);
         int per = total / 4;
         for (int i = 0; i < 4; i++) {
             int segFill = Math.max(0, Math.min(per, filled - (i * per)));
@@ -89,46 +203,31 @@ public class AnimatedLeaderboard {
         }
     }
 
-    private void bounceTitle() {
-        title.setInterpolationDuration(4);
-        title.setTransformation(new Transformation(new Vector3f(), new org.joml.AxisAngle4f(), new Vector3f(scale * 1.2f), new org.joml.AxisAngle4f()));
-        Bukkit.getScheduler().runTaskLater(plugin, () -> title.setTransformation(new Transformation(new Vector3f(), new org.joml.AxisAngle4f(), new Vector3f(scale), new org.joml.AxisAngle4f())), 5L);
-    }
-
-    private void slideRows(boolean in, double fromOffset) {
-        for (RowDisplay row : rows) {
-            setOpacity(row, in ? 0 : 255);
-            Location left = row.left().getLocation(); Location right = row.right().getLocation();
-            double eased = ease(1.0);
-            double offset = fromOffset * (1.0 - eased);
-            row.left().teleport(left.add(localX(offset), 0, localZ(offset)));
-            row.right().teleport(right.add(localX(offset), 0, localZ(offset)));
-            setOpacity(row, in ? 255 : 0);
-        }
-    }
-
-    private void typeTitle() {
-        String full = boardType.color() + boardType.icon() + " " + boardType.title();
-        title.setText("");
-        for (int i = 1; i <= full.length(); i++) {
-            int idx = i;
-            Bukkit.getScheduler().runTaskLater(plugin, () -> title.setText(full.substring(0, Math.min(idx, full.length()))), i);
-        }
-    }
-
     private TextDisplay spawnText(double x, double y, String text) {
         Location loc = origin.clone().add(localX(x), y, localZ(x));
         TextDisplay td = (TextDisplay) origin.getWorld().spawnEntity(loc, EntityType.TEXT_DISPLAY);
         td.setBillboard(Display.Billboard.FIXED);
-        td.setText(text); td.setBackgroundColor(Color.fromARGB(0, 0, 0, 0)); td.setSeeThrough(true);
-        td.setTransformation(new Transformation(new Vector3f(), new org.joml.AxisAngle4f(), new Vector3f(scale), new org.joml.AxisAngle4f()));
+        td.setText(text);
+        td.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+        td.setSeeThrough(true);
+        td.setTransformation(new Transformation(new Vector3f(), new AxisAngle4f(), new Vector3f(scale), new AxisAngle4f()));
         allDisplays.add(td);
         return td;
     }
 
-    private double localX(double x) { int yaw = normalizeYaw(origin.getYaw()); return yaw == 90 ? 0 : yaw == 270 ? 0 : yaw == 180 ? -x : x; }
+    private Vector getSlideVector(double distance) {
+        return switch (normalizeYaw(origin.getYaw())) {
+            case 180 -> new Vector(-distance, 0, 0);
+            case 90 -> new Vector(0, 0, distance);
+            case 270 -> new Vector(0, 0, -distance);
+            default -> new Vector(distance, 0, 0);
+        };
+    }
+
+    private int getRowDurationTicks() { return Math.max(4, (int) Math.round(10D / animationSpeed)); }
+    private double getSlideDistance() { return 0.9D; }
+    private double localX(double x) { int yaw = normalizeYaw(origin.getYaw()); return yaw == 180 ? -x : (yaw == 0 ? x : 0); }
     private double localZ(double x) { int yaw = normalizeYaw(origin.getYaw()); return yaw == 90 ? -x : yaw == 270 ? x : 0; }
-    private int normalizeYaw(float yaw) { int y = ((Math.round(yaw / 90f) * 90) % 360 + 360) % 360; return switch (y) {case 90,180,270 -> y; default -> 0;}; }
+    private int normalizeYaw(float yaw) { int y = ((Math.round(yaw / 90f) * 90) % 360 + 360) % 360; return switch (y) { case 90, 180, 270 -> y; default -> 0; }; }
     private double ease(double t) { return (3 * t * t) - (2 * t * t * t); }
-    private void setOpacity(RowDisplay row, int opacity) { row.left().setTextOpacity((byte) opacity); row.right().setTextOpacity((byte) opacity); }
 }
