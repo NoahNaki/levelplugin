@@ -107,8 +107,7 @@ public class AnimatedLeaderboard {
         List<LeaderboardEntry> entries = dataProvider.getEntries(type, rowCount);
         for (int i = 0; i < rowCount; i++) {
             LeaderboardEntry e = i < entries.size() ? entries.get(i) : new LeaderboardEntry("NONE", 0, 0);
-            ChatColor rankColor = i < 3 ? type.color() : ChatColor.WHITE;
-            rows.get(i).setText(rankColor + "#" + (i + 1) + " " + e.name(), type.color() + type.format(e));
+            rows.get(i).setText(type.color() + "#" + (i + 1) + " " + e.name(), type.color() + type.format(e));
         }
     }
 
