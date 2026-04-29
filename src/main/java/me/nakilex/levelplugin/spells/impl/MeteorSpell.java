@@ -200,15 +200,17 @@ public class MeteorSpell implements SpellHandler {
             return;
         }
         double radiusMultiplier = Math.max(1.0, getMeteorRadiusMultiplier(caster));
-        for (int i = 0; i < 220; i++) {
-            double t = (Math.PI * 2.0 * i) / 220.0;
+        int petalPoints = (int) Math.max(220, 220 * radiusMultiplier * radiusMultiplier);
+        for (int i = 0; i < petalPoints; i++) {
+            double t = (Math.PI * 2.0 * i) / petalPoints;
             double roseRadius = (flowerRadius * radiusMultiplier) * Math.cos(flowerPetals * t);
             double x = roseRadius * Math.cos(t);
             double z = roseRadius * Math.sin(t);
             world.spawnParticle(Particle.DUST, impact.clone().add(x, 0.08, z), 1, 0.0, 0.0, 0.0, 0.0, METEOR_ORANGE_DUST);
         }
-        for (int i = 0; i < 64; i++) {
-            double angle = (Math.PI * 2.0 * i) / 64.0;
+        int ringPoints = (int) Math.max(64, 64 * radiusMultiplier);
+        for (int i = 0; i < ringPoints; i++) {
+            double angle = (Math.PI * 2.0 * i) / ringPoints;
             double ringRadius = impactRadius * radiusMultiplier;
             double x = Math.cos(angle) * ringRadius;
             double z = Math.sin(angle) * ringRadius;

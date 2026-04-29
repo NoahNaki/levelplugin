@@ -72,16 +72,16 @@ public class MageBlinkSpell implements SpellHandler {
         if (center == null || center.getWorld() == null) {
             return;
         }
-        double radius = 1.8;
-        for (double theta = 0.0; theta < Math.PI; theta += Math.PI / 8.0) {
-            for (double phi = 0.0; phi < Math.PI * 2.0; phi += Math.PI / 8.0) {
+        double radius = 3.2;
+        for (double theta = 0.0; theta < Math.PI; theta += Math.PI / 12.0) {
+            for (double phi = 0.0; phi < Math.PI * 2.0; phi += Math.PI / 12.0) {
                 double x = radius * Math.sin(theta) * Math.cos(phi);
                 double y = radius * Math.cos(theta);
                 double z = radius * Math.sin(theta) * Math.sin(phi);
                 center.getWorld().spawnParticle(Particle.FLAME, center.clone().add(x, y, z), 1, 0, 0, 0, 0.01);
             }
         }
-        center.getWorld().spawnParticle(Particle.EXPLOSION, center, 1, 0.0, 0.0, 0.0, 0.0);
+        center.getWorld().spawnParticle(Particle.EXPLOSION_EMITTER, center, 2, 0.15, 0.15, 0.15, 0.0);
     }
 
     private Vector computeBlinkMomentum(Location origin, Location destination) {

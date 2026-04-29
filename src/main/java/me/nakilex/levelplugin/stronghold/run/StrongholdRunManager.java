@@ -120,8 +120,8 @@ public class StrongholdRunManager implements Listener {
     private static final double DEFAULT_WAVE_HEALTH_GROWTH = 0.02;
     private static final double DEFAULT_WAVE_DAMAGE_GROWTH = 0.015;
     private static final double DEFAULT_WAVE_MOVE_SPEED_GROWTH = 0.003;
-    private static final int MINIBOSS_SLIME_SIZE = 4;
-    private static final int BOSS_SLIME_SIZE = 6;
+    private static final int MINIBOSS_SLIME_SIZE = 2;
+    private static final int BOSS_SLIME_SIZE = 3;
     private static final List<String> DEFAULT_MOBILITY_BASE_SPELLS = List.of(
             "mage_blink",
             "archer_skybound",
@@ -279,7 +279,11 @@ public class StrongholdRunManager implements Listener {
     }
 
     public boolean tryConsumeStrongholdKey(Player player) {
-        return consumeFirstMatchingItem(player, this::isStrongholdKey);
+        boolean consumed = consumeFirstMatchingItem(player, this::isStrongholdKey);
+        if (consumed && player != null && plugin.getQuestManager() != null) {
+            plugin.getQuestManager().handleStrongholdKeyUse(player);
+        }
+        return consumed;
     }
 
     public boolean storeLootToResultStorage(Player player, ItemStack stack) {
@@ -921,6 +925,11 @@ public class StrongholdRunManager implements Listener {
                 return;
             }
             slime.setSize(Math.max(1, size));
+            scaleAttributeBase(slime, Attribute.MAX_HEALTH, 10.0);
+            AttributeInstance maxHealth = slime.getAttribute(Attribute.MAX_HEALTH);
+            if (maxHealth != null) {
+                slime.setHealth(Math.min(maxHealth.getValue(), maxHealth.getBaseValue()));
+            }
         }
 
         private String resolveMobDisplayName(String mobId) {
@@ -1958,7 +1967,10 @@ public class StrongholdRunManager implements Listener {
             SpellDefinition definition = manualSpell.definition();
             String baseSpellId = normalizeBaseSpellId(definition.id());
             if (definition.movementSpell() && getSpellCharges(state, baseSpellId) <= 0) {
-                send(player, MessageType.WARNING, definition.displayName() + " has no charges left.");
+                long elapsedMs = Math.max(0L, now - state.lastMobilityChargeRefillAt);
+                long remainingMs = Math.max(0L, MOBILITY_CHARGE_REFILL_MS - elapsedMs);
+                int seconds = Math.max(1, (int) Math.ceil(remainingMs / 1000.0));
+                send(player, MessageType.WARNING, definition.displayName() + " has no charges left. Next charge in " + seconds + "s.");
                 return true;
             }
             SpellCastManager castManager = SpellCastManager.getInstance();
