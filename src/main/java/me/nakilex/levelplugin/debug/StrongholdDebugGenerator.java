@@ -227,6 +227,7 @@ public final class StrongholdDebugGenerator {
     private static final int POST_TELEPORT_ENHANCEMENT_DELAY_TICKS = 80;
     private static final int FAR_ENHANCEMENT_DELAY_TICKS = 200;
     private static final int NEAR_ENHANCEMENT_RADIUS_BLOCKS = 96;
+    private static final int FAR_PASS_ASSET_TOTAL_CAP = 120;
     private static final int BORDER_FOREST_START_DELAY_TICKS = 5;
     private static final int BORDER_FOREST_TICK_INTERVAL = 1;
     private static final int BORDER_FOREST_BATCH_SIZE = 10;
@@ -737,6 +738,17 @@ public final class StrongholdDebugGenerator {
                                                              Random random,
                                                              int fallbackY,
                                                              Player playerContext) {
+        return placeDetachedAssets(sourceWorld, world, placedTemplates, occupied, random, fallbackY, playerContext, null);
+    }
+
+    private static AssetPlacementSummary placeDetachedAssets(World sourceWorld,
+                                                             World world,
+                                                             List<PlacedTemplate> placedTemplates,
+                                                             Set<Long> occupied,
+                                                             Random random,
+                                                             int fallbackY,
+                                                             Player playerContext,
+                                                             AssetScatterConfig scatterOverride) {
         if (sourceWorld == null || world == null || placedTemplates == null || placedTemplates.isEmpty() || occupied == null) {
             return AssetPlacementSummary.empty();
         }
@@ -745,7 +757,7 @@ public final class StrongholdDebugGenerator {
             logDetachedAssetDebug("No detached templates loaded from source world '" + sourceWorld.getName() + "'.");
             return AssetPlacementSummary.empty();
         }
-        AssetScatterConfig config = resolvedScatterConfig(playerContext);
+        AssetScatterConfig config = scatterOverride == null ? resolvedScatterConfig(playerContext) : scatterOverride;
         AssetDistributionCounts counts = config.computeCounts();
         int totalRequested = counts.totalRequested();
         if (totalRequested <= 0) {
@@ -867,6 +879,11 @@ public final class StrongholdDebugGenerator {
         }
         int reducedTotal = Math.max(120, (int) Math.round(config.totalCount() * 0.55D));
         return config.withTotalCount(reducedTotal);
+    }
+
+    private static AssetScatterConfig resolvedFarPassScatterConfig(Player playerContext) {
+        AssetScatterConfig base = resolvedScatterConfig(playerContext);
+        return base.withTotalCount(Math.min(base.totalCount(), FAR_PASS_ASSET_TOTAL_CAP));
     }
 
     private static AssetDistributionCounts clampAssetDistributionForFootprint(AssetDistributionCounts requested,
@@ -1561,15 +1578,32 @@ public final class StrongholdDebugGenerator {
             if (!enhancementPlan.deferredTemplates().isEmpty()) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
                     AssetPlacementSummary farAssetSummary = placeDetachedAssets(sourceWorld, world,
-                            enhancementPlan.deferredTemplates(), occupied, random, fallbackY, player);
+                            enhancementPlan.deferredTemplates(), occupied, random, fallbackY, player,
+                            resolvedFarPassScatterConfig(player));
                     Bounds2D farFootprint = combinedBounds2D(enhancementPlan.deferredTemplates());
-                    scheduleDetachedAssetPasting(world, farAssetSummary.placements(), player, () ->
-                            scheduleOrganicBorderForest(sourceWorld, world, farFootprint, occupied, player, fallbackY, () ->
-                                    applyStrongholdFloorNoise(world, enhancementPlan.deferredTemplates(), false)
-                            ));
+                    Runnable farFloorPass = () -> applyStrongholdFloorNoise(world, enhancementPlan.deferredTemplates(), false);
+                    Runnable farBorderAndFloor = () -> {
+                        if (isPlayerInActiveStrongholdRun(player)) {
+                            farFloorPass.run();
+                            return;
+                        }
+                        scheduleOrganicBorderForest(sourceWorld, world, farFootprint, occupied, player, fallbackY, farFloorPass);
+                    };
+                    scheduleDetachedAssetPasting(world, farAssetSummary.placements(), player, farBorderAndFloor);
                 }, FAR_ENHANCEMENT_DELAY_TICKS);
             }
         }, POST_TELEPORT_ENHANCEMENT_DELAY_TICKS);
+    }
+
+    private static boolean isPlayerInActiveStrongholdRun(Player player) {
+        if (player == null) {
+            return false;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null || plugin.getStrongholdRunManager() == null) {
+            return false;
+        }
+        return plugin.getStrongholdRunManager().getStageStatus(player.getUniqueId()) != null;
     }
 
     private static TemplatePastePlan buildTemplatePastePlan(List<PlacedTemplate> placedTemplates,
