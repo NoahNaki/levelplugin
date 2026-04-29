@@ -18,6 +18,10 @@ import java.util.List;
 public class AnimatedLeaderboard {
     private static final byte VISIBLE_OPACITY = (byte) -1;
     private static final byte INVISIBLE_OPACITY = (byte) -127;
+    private static final int PROGRESS_TOTAL_UNITS = 204;
+    private static final int PROGRESS_INCREMENT_PER_TICK = 2;
+    private static final int PROGRESS_SEGMENT_COUNT = 4;
+    private static final int PROGRESS_SEGMENT_SIZE = 51;
 
     private final JavaPlugin plugin;
     private final LeaderboardDataProvider dataProvider;
@@ -32,7 +36,7 @@ public class AnimatedLeaderboard {
     private TextDisplay title;
     private TextDisplay subtitle;
     private BoardType boardType = BoardType.STRONGHOLD_STAGE;
-    private int progressTick = 0;
+    private int barCount = 0;
     private boolean transitioning = false;
     private BukkitTask tickTask;
 
@@ -50,7 +54,7 @@ public class AnimatedLeaderboard {
         remove();
         title = spawnText(0, 2.2, "");
         subtitle = spawnText(0, 1.9, ChatColor.GRAY + "LAST 30 DAYS");
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < PROGRESS_SEGMENT_COUNT; i++) {
             progressSegments.add(spawnText((i - 1.5) * 0.52, 1.55, ""));
         }
         for (int i = 0; i < rowCount; i++) {
@@ -72,7 +76,7 @@ public class AnimatedLeaderboard {
         rows.clear();
         progressSegments.clear();
         transitioning = false;
-        progressTick = 0;
+        barCount = 0;
     }
 
     public void next() { transitionTo(boardType.next()); }
@@ -80,26 +84,28 @@ public class AnimatedLeaderboard {
     private void startProgressTask() {
         tickTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (transitioning) return;
-            progressTick++;
-            renderProgress();
-            if (progressTick >= cycleDuration) {
+            barCount += PROGRESS_INCREMENT_PER_TICK;
+            if (barCount > PROGRESS_TOTAL_UNITS) {
+                barCount = 0;
                 transitionTo(boardType.next());
+                return;
             }
+            renderProgressBar(barCount);
         }, 1L, 1L);
     }
 
     private void transitionTo(BoardType next) {
         if (transitioning) return;
         transitioning = true;
-        progressTick = 0;
+        barCount = 0;
         animateTitleBounce(next, () -> animateRowsOut(() -> {
             boardType = next;
             applyBoard(boardType);
             teleportRowsToEntrySide();
             animateRowsIn(() -> animateTitleTyping(boardType, () -> {
                 transitioning = false;
-                progressTick = 0;
-                renderProgress();
+                barCount = 0;
+                renderProgressBar(barCount);
             }));
         }));
     }
@@ -212,14 +218,19 @@ public class AnimatedLeaderboard {
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
-    private void renderProgress() {
-        int total = 44;
-        int filled = (int) ((progressTick / (double) cycleDuration) * total);
-        int per = total / 4;
-        for (int i = 0; i < 4; i++) {
-            int segFill = Math.max(0, Math.min(per, filled - (i * per)));
-            int empty = per - segFill;
-            progressSegments.get(i).setText(ChatColor.WHITE + "§m" + " ".repeat(segFill) + ChatColor.DARK_GRAY + "§m" + " ".repeat(empty));
+    private void renderProgressBar(int filledUnits) {
+        for (int segmentIndex = 0; segmentIndex < PROGRESS_SEGMENT_COUNT; segmentIndex++) {
+            int segmentStart = segmentIndex * PROGRESS_SEGMENT_SIZE;
+            int segmentEnd = segmentStart + PROGRESS_SEGMENT_SIZE;
+            StringBuilder segment = new StringBuilder(PROGRESS_SEGMENT_SIZE * 4);
+            for (int unitIndex = segmentStart; unitIndex < segmentEnd; unitIndex++) {
+                if (filledUnits >= unitIndex) {
+                    segment.append(ChatColor.WHITE).append("§m ");
+                } else {
+                    segment.append(ChatColor.DARK_GRAY).append("§m ");
+                }
+            }
+            progressSegments.get(segmentIndex).setText(segment.toString());
         }
     }
 
