@@ -976,7 +976,12 @@ public class StrongholdRunManager implements Listener {
                     continue;
                 }
                 List<Location> points = buildPortalPathPoints(player.getLocation(), portalCenter);
-                renderPortalGuide(player, points);
+                int stride = points.size() > 80 ? 3 : 2;
+                PathLocationUtils.renderDustTrailToPlayer(player, points, stride, 1, 0.08, EXIT_PORTAL_GUIDE_DUST);
+                if (!points.isEmpty()) {
+                    Location last = points.get(points.size() - 1);
+                    player.spawnParticle(Particle.HAPPY_VILLAGER, last, 6, 0.35, 0.4, 0.35, 0.0);
+                }
             }
         }
 
@@ -987,19 +992,6 @@ public class StrongholdRunManager implements Listener {
             }
             Path path = PathUtils.interpolate(pathResult.get(), 0.5);
             return PathLocationUtils.toLocations(start.getWorld(), path, 1.0, true, 0);
-        }
-
-        private void renderPortalGuide(Player player, List<Location> points) {
-            if (points == null || points.isEmpty()) {
-                return;
-            }
-            int stride = points.size() > 80 ? 3 : 2;
-            for (int i = 0; i < points.size(); i += stride) {
-                Location point = points.get(i);
-                player.spawnParticle(Particle.DUST, point, 1, 0.08, 0.08, 0.08, 0, EXIT_PORTAL_GUIDE_DUST);
-            }
-            Location last = points.get(points.size() - 1);
-            player.spawnParticle(Particle.VILLAGER_HAPPY, last, 6, 0.35, 0.4, 0.35, 0.0);
         }
 
         private void handlePlayerDeath(Player player) {

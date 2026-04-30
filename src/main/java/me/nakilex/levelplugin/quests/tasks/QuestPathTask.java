@@ -151,21 +151,7 @@ public class QuestPathTask extends BukkitRunnable {
     }
 
     private void renderParticles(Player player, List<Location> points, int stride) {
-        int index = 0;
-        for (Location point : points) {
-            if (index++ % stride != 0) {
-                continue;
-            }
-            player.spawnParticle(
-                    PATH_PARTICLE,
-                    point,
-                    PARTICLE_COUNT,
-                    PARTICLE_SPREAD,
-                    PARTICLE_SPREAD,
-                    PARTICLE_SPREAD,
-                    0,
-                    PATH_DUST);
-        }
+        PathLocationUtils.renderDustTrailToPlayer(player, points, stride, PARTICLE_COUNT, PARTICLE_SPREAD, PATH_DUST);
     }
 
     private boolean shouldRepath(QuestPathCache cache, Location playerLoc, Location target) {
