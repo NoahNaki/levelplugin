@@ -904,6 +904,10 @@ public class StrongholdRunManager implements Listener {
             if (world == null) {
                 return;
             }
+            for (Player player : playersInWorld(world)) {
+                highestAbsoluteWaveByPlayer.merge(player.getUniqueId(), Math.max(1, wave + 1), Math::max);
+            }
+            saveProgressionData();
             if (strongholdExitPortalTemplate.isEmpty()) {
                 loadPortalTemplateIfNeeded();
             }
@@ -2580,7 +2584,7 @@ public class StrongholdRunManager implements Listener {
                 world.playSound(anchor, org.bukkit.Sound.BLOCK_PORTAL_TRIGGER, 0.8f, 1.0f);
                 cancel();
             }
-        }.runTaskTimer(plugin, 0L, 1L);
+        }.runTaskTimer(plugin, 0L, 4L);
     }
 
     private record PortalTemplateBlock(int dx, int dy, int dz, org.bukkit.block.data.BlockData data) {}
