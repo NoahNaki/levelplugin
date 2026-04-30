@@ -152,6 +152,7 @@ public class StrongholdRunManager implements Listener {
     private final Set<String> autoCastBasePool = new HashSet<>();
     private final Set<String> mobilityBasePool = new HashSet<>();
     private final Map<UUID, Integer> highestAbsoluteWaveByPlayer = new HashMap<>();
+    private final Map<UUID, Integer> highestCompletedStageByPlayer = new HashMap<>();
     private final Map<UUID, Integer> queuedStartingStageByPlayer = new HashMap<>();
     private final List<PortalTemplateBlock> strongholdExitPortalTemplate = new ArrayList<>();
     private File progressionFile;
@@ -182,6 +183,7 @@ public class StrongholdRunManager implements Listener {
         if (progressionConfig.isConfigurationSection("players")) {
             for (String key : progressionConfig.getConfigurationSection("players").getKeys(false)) {
                 try { highestAbsoluteWaveByPlayer.put(UUID.fromString(key), Math.max(0, progressionConfig.getInt("players."+key+".highest-absolute-wave", 0))); } catch (Exception ignored) {}
+                try { highestCompletedStageByPlayer.put(UUID.fromString(key), Math.max(0, progressionConfig.getInt("players."+key+".highest-completed-stage", 0))); } catch (Exception ignored) {}
             }
         }
     }
@@ -194,6 +196,7 @@ public class StrongholdRunManager implements Listener {
         progressionConfig.set("scaling.wave-damage-growth", stageScalingConfig.waveDamageGrowth());
         progressionConfig.set("scaling.wave-speed-growth", stageScalingConfig.waveSpeedGrowth());
         for (var e: highestAbsoluteWaveByPlayer.entrySet()) progressionConfig.set("players."+e.getKey()+".highest-absolute-wave", e.getValue());
+        for (var e: highestCompletedStageByPlayer.entrySet()) progressionConfig.set("players."+e.getKey()+".highest-completed-stage", e.getValue());
         try { progressionConfig.save(progressionFile); } catch (IOException ex) { ex.printStackTrace(); }
     }
 
@@ -202,11 +205,9 @@ public class StrongholdRunManager implements Listener {
     public StageProgress getHighestStageProgress(UUID playerId) { int w=Math.max(0, highestAbsoluteWaveByPlayer.getOrDefault(playerId,0)); return toStageProgress(w); }
     public int getHighestUnlockedStage(UUID playerId) {
         int highestWave = Math.max(0, highestAbsoluteWaveByPlayer.getOrDefault(playerId, 0));
-        if (highestWave <= 0) {
-            return 1;
-        }
-        StageProgress progress = toStageProgress(highestWave);
-        return progress.wave() == WAVES_PER_STAGE ? progress.stage() + 1 : progress.stage();
+        int attemptedStage = highestWave <= 0 ? 1 : toStageProgress(highestWave).stage();
+        int completedStage = Math.max(0, highestCompletedStageByPlayer.getOrDefault(playerId, 0));
+        return Math.max(1, Math.max(attemptedStage, completedStage + 1));
     }
     public void queueStartingStage(Player player, int stage) {
         if (player == null) return;
@@ -907,6 +908,11 @@ public class StrongholdRunManager implements Listener {
             if (world == null) {
                 return;
             }
+            int clearedStage = toStageProgress(Math.max(1, wave)).stage();
+            for (Player player : playersInWorld(world)) {
+                highestCompletedStageByPlayer.merge(player.getUniqueId(), Math.max(1, clearedStage), Math::max);
+            }
+            saveProgressionData();
             if (strongholdExitPortalTemplate.isEmpty()) {
                 loadPortalTemplateIfNeeded();
             }
@@ -914,7 +920,6 @@ public class StrongholdRunManager implements Listener {
                 exitPortalBounds = tryPlaceExitPortalNearPlayer(player);
                 if (exitPortalBounds != null) {
                     portalPlacementPendingNotified = false;
-                    int clearedStage = toStageProgress(Math.max(1, wave)).stage();
                     ChatFormatter.constructDivider(player, "§a§l-", 45);
                     ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
                     ChatFormatter.sendCenteredMessage(player, "");
@@ -926,7 +931,6 @@ public class StrongholdRunManager implements Listener {
             }
             if (!portalPlacementPendingNotified) {
                 portalPlacementPendingNotified = true;
-                int clearedStage = toStageProgress(Math.max(1, wave)).stage();
                 for (Player player : playersInWorld(world)) {
                     ChatFormatter.constructDivider(player, "§a§l-", 45);
                     ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
