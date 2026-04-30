@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.stronghold.gui;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
+import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
@@ -14,6 +16,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 
 import java.util.*;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 public class StrongholdStageSelectGUI implements Listener {
     private static final String TITLE = "Stronghold Stage Select";
@@ -25,7 +29,7 @@ public class StrongholdStageSelectGUI implements Listener {
         int page = pages.getOrDefault(p.getUniqueId(),0);
         Inventory inv = Bukkit.createInventory(null,SIZE,TITLE);
         GuiUtil.fillBorder(inv, GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE));
-        int bestStage = Math.max(1, Main.getInstance().getStrongholdRunManager().getHighestStageProgress(p.getUniqueId()).stage());
+        int bestStage = Math.max(1, Main.getInstance().getStrongholdRunManager().getHighestUnlockedStage(p.getUniqueId()));
         int maxStage = Math.max(5, bestStage + 5);
         int start = page*28 + 1;
         int slot=10;
@@ -50,5 +54,5 @@ public class StrongholdStageSelectGUI implements Listener {
         inv.setItem(0, GuiUtil.getNexoItem("arrow_left2", ChatColor.YELLOW + "Back", TooltipUtil.clickInstructions("to return to stronghold queue", null)));
         p.openInventory(inv);
     }
-    @EventHandler public void onClick(InventoryClickEvent e){ if(!(e.getWhoClicked() instanceof Player p)) return; if(!TITLE.equals(e.getView().getTitle())) return; e.setCancelled(true); if(e.getClickedInventory()!=e.getView().getTopInventory()) return; int raw=e.getRawSlot(); int page=pages.getOrDefault(p.getUniqueId(),0); if(raw==45){ pages.put(p.getUniqueId(), Math.max(0,page-1)); renderAndOpen(p); return;} if(raw==53){ pages.put(p.getUniqueId(), page+1); renderAndOpen(p); return;} if(raw==0){ p.closeInventory(); Main.getInstance().getStrongholdQueueGUI().open(p); return;} if(raw<10||raw>43||raw%9==0||raw%9==8) return; int idx=(raw-10)-((raw-10)/9)*2; int stage=(page*28)+idx+1; int bestStage=Math.max(1, Main.getInstance().getStrongholdRunManager().getHighestStageProgress(p.getUniqueId()).stage()); if(stage>bestStage){ return; } p.closeInventory(); Main.getInstance().getStrongholdRunManager().startSoloRun(p, stage); }
+    @EventHandler public void onClick(InventoryClickEvent e){ if(!(e.getWhoClicked() instanceof Player p)) return; if(!TITLE.equals(e.getView().getTitle())) return; e.setCancelled(true); if(e.getClickedInventory()!=e.getView().getTopInventory()) return; int raw=e.getRawSlot(); int page=pages.getOrDefault(p.getUniqueId(),0); if(raw==45){ pages.put(p.getUniqueId(), Math.max(0,page-1)); renderAndOpen(p); return;} if(raw==53){ pages.put(p.getUniqueId(), page+1); renderAndOpen(p); return;} if(raw==0){ p.closeInventory(); Main.getInstance().getStrongholdQueueGUI().open(p); return;} if(raw<10||raw>43||raw%9==0||raw%9==8) return; int idx=(raw-10)-((raw-10)/9)*2; int stage=(page*28)+idx+1; int bestStage=Math.max(1, Main.getInstance().getStrongholdRunManager().getHighestUnlockedStage(p.getUniqueId())); if(stage>bestStage){ return; } p.closeInventory(); Main.getInstance().getStrongholdRunManager().queueStartingStage(p, stage); StrongholdQueueManager.QueueJoinOutcome out = Main.getInstance().getStrongholdQueueManager().join(p, StrongholdQueueMode.SOLO); if (out.result() == StrongholdQueueManager.QueueJoinResult.STARTED) { send(p, MessageType.SUCCESS, "Generating your solo Stronghold run at Stage " + ChatColor.WHITE + stage + "-1" + ChatColor.GREEN + "."); } else { send(p, MessageType.ERROR, out.message() == null ? ChatColor.RED + "Unable to start Stronghold run." : out.message()); } }
 }

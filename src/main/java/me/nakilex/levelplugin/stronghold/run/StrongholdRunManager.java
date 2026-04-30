@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -54,11 +55,13 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.io.IOException;
@@ -101,6 +104,7 @@ public class StrongholdRunManager implements Listener {
     public static final String STRONGHOLD_MAGE_METEOR_RADIUS_TAG = "lp_stronghold_mage_meteor_x3";
     private static final int MAX_ACTIVE_STRONGHOLD_SPELLS = 4;
     private static final double MIN_ENEMY_SPAWN_RADIUS = 5.0;
+    private static final double MIN_EXIT_PORTAL_DISTANCE = 10.0;
     private static final long BASE_AUTOCAST_COOLDOWN_MS = 1_400L;
     private static final long STUCK_PULL_DELAY_MS = 4_000L;
     private static final double STUCK_MOVE_EPSILON_SQ = 0.20 * 0.20;
@@ -114,13 +118,19 @@ public class StrongholdRunManager implements Listener {
     private static final double MOB_RELOCATE_AXIS_JITTER = 1.5;
     private static final String MINIBOSS_MOB_ID = "slime_king";
     private static final String BOSS_MOB_ID = "giant_zombie";
+    private static final int PORTAL_SRC_MIN_X = -1986;
+    private static final int PORTAL_SRC_MIN_Y = -60;
+    private static final int PORTAL_SRC_MIN_Z = 3668;
+    private static final int PORTAL_SRC_MAX_X = -1963;
+    private static final int PORTAL_SRC_MAX_Y = -33;
+    private static final int PORTAL_SRC_MAX_Z = 3680;
     private static final double KEY_DROP_CHANCE = 0.03;
     private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
-    private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.15;
-    private static final double DEFAULT_STAGE_DAMAGE_GROWTH = 0.10;
-    private static final double DEFAULT_WAVE_HEALTH_GROWTH = 0.02;
-    private static final double EXTRA_WAVE_HEALTH_SCALING = 0.15;
-    private static final double DEFAULT_WAVE_DAMAGE_GROWTH = 0.015;
+    private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.35;
+    private static final double DEFAULT_STAGE_DAMAGE_GROWTH = 0.14;
+    private static final double DEFAULT_WAVE_HEALTH_GROWTH = 0.005;
+    private static final double EXTRA_WAVE_HEALTH_SCALING = 0.02;
+    private static final double DEFAULT_WAVE_DAMAGE_GROWTH = 0.005;
     private static final double DEFAULT_WAVE_MOVE_SPEED_GROWTH = 0.003;
     private static final int MINIBOSS_SLIME_SIZE = 2;
     private static final int BOSS_SLIME_SIZE = 3;
@@ -142,6 +152,9 @@ public class StrongholdRunManager implements Listener {
     private final Set<String> autoCastBasePool = new HashSet<>();
     private final Set<String> mobilityBasePool = new HashSet<>();
     private final Map<UUID, Integer> highestAbsoluteWaveByPlayer = new HashMap<>();
+    private final Map<UUID, Integer> highestCompletedStageByPlayer = new HashMap<>();
+    private final Map<UUID, Integer> queuedStartingStageByPlayer = new HashMap<>();
+    private final List<PortalTemplateBlock> strongholdExitPortalTemplate = new ArrayList<>();
     private File progressionFile;
     private YamlConfiguration progressionConfig;
     private StageScalingConfig stageScalingConfig = new StageScalingConfig(DEFAULT_STAGE_HEALTH_GROWTH, DEFAULT_STAGE_DAMAGE_GROWTH, DEFAULT_WAVE_HEALTH_GROWTH, DEFAULT_WAVE_DAMAGE_GROWTH, DEFAULT_WAVE_MOVE_SPEED_GROWTH);
@@ -170,6 +183,7 @@ public class StrongholdRunManager implements Listener {
         if (progressionConfig.isConfigurationSection("players")) {
             for (String key : progressionConfig.getConfigurationSection("players").getKeys(false)) {
                 try { highestAbsoluteWaveByPlayer.put(UUID.fromString(key), Math.max(0, progressionConfig.getInt("players."+key+".highest-absolute-wave", 0))); } catch (Exception ignored) {}
+                try { highestCompletedStageByPlayer.put(UUID.fromString(key), Math.max(0, progressionConfig.getInt("players."+key+".highest-completed-stage", 0))); } catch (Exception ignored) {}
             }
         }
     }
@@ -182,12 +196,26 @@ public class StrongholdRunManager implements Listener {
         progressionConfig.set("scaling.wave-damage-growth", stageScalingConfig.waveDamageGrowth());
         progressionConfig.set("scaling.wave-speed-growth", stageScalingConfig.waveSpeedGrowth());
         for (var e: highestAbsoluteWaveByPlayer.entrySet()) progressionConfig.set("players."+e.getKey()+".highest-absolute-wave", e.getValue());
+        for (var e: highestCompletedStageByPlayer.entrySet()) progressionConfig.set("players."+e.getKey()+".highest-completed-stage", e.getValue());
         try { progressionConfig.save(progressionFile); } catch (IOException ex) { ex.printStackTrace(); }
     }
 
     public StageScalingConfig getStageScalingConfig() { return stageScalingConfig; }
     public void updateStageScalingConfig(StageScalingConfig config) { if (config==null) return; this.stageScalingConfig=config; saveProgressionData(); }
     public StageProgress getHighestStageProgress(UUID playerId) { int w=Math.max(0, highestAbsoluteWaveByPlayer.getOrDefault(playerId,0)); return toStageProgress(w); }
+    public int getHighestUnlockedStage(UUID playerId) {
+        int highestWave = Math.max(0, highestAbsoluteWaveByPlayer.getOrDefault(playerId, 0));
+        int attemptedStage = highestWave <= 0 ? 1 : toStageProgress(highestWave).stage();
+        int completedStage = Math.max(0, highestCompletedStageByPlayer.getOrDefault(playerId, 0));
+        return Math.max(1, Math.max(attemptedStage, completedStage + 1));
+    }
+    public void queueStartingStage(Player player, int stage) {
+        if (player == null) return;
+        queuedStartingStageByPlayer.put(player.getUniqueId(), Math.max(1, stage));
+    }
+    public Integer consumeQueuedStartingStage(Player player) {
+        return player == null ? null : queuedStartingStageByPlayer.remove(player.getUniqueId());
+    }
 
     private StageProgress toStageProgress(int absoluteWave) { int safe=Math.max(1, absoluteWave); int stage=((safe-1)/WAVES_PER_STAGE)+1; int waveIn=((safe-1)%WAVES_PER_STAGE)+1; return new StageProgress(stage,waveIn,safe); }
 
@@ -300,6 +328,17 @@ public class StrongholdRunManager implements Listener {
         return run.forceEndAndShowRewards(target);
     }
 
+    public boolean forceWaveSkip(Player target, int desiredWave) {
+        if (target == null || !target.isOnline() || desiredWave <= 0) {
+            return false;
+        }
+        ActiveRun run = activeRuns.get(target.getWorld().getUID());
+        if (run == null) {
+            return false;
+        }
+        return run.forceWaveSkip(desiredWave);
+    }
+
     public void captureReturnLocation(Player player) {
         if (player == null) {
             return;
@@ -374,6 +413,19 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         run.onEntityDeath(entity);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onStrongholdExitPortalStep(PlayerMoveEvent event) {
+        if (event == null || event.getPlayer() == null || event.getTo() == null) {
+            return;
+        }
+        Player player = event.getPlayer();
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null || !run.completed || !run.isInsideExitPortal(event.getTo())) {
+            return;
+        }
+        run.forceEndAndShowRewards(player);
     }
 
     @EventHandler
@@ -705,8 +757,14 @@ public class StrongholdRunManager implements Listener {
         private BukkitTask task;
         private BukkitTask autoCastTask;
         private int wave = 0;
+        private int lastSpawnedWave = 0;
         private final Integer selectedStartingStage;
+        private int stageAnchor = 1;
         private int secondsUntilNextWave = FIRST_WAVE_DELAY_SECONDS;
+        private boolean completed = false;
+        private PlacedPortalBounds exitPortalBounds;
+        private UUID waveBossId;
+        private boolean portalPlacementPendingNotified = false;
 
         private ActiveRun(UUID worldId, Location origin, Integer selectedStartingStage) {
             this.worldId = worldId;
@@ -718,10 +776,13 @@ public class StrongholdRunManager implements Listener {
             World runWorld = plugin.getServer().getWorld(worldId);
             if (runWorld != null) {
                 initializePlayers(runWorld);
-                int checkpoint = playersInWorld(runWorld).stream().mapToInt(p -> highestAbsoluteWaveByPlayer.getOrDefault(p.getUniqueId(), 1)).max().orElse(1);
+                int checkpoint = playersInWorld(runWorld).stream()
+                        .mapToInt(p -> ((Math.max(1, getHighestUnlockedStage(p.getUniqueId())) - 1) * WAVES_PER_STAGE) + 1)
+                        .max().orElse(1);
                 if (selectedStartingStage != null && selectedStartingStage > 0) {
                     checkpoint = ((Math.max(1, selectedStartingStage) - 1) * WAVES_PER_STAGE) + 1;
                 }
+                stageAnchor = Math.max(1, toStageProgress(checkpoint).stage());
                 wave = Math.max(0, checkpoint - 1);
             }
             this.task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
@@ -736,6 +797,17 @@ public class StrongholdRunManager implements Listener {
                 if (countAliveCurrentWave() > 0) {
                     return;
                 }
+                StageProgress liveProgress = toStageProgress(Math.max(1, wave));
+                if (!completed && wave == lastSpawnedWave && liveProgress.wave() == WAVES_PER_STAGE) {
+                    concludeRunAndSpawnExitPortal();
+                    return;
+                }
+                if (completed) {
+                    if (exitPortalBounds == null) {
+                        concludeRunAndSpawnExitPortal();
+                    }
+                    return;
+                }
                 if (wave >= MAX_ABSOLUTE_WAVE) {
                     endRunAndShowRewardsForAllPlayers(ChatColor.GREEN + "Stage cap reached. Stronghold run complete.");
                     return;
@@ -748,6 +820,7 @@ public class StrongholdRunManager implements Listener {
                 int waveStep = computeWaveAdvance(playersInWorld(world));
                 wave = Math.min(MAX_ABSOLUTE_WAVE, wave + waveStep);
                 spawnWave(world, wave);
+                lastSpawnedWave = wave;
             }, 20L, 20L);
             this.autoCastTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickAutoCast, 20L, AUTOCAST_TICK_INTERVAL);
         }
@@ -813,6 +886,68 @@ public class StrongholdRunManager implements Listener {
                 handleMobKillXp(killer, entity);
                 maybeDropStrongholdKey(entity.getLocation(), killer);
             }
+            if (waveBossId != null && waveBossId.equals(deadId)) {
+                waveBossId = null;
+            }
+        }
+
+        private boolean forceWaveSkip(int desiredWave) {
+            if (completed) {
+                return false;
+            }
+            int clampedWaveInStage = Math.max(1, Math.min(WAVES_PER_STAGE, desiredWave));
+            int activeStage = Math.max(stageAnchor, toStageProgress(Math.max(1, wave)).stage());
+            int absoluteWave = ((activeStage - 1) * WAVES_PER_STAGE) + clampedWaveInStage;
+            wave = Math.min(MAX_ABSOLUTE_WAVE, Math.max(0, absoluteWave - 1));
+            secondsUntilNextWave = 1;
+            currentWaveSpawned.clear();
+            for (Player player : playersInWorld(plugin.getServer().getWorld(worldId))) {
+                send(player, MessageType.INFO, "Debug waveskip set to " + ChatColor.WHITE + activeStage + "-" + clampedWaveInStage + ChatColor.GRAY + ".");
+            }
+            return true;
+        }
+
+        private void concludeRunAndSpawnExitPortal() {
+            completed = true;
+            World world = plugin.getServer().getWorld(worldId);
+            if (world == null) {
+                return;
+            }
+            int clearedStage = toStageProgress(Math.max(1, wave)).stage();
+            for (Player player : playersInWorld(world)) {
+                highestCompletedStageByPlayer.merge(player.getUniqueId(), Math.max(1, clearedStage), Math::max);
+            }
+            saveProgressionData();
+            if (strongholdExitPortalTemplate.isEmpty()) {
+                loadPortalTemplateIfNeeded();
+            }
+            for (Player player : playersInWorld(world)) {
+                exitPortalBounds = tryPlaceExitPortalNearPlayer(player);
+                if (exitPortalBounds != null) {
+                    portalPlacementPendingNotified = false;
+                    ChatFormatter.constructDivider(player, "§a§l-", 45);
+                    ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
+                    ChatFormatter.sendCenteredMessage(player, "");
+                    ChatFormatter.sendCenteredMessage(player,
+                            ChatColor.GRAY + "You conquered Stage " + ChatColor.GREEN + clearedStage + ChatColor.GRAY + "!");
+                    ChatFormatter.constructDivider(player, "§a§l-", 45);
+                    return;
+                }
+            }
+            if (!portalPlacementPendingNotified) {
+                portalPlacementPendingNotified = true;
+                for (Player player : playersInWorld(world)) {
+                    ChatFormatter.constructDivider(player, "§a§l-", 45);
+                    ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
+                    ChatFormatter.sendCenteredMessage(player, "");
+                    ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "You conquered Stage " + ChatColor.GREEN + clearedStage + ChatColor.GRAY + "!");
+                    ChatFormatter.constructDivider(player, "§a§l-", 45);
+                }
+            }
+        }
+
+        private boolean isInsideExitPortal(Location location) {
+            return exitPortalBounds != null && exitPortalBounds.contains(location);
         }
 
         private void handlePlayerDeath(Player player) {
@@ -902,6 +1037,7 @@ public class StrongholdRunManager implements Listener {
             }
             applyWaveMobScaling(boss, waveNumber, true);
             applyKingSlimeSize(boss, waveNumber == 30 ? BOSS_SLIME_SIZE : MINIBOSS_SLIME_SIZE);
+            waveBossId = boss.getUniqueId();
             spawned.add(boss.getUniqueId());
             currentWaveSpawned.add(boss.getUniqueId());
             mobMotionStates.put(boss.getUniqueId(), new MobMotionState(
@@ -1010,6 +1146,8 @@ public class StrongholdRunManager implements Listener {
             if (state == null) {
                 return false;
             }
+            highestAbsoluteWaveByPlayer.merge(target.getUniqueId(), Math.max(1, wave), Math::max);
+            saveProgressionData();
             pendingResultInventories.put(target.getUniqueId(), createSessionResultGui(target, state));
             stopRun(worldId);
             return true;
@@ -1547,10 +1685,23 @@ public class StrongholdRunManager implements Listener {
             }
             UpgradeChoice selected = state.pendingUpgrades.get(idx);
             applyUpgrade(player, state, selected);
+            completeUpgradeSelection(player, state);
+        }
+
+        private void completeUpgradeSelection(Player player, SurvivorState state) {
             state.pendingUpgrades = List.of();
-            state.awaitingUpgradeSelection = false;
             state.pendingUpgradeSelections = Math.max(0, state.pendingUpgradeSelections - 1);
             state.skipNextUpgradeReopen = true;
+            if (state.pendingUpgradeSelections > 0) {
+                state.awaitingUpgradeSelection = true;
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (player.isOnline()) {
+                        openUpgradeGui(player, state);
+                    }
+                });
+                return;
+            }
+            state.awaitingUpgradeSelection = false;
             setUpgradePausedState(player, state, false);
             player.closeInventory();
         }
@@ -2330,7 +2481,12 @@ public class StrongholdRunManager implements Listener {
             if (!isAllowedSpawnGround(groundType, grassOnly)) {
                 return null;
             }
-            Location spawn = new Location(world, base.getX(), Math.max(y + 1, fallbackOrigin.getY()), base.getZ());
+            int spawnY = (int) Math.round(fallbackOrigin.getY());
+            Location spawn = new Location(world, base.getX(), spawnY, base.getZ());
+            Block below = world.getBlockAt(base.getBlockX(), spawnY - 1, base.getBlockZ());
+            if (!below.getType().isSolid()) {
+                return null;
+            }
             if (spawn.getBlock().getType().isAir() && spawn.clone().add(0, 1, 0).getBlock().getType().isAir()) {
                 return spawn;
             }
@@ -2351,6 +2507,116 @@ public class StrongholdRunManager implements Listener {
                 return groundType == Material.GRASS_BLOCK;
             }
             return !groundType.name().contains("LEAVES");
+        }
+    }
+
+    private void loadPortalTemplateIfNeeded() {
+        if (!strongholdExitPortalTemplate.isEmpty()) return;
+        World sourceWorld = Bukkit.getWorld("flatland");
+        if (sourceWorld == null) return;
+        for (int x = PORTAL_SRC_MIN_X; x <= PORTAL_SRC_MAX_X; x++) {
+            for (int y = PORTAL_SRC_MIN_Y; y <= PORTAL_SRC_MAX_Y; y++) {
+                for (int z = PORTAL_SRC_MIN_Z; z <= PORTAL_SRC_MAX_Z; z++) {
+                    Block block = sourceWorld.getBlockAt(x, y, z);
+                    if (block.getType().isAir()) {
+                        continue;
+                    }
+                    strongholdExitPortalTemplate.add(new PortalTemplateBlock(
+                            x - PORTAL_SRC_MIN_X,
+                            y - PORTAL_SRC_MIN_Y,
+                            z - PORTAL_SRC_MIN_Z,
+                            block.getBlockData().clone()));
+                }
+            }
+        }
+    }
+
+    private PlacedPortalBounds tryPlaceExitPortalNearPlayer(Player player) {
+        Location center = player.getLocation();
+        World world = center.getWorld();
+        if (world == null || strongholdExitPortalTemplate.isEmpty()) return null;
+        for (int radius = 4; radius <= 160; radius += 4) {
+            for (int dx = -radius; dx <= radius; dx += 2) {
+                for (int dz = -radius; dz <= radius; dz += 2) {
+                    if (Math.abs(dx) != radius && Math.abs(dz) != radius) {
+                        continue;
+                    }
+                    int sampleX = center.getBlockX() + dx;
+                    int sampleZ = center.getBlockZ() + dz;
+                    double distanceSq = (dx * dx) + (dz * dz);
+                    if (distanceSq < (MIN_EXIT_PORTAL_DISTANCE * MIN_EXIT_PORTAL_DISTANCE)) {
+                        continue;
+                    }
+                    Location anchor = new Location(world, sampleX, PORTAL_SRC_MIN_Y, sampleZ);
+                    if (!canPlacePortalAt(anchor)) continue;
+                    placePortalAt(anchor);
+                    return new PlacedPortalBounds(anchor.getBlockX(), anchor.getBlockY(), anchor.getBlockZ(), PORTAL_SRC_MAX_X - PORTAL_SRC_MIN_X + 1, PORTAL_SRC_MAX_Y - PORTAL_SRC_MIN_Y + 1, PORTAL_SRC_MAX_Z - PORTAL_SRC_MIN_Z + 1);
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean canPlacePortalAt(Location anchor) {
+        World world = anchor.getWorld();
+        for (PortalTemplateBlock block : strongholdExitPortalTemplate) {
+            Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
+            Material current = target.getType();
+            if (!current.isAir() && current != Material.SHORT_GRASS && current != Material.TALL_GRASS) return false;
+        }
+        return true;
+    }
+
+    private void placePortalAt(Location anchor) {
+        World world = anchor.getWorld();
+        Map<Integer, List<PortalTemplateBlock>> byLayer = new java.util.TreeMap<>();
+        List<PortalTemplateBlock> portalBlocks = new ArrayList<>();
+        for (PortalTemplateBlock block : strongholdExitPortalTemplate) {
+            if (block.data.getMaterial() == Material.NETHER_PORTAL) {
+                portalBlocks.add(block);
+                continue;
+            }
+            byLayer.computeIfAbsent(block.dy, ignored -> new ArrayList<>()).add(block);
+        }
+        List<List<PortalTemplateBlock>> layers = new ArrayList<>(byLayer.values());
+        new BukkitRunnable() {
+            int index = 0;
+            @Override
+            public void run() {
+                if (world == null) {
+                    cancel();
+                    return;
+                }
+                if (index < layers.size()) {
+                    for (PortalTemplateBlock block : layers.get(index)) {
+                        Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
+                        target.setBlockData(block.data, false);
+                        world.spawnParticle(Particle.BLOCK, target.getLocation().add(0.5, 0.5, 0.5), 8, 0.2, 0.2, 0.2, 0.01, block.data);
+                    }
+                    world.playSound(anchor, org.bukkit.Sound.BLOCK_STONE_PLACE, 0.7f, 1.0f + (index * 0.03f));
+                    world.playSound(anchor, org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.35f, 1.4f);
+                    index++;
+                    return;
+                }
+                for (PortalTemplateBlock block : portalBlocks) {
+                    Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
+                    target.setBlockData(block.data, false);
+                }
+                world.spawnParticle(Particle.PORTAL, anchor.clone().add(0.5, 1.2, 0.5), 80, 1.2, 1.0, 1.2, 0.08);
+                world.playSound(anchor, org.bukkit.Sound.BLOCK_PORTAL_TRIGGER, 0.8f, 1.0f);
+                world.playSound(anchor, org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.3f);
+                cancel();
+            }
+        }.runTaskTimer(plugin, 0L, 4L);
+    }
+
+    private record PortalTemplateBlock(int dx, int dy, int dz, org.bukkit.block.data.BlockData data) {}
+    private record PlacedPortalBounds(int minX, int minY, int minZ, int width, int height, int depth) {
+        private boolean contains(Location loc) {
+            return loc.getBlockX() >= minX && loc.getBlockX() < minX + width
+                    && loc.getBlockY() >= minY && loc.getBlockY() < minY + height
+                    && loc.getBlockZ() >= minZ && loc.getBlockZ() < minZ + depth
+                    && loc.getBlock().getType() == Material.NETHER_PORTAL;
         }
     }
 
