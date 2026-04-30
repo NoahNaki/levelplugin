@@ -742,6 +742,7 @@ public class StrongholdRunManager implements Listener {
         private boolean completed = false;
         private PlacedPortalBounds exitPortalBounds;
         private UUID waveBossId;
+        private boolean portalPlacementPendingNotified = false;
 
         private ActiveRun(UUID worldId, Location origin, Integer selectedStartingStage) {
             this.worldId = worldId;
@@ -776,6 +777,9 @@ public class StrongholdRunManager implements Listener {
                     return;
                 }
                 if (completed) {
+                    if (exitPortalBounds == null) {
+                        concludeRunAndSpawnExitPortal();
+                    }
                     return;
                 }
                 if (wave >= MAX_ABSOLUTE_WAVE) {
@@ -885,11 +889,17 @@ public class StrongholdRunManager implements Listener {
             for (Player player : playersInWorld(world)) {
                 exitPortalBounds = tryPlaceExitPortalNearPlayer(player);
                 if (exitPortalBounds != null) {
+                    portalPlacementPendingNotified = false;
                     send(player, MessageType.SUCCESS, ChatColor.GOLD + "Floor 30 boss defeated. Exit portal opened.");
                     return;
                 }
             }
-            endRunAndShowRewardsForAllPlayers(ChatColor.YELLOW + "Floor 30 cleared. No safe portal space found, ending run.");
+            if (!portalPlacementPendingNotified) {
+                portalPlacementPendingNotified = true;
+                for (Player player : playersInWorld(world)) {
+                    send(player, MessageType.WARNING, ChatColor.YELLOW + "Floor 30 cleared. Looking for portal space nearby...");
+                }
+            }
         }
 
         private boolean isInsideExitPortal(Location location) {
@@ -2467,10 +2477,16 @@ public class StrongholdRunManager implements Listener {
         Location center = player.getLocation();
         World world = center.getWorld();
         if (world == null || strongholdExitPortalTemplate.isEmpty()) return null;
-        for (int radius = 3; radius <= 20; radius += 2) {
+        for (int radius = 4; radius <= 56; radius += 2) {
             for (int dx = -radius; dx <= radius; dx += 2) {
                 for (int dz = -radius; dz <= radius; dz += 2) {
-                    Location anchor = new Location(world, center.getBlockX() + dx, center.getBlockY() - 1, center.getBlockZ() + dz);
+                    if (Math.abs(dx) != radius && Math.abs(dz) != radius) {
+                        continue;
+                    }
+                    int sampleX = center.getBlockX() + dx;
+                    int sampleZ = center.getBlockZ() + dz;
+                    int groundY = world.getHighestBlockYAt(sampleX, sampleZ);
+                    Location anchor = new Location(world, sampleX, groundY + 1, sampleZ);
                     if (!canPlacePortalAt(anchor)) continue;
                     placePortalAt(anchor);
                     return new PlacedPortalBounds(anchor.getBlockX(), anchor.getBlockY(), anchor.getBlockZ(), PORTAL_SRC_MAX_X - PORTAL_SRC_MIN_X + 1, PORTAL_SRC_MAX_Y - PORTAL_SRC_MIN_Y + 1, PORTAL_SRC_MAX_Z - PORTAL_SRC_MIN_Z + 1);
