@@ -217,17 +217,23 @@ public class StrongholdRunManager implements Listener {
         int highestWave = Math.max(0, highestAbsoluteWaveByPlayer.getOrDefault(playerId, 0));
         int attemptedStage = highestWave <= 0 ? 1 : toStageProgress(highestWave).stage();
         int completedStage = Math.max(0, highestCompletedStageByPlayer.getOrDefault(playerId, 0));
-        return Math.max(1, Math.max(attemptedStage, completedStage + 1));
+        return Math.min(maxSelectableStage(), Math.max(1, Math.max(attemptedStage, completedStage + 1)));
     }
     public void queueStartingStage(Player player, int stage) {
         if (player == null) return;
-        queuedStartingStageByPlayer.put(player.getUniqueId(), Math.max(1, stage));
+        queuedStartingStageByPlayer.put(player.getUniqueId(), clampStageSelection(stage));
     }
     public Integer consumeQueuedStartingStage(Player player) {
         return player == null ? null : queuedStartingStageByPlayer.remove(player.getUniqueId());
     }
 
     private StageProgress toStageProgress(int absoluteWave) { int safe=Math.max(1, absoluteWave); int stage=((safe-1)/WAVES_PER_STAGE)+1; int waveIn=((safe-1)%WAVES_PER_STAGE)+1; return new StageProgress(stage,waveIn,safe); }
+    private int maxSelectableStage() {
+        return ((MAX_ABSOLUTE_WAVE - 1) / WAVES_PER_STAGE) + 1;
+    }
+    private int clampStageSelection(int stage) {
+        return Math.max(1, Math.min(maxSelectableStage(), stage));
+    }
 
     public void startSoloRun(Player player) {
         startSoloRun(player, null, null);
@@ -804,7 +810,7 @@ public class StrongholdRunManager implements Listener {
                         .mapToInt(p -> ((Math.max(1, getHighestUnlockedStage(p.getUniqueId())) - 1) * WAVES_PER_STAGE) + 1)
                         .max().orElse(1);
                 if (selectedStartingStage != null && selectedStartingStage > 0) {
-                    checkpoint = ((Math.max(1, selectedStartingStage) - 1) * WAVES_PER_STAGE) + 1;
+                    checkpoint = ((clampStageSelection(selectedStartingStage) - 1) * WAVES_PER_STAGE) + 1;
                 }
                 stageAnchor = Math.max(1, toStageProgress(checkpoint).stage());
                 wave = Math.max(0, checkpoint - 1);
