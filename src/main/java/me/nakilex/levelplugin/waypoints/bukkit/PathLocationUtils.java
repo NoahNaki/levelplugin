@@ -3,7 +3,9 @@ package me.nakilex.levelplugin.waypoints.bukkit;
 import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
 import me.nakilex.levelplugin.waypoints.api.wrapper.PathPosition;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,5 +61,26 @@ public final class PathLocationUtils {
             }
         }
         return sampled;
+    }
+
+    public static void renderDustTrailToPlayer(Player player,
+                                                List<Location> points,
+                                                int stride,
+                                                int count,
+                                                double spread,
+                                                Particle.DustOptions dustOptions) {
+        if (player == null || points == null || points.isEmpty() || dustOptions == null) {
+            return;
+        }
+        int safeStride = Math.max(1, stride);
+        int safeCount = Math.max(1, count);
+        double safeSpread = Math.max(0.0, spread);
+        for (int i = 0; i < points.size(); i += safeStride) {
+            Location point = points.get(i);
+            if (point == null) {
+                continue;
+            }
+            player.spawnParticle(Particle.DUST, point, safeCount, safeSpread, safeSpread, safeSpread, 0, dustOptions);
+        }
     }
 }
