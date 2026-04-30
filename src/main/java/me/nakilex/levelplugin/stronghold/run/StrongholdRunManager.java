@@ -1129,6 +1129,8 @@ public class StrongholdRunManager implements Listener {
             if (state == null) {
                 return false;
             }
+            highestAbsoluteWaveByPlayer.merge(target.getUniqueId(), Math.max(1, wave), Math::max);
+            saveProgressionData();
             pendingResultInventories.put(target.getUniqueId(), createSessionResultGui(target, state));
             stopRun(worldId);
             return true;
