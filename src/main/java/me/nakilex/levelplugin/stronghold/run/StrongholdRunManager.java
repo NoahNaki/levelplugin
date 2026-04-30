@@ -61,6 +61,7 @@ import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.configuration.file.YamlConfiguration;
 import java.io.File;
 import java.io.IOException;
@@ -2554,16 +2555,32 @@ public class StrongholdRunManager implements Listener {
             }
             byLayer.computeIfAbsent(block.dy, ignored -> new ArrayList<>()).add(block);
         }
-        for (List<PortalTemplateBlock> layerBlocks : byLayer.values()) {
-            for (PortalTemplateBlock block : layerBlocks) {
-                Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
-                target.setBlockData(block.data, false);
+        List<List<PortalTemplateBlock>> layers = new ArrayList<>(byLayer.values());
+        new BukkitRunnable() {
+            int index = 0;
+            @Override
+            public void run() {
+                if (world == null) {
+                    cancel();
+                    return;
+                }
+                if (index < layers.size()) {
+                    for (PortalTemplateBlock block : layers.get(index)) {
+                        Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
+                        target.setBlockData(block.data, false);
+                    }
+                    world.playSound(anchor, org.bukkit.Sound.BLOCK_STONE_PLACE, 0.5f, 1.2f);
+                    index++;
+                    return;
+                }
+                for (PortalTemplateBlock block : portalBlocks) {
+                    Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
+                    target.setBlockData(block.data, false);
+                }
+                world.playSound(anchor, org.bukkit.Sound.BLOCK_PORTAL_TRIGGER, 0.8f, 1.0f);
+                cancel();
             }
-        }
-        for (PortalTemplateBlock block : portalBlocks) {
-            Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
-            target.setBlockData(block.data, false);
-        }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     private record PortalTemplateBlock(int dx, int dy, int dz, org.bukkit.block.data.BlockData data) {}
