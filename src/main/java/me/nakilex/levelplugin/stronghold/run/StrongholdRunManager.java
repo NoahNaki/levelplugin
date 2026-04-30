@@ -116,10 +116,10 @@ public class StrongholdRunManager implements Listener {
     private static final String MINIBOSS_MOB_ID = "slime_king";
     private static final String BOSS_MOB_ID = "giant_zombie";
     private static final int PORTAL_SRC_MIN_X = -1986;
-    private static final int PORTAL_SRC_MIN_Y = -60;
+    private static final int PORTAL_SRC_MIN_Y = -61;
     private static final int PORTAL_SRC_MIN_Z = 3663;
     private static final int PORTAL_SRC_MAX_X = -1964;
-    private static final int PORTAL_SRC_MAX_Y = -37;
+    private static final int PORTAL_SRC_MAX_Y = -36;
     private static final int PORTAL_SRC_MAX_Z = 3685;
     private static final double KEY_DROP_CHANCE = 0.03;
     private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
@@ -2461,13 +2461,20 @@ public class StrongholdRunManager implements Listener {
 
     private void loadPortalTemplateIfNeeded() {
         if (!strongholdExitPortalTemplate.isEmpty()) return;
-        World sourceWorld = Bukkit.getWorld("world");
+        World sourceWorld = Bukkit.getWorld("flatland");
         if (sourceWorld == null) return;
         for (int x = PORTAL_SRC_MIN_X; x <= PORTAL_SRC_MAX_X; x++) {
             for (int y = PORTAL_SRC_MIN_Y; y <= PORTAL_SRC_MAX_Y; y++) {
                 for (int z = PORTAL_SRC_MIN_Z; z <= PORTAL_SRC_MAX_Z; z++) {
                     Block block = sourceWorld.getBlockAt(x, y, z);
-                    strongholdExitPortalTemplate.add(new PortalTemplateBlock(x - PORTAL_SRC_MIN_X, y - PORTAL_SRC_MIN_Y, z - PORTAL_SRC_MIN_Z, block.getBlockData().clone()));
+                    if (block.getType().isAir()) {
+                        continue;
+                    }
+                    strongholdExitPortalTemplate.add(new PortalTemplateBlock(
+                            x - PORTAL_SRC_MIN_X,
+                            y - PORTAL_SRC_MIN_Y,
+                            z - PORTAL_SRC_MIN_Z,
+                            block.getBlockData().clone()));
                 }
             }
         }
