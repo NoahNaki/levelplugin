@@ -102,6 +102,7 @@ public class StrongholdRunManager implements Listener {
     public static final String STRONGHOLD_MAGE_METEOR_RADIUS_TAG = "lp_stronghold_mage_meteor_x3";
     private static final int MAX_ACTIVE_STRONGHOLD_SPELLS = 4;
     private static final double MIN_ENEMY_SPAWN_RADIUS = 5.0;
+    private static final double MIN_EXIT_PORTAL_DISTANCE = 10.0;
     private static final long BASE_AUTOCAST_COOLDOWN_MS = 1_400L;
     private static final long STUCK_PULL_DELAY_MS = 4_000L;
     private static final double STUCK_MOVE_EPSILON_SQ = 0.20 * 0.20;
@@ -2492,6 +2493,10 @@ public class StrongholdRunManager implements Listener {
                     }
                     int sampleX = center.getBlockX() + dx;
                     int sampleZ = center.getBlockZ() + dz;
+                    double distanceSq = (dx * dx) + (dz * dz);
+                    if (distanceSq < (MIN_EXIT_PORTAL_DISTANCE * MIN_EXIT_PORTAL_DISTANCE)) {
+                        continue;
+                    }
                     int groundY = world.getHighestBlockYAt(sampleX, sampleZ);
                     Location anchor = new Location(world, sampleX, groundY + 1, sampleZ);
                     if (!canPlacePortalAt(anchor)) continue;
