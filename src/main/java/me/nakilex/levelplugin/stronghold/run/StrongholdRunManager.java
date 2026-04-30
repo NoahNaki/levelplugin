@@ -126,11 +126,11 @@ public class StrongholdRunManager implements Listener {
     private static final int PORTAL_SRC_MAX_Z = 3680;
     private static final double KEY_DROP_CHANCE = 0.03;
     private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
-    private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.15;
-    private static final double DEFAULT_STAGE_DAMAGE_GROWTH = 0.10;
-    private static final double DEFAULT_WAVE_HEALTH_GROWTH = 0.02;
-    private static final double EXTRA_WAVE_HEALTH_SCALING = 0.15;
-    private static final double DEFAULT_WAVE_DAMAGE_GROWTH = 0.015;
+    private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.25;
+    private static final double DEFAULT_STAGE_DAMAGE_GROWTH = 0.14;
+    private static final double DEFAULT_WAVE_HEALTH_GROWTH = 0.005;
+    private static final double EXTRA_WAVE_HEALTH_SCALING = 0.02;
+    private static final double DEFAULT_WAVE_DAMAGE_GROWTH = 0.005;
     private static final double DEFAULT_WAVE_MOVE_SPEED_GROWTH = 0.003;
     private static final int MINIBOSS_SLIME_SIZE = 2;
     private static final int BOSS_SLIME_SIZE = 3;
@@ -2481,7 +2481,12 @@ public class StrongholdRunManager implements Listener {
             if (!isAllowedSpawnGround(groundType, grassOnly)) {
                 return null;
             }
-            Location spawn = new Location(world, base.getX(), Math.max(y + 1, fallbackOrigin.getY()), base.getZ());
+            int spawnY = (int) Math.round(fallbackOrigin.getY());
+            Location spawn = new Location(world, base.getX(), spawnY, base.getZ());
+            Block below = world.getBlockAt(base.getBlockX(), spawnY - 1, base.getBlockZ());
+            if (!below.getType().isSolid()) {
+                return null;
+            }
             if (spawn.getBlock().getType().isAir() && spawn.clone().add(0, 1, 0).getBlock().getType().isAir()) {
                 return spawn;
             }
