@@ -557,7 +557,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 2) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|scaling|output|spells|endsession <player>>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|scaling|output|spells|endsession <player>|waveskip <wave>>");
                     return true;
                 }
                 if (args[1].equalsIgnoreCase("spells")) {
@@ -602,6 +602,30 @@ public class DebugCommand implements TabExecutor {
                             "Ended Stronghold session for " + ChatColor.WHITE + targetPlayer.getName() + ChatColor.GREEN + ".");
                     return true;
                 }
+                if (args[1].equalsIgnoreCase("waveskip")) {
+                    if (args.length < 3) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug stronghold waveskip <desired wave>");
+                        return true;
+                    }
+                    int desiredWave;
+                    try {
+                        desiredWave = Integer.parseInt(args[2]);
+                    } catch (NumberFormatException ex) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Invalid wave. Example: /debug stronghold waveskip 30");
+                        return true;
+                    }
+                    var runManager = Main.getInstance().getStrongholdRunManager();
+                    if (runManager == null || !runManager.forceWaveSkip(strongholdPlayer, desiredWave)) {
+                        ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "You must be in an active Stronghold run to waveskip.");
+                        return true;
+                    }
+                    ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Stronghold wave set to " + ChatColor.WHITE + desiredWave + ChatColor.GREEN + ".");
+                    return true;
+                }
                 if (args[1].equalsIgnoreCase("assets")) {
                     StrongholdAssetDebugGUI.getInstance().open(strongholdPlayer);
                     return true;
@@ -641,7 +665,7 @@ public class DebugCommand implements TabExecutor {
                 }
                 if (args.length < 3 || !args[1].equalsIgnoreCase("generate")) {
                     ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|scaling|output|spells|endsession <player>>");
+                            "Usage: /debug stronghold <generate test|towerwall|overlap [percent]|templates|assets|scaling|output|spells|endsession <player>|waveskip <wave>>");
                     return true;
                 }
                 if (args[2].equalsIgnoreCase("test")) {
