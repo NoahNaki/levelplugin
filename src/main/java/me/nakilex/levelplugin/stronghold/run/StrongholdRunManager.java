@@ -119,11 +119,11 @@ public class StrongholdRunManager implements Listener {
     private static final String MINIBOSS_MOB_ID = "slime_king";
     private static final String BOSS_MOB_ID = "giant_zombie";
     private static final int PORTAL_SRC_MIN_X = -1986;
-    private static final int PORTAL_SRC_MIN_Y = -61;
-    private static final int PORTAL_SRC_MIN_Z = 3663;
-    private static final int PORTAL_SRC_MAX_X = -1964;
-    private static final int PORTAL_SRC_MAX_Y = -36;
-    private static final int PORTAL_SRC_MAX_Z = 3685;
+    private static final int PORTAL_SRC_MIN_Y = -60;
+    private static final int PORTAL_SRC_MIN_Z = 3668;
+    private static final int PORTAL_SRC_MAX_X = -1963;
+    private static final int PORTAL_SRC_MAX_Y = -33;
+    private static final int PORTAL_SRC_MAX_Z = 3680;
     private static final double KEY_DROP_CHANCE = 0.03;
     private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
     private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.15;
@@ -774,7 +774,7 @@ public class StrongholdRunManager implements Listener {
             if (runWorld != null) {
                 initializePlayers(runWorld);
                 int checkpoint = playersInWorld(runWorld).stream()
-                        .mapToInt(p -> ((Math.max(1, getHighestUnlockedStage(p.getUniqueId())) - 1) * WAVES_PER_STAGE) + 1)
+                        .mapToInt(p -> ((Math.max(1, getHighestStageProgress(p.getUniqueId()).stage()) - 1) * WAVES_PER_STAGE) + 1)
                         .max().orElse(1);
                 if (selectedStartingStage != null && selectedStartingStage > 0) {
                     checkpoint = ((Math.max(1, selectedStartingStage) - 1) * WAVES_PER_STAGE) + 1;
@@ -904,10 +904,6 @@ public class StrongholdRunManager implements Listener {
             if (world == null) {
                 return;
             }
-            for (Player player : playersInWorld(world)) {
-                highestAbsoluteWaveByPlayer.merge(player.getUniqueId(), Math.max(1, wave + 1), Math::max);
-            }
-            saveProgressionData();
             if (strongholdExitPortalTemplate.isEmpty()) {
                 loadPortalTemplateIfNeeded();
             }
