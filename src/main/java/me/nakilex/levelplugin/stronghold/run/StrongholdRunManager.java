@@ -774,7 +774,7 @@ public class StrongholdRunManager implements Listener {
             if (runWorld != null) {
                 initializePlayers(runWorld);
                 int checkpoint = playersInWorld(runWorld).stream()
-                        .mapToInt(p -> ((Math.max(1, getHighestStageProgress(p.getUniqueId()).stage()) - 1) * WAVES_PER_STAGE) + 1)
+                        .mapToInt(p -> ((Math.max(1, getHighestUnlockedStage(p.getUniqueId())) - 1) * WAVES_PER_STAGE) + 1)
                         .max().orElse(1);
                 if (selectedStartingStage != null && selectedStartingStage > 0) {
                     checkpoint = ((Math.max(1, selectedStartingStage) - 1) * WAVES_PER_STAGE) + 1;
@@ -923,7 +923,7 @@ public class StrongholdRunManager implements Listener {
                     ChatFormatter.constructDivider(player, "§a§l-", 45);
                     ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
                     ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "You conquered Stage " + ChatColor.GREEN + clearedStage + ChatColor.GRAY + "!");
-                    ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Find and enter the exit portal.");
+                    ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Preparing your next challenge...");
                     ChatFormatter.constructDivider(player, "§a§l-", 45);
                 }
             }
@@ -2568,8 +2568,10 @@ public class StrongholdRunManager implements Listener {
                     for (PortalTemplateBlock block : layers.get(index)) {
                         Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
                         target.setBlockData(block.data, false);
+                        world.spawnParticle(Particle.BLOCK, target.getLocation().add(0.5, 0.5, 0.5), 8, 0.2, 0.2, 0.2, 0.01, block.data);
                     }
-                    world.playSound(anchor, org.bukkit.Sound.BLOCK_STONE_PLACE, 0.5f, 1.2f);
+                    world.playSound(anchor, org.bukkit.Sound.BLOCK_STONE_PLACE, 0.7f, 1.0f + (index * 0.03f));
+                    world.playSound(anchor, org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_CHIME, 0.35f, 1.4f);
                     index++;
                     return;
                 }
@@ -2577,7 +2579,9 @@ public class StrongholdRunManager implements Listener {
                     Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
                     target.setBlockData(block.data, false);
                 }
+                world.spawnParticle(Particle.PORTAL, anchor.clone().add(0.5, 1.2, 0.5), 80, 1.2, 1.0, 1.2, 0.08);
                 world.playSound(anchor, org.bukkit.Sound.BLOCK_PORTAL_TRIGGER, 0.8f, 1.0f);
+                world.playSound(anchor, org.bukkit.Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.3f);
                 cancel();
             }
         }.runTaskTimer(plugin, 0L, 4L);
