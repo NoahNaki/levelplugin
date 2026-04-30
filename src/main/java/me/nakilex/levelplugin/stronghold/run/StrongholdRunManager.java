@@ -113,6 +113,7 @@ public class StrongholdRunManager implements Listener {
     private static final double MIN_EXIT_PORTAL_DISTANCE = 10.0;
     private static final long BASE_AUTOCAST_COOLDOWN_MS = 1_400L;
     private static final long STUCK_PULL_DELAY_MS = 4_000L;
+    private static final long RUN_ENTRY_DEATH_GRACE_MS = 15_000L;
     private static final double STUCK_MOVE_EPSILON_SQ = 0.20 * 0.20;
     private static final double STUCK_PULL_DISTANCE = 6.0;
     private static final long MOB_RELOCATE_COOLDOWN_MS = 2_500L;
@@ -786,6 +787,7 @@ public class StrongholdRunManager implements Listener {
         private UUID waveBossId;
         private boolean portalPlacementPendingNotified = false;
         private long nextPortalGuideAt = 0L;
+        private long startedAtMs = 0L;
 
         private ActiveRun(UUID worldId, Location origin, Integer selectedStartingStage) {
             this.worldId = worldId;
@@ -794,6 +796,7 @@ public class StrongholdRunManager implements Listener {
         }
 
         private void start() {
+            startedAtMs = System.currentTimeMillis();
             World runWorld = plugin.getServer().getWorld(worldId);
             if (runWorld != null) {
                 initializePlayers(runWorld);
@@ -1012,6 +1015,10 @@ public class StrongholdRunManager implements Listener {
 
         private void handlePlayerDeath(Player player) {
             if (player == null) {
+                return;
+            }
+            if (!completed && (System.currentTimeMillis() - startedAtMs) < RUN_ENTRY_DEATH_GRACE_MS) {
+                send(player, MessageType.WARNING, "Stronghold entry protection is active. You will not lose your run yet.");
                 return;
             }
             SurvivorState state = playerStates.get(player.getUniqueId());
