@@ -71,6 +71,11 @@ public class QuestPathTask extends BukkitRunnable {
             }
             Location target = debugTarget;
             QuestNavigationUtil.QuestTrackingInfo tracking = null;
+            var strongholdRunManager = Main.getInstance().getStrongholdRunManager();
+            if (strongholdRunManager != null && strongholdRunManager.getExitPortalGuideTarget(player) != null) {
+                clearCache(player.getUniqueId());
+                continue;
+            }
             if (target == null) {
                 tracking = QuestNavigationUtil.resolveTracking(player, questManager);
                 target = tracking != null ? tracking.location() : null;

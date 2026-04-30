@@ -388,6 +388,17 @@ public class StrongholdRunManager implements Listener {
         return run.getStageStatus(playerId);
     }
 
+    public Location getExitPortalGuideTarget(Player player) {
+        if (player == null || player.getWorld() == null) {
+            return null;
+        }
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null || !run.completed || run.exitPortalBounds == null) {
+            return null;
+        }
+        return run.exitPortalBounds.center(player.getWorld());
+    }
+
     public List<String> getSpellPossibilities(Player player) {
         if (player == null || !player.isOnline()) {
             return List.of();
@@ -969,7 +980,7 @@ public class StrongholdRunManager implements Listener {
             if (now < nextPortalGuideAt) {
                 return;
             }
-            nextPortalGuideAt = now + 1800L;
+            nextPortalGuideAt = now + 600L;
             Location portalCenter = exitPortalBounds.center(world);
             for (Player player : playersInWorld(world)) {
                 if (player == null || !player.isOnline() || player.getWorld() != world) {
@@ -977,7 +988,7 @@ public class StrongholdRunManager implements Listener {
                 }
                 List<Location> points = buildPortalPathPoints(player.getLocation(), portalCenter);
                 int stride = points.size() > 80 ? 3 : 2;
-                PathLocationUtils.renderDustTrailToPlayer(player, points, stride, 1, 0.08, EXIT_PORTAL_GUIDE_DUST);
+                PathLocationUtils.renderDustTrailToPlayer(player, points, stride, 2, 0.1, EXIT_PORTAL_GUIDE_DUST);
                 if (!points.isEmpty()) {
                     Location last = points.get(points.size() - 1);
                     player.spawnParticle(Particle.HAPPY_VILLAGER, last, 6, 0.35, 0.4, 0.35, 0.0);
