@@ -20,7 +20,6 @@ import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
-import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -742,6 +741,7 @@ public class StrongholdRunManager implements Listener {
         private int secondsUntilNextWave = FIRST_WAVE_DELAY_SECONDS;
         private boolean completed = false;
         private PlacedPortalBounds exitPortalBounds;
+        private UUID waveBossId;
 
         private ActiveRun(UUID worldId, Location origin, Integer selectedStartingStage) {
             this.worldId = worldId;
@@ -851,7 +851,10 @@ public class StrongholdRunManager implements Listener {
                 handleMobKillXp(killer, entity);
                 maybeDropStrongholdKey(entity.getLocation(), killer);
             }
-            if (!completed && wave == WAVES_PER_STAGE && isStrongholdBoss(entity)) {
+            if (waveBossId != null && waveBossId.equals(deadId)) {
+                waveBossId = null;
+            }
+            if (!completed && wave == WAVES_PER_STAGE && waveBossId == null) {
                 concludeRunAndSpawnExitPortal();
             }
         }
@@ -978,6 +981,7 @@ public class StrongholdRunManager implements Listener {
             }
             applyWaveMobScaling(boss, waveNumber, true);
             applyKingSlimeSize(boss, waveNumber == 30 ? BOSS_SLIME_SIZE : MINIBOSS_SLIME_SIZE);
+            waveBossId = boss.getUniqueId();
             spawned.add(boss.getUniqueId());
             currentWaveSpawned.add(boss.getUniqueId());
             mobMotionStates.put(boss.getUniqueId(), new MobMotionState(
@@ -1623,10 +1627,23 @@ public class StrongholdRunManager implements Listener {
             }
             UpgradeChoice selected = state.pendingUpgrades.get(idx);
             applyUpgrade(player, state, selected);
+            completeUpgradeSelection(player, state);
+        }
+
+        private void completeUpgradeSelection(Player player, SurvivorState state) {
             state.pendingUpgrades = List.of();
-            state.awaitingUpgradeSelection = false;
             state.pendingUpgradeSelections = Math.max(0, state.pendingUpgradeSelections - 1);
             state.skipNextUpgradeReopen = true;
+            if (state.pendingUpgradeSelections > 0) {
+                state.awaitingUpgradeSelection = true;
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (player.isOnline()) {
+                        openUpgradeGui(player, state);
+                    }
+                });
+                return;
+            }
+            state.awaitingUpgradeSelection = false;
             setUpgradePausedState(player, state, false);
             player.closeInventory();
         }
@@ -2428,13 +2445,6 @@ public class StrongholdRunManager implements Listener {
             }
             return !groundType.name().contains("LEAVES");
         }
-    }
-
-    private boolean isStrongholdBoss(LivingEntity entity) {
-        if (entity == null) return false;
-        if (!entity.hasMetadata(CustomMobManager.CUSTOM_MOB_ID_META)) return false;
-        String id = entity.getMetadata(CustomMobManager.CUSTOM_MOB_ID_META).stream().findFirst().map(v -> v.asString()).orElse("");
-        return BOSS_MOB_ID.equalsIgnoreCase(id);
     }
 
     private void loadPortalTemplateIfNeeded() {

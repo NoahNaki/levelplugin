@@ -923,8 +923,12 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
-            return List.of("generate", "overlap", "templates", "assets", "scaling", "output", "spells", "endsession").stream()
+            return List.of("generate", "overlap", "templates", "assets", "scaling", "output", "spells", "endsession", "waveskip").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("waveskip")) {
+            return List.of("1", "15", "30", "45", "60").stream()
+                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("stronghold") && args[1].equalsIgnoreCase("endsession")) {
             return Bukkit.getOnlinePlayers().stream()
