@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -150,6 +151,7 @@ public class StrongholdRunManager implements Listener {
     private final Set<String> autoCastBasePool = new HashSet<>();
     private final Set<String> mobilityBasePool = new HashSet<>();
     private final Map<UUID, Integer> highestAbsoluteWaveByPlayer = new HashMap<>();
+    private final Map<UUID, Integer> queuedStartingStageByPlayer = new HashMap<>();
     private final List<PortalTemplateBlock> strongholdExitPortalTemplate = new ArrayList<>();
     private File progressionFile;
     private YamlConfiguration progressionConfig;
@@ -197,6 +199,21 @@ public class StrongholdRunManager implements Listener {
     public StageScalingConfig getStageScalingConfig() { return stageScalingConfig; }
     public void updateStageScalingConfig(StageScalingConfig config) { if (config==null) return; this.stageScalingConfig=config; saveProgressionData(); }
     public StageProgress getHighestStageProgress(UUID playerId) { int w=Math.max(0, highestAbsoluteWaveByPlayer.getOrDefault(playerId,0)); return toStageProgress(w); }
+    public int getHighestUnlockedStage(UUID playerId) {
+        int highestWave = Math.max(0, highestAbsoluteWaveByPlayer.getOrDefault(playerId, 0));
+        if (highestWave <= 0) {
+            return 1;
+        }
+        StageProgress progress = toStageProgress(highestWave);
+        return progress.wave() == WAVES_PER_STAGE ? progress.stage() + 1 : progress.stage();
+    }
+    public void queueStartingStage(Player player, int stage) {
+        if (player == null) return;
+        queuedStartingStageByPlayer.put(player.getUniqueId(), Math.max(1, stage));
+    }
+    public Integer consumeQueuedStartingStage(Player player) {
+        return player == null ? null : queuedStartingStageByPlayer.remove(player.getUniqueId());
+    }
 
     private StageProgress toStageProgress(int absoluteWave) { int safe=Math.max(1, absoluteWave); int stage=((safe-1)/WAVES_PER_STAGE)+1; int waveIn=((safe-1)%WAVES_PER_STAGE)+1; return new StageProgress(stage,waveIn,safe); }
 
@@ -755,7 +772,9 @@ public class StrongholdRunManager implements Listener {
             World runWorld = plugin.getServer().getWorld(worldId);
             if (runWorld != null) {
                 initializePlayers(runWorld);
-                int checkpoint = playersInWorld(runWorld).stream().mapToInt(p -> highestAbsoluteWaveByPlayer.getOrDefault(p.getUniqueId(), 1)).max().orElse(1);
+                int checkpoint = playersInWorld(runWorld).stream()
+                        .mapToInt(p -> ((Math.max(1, getHighestUnlockedStage(p.getUniqueId())) - 1) * WAVES_PER_STAGE) + 1)
+                        .max().orElse(1);
                 if (selectedStartingStage != null && selectedStartingStage > 0) {
                     checkpoint = ((Math.max(1, selectedStartingStage) - 1) * WAVES_PER_STAGE) + 1;
                 }
@@ -897,8 +916,14 @@ public class StrongholdRunManager implements Listener {
             }
             if (!portalPlacementPendingNotified) {
                 portalPlacementPendingNotified = true;
+                int clearedStage = toStageProgress(Math.max(1, wave)).stage();
                 for (Player player : playersInWorld(world)) {
                     send(player, MessageType.WARNING, ChatColor.YELLOW + "Floor 30 cleared. Looking for portal space nearby...");
+                    ChatFormatter.constructDivider(player, "§a§l-", 45);
+                    ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
+                    ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "You conquered Stage " + ChatColor.GREEN + clearedStage + ChatColor.GRAY + "!");
+                    ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Find and enter the exit portal.");
+                    ChatFormatter.constructDivider(player, "§a§l-", 45);
                 }
             }
         }
@@ -2520,7 +2545,22 @@ public class StrongholdRunManager implements Listener {
 
     private void placePortalAt(Location anchor) {
         World world = anchor.getWorld();
+        Map<Integer, List<PortalTemplateBlock>> byLayer = new java.util.TreeMap<>();
+        List<PortalTemplateBlock> portalBlocks = new ArrayList<>();
         for (PortalTemplateBlock block : strongholdExitPortalTemplate) {
+            if (block.data.getMaterial() == Material.NETHER_PORTAL) {
+                portalBlocks.add(block);
+                continue;
+            }
+            byLayer.computeIfAbsent(block.dy, ignored -> new ArrayList<>()).add(block);
+        }
+        for (List<PortalTemplateBlock> layerBlocks : byLayer.values()) {
+            for (PortalTemplateBlock block : layerBlocks) {
+                Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
+                target.setBlockData(block.data, false);
+            }
+        }
+        for (PortalTemplateBlock block : portalBlocks) {
             Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
             target.setBlockData(block.data, false);
         }

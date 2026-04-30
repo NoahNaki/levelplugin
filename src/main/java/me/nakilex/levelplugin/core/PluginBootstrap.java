@@ -481,7 +481,7 @@ public class PluginBootstrap {
                     if (profiler != null) {
                         profiler.stepFinished("Wait before wave startup (40 ticks)", waitStart);
                     }
-                    strongholdRunManager.startSoloRun(soloPlayer, null, profiler);
+                    strongholdRunManager.startSoloRun(soloPlayer, strongholdRunManager.consumeQueuedStartingStage(soloPlayer), profiler);
                 }, 40L);
             });
         });
