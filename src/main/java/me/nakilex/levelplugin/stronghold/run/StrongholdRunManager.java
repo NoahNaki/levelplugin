@@ -404,7 +404,7 @@ public class StrongholdRunManager implements Listener {
         if (run == null || !run.completed || run.exitPortalBounds == null) {
             return null;
         }
-        return run.exitPortalBounds.center(player.getWorld());
+        return run.exitPortalBounds.guideTarget(player.getWorld());
     }
 
     public List<String> getSpellPossibilities(Player player) {
@@ -991,7 +991,7 @@ public class StrongholdRunManager implements Listener {
                 return;
             }
             nextPortalGuideAt = now + 600L;
-            Location portalCenter = exitPortalBounds.center(world);
+            Location portalCenter = exitPortalBounds.guideTarget(world);
             for (Player player : playersInWorld(world)) {
                 if (player == null || !player.isOnline() || player.getWorld() != world) {
                     continue;
@@ -2698,6 +2698,11 @@ public class StrongholdRunManager implements Listener {
                     minX + (width / 2.0),
                     minY + Math.max(1.0, (height / 2.0)),
                     minZ + (depth / 2.0));
+        }
+
+        private Location guideTarget(World world) {
+            Location centered = center(world);
+            return new Location(world, centered.getX(), minY + height + 1.25, centered.getZ());
         }
     }
 
