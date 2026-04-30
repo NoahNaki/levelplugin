@@ -125,6 +125,10 @@ public class StrongholdRunManager implements Listener {
     private static final String MINIBOSS_MOB_ID = "slime_king";
     private static final String BOSS_MOB_ID = "giant_zombie";
     private static final Particle.DustOptions EXIT_PORTAL_GUIDE_DUST = new Particle.DustOptions(Color.fromRGB(120, 255, 120), 1.1f);
+    private static final double EXIT_GUIDE_HIDE_DISTANCE = 5.0;
+    private static final double EXIT_GUIDE_RESUME_DISTANCE = 9.0;
+    private static final double EXIT_GUIDE_HIDE_DISTANCE_SQ = EXIT_GUIDE_HIDE_DISTANCE * EXIT_GUIDE_HIDE_DISTANCE;
+    private static final double EXIT_GUIDE_RESUME_DISTANCE_SQ = EXIT_GUIDE_RESUME_DISTANCE * EXIT_GUIDE_RESUME_DISTANCE;
     private static final int PORTAL_SRC_MIN_X = -1986;
     private static final int PORTAL_SRC_MIN_Y = -60;
     private static final int PORTAL_SRC_MIN_Z = 3668;
@@ -770,6 +774,7 @@ public class StrongholdRunManager implements Listener {
         private final List<UUID> currentWaveSpawned = new ArrayList<>();
         private final Map<UUID, MobMotionState> mobMotionStates = new HashMap<>();
         private final Map<UUID, SurvivorState> playerStates = new HashMap<>();
+        private final Map<UUID, Boolean> exitGuideSuppressedByProximity = new HashMap<>();
         private final Set<UUID> pausedPlayers = new HashSet<>();
         private final Map<UUID, Long> lastManualCastAttemptAt = new HashMap<>();
 
@@ -986,7 +991,19 @@ public class StrongholdRunManager implements Listener {
                 if (player == null || !player.isOnline() || player.getWorld() != world) {
                     continue;
                 }
-                List<Location> points = buildPortalPathPoints(player.getLocation(), portalCenter);
+                Location playerLoc = player.getLocation();
+                double distanceSq = playerLoc.distanceSquared(portalCenter);
+                boolean suppressed = exitGuideSuppressedByProximity.getOrDefault(player.getUniqueId(), false);
+                if (suppressed) {
+                    if (distanceSq <= EXIT_GUIDE_RESUME_DISTANCE_SQ) {
+                        continue;
+                    }
+                    exitGuideSuppressedByProximity.put(player.getUniqueId(), false);
+                } else if (distanceSq <= EXIT_GUIDE_HIDE_DISTANCE_SQ) {
+                    exitGuideSuppressedByProximity.put(player.getUniqueId(), true);
+                    continue;
+                }
+                List<Location> points = buildPortalPathPoints(playerLoc, portalCenter);
                 int stride = points.size() > 80 ? 3 : 2;
                 PathLocationUtils.renderDustTrailToPlayer(player, points, stride, 2, 0.1, EXIT_PORTAL_GUIDE_DUST);
                 if (!points.isEmpty()) {
