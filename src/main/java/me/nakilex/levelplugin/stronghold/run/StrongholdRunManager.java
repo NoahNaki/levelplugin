@@ -756,6 +756,7 @@ public class StrongholdRunManager implements Listener {
         private BukkitTask task;
         private BukkitTask autoCastTask;
         private int wave = 0;
+        private int lastSpawnedWave = 0;
         private final Integer selectedStartingStage;
         private int secondsUntilNextWave = FIRST_WAVE_DELAY_SECONDS;
         private boolean completed = false;
@@ -793,7 +794,8 @@ public class StrongholdRunManager implements Listener {
                 if (countAliveCurrentWave() > 0) {
                     return;
                 }
-                if (!completed && wave == WAVES_PER_STAGE) {
+                StageProgress liveProgress = toStageProgress(Math.max(1, wave));
+                if (!completed && wave == lastSpawnedWave && liveProgress.wave() == WAVES_PER_STAGE) {
                     concludeRunAndSpawnExitPortal();
                     return;
                 }
@@ -815,6 +817,7 @@ public class StrongholdRunManager implements Listener {
                 int waveStep = computeWaveAdvance(playersInWorld(world));
                 wave = Math.min(MAX_ABSOLUTE_WAVE, wave + waveStep);
                 spawnWave(world, wave);
+                lastSpawnedWave = wave;
             }, 20L, 20L);
             this.autoCastTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickAutoCast, 20L, AUTOCAST_TICK_INTERVAL);
         }

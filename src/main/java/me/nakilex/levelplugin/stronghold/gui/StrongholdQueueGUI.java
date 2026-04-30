@@ -145,8 +145,8 @@ public class StrongholdQueueGUI implements Listener {
             });
             var runManager = Main.getInstance() == null ? null : Main.getInstance().getStrongholdRunManager();
             if (runManager != null) {
-                var best = runManager.getHighestStageProgress(viewerId);
-                lore.add(ChatColor.GRAY + "Best Checkpoint: " + ChatColor.WHITE + best.stage() + "-" + best.wave());
+                int unlockedStage = Math.max(1, runManager.getHighestUnlockedStage(viewerId));
+                lore.add(ChatColor.GRAY + "Best Checkpoint: " + ChatColor.WHITE + unlockedStage + "-1");
             }
             lore.add(" ");
             lore.add(ChatColor.GREEN + "" + ChatColor.BOLD + queueManager.getQueuePopulation(mode)
