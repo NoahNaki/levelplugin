@@ -911,7 +911,13 @@ public class StrongholdRunManager implements Listener {
                 exitPortalBounds = tryPlaceExitPortalNearPlayer(player);
                 if (exitPortalBounds != null) {
                     portalPlacementPendingNotified = false;
-                    send(player, MessageType.SUCCESS, ChatColor.GOLD + "Floor 30 boss defeated. Exit portal opened.");
+                    int clearedStage = toStageProgress(Math.max(1, wave)).stage();
+                    ChatFormatter.constructDivider(player, "§a§l-", 45);
+                    ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
+                    ChatFormatter.sendCenteredMessage(player, "");
+                    ChatFormatter.sendCenteredMessage(player,
+                            ChatColor.GRAY + "You conquered Stage " + ChatColor.GREEN + clearedStage + ChatColor.GRAY + "!");
+                    ChatFormatter.constructDivider(player, "§a§l-", 45);
                     return;
                 }
             }
@@ -919,11 +925,10 @@ public class StrongholdRunManager implements Listener {
                 portalPlacementPendingNotified = true;
                 int clearedStage = toStageProgress(Math.max(1, wave)).stage();
                 for (Player player : playersInWorld(world)) {
-                    send(player, MessageType.WARNING, ChatColor.YELLOW + "Floor 30 cleared. Looking for portal space nearby...");
                     ChatFormatter.constructDivider(player, "§a§l-", 45);
                     ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
+                    ChatFormatter.sendCenteredMessage(player, "");
                     ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "You conquered Stage " + ChatColor.GREEN + clearedStage + ChatColor.GRAY + "!");
-                    ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "Preparing your next challenge...");
                     ChatFormatter.constructDivider(player, "§a§l-", 45);
                 }
             }
