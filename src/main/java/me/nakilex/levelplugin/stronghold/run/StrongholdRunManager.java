@@ -126,7 +126,7 @@ public class StrongholdRunManager implements Listener {
     private static final int PORTAL_SRC_MAX_Z = 3680;
     private static final double KEY_DROP_CHANCE = 0.03;
     private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
-    private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.25;
+    private static final double DEFAULT_STAGE_HEALTH_GROWTH = 0.35;
     private static final double DEFAULT_STAGE_DAMAGE_GROWTH = 0.14;
     private static final double DEFAULT_WAVE_HEALTH_GROWTH = 0.005;
     private static final double EXTRA_WAVE_HEALTH_SCALING = 0.02;
@@ -2535,7 +2535,7 @@ public class StrongholdRunManager implements Listener {
         Location center = player.getLocation();
         World world = center.getWorld();
         if (world == null || strongholdExitPortalTemplate.isEmpty()) return null;
-        for (int radius = 4; radius <= 56; radius += 2) {
+        for (int radius = 4; radius <= 160; radius += 4) {
             for (int dx = -radius; dx <= radius; dx += 2) {
                 for (int dz = -radius; dz <= radius; dz += 2) {
                     if (Math.abs(dx) != radius && Math.abs(dz) != radius) {
@@ -2547,8 +2547,7 @@ public class StrongholdRunManager implements Listener {
                     if (distanceSq < (MIN_EXIT_PORTAL_DISTANCE * MIN_EXIT_PORTAL_DISTANCE)) {
                         continue;
                     }
-                    int groundY = world.getHighestBlockYAt(sampleX, sampleZ);
-                    Location anchor = new Location(world, sampleX, groundY + 1, sampleZ);
+                    Location anchor = new Location(world, sampleX, PORTAL_SRC_MIN_Y, sampleZ);
                     if (!canPlacePortalAt(anchor)) continue;
                     placePortalAt(anchor);
                     return new PlacedPortalBounds(anchor.getBlockX(), anchor.getBlockY(), anchor.getBlockZ(), PORTAL_SRC_MAX_X - PORTAL_SRC_MIN_X + 1, PORTAL_SRC_MAX_Y - PORTAL_SRC_MIN_Y + 1, PORTAL_SRC_MAX_Z - PORTAL_SRC_MIN_Z + 1);
