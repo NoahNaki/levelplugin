@@ -759,6 +759,7 @@ public class StrongholdRunManager implements Listener {
         private int wave = 0;
         private int lastSpawnedWave = 0;
         private final Integer selectedStartingStage;
+        private int stageAnchor = 1;
         private int secondsUntilNextWave = FIRST_WAVE_DELAY_SECONDS;
         private boolean completed = false;
         private PlacedPortalBounds exitPortalBounds;
@@ -781,6 +782,7 @@ public class StrongholdRunManager implements Listener {
                 if (selectedStartingStage != null && selectedStartingStage > 0) {
                     checkpoint = ((Math.max(1, selectedStartingStage) - 1) * WAVES_PER_STAGE) + 1;
                 }
+                stageAnchor = Math.max(1, toStageProgress(checkpoint).stage());
                 wave = Math.max(0, checkpoint - 1);
             }
             this.task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
@@ -893,11 +895,14 @@ public class StrongholdRunManager implements Listener {
             if (completed) {
                 return false;
             }
-            wave = Math.min(MAX_ABSOLUTE_WAVE, Math.max(0, desiredWave - 1));
+            int clampedWaveInStage = Math.max(1, Math.min(WAVES_PER_STAGE, desiredWave));
+            int activeStage = Math.max(stageAnchor, toStageProgress(Math.max(1, wave)).stage());
+            int absoluteWave = ((activeStage - 1) * WAVES_PER_STAGE) + clampedWaveInStage;
+            wave = Math.min(MAX_ABSOLUTE_WAVE, Math.max(0, absoluteWave - 1));
             secondsUntilNextWave = 1;
             currentWaveSpawned.clear();
             for (Player player : playersInWorld(plugin.getServer().getWorld(worldId))) {
-                send(player, MessageType.INFO, "Debug waveskip set to wave " + ChatColor.WHITE + desiredWave + ChatColor.GRAY + ".");
+                send(player, MessageType.INFO, "Debug waveskip set to " + ChatColor.WHITE + activeStage + "-" + clampedWaveInStage + ChatColor.GRAY + ".");
             }
             return true;
         }
