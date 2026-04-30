@@ -771,6 +771,10 @@ public class StrongholdRunManager implements Listener {
                 if (countAliveCurrentWave() > 0) {
                     return;
                 }
+                if (!completed && wave == WAVES_PER_STAGE) {
+                    concludeRunAndSpawnExitPortal();
+                    return;
+                }
                 if (completed) {
                     return;
                 }
@@ -854,9 +858,6 @@ public class StrongholdRunManager implements Listener {
             if (waveBossId != null && waveBossId.equals(deadId)) {
                 waveBossId = null;
             }
-            if (!completed && wave == WAVES_PER_STAGE && waveBossId == null) {
-                concludeRunAndSpawnExitPortal();
-            }
         }
 
         private boolean forceWaveSkip(int desiredWave) {
@@ -888,6 +889,7 @@ public class StrongholdRunManager implements Listener {
                     return;
                 }
             }
+            endRunAndShowRewardsForAllPlayers(ChatColor.YELLOW + "Floor 30 cleared. No safe portal space found, ending run.");
         }
 
         private boolean isInsideExitPortal(Location location) {
