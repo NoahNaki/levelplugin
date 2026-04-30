@@ -21,8 +21,13 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
+import me.nakilex.levelplugin.waypoints.bukkit.BukkitPathfindingService;
+import me.nakilex.levelplugin.waypoints.bukkit.PathLocationUtils;
+import me.nakilex.levelplugin.waypoints.engine.result.PathUtils;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -77,6 +82,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
@@ -118,6 +124,7 @@ public class StrongholdRunManager implements Listener {
     private static final double MOB_RELOCATE_AXIS_JITTER = 1.5;
     private static final String MINIBOSS_MOB_ID = "slime_king";
     private static final String BOSS_MOB_ID = "giant_zombie";
+    private static final Particle.DustOptions EXIT_PORTAL_GUIDE_DUST = new Particle.DustOptions(Color.fromRGB(120, 255, 120), 1.1f);
     private static final int PORTAL_SRC_MIN_X = -1986;
     private static final int PORTAL_SRC_MIN_Y = -60;
     private static final int PORTAL_SRC_MIN_Z = 3668;
@@ -153,6 +160,7 @@ public class StrongholdRunManager implements Listener {
     private final Set<String> mobilityBasePool = new HashSet<>();
     private final Map<UUID, Integer> highestAbsoluteWaveByPlayer = new HashMap<>();
     private final Map<UUID, Integer> highestCompletedStageByPlayer = new HashMap<>();
+    private final BukkitPathfindingService pathfindingService = new BukkitPathfindingService();
     private final Map<UUID, Integer> queuedStartingStageByPlayer = new HashMap<>();
     private final List<PortalTemplateBlock> strongholdExitPortalTemplate = new ArrayList<>();
     private File progressionFile;
@@ -765,6 +773,7 @@ public class StrongholdRunManager implements Listener {
         private PlacedPortalBounds exitPortalBounds;
         private UUID waveBossId;
         private boolean portalPlacementPendingNotified = false;
+        private long nextPortalGuideAt = 0L;
 
         private ActiveRun(UUID worldId, Location origin, Integer selectedStartingStage) {
             this.worldId = worldId;
@@ -805,7 +814,9 @@ public class StrongholdRunManager implements Listener {
                 if (completed) {
                     if (exitPortalBounds == null) {
                         concludeRunAndSpawnExitPortal();
+                        return;
                     }
+                    tickExitPortalGuidance(world);
                     return;
                 }
                 if (wave >= MAX_ABSOLUTE_WAVE) {
@@ -948,6 +959,47 @@ public class StrongholdRunManager implements Listener {
 
         private boolean isInsideExitPortal(Location location) {
             return exitPortalBounds != null && exitPortalBounds.contains(location);
+        }
+
+        private void tickExitPortalGuidance(World world) {
+            if (world == null || exitPortalBounds == null) {
+                return;
+            }
+            long now = System.currentTimeMillis();
+            if (now < nextPortalGuideAt) {
+                return;
+            }
+            nextPortalGuideAt = now + 1800L;
+            Location portalCenter = exitPortalBounds.center(world);
+            for (Player player : playersInWorld(world)) {
+                if (player == null || !player.isOnline() || player.getWorld() != world) {
+                    continue;
+                }
+                List<Location> points = buildPortalPathPoints(player.getLocation(), portalCenter);
+                renderPortalGuide(player, points);
+            }
+        }
+
+        private List<Location> buildPortalPathPoints(Location start, Location target) {
+            Optional<Path> pathResult = pathfindingService.findPath(start, target);
+            if (pathResult.isEmpty()) {
+                return List.of(target.clone().add(0, 1.0, 0));
+            }
+            Path path = PathUtils.interpolate(pathResult.get(), 0.5);
+            return PathLocationUtils.toLocations(start.getWorld(), path, 1.0, true, 0);
+        }
+
+        private void renderPortalGuide(Player player, List<Location> points) {
+            if (points == null || points.isEmpty()) {
+                return;
+            }
+            int stride = points.size() > 80 ? 3 : 2;
+            for (int i = 0; i < points.size(); i += stride) {
+                Location point = points.get(i);
+                player.spawnParticle(Particle.DUST, point, 1, 0.08, 0.08, 0.08, 0, EXIT_PORTAL_GUIDE_DUST);
+            }
+            Location last = points.get(points.size() - 1);
+            player.spawnParticle(Particle.VILLAGER_HAPPY, last, 6, 0.35, 0.4, 0.35, 0.0);
         }
 
         private void handlePlayerDeath(Player player) {
@@ -2617,6 +2669,14 @@ public class StrongholdRunManager implements Listener {
                     && loc.getBlockY() >= minY && loc.getBlockY() < minY + height
                     && loc.getBlockZ() >= minZ && loc.getBlockZ() < minZ + depth
                     && loc.getBlock().getType() == Material.NETHER_PORTAL;
+        }
+
+        private Location center(World world) {
+            return new Location(
+                    world,
+                    minX + (width / 2.0),
+                    minY + Math.max(1.0, (height / 2.0)),
+                    minZ + (depth / 2.0));
         }
     }
 
