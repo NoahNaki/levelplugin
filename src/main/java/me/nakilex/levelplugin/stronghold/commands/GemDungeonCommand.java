@@ -9,15 +9,16 @@ import java.util.List;
 
 public class GemDungeonCommand implements TabExecutor {
     private final GemDungeonManager manager;
-    public GemDungeonCommand(GemDungeonManager manager) { this.manager = manager; }
+    private final me.nakilex.levelplugin.stronghold.gui.GemDungeonGUI gui;
+    public GemDungeonCommand(GemDungeonManager manager, me.nakilex.levelplugin.stronghold.gui.GemDungeonGUI gui) { this.manager = manager; this.gui = gui; }
 
     @Override public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Only players can use this command.");
             return true;
         }
-        if (args.length == 0) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Left click to challenge, right click to sweep (or use /gemdungeon challenge|sweep).");
+        if (args.length == 0 || "open".equalsIgnoreCase(args[0])) {
+            gui.open(player);
             return true;
         }
         if ("challenge".equalsIgnoreCase(args[0])) manager.challenge(player);
@@ -27,6 +28,6 @@ public class GemDungeonCommand implements TabExecutor {
     }
 
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        return args.length == 1 ? List.of("challenge", "sweep") : List.of();
+        return args.length == 1 ? List.of("open", "challenge", "sweep") : List.of();
     }
 }

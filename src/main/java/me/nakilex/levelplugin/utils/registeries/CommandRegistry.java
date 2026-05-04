@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.arena.commands.ArenaCommand;
 import me.nakilex.levelplugin.stronghold.commands.StrongholdCommand;
 import me.nakilex.levelplugin.stronghold.commands.GemDungeonCommand;
 import me.nakilex.levelplugin.stronghold.run.GemDungeonManager;
+import me.nakilex.levelplugin.stronghold.gui.GemDungeonGUI;
 import me.nakilex.levelplugin.duels.commands.DuelCommand;
 import me.nakilex.levelplugin.economy.commands.*;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
@@ -302,7 +303,9 @@ public class CommandRegistry {
         plugin.getCommand("stronghold").setExecutor(strongholdCmd);
         plugin.getCommand("stronghold").setTabCompleter(strongholdCmd);
         GemDungeonManager gemDungeonManager = new GemDungeonManager(plugin);
-        GemDungeonCommand gemDungeonCommand = new GemDungeonCommand(gemDungeonManager);
+        GemDungeonGUI gemDungeonGUI = new GemDungeonGUI(gemDungeonManager);
+        org.bukkit.Bukkit.getPluginManager().registerEvents(gemDungeonGUI, plugin);
+        GemDungeonCommand gemDungeonCommand = new GemDungeonCommand(gemDungeonManager, gemDungeonGUI);
         plugin.getCommand("gemdungeon").setExecutor(gemDungeonCommand);
         plugin.getCommand("gemdungeon").setTabCompleter(gemDungeonCommand);
         plugin.getCommand("ps").setExecutor(new StorageCommand(storageManager));

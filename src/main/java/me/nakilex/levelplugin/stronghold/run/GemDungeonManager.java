@@ -2,8 +2,7 @@ package me.nakilex.levelplugin.stronghold.run;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
-import me.nakilex.levelplugin.mob.custom.CustomMobManager;
-import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -86,7 +85,7 @@ public class GemDungeonManager implements Listener {
         }
         Location spawn = world.getSpawnLocation().clone().add(0.5, 1.0, 0.5);
         player.teleport(spawn);
-        Location dummyLoc = spawn.clone().add(spawn.getDirection().normalize().multiply(10.0));
+        Location dummyLoc = spawn.clone().add(player.getLocation().getDirection().normalize().multiply(10.0));
         dummyLoc.setY(spawn.getY());
         LivingEntity dummy = spawnDummy(dummyLoc, stage);
         if (dummy == null) {
@@ -95,22 +94,26 @@ public class GemDungeonManager implements Listener {
         }
         send(player, MessageType.INFO, ChatColor.AQUA + "Gem Dungeon Stage " + ChatColor.WHITE + stage
                 + ChatColor.GRAY + " started. Defeat the dummy in " + ChatColor.WHITE + TIME_LIMIT_SECONDS + ChatColor.GRAY + "s.");
-        send(player, MessageType.INFO, ChatColor.GRAY + "(Upgrade simulation) You have " + ChatColor.WHITE + "5" + ChatColor.GRAY + " upgrade selections.");
+        send(player, MessageType.INFO, ChatColor.GRAY + "Opening " + ChatColor.WHITE + "5" + ChatColor.GRAY + " rank-up spell selections.");
         int task = Bukkit.getScheduler().runTaskLater(plugin, () -> failChallenge(player.getUniqueId(), "Time limit reached."), TIME_LIMIT_SECONDS * 20L).getTaskId();
         active.put(player.getUniqueId(), new ActiveChallenge(stage, player.getLocation().clone(), dummy.getUniqueId(), task));
     }
 
     private LivingEntity spawnDummy(Location at, int stage) {
-        List<String> pool = List.of("combat_dummy");
-        CustomMobManager mobManager = plugin.getCustomMobManager();
-        LivingEntity entity = StrongholdMobSpawnUtil.spawnStrongholdHostile(mobManager, pool, at);
+        LivingEntity entity = at.getWorld().spawn(at, org.bukkit.entity.Zombie.class, zombie -> zombie.setAdult());
         if (entity == null) return null;
         double hp = hpForStage(stage);
         if (entity.getAttribute(Attribute.MAX_HEALTH) != null) {
             entity.getAttribute(Attribute.MAX_HEALTH).setBaseValue(hp);
         }
         entity.setHealth(Math.min(hp, entity.getAttribute(Attribute.MAX_HEALTH) == null ? hp : entity.getAttribute(Attribute.MAX_HEALTH).getValue()));
-        entity.setCustomName(ChatColor.GOLD + "Gem Dummy" + ChatColor.GRAY + " [Stage " + stage + "]");
+        entity.setAI(false);
+        entity.setGravity(false);
+        entity.setSilent(true);
+        entity.setCustomName(ChatColor.GOLD + "training_dummy" + ChatColor.GRAY + " [stage_" + stage + "]");
+        if (Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            ModelEngineUtil.applyFirstAvailableModel(entity, ModelEngineUtil.buildModelCandidates("combat_dummy"), plugin);
+        }
         entity.setCustomNameVisible(true);
         return entity;
     }
