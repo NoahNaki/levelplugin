@@ -103,7 +103,7 @@ public class StrongholdRunManager implements Listener {
     private static final int FIRST_WAVE_DELAY_SECONDS = 3;
     private static final int WAVE_INTERVAL_SECONDS = 5;
     private static final int WAVES_PER_STAGE = 30;
-    private static final int MAX_ABSOLUTE_WAVE = 300;
+    private static final int MAX_ABSOLUTE_WAVE = 600;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
     private static final int BASE_XP_REQUIRED = 160;
     private static final double XP_RANK_GROWTH = 1.55D;
