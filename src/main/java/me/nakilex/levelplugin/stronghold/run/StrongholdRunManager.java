@@ -1076,6 +1076,7 @@ public class StrongholdRunManager implements Listener {
                 if (state != null) {
                     long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
                     String rating = calculateStageRating(state, elapsed);
+                    state.lastStageRating = rating;
                     showStageRating(player, rating, elapsed, state);
                 }
                 int nextStageWave = Math.min(MAX_ABSOLUTE_WAVE, (clearedStage * WAVES_PER_STAGE) + 1);
@@ -1401,6 +1402,7 @@ public class StrongholdRunManager implements Listener {
                 meta.setLore(List.of(
                         ChatColor.GRAY + "Reached Wave: " + ChatColor.WHITE + wave,
                         ChatColor.GRAY + "Run Rank: " + ChatColor.WHITE + state.level,
+                        ChatColor.GRAY + "Stage Rating: " + ChatColor.WHITE + (state.lastStageRating == null ? "N/A" : state.lastStageRating),
                         ChatColor.GRAY + "Keys Found: " + ChatColor.WHITE + state.keysCollected,
                         ChatColor.GRAY + "Loot Stash: " + ChatColor.WHITE + state.lootStash.size() + " item(s)"
                 ));
@@ -3049,6 +3051,7 @@ public class StrongholdRunManager implements Listener {
         private double damageTaken;
         private int doorsOpened;
         private int chestsOpened;
+        private String lastStageRating;
         private int startingGems;
         private int maxGemsDuringRun;
         private final List<ItemStack> lootStash = new ArrayList<>();
