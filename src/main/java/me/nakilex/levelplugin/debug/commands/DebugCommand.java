@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.TreeSet;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
@@ -1048,8 +1049,25 @@ public class DebugCommand implements TabExecutor {
             return npcIds.stream()
                     .filter(id -> id.startsWith(filter))
                     .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("npcmodel")) {
+            return getNpcModelSuggestions(args[2]);
         }
         return Collections.emptyList();
+    }
+
+    private List<String> getNpcModelSuggestions(String input) {
+        Main plugin = Main.getInstance();
+        if (plugin == null || !org.bukkit.Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            return Collections.emptyList();
+        }
+        Set<String> modelIds = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+        modelIds.addAll(ModelEngineUtil.getModelIdsSafely(plugin));
+        modelIds.addAll(ModelEngineUtil.getBlueprintModelIds(plugin));
+        String filter = input == null ? "" : input.toLowerCase();
+        return modelIds.stream()
+                .filter(id -> id.toLowerCase().startsWith(filter))
+                .limit(100)
+                .toList();
     }
 
 }
