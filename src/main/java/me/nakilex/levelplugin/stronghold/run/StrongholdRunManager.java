@@ -903,8 +903,14 @@ public class StrongholdRunManager implements Listener {
                 }
                 secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
                 int waveStep = computeWaveAdvance(playersInWorld(world));
+                int previousWave = wave;
                 wave = Math.min(MAX_ABSOLUTE_WAVE, wave + waveStep);
-                spawnWave(world, wave);
+                boolean spawned = spawnWave(world, wave);
+                if (!spawned) {
+                    wave = previousWave;
+                    secondsUntilNextWave = 2;
+                    return;
+                }
                 lastSpawnedWave = wave;
             }, 20L, 20L);
             this.autoCastTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickAutoCast, 20L, AUTOCAST_TICK_INTERVAL);
@@ -1169,12 +1175,13 @@ public class StrongholdRunManager implements Listener {
             stopRun(worldId);
         }
 
-        private void spawnWave(World world, int waveNumber) {
+        private boolean spawnWave(World world, int waveNumber) {
             List<Player> players = world.getPlayers().stream().filter(Player::isOnline).toList();
             if (players.isEmpty()) {
-                return;
+                return false;
             }
             currentWaveSpawned.clear();
+            int spawnedCount = 0;
             int spawnCount = computeWaveSpawnCount(waveNumber, players.size());
             for (int i = 0; i < spawnCount; i++) {
                 Player target = players.get(ThreadLocalRandom.current().nextInt(players.size()));
@@ -1189,6 +1196,7 @@ public class StrongholdRunManager implements Listener {
                 applyWaveMobScaling(mob, waveNumber, false);
                 spawned.add(mob.getUniqueId());
                 currentWaveSpawned.add(mob.getUniqueId());
+                spawnedCount++;
                 mobMotionStates.put(mob.getUniqueId(), new MobMotionState(
                         mob.getLocation().clone(),
                         System.currentTimeMillis(),
@@ -1203,7 +1211,10 @@ public class StrongholdRunManager implements Listener {
                 }
                 world.spawnParticle(Particle.SMOKE, spawn, 10, 0.2, 0.2, 0.2, 0.01);
             }
-            spawnMilestoneBossIfNeeded(world, players, waveNumber);
+            spawnedCount += spawnMilestoneBossIfNeeded(world, players, waveNumber);
+            if (spawnedCount <= 0) {
+                return false;
+            }
             for (Player player : players) {
                 StageProgress progress = toStageProgress(waveNumber);
                 send(player, MessageType.INFO, "Stage " + ChatColor.WHITE + progress.stage() + ChatColor.GRAY + "-" + ChatColor.WHITE + progress.wave() + ChatColor.GRAY + " started.");
@@ -1214,6 +1225,7 @@ public class StrongholdRunManager implements Listener {
                     }
                 }
             }
+            return true;
         }
 
         private int computeWaveSpawnCount(int waveNumber, int playerCount) {
@@ -1224,20 +1236,20 @@ public class StrongholdRunManager implements Listener {
             return Math.min(52, 6 + waveScaling + partyBonus);
         }
 
-        private void spawnMilestoneBossIfNeeded(World world, List<Player> players, int waveNumber) {
+        private int spawnMilestoneBossIfNeeded(World world, List<Player> players, int waveNumber) {
             if (waveNumber != 15 && waveNumber != 30) {
-                return;
+                return 0;
             }
             String mobId = waveNumber == 30 ? BOSS_MOB_ID : MINIBOSS_MOB_ID;
             String mobDisplay = resolveMobDisplayName(mobId);
             Player target = players.get(ThreadLocalRandom.current().nextInt(players.size()));
             Location spawn = findSpawnNear(target.getLocation(), origin, 12.0, 24.0);
             if (spawn == null) {
-                return;
+                return 0;
             }
             LivingEntity boss = StrongholdMobSpawnUtil.spawnStrongholdHostile(plugin.getCustomMobManager(), List.of(mobId), spawn);
             if (boss == null) {
-                return;
+                return 0;
             }
             applyWaveMobScaling(boss, waveNumber, true);
             applyKingSlimeSize(boss, waveNumber == 30 ? BOSS_SLIME_SIZE : MINIBOSS_SLIME_SIZE);
@@ -1255,6 +1267,7 @@ public class StrongholdRunManager implements Listener {
                 String title = waveNumber == 30 ? ChatColor.DARK_RED + "Boss Appeared" : ChatColor.RED + "Mini-Boss Appeared";
                 player.sendTitle(title, ChatColor.WHITE + mobDisplay, 5, 50, 10);
             }
+            return 1;
         }
 
         private void applyWaveMobScaling(LivingEntity mob, int waveNumber, boolean boss) {
