@@ -49,6 +49,7 @@ import me.nakilex.levelplugin.utils.RewardBombUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.guild.siege.GuildSiegeManager;
 import me.nakilex.levelplugin.guild.GuildManager;
@@ -70,6 +71,8 @@ import org.bukkit.persistence.PersistentDataType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import net.kyori.adventure.key.Key;
 import net.citizensnpcs.api.CitizensAPI;
+import com.ticxo.modelengine.api.ModelEngineAPI;
+import com.ticxo.modelengine.api.model.ModeledEntity;
 
 /**
  * Root debug command that hosts various developer utilities.
@@ -84,6 +87,7 @@ public class DebugCommand implements TabExecutor {
     private static final Set<UUID> INVENTORY_DEBUG_ENABLED = ConcurrentHashMap.newKeySet();
     private static final List<String> LOOT_CHEST_ANIMATION_OPTIONS = List.of("idle", "idle_mouve", "idle_move", "opening", "opening_rare", "closing");
     private final Map<UUID, UUID> lootChestAnimationPreviewEntities = new ConcurrentHashMap<>();
+    private final Map<UUID, EntityTextDisplay> npcModelNameDisplays = new ConcurrentHashMap<>();
 
     public static boolean isInventoryDebugEnabled(UUID playerId) {
         return playerId != null && INVENTORY_DEBUG_ENABLED.contains(playerId);
@@ -139,7 +143,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|npcmodel|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|npcmodel|npcundisguise|" + statUsage + ">");
             }
             return true;
         }
@@ -723,13 +727,15 @@ public class DebugCommand implements TabExecutor {
                 return spawnLootChestAnimationPreview(lootChestAnimationPlayer, args[1]);
             case "npcmodel":
                 return applyNpcModel(sender, args);
+            case "npcundisguise":
+                return undisguiseNpcModel(sender, args);
 
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|npcmodel|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|npcmodel|npcundisguise|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -857,6 +863,7 @@ public class DebugCommand implements TabExecutor {
             return true;
         }
         sender.sendMessage(ChatColor.GREEN + "Applied model '" + result.applied().get(0) + "' to NPC " + npcId + ".");
+        ensureNpcModelNameDisplay(npc);
         if (!result.blueprintOnly().isEmpty()) {
             sender.sendMessage(ChatColor.YELLOW + "Blueprint-only candidates (not loaded): " + String.join(", ", result.blueprintOnly()));
         }
@@ -864,6 +871,68 @@ public class DebugCommand implements TabExecutor {
             sender.sendMessage(ChatColor.YELLOW + "Failed candidates: " + String.join(", ", result.failed()));
         }
         return true;
+    }
+
+    private boolean undisguiseNpcModel(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(ChatColor.RED + "Usage: /debug npcundisguise <npcId>");
+            return true;
+        }
+        int npcId;
+        try {
+            npcId = Integer.parseInt(args[1]);
+        } catch (NumberFormatException ex) {
+            sender.sendMessage(ChatColor.RED + "NPC id must be a number.");
+            return true;
+        }
+        net.citizensnpcs.api.npc.NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        if (npc == null || !npc.isSpawned() || npc.getEntity() == null) {
+            sender.sendMessage(ChatColor.RED + "NPC " + npcId + " is not currently spawned.");
+            return true;
+        }
+        Entity entity = npc.getEntity();
+        removeNpcModelNameDisplay(entity.getUniqueId());
+        entity.setCustomNameVisible(true);
+        entity.setCustomName(npc.getName());
+
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity != null) {
+            modeledEntity.setBaseEntityVisible(true);
+            tryInvokeNoArg(modeledEntity, "clearModels");
+            tryInvokeNoArg(modeledEntity, "destroy");
+            tryInvokeNoArg(modeledEntity, "unregisterSelf");
+        }
+        sender.sendMessage(ChatColor.GREEN + "Removed model disguise visibility for NPC " + npcId + ".");
+        return true;
+    }
+
+    private void ensureNpcModelNameDisplay(net.citizensnpcs.api.npc.NPC npc) {
+        if (npc == null || npc.getEntity() == null) {
+            return;
+        }
+        Entity entity = npc.getEntity();
+        entity.setCustomNameVisible(false);
+        String npcName = npc.getName() == null ? "NPC" : npc.getName();
+        EntityTextDisplay display = npcModelNameDisplays.computeIfAbsent(entity.getUniqueId(),
+                id -> new EntityTextDisplay(Main.getInstance(), entity, 0.35));
+        display.update(ChatColor.translateAlternateColorCodes('&', npcName));
+    }
+
+    private void removeNpcModelNameDisplay(UUID entityId) {
+        EntityTextDisplay display = npcModelNameDisplays.remove(entityId);
+        if (display != null) {
+            display.remove();
+        }
+    }
+
+    private void tryInvokeNoArg(Object target, String methodName) {
+        if (target == null || methodName == null || methodName.isBlank()) {
+            return;
+        }
+        try {
+            target.getClass().getMethod(methodName).invoke(target);
+        } catch (ReflectiveOperationException ignored) {
+        }
     }
 
     private void toggleInventoryDebug(Player player) {
@@ -961,7 +1030,7 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "lootchestanimation", "npcmodel"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "lootchestanimation", "npcmodel", "npcundisguise"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -1041,16 +1110,11 @@ public class DebugCommand implements TabExecutor {
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("npcmodel")) {
-            String filter = args[1].toLowerCase();
-            List<String> npcIds = new ArrayList<>();
-            for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
-                npcIds.add(String.valueOf(npc.getId()));
-            }
-            return npcIds.stream()
-                    .filter(id -> id.startsWith(filter))
-                    .toList();
+            return getNpcIdSuggestions(args[1]);
         } else if (args.length == 3 && args[0].equalsIgnoreCase("npcmodel")) {
             return getNpcModelSuggestions(args[2]);
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("npcundisguise")) {
+            return getNpcIdSuggestions(args[1]);
         }
         return Collections.emptyList();
     }
@@ -1067,6 +1131,17 @@ public class DebugCommand implements TabExecutor {
         return modelIds.stream()
                 .filter(id -> id.toLowerCase().startsWith(filter))
                 .limit(100)
+                .toList();
+    }
+
+    private List<String> getNpcIdSuggestions(String input) {
+        String filter = input == null ? "" : input.toLowerCase();
+        List<String> npcIds = new ArrayList<>();
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            npcIds.add(String.valueOf(npc.getId()));
+        }
+        return npcIds.stream()
+                .filter(id -> id.startsWith(filter))
                 .toList();
     }
 
