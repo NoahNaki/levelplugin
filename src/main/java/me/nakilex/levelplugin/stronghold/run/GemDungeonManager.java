@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.stronghold.run;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
-import me.nakilex.levelplugin.mob.custom.CustomMobManager;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -109,12 +109,8 @@ public class GemDungeonManager implements Listener {
     }
 
     private LivingEntity spawnDummy(Location at, int stage) {
-        CustomMobManager mobManager = plugin.getCustomMobManager();
-        LivingEntity entity = null;
-        if (mobManager != null) {
-            java.util.List<LivingEntity> spawned = mobManager.spawn("combat_dummy", at, 1);
-            if (!spawned.isEmpty()) entity = spawned.get(0);
-        }
+        if (at == null || at.getWorld() == null) return null;
+        LivingEntity entity = at.getWorld().spawn(at, org.bukkit.entity.Zombie.class, zombie -> zombie.setAdult());
         if (entity == null) return null;
         double hp = hpForStage(stage);
         if (entity.getAttribute(Attribute.MAX_HEALTH) != null) {
@@ -123,8 +119,18 @@ public class GemDungeonManager implements Listener {
         entity.setHealth(Math.min(hp, entity.getAttribute(Attribute.MAX_HEALTH) == null ? hp : entity.getAttribute(Attribute.MAX_HEALTH).getValue()));
         entity.setAI(false);
         entity.setGravity(false);
+        entity.setCollidable(true);
+        entity.setRemoveWhenFarAway(false);
         entity.setSilent(true);
+        if (entity.getAttribute(Attribute.KNOCKBACK_RESISTANCE) != null) {
+            entity.getAttribute(Attribute.KNOCKBACK_RESISTANCE).setBaseValue(1.0);
+        }
+        entity.setCustomName(ChatColor.LIGHT_PURPLE + "Combat Dummy " + ChatColor.GRAY + "[Stage " + stage + "] "
+                + ChatColor.DARK_GRAY + "(" + ChatColor.WHITE + (int) hp + " HP" + ChatColor.DARK_GRAY + ")");
         entity.setCustomNameVisible(true);
+        if (Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            ModelEngineUtil.applyFirstAvailableModel(entity, ModelEngineUtil.buildModelCandidates("combat_dummy"), plugin);
+        }
         return entity;
     }
 

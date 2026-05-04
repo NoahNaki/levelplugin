@@ -41,13 +41,15 @@ public class GemDungeonGUI implements Listener {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "DPS check challenge against a training dummy.");
-            lore.add(ChatColor.GRAY + "20s timer. Reward scales by stage HP.");
-            lore.add("");
-            lore.add(ChatColor.GRAY + "Stage HP: " + ChatColor.LIGHT_PURPLE + "1000 x stage");
-            lore.add(ChatColor.GRAY + "Reward: " + ChatColor.LIGHT_PURPLE + "10% HP <glyph:purple_orb_icon>");
-            lore.add(ChatColor.GRAY + "Sweeps: " + ChatColor.LIGHT_PURPLE + manager.getRemainingSweeps(viewer) + ChatColor.GRAY + "/" + ChatColor.LIGHT_PURPLE + manager.getMaxSweepsPerDay());
-            lore.add("");
+            lore.add(ChatColor.GRAY + "Challenge stages in a timed DPS check.");
+            lore.addAll(TooltipUtil.bulletList(
+                    "Target: Combat Dummy",
+                    "Timer: 20 seconds",
+                    "Stage HP: 1000 x stage",
+                    "Reward: 10% HP <glyph:purple_orb_icon>",
+                    "Sweeps: " + manager.getRemainingSweeps(viewer) + "/" + manager.getMaxSweepsPerDay()
+            ));
+            lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions("to challenge next stage", "to sweep highest cleared stage"));
             meta.setLore(lore);
             item.setItemMeta(meta);
