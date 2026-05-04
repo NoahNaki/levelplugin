@@ -277,25 +277,11 @@ public class StrongholdRunManager implements Listener {
             }
             shrines += fallbackDiag.spawned();
         }
-        if (shrines > 0) {
-            send(player, MessageType.INFO, "Placed " + ChatColor.WHITE + shrines + ChatColor.GRAY + " shrine(s) around the stronghold.");
-        } else {
-            StringBuilder debug = new StringBuilder("Shrine debug: no shrines spawned. Random candidates=")
-                    .append(randomDiag.candidateCount())
-                    .append(", wrongGround=").append(randomDiag.rejectedWrongGround())
-                    .append(", blockedSpace=").append(randomDiag.rejectedUnsafeSpace())
-                    .append(", nearOrigin=").append(randomDiag.rejectedNearOrigin())
-                    .append(", nearExisting=").append(randomDiag.rejectedNearExistingShrine())
-                    .append(", failedPlacement=").append(randomDiag.failedSpawnAttempt());
-            if (fallbackDiag != null) {
-                debug.append(" | Fallback candidates=").append(fallbackDiag.candidateCount())
-                        .append(", wrongGround=").append(fallbackDiag.rejectedWrongGround())
-                        .append(", blockedSpace=").append(fallbackDiag.rejectedUnsafeSpace())
-                        .append(", nearOrigin=").append(fallbackDiag.rejectedNearOrigin())
-                        .append(", nearExisting=").append(fallbackDiag.rejectedNearExistingShrine())
-                        .append(", failedPlacement=").append(fallbackDiag.failedSpawnAttempt());
-            }
-            send(player, MessageType.WARNING, debug.toString());
+        if (shrines <= 0) {
+            plugin.getLogger().fine("[Stronghold] No shrines spawned near origin "
+                    + "[" + origin.getBlockX() + ", " + origin.getBlockY() + ", " + origin.getBlockZ() + "]"
+                    + " (random candidates=" + randomDiag.candidateCount()
+                    + ", fallback=" + (fallbackDiag == null ? 0 : fallbackDiag.candidateCount()) + ").");
         }
 
         stepStart = profiler == null ? 0L : profiler.stepStarted("Initialize ActiveRun and begin waves");
@@ -1501,7 +1487,6 @@ public class StrongholdRunManager implements Listener {
             state.pendingUpgradeSelections = 1;
             state.pendingUpgrades = rollUpgradeChoices(state, 3);
             updateProgressBar(player, state);
-            send(player, MessageType.INFO, "Stronghold start: class set to " + ChatColor.WHITE + "Classless" + ChatColor.GRAY + ".");
             openUpgradeGui(player, state);
         }
 
