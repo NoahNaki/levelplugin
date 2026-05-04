@@ -478,6 +478,7 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         Player player = event.getPlayer();
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
         Block clicked = event.getClickedBlock();
         if (!isLockedStrongholdDoor(clicked)) {
             return;
@@ -494,6 +495,9 @@ public class StrongholdRunManager implements Listener {
         openable.setOpen(true);
         clicked.setBlockData(openable);
         showStrongholdDoorOpenedMessage(player, clicked);
+        if (run != null) {
+            run.recordDoorOpened(player.getUniqueId());
+        }
         if (plugin.getQuestManager() != null) {
             plugin.getQuestManager().handleStrongholdKeyUse(player);
         }
@@ -529,6 +533,24 @@ public class StrongholdRunManager implements Listener {
         MultiLineHologram hologram = new MultiLineHologram(base, tag);
         hologram.spawn(java.util.List.of(titleLine, detailLine));
         Bukkit.getScheduler().runTaskLater(plugin, hologram::despawn, 40L);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onStrongholdChestInteract(PlayerInteractEvent event) {
+        if (event == null || event.getPlayer() == null || event.getAction() != Action.RIGHT_CLICK_BLOCK) return;
+        Block block = event.getClickedBlock();
+        if (block == null || !(block.getState() instanceof Container)) return;
+        ActiveRun run = activeRuns.get(event.getPlayer().getWorld().getUID());
+        if (run == null) return;
+        run.recordChestOpened(event.getPlayer().getUniqueId(), block.getLocation());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onStrongholdRunDamageTaken(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player)) return;
+        ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null) return;
+        run.recordDamageTaken(player.getUniqueId(), event.getFinalDamage());
     }
 
     @EventHandler
@@ -822,6 +844,8 @@ public class StrongholdRunManager implements Listener {
         private boolean portalPlacementPendingNotified = false;
         private long nextPortalGuideAt = 0L;
         private long startedAtMs = 0L;
+        private long stageStartedAtMs = 0L;
+        private final java.util.Set<String> openedChestLocations = new java.util.HashSet<>();
 
         private ActiveRun(UUID worldId, Location origin, Integer selectedStartingStage) {
             this.worldId = worldId;
@@ -831,6 +855,7 @@ public class StrongholdRunManager implements Listener {
 
         private void start() {
             startedAtMs = System.currentTimeMillis();
+            stageStartedAtMs = startedAtMs;
             World runWorld = plugin.getServer().getWorld(worldId);
             if (runWorld != null) {
                 initializePlayers(runWorld);
@@ -967,6 +992,58 @@ public class StrongholdRunManager implements Listener {
             return true;
         }
 
+        private void recordDamageTaken(UUID playerId, double amount) {
+            if (amount <= 0) return;
+            SurvivorState state = playerStates.get(playerId);
+            if (state != null) state.damageTaken += amount;
+        }
+
+        private void recordDoorOpened(UUID playerId) {
+            SurvivorState state = playerStates.get(playerId);
+            if (state != null) state.doorsOpened++;
+        }
+
+        private void recordChestOpened(UUID playerId, Location loc) {
+            if (loc == null) return;
+            String key = loc.getWorld().getName() + ":" + loc.getBlockX() + ":" + loc.getBlockY() + ":" + loc.getBlockZ() + ":" + playerId;
+            if (!openedChestLocations.add(key)) return;
+            SurvivorState state = playerStates.get(playerId);
+            if (state != null) state.chestsOpened++;
+        }
+
+        private String calculateStageRating(SurvivorState state, long elapsedMs) {
+            if (state == null) return "F";
+            double score = 0.0;
+            double secs = Math.max(1.0, elapsedMs / 1000.0);
+            score += Math.max(0, 30.0 - (secs / 10.0));
+            score += Math.max(0, 30.0 - (state.damageTaken / 40.0));
+            score += Math.min(20.0, state.doorsOpened * 2.5);
+            score += Math.min(20.0, state.chestsOpened * 5.0);
+            if (score >= 85) return "S";
+            if (score >= 72) return "A";
+            if (score >= 60) return "B";
+            if (score >= 48) return "C";
+            if (score >= 36) return "D";
+            if (score >= 24) return "E";
+            return "F";
+        }
+
+        private void showStageRating(Player player, String rating, long elapsedMs, SurvivorState state) {
+            if (player == null || rating == null) return;
+            Location at = player.getLocation().clone().add(0, 2.1, 0);
+            String tag = "stronghold_rating_" + player.getUniqueId();
+            MultiLineHologram.removeAll(at, 2.5, tag);
+            MultiLineHologram holo = new MultiLineHologram(at, tag);
+            holo.spawn(java.util.List.of(
+                    ChatColor.GOLD + "Stage Rating: " + ChatColor.WHITE + rating,
+                    ChatColor.DARK_GRAY + "Time " + ChatColor.GRAY + (elapsedMs / 1000) + "s"
+                            + ChatColor.DARK_GRAY + " | Dmg " + ChatColor.GRAY + (int) state.damageTaken
+                            + ChatColor.DARK_GRAY + " | Doors " + ChatColor.GRAY + state.doorsOpened
+                            + ChatColor.DARK_GRAY + " | Chests " + ChatColor.GRAY + state.chestsOpened
+            ));
+            Bukkit.getScheduler().runTaskLater(plugin, holo::despawn, 100L);
+        }
+
         private void concludeRunAndSpawnExitPortal() {
             completed = true;
             World world = plugin.getServer().getWorld(worldId);
@@ -976,9 +1053,16 @@ public class StrongholdRunManager implements Listener {
             int clearedStage = toStageProgress(Math.max(1, wave)).stage();
             for (Player player : playersInWorld(world)) {
                 highestCompletedStageByPlayer.merge(player.getUniqueId(), Math.max(1, clearedStage), Math::max);
+                SurvivorState state = playerStates.get(player.getUniqueId());
+                if (state != null) {
+                    long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
+                    String rating = calculateStageRating(state, elapsed);
+                    showStageRating(player, rating, elapsed, state);
+                }
                 int nextStageWave = Math.min(MAX_ABSOLUTE_WAVE, (clearedStage * WAVES_PER_STAGE) + 1);
                 highestAbsoluteWaveByPlayer.merge(player.getUniqueId(), nextStageWave, Math::max);
             }
+            stageStartedAtMs = System.currentTimeMillis();
             saveProgressionData();
             if (strongholdExitPortalTemplate.isEmpty()) {
                 loadPortalTemplateIfNeeded();
@@ -2913,6 +2997,9 @@ public class StrongholdRunManager implements Listener {
         private boolean upgradePaused;
         private int cooldownUpgradeTier;
         private int keysCollected;
+        private double damageTaken;
+        private int doorsOpened;
+        private int chestsOpened;
         private int startingGems;
         private int maxGemsDuringRun;
         private final List<ItemStack> lootStash = new ArrayList<>();
