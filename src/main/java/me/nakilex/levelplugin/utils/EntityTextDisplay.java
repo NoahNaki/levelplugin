@@ -48,7 +48,8 @@ public class EntityTextDisplay {
             display.setViewRange(20.0f);
             display.setShadowRadius(0f);
             display.setShadowStrength(0f);
-            display.setBackgroundColor(Color.fromARGB(0, 0, 0, 0));
+            display.setBackgroundColor(Color.fromARGB(180, 0, 0, 0));
+            display.setDefaultBackground(false);
             display.setTeleportDuration(1); // interpolate for smoothness
             display.addScoreboardTag(DISPLAY_TAG);
             startFollowTask();

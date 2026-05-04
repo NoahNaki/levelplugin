@@ -23,6 +23,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -385,6 +386,53 @@ public class StorageGUI {
             }
         }
         return free;
+    }
+
+    protected void ensurePageCount(int desiredPages) {
+        int target = Math.max(1, desiredPages);
+        while (pages.size() < target && pages.size() < maxPages) {
+            pages.add(createBlankPage(pages.size() + 1));
+        }
+    }
+
+    protected List<Integer> getStorageSlotsInDisplayOrder() {
+        List<Integer> slots = new ArrayList<>();
+        for (int slot = 0; slot < PAGE_SIZE; slot++) {
+            if (isStorageSlot(slot)) {
+                slots.add(slot);
+            }
+        }
+        return slots;
+    }
+
+    protected BukkitTask animateSlots(Player player,
+                                      Inventory topInventory,
+                                      List<Integer> orderedSlots,
+                                      List<ItemStack> items,
+                                      long periodTicks) {
+        if (player == null || topInventory == null || orderedSlots == null || items == null) {
+            return null;
+        }
+        long period = Math.max(1L, periodTicks);
+        final int[] idx = {0};
+        final BukkitTask[] taskRef = new BukkitTask[1];
+        taskRef[0] = Bukkit.getScheduler().runTaskTimer(Main.getInstance(), () -> {
+            if (!player.isOnline()
+                    || player.getOpenInventory() == null
+                    || player.getOpenInventory().getTopInventory() != topInventory) {
+                if (taskRef[0] != null) taskRef[0].cancel();
+                return;
+            }
+            if (idx[0] >= items.size() || idx[0] >= orderedSlots.size()) {
+                if (taskRef[0] != null) taskRef[0].cancel();
+                return;
+            }
+            ItemStack stack = items.get(idx[0]);
+            int slot = orderedSlots.get(idx[0]);
+            topInventory.setItem(slot, stack == null ? null : stack.clone());
+            idx[0]++;
+        }, 1L, period);
+        return taskRef[0];
     }
 
     public ItemStack addItemToStorage(ItemStack stack) {

@@ -892,6 +892,7 @@ public class DebugCommand implements TabExecutor {
         }
         Entity entity = npc.getEntity();
         removeNpcModelNameDisplay(entity.getUniqueId());
+        entity.setInvisible(false);
         entity.setCustomNameVisible(true);
         entity.setCustomName(npc.getName());
 
