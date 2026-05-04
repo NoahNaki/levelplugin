@@ -1047,20 +1047,30 @@ public class StrongholdRunManager implements Listener {
             Location marker = nearestPortalRatingMarker(player);
             if (marker != null) {
                 String tag = "stronghold_rating_marker_" + player.getUniqueId();
-                MultiLineHologram.removeAll(marker, 2.5, tag);
+                MultiLineHologram.removeAll(marker, 4.0, tag);
                 MultiLineHologram hologram = new MultiLineHologram(marker, tag);
-                hologram.spawn(java.util.List.of(title, breakdown));
-                Bukkit.getScheduler().runTaskLater(plugin, hologram::despawn, 100L);
+                hologram.spawn(java.util.List.of(
+                        ChatColor.DARK_GRAY + "--------------------",
+                        ChatColor.LIGHT_PURPLE + "Stronghold Results",
+                        title,
+                        breakdown,
+                        ChatColor.GRAY + "Stage " + ChatColor.WHITE + toStageProgress(Math.max(1, wave)).stage() + ChatColor.GRAY + " cleared",
+                        ChatColor.DARK_GRAY + "--------------------"
+                ));
+                Bukkit.getScheduler().runTaskLater(plugin, hologram::despawn, 20L * 15L);
                 return;
             }
-            EntityTextDisplay top = new EntityTextDisplay(plugin, player, 1.6);
-            EntityTextDisplay bottom = new EntityTextDisplay(plugin, player, 1.25);
-            top.update(title);
+            EntityTextDisplay top = new EntityTextDisplay(plugin, player, 1.7);
+            EntityTextDisplay mid = new EntityTextDisplay(plugin, player, 1.4);
+            EntityTextDisplay bottom = new EntityTextDisplay(plugin, player, 1.1);
+            top.update(ChatColor.LIGHT_PURPLE + "Stronghold Results");
+            mid.update(title);
             bottom.update(breakdown);
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 top.remove();
+                mid.remove();
                 bottom.remove();
-            }, 100L);
+            }, 20L * 10L);
         }
 
         private void concludeRunAndSpawnExitPortal() {
