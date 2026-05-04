@@ -103,10 +103,11 @@ public class StrongholdRunManager implements Listener {
     private static final int FIRST_WAVE_DELAY_SECONDS = 3;
     private static final int WAVE_INTERVAL_SECONDS = 5;
     private static final int WAVES_PER_STAGE = 30;
-    private static final int MAX_ABSOLUTE_WAVE = 300;
+    private static final int MAX_ABSOLUTE_WAVE = 600;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
     private static final int BASE_XP_REQUIRED = 160;
-    private static final int XP_PER_RANK_STEP = 70;
+    private static final double XP_RANK_GROWTH = 1.55D;
+    private static final double XP_STAGE_REQUIREMENT_GROWTH = 1.18D;
     public static final String STRONGHOLD_MAGE_METEOR_RADIUS_TAG = "lp_stronghold_mage_meteor_x3";
     private static final int MAX_ACTIVE_STRONGHOLD_SPELLS = 4;
     private static final double MIN_ENEMY_SPAWN_RADIUS = 5.0;
@@ -768,7 +769,15 @@ public class StrongholdRunManager implements Listener {
 
     private int xpRequiredForLevel(int level) {
         int safeLevel = Math.max(1, level);
-        return BASE_XP_REQUIRED + ((safeLevel - 1) * XP_PER_RANK_STEP);
+        double required = BASE_XP_REQUIRED * Math.pow(XP_RANK_GROWTH, safeLevel - 1);
+        return (int) Math.min(2_000_000_000D, Math.round(required));
+    }
+
+    private int xpRequiredForLevelAtStage(int level, int stage) {
+        int safeStage = Math.max(1, stage);
+        double baseRequired = xpRequiredForLevel(level);
+        double stageMultiplier = Math.pow(XP_STAGE_REQUIREMENT_GROWTH, safeStage - 1);
+        return (int) Math.min(2_000_000_000D, Math.round(baseRequired * stageMultiplier));
     }
 
     private final class ActiveRun {
@@ -948,6 +957,8 @@ public class StrongholdRunManager implements Listener {
             int clearedStage = toStageProgress(Math.max(1, wave)).stage();
             for (Player player : playersInWorld(world)) {
                 highestCompletedStageByPlayer.merge(player.getUniqueId(), Math.max(1, clearedStage), Math::max);
+                int nextStageWave = Math.min(MAX_ABSOLUTE_WAVE, (clearedStage * WAVES_PER_STAGE) + 1);
+                highestAbsoluteWaveByPlayer.merge(player.getUniqueId(), nextStageWave, Math::max);
             }
             saveProgressionData();
             if (strongholdExitPortalTemplate.isEmpty()) {
@@ -1478,13 +1489,14 @@ public class StrongholdRunManager implements Listener {
                 return;
             }
             state.xp += amount;
-            int required = xpRequiredForLevel(state.level);
+            int activeStage = Math.max(stageAnchor, toStageProgress(Math.max(1, wave)).stage());
+            int required = xpRequiredForLevelAtStage(state.level, activeStage);
             int levelsGained = 0;
             while (state.xp >= required) {
                 state.xp -= required;
                 state.level++;
                 levelsGained++;
-                required = xpRequiredForLevel(state.level);
+                required = xpRequiredForLevelAtStage(state.level, activeStage);
             }
             updateProgressBar(player, state);
             if (levelsGained > 0) {
@@ -1509,7 +1521,8 @@ public class StrongholdRunManager implements Listener {
             if (playerId == null || !playerStates.containsKey(playerId)) {
                 return null;
             }
-            StageProgress progress = toStageProgress(Math.max(1, wave));
+            int checkpointWave = ((Math.max(1, stageAnchor) - 1) * WAVES_PER_STAGE) + 1;
+            StageProgress progress = toStageProgress(Math.max(checkpointWave, Math.max(1, wave)));
             SurvivorState state = playerStates.get(playerId);
             return new StageStatus(progress.stage(), progress.wave(), countAliveAllSpawned(), state == null ? "None" : state.activeArchetypeBuff);
         }
@@ -1518,7 +1531,8 @@ public class StrongholdRunManager implements Listener {
             if (player == null || state == null || state.progressBar == null) {
                 return;
             }
-            int required = xpRequiredForLevel(state.level);
+            int activeStage = Math.max(stageAnchor, toStageProgress(Math.max(1, wave)).stage());
+            int required = xpRequiredForLevelAtStage(state.level, activeStage);
             double progress = required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, state.xp / (double) required));
             state.progressBar.setTitle(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Stronghold Rank " + state.level
                     + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + state.xp + ChatColor.GRAY + "/" + ChatColor.WHITE + required + " XP");

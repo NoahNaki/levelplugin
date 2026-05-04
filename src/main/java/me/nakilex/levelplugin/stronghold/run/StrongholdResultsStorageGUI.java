@@ -14,6 +14,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,12 +28,13 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
     private static final int CLAIM_ALL_SLOT = 46;
     private static final int SEND_TO_STORAGE_SLOT = 52;
     private final ItemStack summaryItem;
+    private BukkitTask revealTask;
 
     public StrongholdResultsStorageGUI(String ownerKey,
                                        StorageEvents storageEvents,
                                        ItemStack summaryItem,
                                        List<ItemStack> stashedItems) {
-        super(ownerKey, "stronghold_results", "run_", "Stronghold Results", storageEvents, true, 1);
+        super(ownerKey, "stronghold_results", "run_", "Stronghold Results", storageEvents, true, Integer.MAX_VALUE);
         this.summaryItem = summaryItem == null ? createFallbackSummary() : summaryItem.clone();
         seedItems(stashedItems);
     }
@@ -57,6 +59,11 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
     }
 
     @Override
+    protected boolean usesPageUnlocking() {
+        return false;
+    }
+
+    @Override
     public void open(Player player) {
         super.open(player);
         if (player == null || !player.isOnline() || player.getOpenInventory() == null) {
@@ -66,8 +73,13 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
         if (top == null) {
             return;
         }
+        if (revealTask != null) {
+            revealTask.cancel();
+            revealTask = null;
+        }
         top.setItem(CLAIM_ALL_SLOT, createClaimAllItem());
         top.setItem(SEND_TO_STORAGE_SLOT, createSendToStorageItem(player));
+        revealVisibleItems(player, top);
     }
 
     @Override
@@ -124,27 +136,51 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
     }
 
     private void seedItems(List<ItemStack> stashedItems) {
-        Inventory page = getPages().isEmpty() ? null : getPages().get(0);
-        if (page == null || stashedItems == null || stashedItems.isEmpty()) {
+        if (stashedItems == null || stashedItems.isEmpty()) {
             return;
         }
+        List<ItemStack> valid = stashedItems.stream()
+                .filter(stack -> stack != null && !stack.getType().isAir())
+                .map(ItemStack::clone)
+                .toList();
+        if (valid.isEmpty()) {
+            return;
+        }
+        List<Integer> storageSlots = getStorageSlotsInDisplayOrder().stream()
+                .filter(slot -> slot != SUMMARY_SLOT)
+                .toList();
+        int slotsPerPage = Math.max(1, storageSlots.size());
+        int neededPages = (int) Math.ceil(valid.size() / (double) slotsPerPage);
+        ensurePageCount(neededPages);
+
         int idx = 0;
-        for (int slot = 0; slot < page.getSize(); slot++) {
-            if (!isStorageSlot(slot) || slot == SUMMARY_SLOT) {
-                continue;
-            }
-            while (idx < stashedItems.size()) {
-                ItemStack next = stashedItems.get(idx++);
-                if (next == null || next.getType().isAir()) {
-                    continue;
+        for (Inventory page : getPages()) {
+            for (int slot : storageSlots) {
+                if (idx >= valid.size()) {
+                    return;
                 }
-                page.setItem(slot, next.clone());
-                break;
-            }
-            if (idx >= stashedItems.size()) {
-                break;
+                page.setItem(slot, valid.get(idx++).clone());
             }
         }
+    }
+
+    private void revealVisibleItems(Player player, Inventory top) {
+        List<Integer> orderedSlots = getStorageSlotsInDisplayOrder().stream()
+                .filter(slot -> slot != SUMMARY_SLOT)
+                .toList();
+        List<ItemStack> visible = new ArrayList<>();
+        for (int slot : orderedSlots) {
+            ItemStack stack = top.getItem(slot);
+            if (stack == null || stack.getType().isAir()) {
+                break;
+            }
+            visible.add(stack.clone());
+            top.setItem(slot, null);
+        }
+        if (visible.isEmpty()) {
+            return;
+        }
+        revealTask = animateSlots(player, top, orderedSlots, visible, 2L);
     }
 
     private List<ItemStack> collectRemainingItems() {
@@ -211,15 +247,17 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
             }
         }
         if (leftoverStacks > 0) {
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ITEM_PICKUP, 0.7f, 1.0f);
             me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
                     me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.WARNING,
                     "Inventory full. Claimed " + ChatColor.WHITE + movedStacks + ChatColor.GRAY
                             + " stack(s); " + ChatColor.WHITE + leftoverStacks + ChatColor.GRAY + " stack(s) remain.");
             return;
         }
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.65f, 1.4f);
         me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
-                me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.SUCCESS,
-                "Claimed " + ChatColor.WHITE + movedStacks + ChatColor.GRAY + " stack(s) from Stronghold results.");
+                me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.INFO,
+                ChatColor.GRAY + "Claimed " + ChatColor.WHITE + movedStacks + ChatColor.GRAY + " from stronghold results.");
     }
 
     private void sendAllToStorage(Player player) {
