@@ -512,7 +512,7 @@ public class StrongholdRunManager implements Listener {
         showTemporaryDoorHologram(doorBlock,
                 ChatColor.RED + "🔒 " + ChatColor.WHITE + "Locked",
                 ChatColor.GRAY + "Requires " + ChatColor.GOLD + "Castle key");
-        send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
+        send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Castle key to open this gate.");
     }
 
     private void showStrongholdDoorOpenedMessage(Player player, Block doorBlock) {
@@ -2801,6 +2801,7 @@ public class StrongholdRunManager implements Listener {
 
     private void placePortalAt(Location anchor) {
         World world = anchor.getWorld();
+        activePortalRatingMarkers.clear();
         Map<Integer, List<PortalTemplateBlock>> byLayer = new java.util.TreeMap<>();
         List<PortalTemplateBlock> portalBlocks = new ArrayList<>();
         for (PortalTemplateBlock block : strongholdExitPortalTemplate) {
@@ -2822,6 +2823,11 @@ public class StrongholdRunManager implements Listener {
                 if (index < layers.size()) {
                     for (PortalTemplateBlock block : layers.get(index)) {
                         Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
+                        if (block.data.getMaterial() == Material.WHITE_WOOL) {
+                            activePortalRatingMarkers.add(target.getLocation().add(0.5, 1.0, 0.5));
+                            target.setType(Material.AIR, false);
+                            continue;
+                        }
                         target.setBlockData(block.data, false);
                         world.spawnParticle(Particle.BLOCK, target.getLocation().add(0.5, 0.5, 0.5), 8, 0.2, 0.2, 0.2, 0.01, block.data);
                     }
