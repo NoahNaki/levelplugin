@@ -1028,9 +1028,26 @@ public class StrongholdRunManager implements Listener {
             return "F";
         }
 
+        private Location resolveSafeRatingDisplayLocation(Player player) {
+            if (player == null || player.getWorld() == null) return null;
+            Location base = player.getLocation().clone().add(0, 3.2, 0);
+            if (base.getBlock().getType() != Material.NETHER_PORTAL) {
+                return base;
+            }
+            int[][] offsets = new int[][]{{2,0},{-2,0},{0,2},{0,-2},{3,3},{-3,3}};
+            for (int[] off : offsets) {
+                Location candidate = base.clone().add(off[0], 0, off[1]);
+                if (candidate.getBlock().getType() != Material.NETHER_PORTAL) {
+                    return candidate;
+                }
+            }
+            return base;
+        }
+
         private void showStageRating(Player player, String rating, long elapsedMs, SurvivorState state) {
             if (player == null || rating == null) return;
-            Location at = player.getLocation().clone().add(0, 2.1, 0);
+            Location at = resolveSafeRatingDisplayLocation(player);
+            if (at == null) return;
             String tag = "stronghold_rating_" + player.getUniqueId();
             MultiLineHologram.removeAll(at, 2.5, tag);
             MultiLineHologram holo = new MultiLineHologram(at, tag);
