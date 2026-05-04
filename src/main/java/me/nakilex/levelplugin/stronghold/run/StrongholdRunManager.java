@@ -504,8 +504,8 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         showTemporaryDoorHologram(doorBlock,
-                ChatColor.RED + "🔒 Locked",
-                ChatColor.GRAY + "Requires " + ChatColor.GOLD + "Stronghold Key");
+                ChatColor.RED + "🔒 " + ChatColor.WHITE + "Locked",
+                ChatColor.DARK_GRAY + "Requires " + ChatColor.GOLD + "Stronghold Key");
         send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
     }
 
@@ -514,8 +514,8 @@ public class StrongholdRunManager implements Listener {
             return;
         }
         showTemporaryDoorHologram(doorBlock,
-                ChatColor.GREEN + "🔓 Unlocked",
-                ChatColor.GRAY + "Stronghold gate opened");
+                ChatColor.GREEN + "🔓 " + ChatColor.WHITE + "Unlocked",
+                ChatColor.DARK_GRAY + "Stronghold gate opened");
         send(player, MessageType.SUCCESS, ChatColor.GOLD + "Stronghold Key used. Gate opened.");
     }
 
