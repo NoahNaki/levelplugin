@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.MultiLineHologram;
 import me.nakilex.levelplugin.waypoints.api.pathing.result.Path;
 import me.nakilex.levelplugin.waypoints.bukkit.BukkitPathfindingService;
 import me.nakilex.levelplugin.waypoints.bukkit.PathLocationUtils;
@@ -501,43 +502,47 @@ public class StrongholdRunManager implements Listener {
         }
         event.setCancelled(true);
         if (!tryConsumeStrongholdKey(player)) {
-            showStrongholdDoorLockedMessage(player);
+            showStrongholdDoorLockedMessage(player, clicked);
             return;
         }
         openable.setOpen(true);
         clicked.setBlockData(openable);
-        showStrongholdDoorOpenedMessage(player);
+        showStrongholdDoorOpenedMessage(player, clicked);
         if (plugin.getQuestManager() != null) {
             plugin.getQuestManager().handleStrongholdKeyUse(player);
         }
     }
 
-    private void showStrongholdDoorLockedMessage(Player player) {
+    private void showStrongholdDoorLockedMessage(Player player, Block doorBlock) {
         if (player == null) {
             return;
         }
-        player.sendTitle(
-                ChatColor.RED + "🔒 " + ChatColor.RED + "Locked",
-                ChatColor.GRAY + "Requires " + ChatColor.GOLD + "Stronghold Key",
-                0,
-                30,
-                10
-        );
+        showTemporaryDoorHologram(doorBlock,
+                ChatColor.RED + "🔒 Locked",
+                ChatColor.GRAY + "Requires " + ChatColor.GOLD + "Stronghold Key");
         send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
     }
 
-    private void showStrongholdDoorOpenedMessage(Player player) {
+    private void showStrongholdDoorOpenedMessage(Player player, Block doorBlock) {
         if (player == null) {
             return;
         }
-        player.sendTitle(
-                ChatColor.GREEN + "🔓 " + ChatColor.GREEN + "Unlocked",
-                ChatColor.GRAY + "Stronghold gate opened",
-                0,
-                20,
-                8
-        );
+        showTemporaryDoorHologram(doorBlock,
+                ChatColor.GREEN + "🔓 Unlocked",
+                ChatColor.GRAY + "Stronghold gate opened");
         send(player, MessageType.SUCCESS, ChatColor.GOLD + "Stronghold Key used. Gate opened.");
+    }
+
+    private void showTemporaryDoorHologram(Block doorBlock, String titleLine, String detailLine) {
+        if (doorBlock == null || doorBlock.getWorld() == null) {
+            return;
+        }
+        Location base = doorBlock.getLocation().add(0.5, 2.1, 0.5);
+        String tag = "stronghold_door_hint_" + doorBlock.getX() + "_" + doorBlock.getY() + "_" + doorBlock.getZ();
+        MultiLineHologram.removeAll(base, 1.2, tag);
+        MultiLineHologram hologram = new MultiLineHologram(base, tag);
+        hologram.spawn(java.util.List.of(titleLine, detailLine));
+        Bukkit.getScheduler().runTaskLater(plugin, hologram::despawn, 40L);
     }
 
     @EventHandler
