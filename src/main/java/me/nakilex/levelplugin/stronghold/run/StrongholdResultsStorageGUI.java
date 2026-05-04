@@ -34,7 +34,7 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
                                        StorageEvents storageEvents,
                                        ItemStack summaryItem,
                                        List<ItemStack> stashedItems) {
-        super(ownerKey, "stronghold_results", "run_", "Stronghold Results", storageEvents, true, 1);
+        super(ownerKey, "stronghold_results", "run_", "Stronghold Results", storageEvents, true, Integer.MAX_VALUE);
         this.summaryItem = summaryItem == null ? createFallbackSummary() : summaryItem.clone();
         seedItems(stashedItems);
     }

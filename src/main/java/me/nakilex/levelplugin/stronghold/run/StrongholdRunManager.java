@@ -106,7 +106,7 @@ public class StrongholdRunManager implements Listener {
     private static final int MAX_ABSOLUTE_WAVE = 300;
     private static final int AUTOCAST_TICK_INTERVAL = 4;
     private static final int BASE_XP_REQUIRED = 160;
-    private static final int XP_PER_RANK_STEP = 70;
+    private static final double XP_RANK_GROWTH = 1.55D;
     public static final String STRONGHOLD_MAGE_METEOR_RADIUS_TAG = "lp_stronghold_mage_meteor_x3";
     private static final int MAX_ACTIVE_STRONGHOLD_SPELLS = 4;
     private static final double MIN_ENEMY_SPAWN_RADIUS = 5.0;
@@ -768,7 +768,8 @@ public class StrongholdRunManager implements Listener {
 
     private int xpRequiredForLevel(int level) {
         int safeLevel = Math.max(1, level);
-        return BASE_XP_REQUIRED + ((safeLevel - 1) * XP_PER_RANK_STEP);
+        double required = BASE_XP_REQUIRED * Math.pow(XP_RANK_GROWTH, safeLevel - 1);
+        return (int) Math.min(2_000_000_000D, Math.round(required));
     }
 
     private final class ActiveRun {
