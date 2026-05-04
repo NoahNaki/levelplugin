@@ -1,0 +1,17 @@
+id: combat_dummy
+name: "&dCombat Dummy"
+type: ZOMBIE
+levelRange:
+  min: 1
+  max: 999
+stats:
+  health: 1000
+  defense: 0
+  damage: 0
+options:
+  silent: true
+  baby: false
+  speed: 0.0
+  despawnWhenFar: false
+models:
+  normal: combat_dummy

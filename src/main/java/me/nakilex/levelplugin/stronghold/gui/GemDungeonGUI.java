@@ -31,12 +31,12 @@ public class GemDungeonGUI implements Listener {
         Inventory inv = org.bukkit.Bukkit.createInventory(null, 27, TITLE);
         ItemStack pane = GuiUtil.createGuiItem(Material.GRAY_STAINED_GLASS_PANE, " ", List.of());
         for (int i = 0; i < inv.getSize(); i++) inv.setItem(i, pane);
-        inv.setItem(13, buildEntry());
+        inv.setItem(13, buildEntry(player));
         player.openInventory(inv);
     }
 
-    private ItemStack buildEntry() {
-        ItemStack item = GuiUtil.getNexoItem("purple_orb_icon", ChatColor.LIGHT_PURPLE + "Gem Dungeon");
+    private ItemStack buildEntry(Player viewer) {
+        ItemStack item = GuiUtil.getNexoItem("purple_orb_icon", ChatColor.WHITE + "Gem Dungeon");
         if (item.getType() == Material.BARRIER) item = new ItemStack(Material.AMETHYST_SHARD);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
@@ -44,8 +44,9 @@ public class GemDungeonGUI implements Listener {
             lore.add(ChatColor.GRAY + "DPS check challenge against a training dummy.");
             lore.add(ChatColor.GRAY + "20s timer. Reward scales by stage HP.");
             lore.add("");
-            lore.add(ChatColor.GRAY + "Stage HP: " + ChatColor.WHITE + "1000 x stage");
-            lore.add(ChatColor.GRAY + "Reward: " + ChatColor.WHITE + "10% HP as gems");
+            lore.add(ChatColor.GRAY + "Stage HP: " + ChatColor.LIGHT_PURPLE + "1000 x stage");
+            lore.add(ChatColor.GRAY + "Reward: " + ChatColor.LIGHT_PURPLE + "10% HP <glyph:purple_orb_icon>");
+            lore.add(ChatColor.GRAY + "Sweeps: " + ChatColor.LIGHT_PURPLE + manager.getRemainingSweeps(viewer) + ChatColor.GRAY + "/" + ChatColor.LIGHT_PURPLE + manager.getMaxSweepsPerDay());
             lore.add("");
             lore.addAll(TooltipUtil.clickInstructions("to challenge next stage", "to sweep highest cleared stage"));
             meta.setLore(lore);

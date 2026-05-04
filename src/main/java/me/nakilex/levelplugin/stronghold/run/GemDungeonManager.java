@@ -2,7 +2,7 @@ package me.nakilex.levelplugin.stronghold.run;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
-import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.mob.custom.CustomMobManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
@@ -11,6 +11,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -42,6 +43,14 @@ public class GemDungeonManager implements Listener {
         this.data = YamlConfiguration.loadConfiguration(dataFile);
         load();
         Bukkit.getPluginManager().registerEvents(this, plugin);
+    }
+
+    public int getMaxSweepsPerDay() { return MAX_SWEEPS_PER_DAY; }
+
+    public int getRemainingSweeps(Player player) {
+        if (player == null) return MAX_SWEEPS_PER_DAY;
+        cleanupDayBoundary();
+        return Math.max(0, MAX_SWEEPS_PER_DAY - sweepsUsedToday.getOrDefault(player.getUniqueId(), 0));
     }
 
     public void challenge(Player player) {
@@ -100,7 +109,12 @@ public class GemDungeonManager implements Listener {
     }
 
     private LivingEntity spawnDummy(Location at, int stage) {
-        LivingEntity entity = at.getWorld().spawn(at, org.bukkit.entity.Zombie.class, zombie -> zombie.setAdult());
+        CustomMobManager mobManager = plugin.getCustomMobManager();
+        LivingEntity entity = null;
+        if (mobManager != null) {
+            java.util.List<LivingEntity> spawned = mobManager.spawn("combat_dummy", at, 1);
+            if (!spawned.isEmpty()) entity = spawned.get(0);
+        }
         if (entity == null) return null;
         double hp = hpForStage(stage);
         if (entity.getAttribute(Attribute.MAX_HEALTH) != null) {
@@ -110,12 +124,17 @@ public class GemDungeonManager implements Listener {
         entity.setAI(false);
         entity.setGravity(false);
         entity.setSilent(true);
-        entity.setCustomName(ChatColor.GOLD + "training_dummy" + ChatColor.GRAY + " [stage_" + stage + "]");
-        if (Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
-            ModelEngineUtil.applyFirstAvailableModel(entity, ModelEngineUtil.buildModelCandidates("combat_dummy"), plugin);
-        }
         entity.setCustomNameVisible(true);
         return entity;
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onGemWorldCreatureSpawn(CreatureSpawnEvent event) {
+        if (event.getLocation() == null || event.getLocation().getWorld() == null) return;
+        if (!WORLD_NAME.equalsIgnoreCase(event.getLocation().getWorld().getName())) return;
+        UUID spawned = event.getEntity().getUniqueId();
+        boolean allowed = active.values().stream().anyMatch(ch -> ch.dummyId.equals(spawned));
+        if (!allowed) event.setCancelled(true);
     }
 
     @EventHandler
