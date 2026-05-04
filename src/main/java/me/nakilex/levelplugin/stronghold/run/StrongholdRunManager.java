@@ -510,7 +510,7 @@ public class StrongholdRunManager implements Listener {
         }
         showTemporaryDoorHologram(doorBlock,
                 ChatColor.RED + "🔒 " + ChatColor.WHITE + "Locked",
-                ChatColor.DARK_GRAY + "Requires " + ChatColor.GOLD + "Stronghold Key");
+                ChatColor.GRAY + "Requires " + ChatColor.GOLD + "Castle key");
         send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
     }
 
