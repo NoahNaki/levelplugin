@@ -501,15 +501,43 @@ public class StrongholdRunManager implements Listener {
         }
         event.setCancelled(true);
         if (!tryConsumeStrongholdKey(player)) {
-            send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
+            showStrongholdDoorLockedMessage(player);
             return;
         }
         openable.setOpen(true);
         clicked.setBlockData(openable);
-        send(player, MessageType.SUCCESS, ChatColor.GOLD + "Stronghold Key used. Gate opened.");
+        showStrongholdDoorOpenedMessage(player);
         if (plugin.getQuestManager() != null) {
             plugin.getQuestManager().handleStrongholdKeyUse(player);
         }
+    }
+
+    private void showStrongholdDoorLockedMessage(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.sendTitle(
+                ChatColor.RED + "🔒 " + ChatColor.RED + "Locked",
+                ChatColor.GRAY + "Requires " + ChatColor.GOLD + "Stronghold Key",
+                0,
+                30,
+                10
+        );
+        send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
+    }
+
+    private void showStrongholdDoorOpenedMessage(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.sendTitle(
+                ChatColor.GREEN + "🔓 " + ChatColor.GREEN + "Unlocked",
+                ChatColor.GRAY + "Stronghold gate opened",
+                0,
+                20,
+                8
+        );
+        send(player, MessageType.SUCCESS, ChatColor.GOLD + "Stronghold Key used. Gate opened.");
     }
 
     @EventHandler
