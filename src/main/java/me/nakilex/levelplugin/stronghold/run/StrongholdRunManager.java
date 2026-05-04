@@ -168,6 +168,7 @@ public class StrongholdRunManager implements Listener {
     private final BukkitPathfindingService pathfindingService = new BukkitPathfindingService();
     private final Map<UUID, Integer> queuedStartingStageByPlayer = new HashMap<>();
     private final List<PortalTemplateBlock> strongholdExitPortalTemplate = new ArrayList<>();
+    private final List<Location> activePortalRatingMarkers = new ArrayList<>();
     private File progressionFile;
     private YamlConfiguration progressionConfig;
     private StageScalingConfig stageScalingConfig = new StageScalingConfig(DEFAULT_STAGE_HEALTH_GROWTH, DEFAULT_STAGE_DAMAGE_GROWTH, DEFAULT_WAVE_HEALTH_GROWTH, DEFAULT_WAVE_DAMAGE_GROWTH, DEFAULT_WAVE_MOVE_SPEED_GROWTH);
@@ -1043,6 +1044,15 @@ public class StrongholdRunManager implements Listener {
                     + ChatColor.DARK_GRAY + " | Doors " + ChatColor.GRAY + state.doorsOpened
                     + ChatColor.DARK_GRAY + " | Chests " + ChatColor.GRAY + state.chestsOpened;
 
+            Location marker = nearestPortalRatingMarker(player);
+            if (marker != null) {
+                String tag = "stronghold_rating_marker_" + player.getUniqueId();
+                MultiLineHologram.removeAll(marker, 2.5, tag);
+                MultiLineHologram hologram = new MultiLineHologram(marker, tag);
+                hologram.spawn(java.util.List.of(title, breakdown));
+                Bukkit.getScheduler().runTaskLater(plugin, hologram::despawn, 100L);
+                return;
+            }
             EntityTextDisplay top = new EntityTextDisplay(plugin, player, 1.6);
             EntityTextDisplay bottom = new EntityTextDisplay(plugin, player, 1.25);
             top.update(title);
@@ -2734,6 +2744,23 @@ public class StrongholdRunManager implements Listener {
                 }
             }
         }
+    }
+
+    private Location nearestPortalRatingMarker(Player player) {
+        if (player == null || activePortalRatingMarkers.isEmpty()) return null;
+        Location from = player.getLocation();
+        Location best = null;
+        double bestDist = Double.MAX_VALUE;
+        for (Location marker : activePortalRatingMarkers) {
+            if (marker == null || marker.getWorld() == null || from.getWorld() == null) continue;
+            if (!marker.getWorld().getUID().equals(from.getWorld().getUID())) continue;
+            double d = marker.distanceSquared(from);
+            if (d < bestDist) {
+                bestDist = d;
+                best = marker;
+            }
+        }
+        return best;
     }
 
     private PlacedPortalBounds tryPlaceExitPortalNearPlayer(Player player) {
