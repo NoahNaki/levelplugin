@@ -138,7 +138,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|npcmodel|" + statUsage + ">");
             }
             return true;
         }
@@ -720,13 +720,15 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 return spawnLootChestAnimationPreview(lootChestAnimationPlayer, args[1]);
+            case "npcmodel":
+                return applyNpcModel(sender, args);
 
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|npcmodel|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -816,6 +818,51 @@ public class DebugCommand implements TabExecutor {
             case "idle" -> List.of("idle");
             default -> List.of(normalized);
         };
+    }
+
+    private boolean applyNpcModel(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            sender.sendMessage(ChatColor.RED + "Usage: /debug npcmodel <npcId> <modelId>");
+            return true;
+        }
+        if (!org.bukkit.Bukkit.getPluginManager().isPluginEnabled("ModelEngine")) {
+            sender.sendMessage(ChatColor.RED + "ModelEngine is not enabled on this server.");
+            return true;
+        }
+        int npcId;
+        try {
+            npcId = Integer.parseInt(args[1]);
+        } catch (NumberFormatException ex) {
+            sender.sendMessage(ChatColor.RED + "NPC id must be a number.");
+            return true;
+        }
+        net.citizensnpcs.api.npc.NPC npc = CitizensAPI.getNPCRegistry().getById(npcId);
+        if (npc == null) {
+            sender.sendMessage(ChatColor.RED + "No Citizens NPC found with id " + npcId + ".");
+            return true;
+        }
+        if (!npc.isSpawned() || npc.getEntity() == null) {
+            sender.sendMessage(ChatColor.RED + "NPC " + npcId + " must be spawned first.");
+            return true;
+        }
+        String modelId = args[2];
+        ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyFirstAvailableModel(
+                npc.getEntity(),
+                ModelEngineUtil.buildModelCandidates(modelId),
+                Main.getInstance()
+        );
+        if (result.applied().isEmpty()) {
+            sender.sendMessage(ChatColor.RED + "Failed to apply model '" + modelId + "' to NPC " + npcId + ".");
+            return true;
+        }
+        sender.sendMessage(ChatColor.GREEN + "Applied model '" + result.applied().get(0) + "' to NPC " + npcId + ".");
+        if (!result.blueprintOnly().isEmpty()) {
+            sender.sendMessage(ChatColor.YELLOW + "Blueprint-only candidates (not loaded): " + String.join(", ", result.blueprintOnly()));
+        }
+        if (!result.failed().isEmpty() && result.failed().size() > result.applied().size()) {
+            sender.sendMessage(ChatColor.YELLOW + "Failed candidates: " + String.join(", ", result.failed()));
+        }
+        return true;
     }
 
     private void toggleInventoryDebug(Player player) {
@@ -913,7 +960,7 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "lootchestanimation"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "lootchestanimation", "npcmodel"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -991,6 +1038,15 @@ public class DebugCommand implements TabExecutor {
         } else if (args.length == 2 && args[0].equalsIgnoreCase("lootchestanimation")) {
             return LOOT_CHEST_ANIMATION_OPTIONS.stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("npcmodel")) {
+            String filter = args[1].toLowerCase();
+            List<String> npcIds = new ArrayList<>();
+            for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+                npcIds.add(String.valueOf(npc.getId()));
+            }
+            return npcIds.stream()
+                    .filter(id -> id.startsWith(filter))
                     .toList();
         }
         return Collections.emptyList();
