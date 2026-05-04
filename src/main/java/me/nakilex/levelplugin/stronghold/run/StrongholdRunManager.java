@@ -957,6 +957,8 @@ public class StrongholdRunManager implements Listener {
             int clearedStage = toStageProgress(Math.max(1, wave)).stage();
             for (Player player : playersInWorld(world)) {
                 highestCompletedStageByPlayer.merge(player.getUniqueId(), Math.max(1, clearedStage), Math::max);
+                int nextStageWave = Math.min(MAX_ABSOLUTE_WAVE, (clearedStage * WAVES_PER_STAGE) + 1);
+                highestAbsoluteWaveByPlayer.merge(player.getUniqueId(), nextStageWave, Math::max);
             }
             saveProgressionData();
             if (strongholdExitPortalTemplate.isEmpty()) {
@@ -1519,7 +1521,8 @@ public class StrongholdRunManager implements Listener {
             if (playerId == null || !playerStates.containsKey(playerId)) {
                 return null;
             }
-            StageProgress progress = toStageProgress(Math.max(1, wave));
+            int checkpointWave = ((Math.max(1, stageAnchor) - 1) * WAVES_PER_STAGE) + 1;
+            StageProgress progress = toStageProgress(Math.max(checkpointWave, Math.max(1, wave)));
             SurvivorState state = playerStates.get(playerId);
             return new StageStatus(progress.stage(), progress.wave(), countAliveAllSpawned(), state == null ? "None" : state.activeArchetypeBuff);
         }

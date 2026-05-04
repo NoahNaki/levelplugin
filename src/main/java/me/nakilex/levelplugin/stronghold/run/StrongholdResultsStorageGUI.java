@@ -59,6 +59,11 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
     }
 
     @Override
+    protected boolean usesPageUnlocking() {
+        return false;
+    }
+
+    @Override
     public void open(Player player) {
         super.open(player);
         if (player == null || !player.isOnline() || player.getOpenInventory() == null) {
@@ -242,15 +247,17 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
             }
         }
         if (leftoverStacks > 0) {
+            player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_ITEM_PICKUP, 0.7f, 1.0f);
             me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
                     me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.WARNING,
                     "Inventory full. Claimed " + ChatColor.WHITE + movedStacks + ChatColor.GRAY
                             + " stack(s); " + ChatColor.WHITE + leftoverStacks + ChatColor.GRAY + " stack(s) remain.");
             return;
         }
+        player.playSound(player.getLocation(), org.bukkit.Sound.ENTITY_PLAYER_LEVELUP, 0.65f, 1.4f);
         me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
-                me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.SUCCESS,
-                "Claimed " + ChatColor.WHITE + movedStacks + ChatColor.GRAY + " stack(s) from Stronghold results.");
+                me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.INFO,
+                ChatColor.GRAY + "Claimed " + ChatColor.WHITE + movedStacks + ChatColor.GRAY + " from stronghold results.");
     }
 
     private void sendAllToStorage(Player player) {
