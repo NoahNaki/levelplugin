@@ -187,13 +187,19 @@ public final class TooltipUtil {
         if (line == null || line.isBlank()) {
             return wrapped;
         }
+        String sanitized = line.replace('\n', ' ').replace('\r', ' ');
         int targetPixels = Math.max(80, maxPixels);
-        String[] words = line.trim().split("\\s+");
+        String[] words = sanitized.trim().split("\\s+");
         String current = "";
         String continuation = continuationPrefix == null ? "" : continuationPrefix;
+        int processedWords = 0;
         for (String word : words) {
             if (word == null || word.isBlank()) {
                 continue;
+            }
+            if (++processedWords > 200) {
+                wrapped.add((current.isEmpty() ? word : current).substring(0, Math.min(180, (current.isEmpty() ? word : current).length())));
+                break;
             }
             String candidate = current.isEmpty() ? word : current + " " + word;
             if (ChatFormatter.pixelLength(candidate) <= targetPixels) {
@@ -203,15 +209,21 @@ public final class TooltipUtil {
             if (!current.isEmpty()) {
                 wrapped.add(current);
                 String carryColor = ChatColor.getLastColors(current);
-                current = (continuation + carryColor + word).trim();
+                current = truncateLoreLine((continuation + carryColor + word).trim(), 180);
                 continue;
             }
-            wrapped.add(word);
+            wrapped.add(truncateLoreLine(word, 180));
         }
         if (!current.isEmpty()) {
-            wrapped.add(current);
+            wrapped.add(truncateLoreLine(current, 180));
         }
         return wrapped;
+    }
+
+    private static String truncateLoreLine(String line, int maxChars) {
+        if (line == null) return "";
+        if (line.length() <= maxChars) return line;
+        return line.substring(0, maxChars);
     }
 
 

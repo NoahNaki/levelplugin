@@ -903,6 +903,9 @@ public class DebugCommand implements TabExecutor {
             tryInvokeNoArg(modeledEntity, "destroy");
             tryInvokeNoArg(modeledEntity, "unregisterSelf");
         }
+        org.bukkit.Location respawnAt = entity.getLocation().clone();
+        npc.despawn();
+        npc.spawn(respawnAt);
         sender.sendMessage(ChatColor.GREEN + "Removed model disguise visibility for NPC " + npcId + ".");
         return true;
     }
