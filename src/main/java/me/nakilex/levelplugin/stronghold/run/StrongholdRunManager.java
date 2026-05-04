@@ -18,6 +18,7 @@ import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.StrongholdStartupProfiler;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
@@ -1034,37 +1035,22 @@ public class StrongholdRunManager implements Listener {
             return "F";
         }
 
-        private Location resolveSafeRatingDisplayLocation(Player player) {
-            if (player == null || player.getWorld() == null) return null;
-            Location base = player.getLocation().clone().add(0, 3.2, 0);
-            if (base.getBlock().getType() != Material.NETHER_PORTAL) {
-                return base;
-            }
-            int[][] offsets = new int[][]{{2,0},{-2,0},{0,2},{0,-2},{3,3},{-3,3}};
-            for (int[] off : offsets) {
-                Location candidate = base.clone().add(off[0], 0, off[1]);
-                if (candidate.getBlock().getType() != Material.NETHER_PORTAL) {
-                    return candidate;
-                }
-            }
-            return base;
-        }
-
         private void showStageRating(Player player, String rating, long elapsedMs, SurvivorState state) {
-            if (player == null || rating == null) return;
-            Location at = resolveSafeRatingDisplayLocation(player);
-            if (at == null) return;
-            String tag = "stronghold_rating_" + player.getUniqueId();
-            MultiLineHologram.removeAll(at, 2.5, tag);
-            MultiLineHologram holo = new MultiLineHologram(at, tag);
-            holo.spawn(java.util.List.of(
-                    ChatColor.GOLD + "Stage Rating: " + ChatColor.WHITE + rating,
-                    ChatColor.DARK_GRAY + "Time " + ChatColor.GRAY + (elapsedMs / 1000) + "s"
-                            + ChatColor.DARK_GRAY + " | Dmg " + ChatColor.GRAY + (int) state.damageTaken
-                            + ChatColor.DARK_GRAY + " | Doors " + ChatColor.GRAY + state.doorsOpened
-                            + ChatColor.DARK_GRAY + " | Chests " + ChatColor.GRAY + state.chestsOpened
-            ));
-            Bukkit.getScheduler().runTaskLater(plugin, holo::despawn, 100L);
+            if (player == null || rating == null || state == null) return;
+            String title = ChatColor.GOLD + "Stage Rating: " + ChatColor.WHITE + rating;
+            String breakdown = ChatColor.DARK_GRAY + "Time " + ChatColor.GRAY + (elapsedMs / 1000) + "s"
+                    + ChatColor.DARK_GRAY + " | Dmg " + ChatColor.GRAY + (int) state.damageTaken
+                    + ChatColor.DARK_GRAY + " | Doors " + ChatColor.GRAY + state.doorsOpened
+                    + ChatColor.DARK_GRAY + " | Chests " + ChatColor.GRAY + state.chestsOpened;
+
+            EntityTextDisplay top = new EntityTextDisplay(plugin, player, 1.6);
+            EntityTextDisplay bottom = new EntityTextDisplay(plugin, player, 1.25);
+            top.update(title);
+            bottom.update(breakdown);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                top.remove();
+                bottom.remove();
+            }, 100L);
         }
 
         private void concludeRunAndSpawnExitPortal() {
