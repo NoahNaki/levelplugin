@@ -160,9 +160,6 @@ commands:
   stronghold:
     description: Manage the stronghold queue
     usage: /stronghold [join|leave|open|template|shrine] [solo|duo|squad]
-  gemdungeon:
-    description: Challenge or sweep Gem Dungeon stages
-    usage: /gemdungeon <challenge|sweep>
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage
