@@ -1031,16 +1031,17 @@ public class StrongholdRunManager implements Listener {
             return new ScoreResult(total, objectiveScore, damageScore, timeScore, rank);
         }
 
-        private Location resolveFixedResultsLocation(Player player) {
-            Location marker = nearestPortalRatingMarker(player, resultSideReference.get(player.getUniqueId()));
-            if (marker != null) {
-                return marker;
+        private java.util.List<Location> resolveFixedResultsLocations(Player player) {
+            java.util.List<Location> out = new java.util.ArrayList<>();
+            if (!activePortalRatingMarkers.isEmpty()) {
+                out.addAll(activePortalRatingMarkers);
+                return out;
             }
             World world = player == null ? null : player.getWorld();
             if (world != null && exitPortalBounds != null) {
-                return exitPortalBounds.guideTarget(world);
+                out.add(exitPortalBounds.guideTarget(world));
             }
-            return null;
+            return out;
         }
 
         private String formatResultMetricLine(String label, String value) {
@@ -1048,9 +1049,9 @@ public class StrongholdRunManager implements Listener {
             String safeValue = value == null ? "" : value.trim();
             String left = ChatColor.GRAY + safeLabel;
             String right = ChatColor.WHITE + safeValue;
-            int targetPx = 170;
+            int targetPx = 145;
             int used = ChatFormatter.pixelLength(safeLabel) + ChatFormatter.pixelLength(safeValue);
-            int gapPx = Math.max(8, targetPx - used);
+            int gapPx = Math.max(4, targetPx - used);
             int spaces = Math.max(1, gapPx / Math.max(1, ChatFormatter.pixelLength(" ")));
             return left + ChatColor.DARK_GRAY + " " + " ".repeat(spaces) + right;
         }
@@ -1062,21 +1063,25 @@ public class StrongholdRunManager implements Listener {
                     + " ref=" + (ref==null?"none":(ref.getBlockX()+","+ref.getBlockY()+","+ref.getBlockZ())));
             String title = ChatColor.GOLD + "SCORE " + ChatColor.WHITE + result.total();
 
-            Location fixed = resolveFixedResultsLocation(player);
-            if (fixed == null) {
+            java.util.List<Location> fixedLocations = resolveFixedResultsLocations(player);
+            if (fixedLocations.isEmpty()) {
                 logResultPlacementDebug("No fixed results location resolved for " + player.getName());
                 return;
             }
-            logResultPlacementDebug("Rendering results at " + fixed.getBlockX()+","+fixed.getBlockY()+","+fixed.getBlockZ());
-            String tag = "stronghold_rating_marker_" + player.getUniqueId();
-            spawnFixedResultScreen(fixed, java.util.List.of(
+                String tag = "stronghold_rating_marker_" + player.getUniqueId();
+            java.util.List<String> lines = java.util.List.of(
                     ChatColor.LIGHT_PURPLE + "Stronghold Results",
                     title,
                     formatResultMetricLine("Objectives", String.valueOf(result.objectives())),
                     formatResultMetricLine("Damage Taken", String.valueOf(result.damage())),
                     formatResultMetricLine("Time Cleared", (elapsedMs / 1000) + "s (" + result.time() + ")"),
                     formatResultMetricLine("Rank", result.rank())
-            ), tag);
+            );
+            for (Location fixed : fixedLocations) {
+                if (fixed == null) continue;
+                logResultPlacementDebug("Rendering results at " + fixed.getBlockX()+","+fixed.getBlockY()+","+fixed.getBlockZ());
+                spawnFixedResultScreen(fixed, lines, tag);
+            }
         }
 
         private void concludeRunAndSpawnExitPortal() {
