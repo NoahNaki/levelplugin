@@ -18,6 +18,7 @@ import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.StrongholdStartupProfiler;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
@@ -1080,7 +1081,7 @@ public class StrongholdRunManager implements Listener {
             for (Location fixed : fixedLocations) {
                 if (fixed == null) continue;
                 logResultPlacementDebug("Rendering results at " + fixed.getBlockX()+","+fixed.getBlockY()+","+fixed.getBlockZ());
-                spawnFixedResultScreen(fixed, lines, tag);
+                spawnFixedResultScreen(fixed, lines, tag, resolveResultScreenFacingVector(fixed));
             }
         }
 
@@ -2799,13 +2800,28 @@ public class StrongholdRunManager implements Listener {
         activeStageResultDisplays.clear();
     }
 
-    private void spawnFixedResultScreen(Location base, java.util.List<String> lines, String tag) {
+    private Vector resolveResultScreenFacingVector(Location base) {
+        if (base == null || base.getWorld() == null) return null;
+        Location opposite = activePortalRatingMarkers.stream()
+                .filter(marker -> marker != null && marker.getWorld() != null)
+                .filter(marker -> marker.getWorld().getUID().equals(base.getWorld().getUID()))
+                .filter(marker -> marker.distanceSquared(base) > 0.01)
+                .findFirst()
+                .orElse(null);
+        if (opposite == null) return null;
+        return base.toVector().subtract(opposite.toVector());
+    }
+
+    private void spawnFixedResultScreen(Location base, java.util.List<String> lines, String tag, Vector facing) {
         if (base == null || base.getWorld() == null || lines == null || lines.isEmpty()) return;
         double y = 0.0;
         for (String line : lines) {
             Location loc = base.clone().add(0, y, 0);
             org.bukkit.entity.TextDisplay display = (org.bukkit.entity.TextDisplay) base.getWorld().spawnEntity(loc, org.bukkit.entity.EntityType.TEXT_DISPLAY);
             display.setBillboard(org.bukkit.entity.Display.Billboard.FIXED);
+            if (facing != null && facing.lengthSquared() > 0.000001) {
+                ModelEngineUtil.orientEntityToVector(display, facing);
+            }
             display.setText(line);
             display.setShadowRadius(0f);
             display.setShadowStrength(0f);
