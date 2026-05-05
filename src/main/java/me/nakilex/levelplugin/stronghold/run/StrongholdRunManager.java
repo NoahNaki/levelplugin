@@ -1042,6 +1042,18 @@ public class StrongholdRunManager implements Listener {
             return null;
         }
 
+        private String formatResultMetricLine(String label, String value) {
+            String safeLabel = label == null ? "" : label.trim();
+            String safeValue = value == null ? "" : value.trim();
+            String left = ChatColor.GRAY + safeLabel;
+            String right = ChatColor.WHITE + safeValue;
+            int targetPx = 170;
+            int used = ChatFormatter.pixelLength(safeLabel) + ChatFormatter.pixelLength(safeValue);
+            int gapPx = Math.max(8, targetPx - used);
+            int spaces = Math.max(1, gapPx / Math.max(1, ChatFormatter.pixelLength(" ")));
+            return left + ChatColor.DARK_GRAY + " " + " ".repeat(spaces) + right;
+        }
+
         private void showStageRating(Player player, ScoreResult result, long elapsedMs, SurvivorState state) {
             if (player == null || result == null || state == null) return;
             logResultPlacementDebug("Attempting stage result render for " + player.getName() + " rating=" + result.rank());
@@ -1057,10 +1069,10 @@ public class StrongholdRunManager implements Listener {
             spawnFixedResultScreen(fixed, java.util.List.of(
                     ChatColor.LIGHT_PURPLE + "Stronghold Results",
                     title,
-                    ChatColor.GRAY + "Objectives " + ChatColor.WHITE + result.objectives(),
-                    ChatColor.GRAY + "Damage Taken " + ChatColor.WHITE + result.damage(),
-                    ChatColor.GRAY + "Time Cleared " + ChatColor.WHITE + (elapsedMs / 1000) + "s" + ChatColor.DARK_GRAY + " (" + result.time() + ")",
-                    ChatColor.GRAY + "Rank " + ChatColor.WHITE + result.rank()
+                    formatResultMetricLine("Objectives", String.valueOf(result.objectives())),
+                    formatResultMetricLine("Damage Taken", String.valueOf(result.damage())),
+                    formatResultMetricLine("Time Cleared", (elapsedMs / 1000) + "s (" + result.time() + ")"),
+                    formatResultMetricLine("Rank", result.rank())
             ), tag);
         }
 
