@@ -832,6 +832,7 @@ public class StrongholdRunManager implements Listener {
         private final Map<UUID, SurvivorState> playerStates = new HashMap<>();
         private final Set<UUID> pausedPlayers = new HashSet<>();
         private final Map<UUID, Long> lastManualCastAttemptAt = new HashMap<>();
+        private final Map<UUID, Location> resultSideReference = new HashMap<>();
 
         private BukkitTask task;
         private BukkitTask autoCastTask;
@@ -1031,7 +1032,7 @@ public class StrongholdRunManager implements Listener {
         }
 
         private Location resolveFixedResultsLocation(Player player) {
-            Location marker = nearestPortalRatingMarker(player);
+            Location marker = nearestPortalRatingMarker(player, resultSideReference.get(player.getUniqueId()));
             if (marker != null) {
                 return marker;
             }
@@ -1056,7 +1057,9 @@ public class StrongholdRunManager implements Listener {
 
         private void showStageRating(Player player, ScoreResult result, long elapsedMs, SurvivorState state) {
             if (player == null || result == null || state == null) return;
-            logResultPlacementDebug("Attempting stage result render for " + player.getName() + " rating=" + result.rank());
+            Location ref = resultSideReference.get(player.getUniqueId());
+            logResultPlacementDebug("Attempting stage result render for " + player.getName() + " rating=" + result.rank()
+                    + " ref=" + (ref==null?"none":(ref.getBlockX()+","+ref.getBlockY()+","+ref.getBlockZ())));
             String title = ChatColor.GOLD + "SCORE " + ChatColor.WHITE + result.total();
 
             Location fixed = resolveFixedResultsLocation(player);
@@ -1086,6 +1089,7 @@ public class StrongholdRunManager implements Listener {
             for (Player player : playersInWorld(world)) {
                 highestCompletedStageByPlayer.merge(player.getUniqueId(), Math.max(1, clearedStage), Math::max);
                 SurvivorState state = playerStates.get(player.getUniqueId());
+                resultSideReference.put(player.getUniqueId(), player.getLocation().clone());
                 if (state != null) {
                     long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
                     ScoreResult result = calculateStageRating(state, elapsed);
@@ -1130,6 +1134,7 @@ public class StrongholdRunManager implements Listener {
                     logResultPlacementDebug("Delayed fallback result render pass. Markers=" + activePortalRatingMarkers.size());
                     for (Player player : playersInWorld(world)) {
                         SurvivorState state = playerStates.get(player.getUniqueId());
+                resultSideReference.put(player.getUniqueId(), player.getLocation().clone());
                         if (state != null && state.lastStageRating != null) {
                             long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
                             showStageRating(player, calculateStageRating(state, elapsed), elapsed, state);
@@ -2812,9 +2817,9 @@ public class StrongholdRunManager implements Listener {
         plugin.getLogger().info("[Stronghold][ResultScreen] " + message);
     }
 
-    private Location nearestPortalRatingMarker(Player player) {
+    private Location nearestPortalRatingMarker(Player player, Location reference) {
         if (player == null || activePortalRatingMarkers.isEmpty()) return null;
-        Location from = player.getLocation();
+        Location from = reference != null ? reference : player.getLocation();
         Location best = null;
         double bestDist = Double.MAX_VALUE;
         for (Location marker : activePortalRatingMarkers) {
