@@ -1049,6 +1049,7 @@ public class StrongholdRunManager implements Listener {
 
         private void showStageRating(Player player, String rating, long elapsedMs, SurvivorState state) {
             if (player == null || rating == null || state == null) return;
+            logResultPlacementDebug("Attempting stage result render for " + player.getName() + " rating=" + rating);
             String title = ChatColor.GOLD + "Stage Rating: " + ChatColor.WHITE + rating;
             String breakdown = ChatColor.DARK_GRAY + "Time " + ChatColor.GRAY + (elapsedMs / 1000) + "s"
                     + ChatColor.DARK_GRAY + " | Dmg " + ChatColor.GRAY + (int) state.damageTaken
@@ -1056,7 +1057,11 @@ public class StrongholdRunManager implements Listener {
                     + ChatColor.DARK_GRAY + " | Chests " + ChatColor.GRAY + state.chestsOpened;
 
             Location fixed = resolveFixedResultsLocation(player);
-            if (fixed == null) return;
+            if (fixed == null) {
+                logResultPlacementDebug("No fixed results location resolved for " + player.getName());
+                return;
+            }
+            logResultPlacementDebug("Rendering results at " + fixed.getBlockX()+","+fixed.getBlockY()+","+fixed.getBlockZ());
             String tag = "stronghold_rating_marker_" + player.getUniqueId();
             MultiLineHologram.removeAll(fixed, 6.0, tag);
             MultiLineHologram hologram = new MultiLineHologram(fixed, tag);
@@ -1098,6 +1103,7 @@ public class StrongholdRunManager implements Listener {
                 exitPortalBounds = tryPlaceExitPortalNearPlayer(player);
                 if (exitPortalBounds != null) {
                     portalPlacementPendingNotified = false;
+                    logResultPlacementDebug("Exit portal placed. Markers=" + activePortalRatingMarkers.size());
                     for (Player online : playersInWorld(world)) {
                         SurvivorState state = playerStates.get(online.getUniqueId());
                         if (state != null && state.lastStageRating != null) {
@@ -1116,6 +1122,7 @@ public class StrongholdRunManager implements Listener {
             }
             if (!portalPlacementPendingNotified) {
                 portalPlacementPendingNotified = true;
+                logResultPlacementDebug("Portal placement pending fallback branch. Markers=" + activePortalRatingMarkers.size());
                 for (Player player : playersInWorld(world)) {
                     SurvivorState state = playerStates.get(player.getUniqueId());
                     if (state != null && state.lastStageRating != null) {
@@ -2767,6 +2774,11 @@ public class StrongholdRunManager implements Listener {
         }
     }
 
+    private void logResultPlacementDebug(String message) {
+        if (message == null) return;
+        plugin.getLogger().info("[Stronghold][ResultScreen] " + message);
+    }
+
     private Location nearestPortalRatingMarker(Player player) {
         if (player == null || activePortalRatingMarkers.isEmpty()) return null;
         Location from = player.getLocation();
@@ -2780,6 +2792,11 @@ public class StrongholdRunManager implements Listener {
                 bestDist = d;
                 best = marker;
             }
+        }
+        if (player != null) {
+            logResultPlacementDebug("Nearest marker for " + player.getName() + ": "
+                    + (best == null ? "none" : (best.getBlockX()+","+best.getBlockY()+","+best.getBlockZ()))
+                    + " (markers=" + activePortalRatingMarkers.size() + ")");
         }
         return best;
     }
@@ -2849,6 +2866,7 @@ public class StrongholdRunManager implements Listener {
                             boolean exists = activePortalRatingMarkers.stream().anyMatch(existing -> existing.distanceSquared(marker) < 0.01);
                             if (!exists && activePortalRatingMarkers.size() < 2) {
                                 activePortalRatingMarkers.add(marker);
+                                logResultPlacementDebug("Captured portal result marker at " + marker.getBlockX()+","+marker.getBlockY()+","+marker.getBlockZ());
                             }
                             target.setType(Material.AIR, false);
                             continue;
