@@ -2801,7 +2801,6 @@ public class StrongholdRunManager implements Listener {
 
     private void spawnFixedResultScreen(Location base, java.util.List<String> lines, String tag) {
         if (base == null || base.getWorld() == null || lines == null || lines.isEmpty()) return;
-        clearActiveStageResultDisplays();
         double y = 0.0;
         for (String line : lines) {
             Location loc = base.clone().add(0, y, 0);
