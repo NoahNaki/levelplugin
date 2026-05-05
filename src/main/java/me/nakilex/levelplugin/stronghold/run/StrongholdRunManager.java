@@ -168,6 +168,7 @@ public class StrongholdRunManager implements Listener {
     private final Map<UUID, Integer> queuedStartingStageByPlayer = new HashMap<>();
     private final List<PortalTemplateBlock> strongholdExitPortalTemplate = new ArrayList<>();
     private final List<Location> activePortalRatingMarkers = new ArrayList<>();
+    private final List<org.bukkit.entity.TextDisplay> activeStageResultDisplays = new ArrayList<>();
     private File progressionFile;
     private YamlConfiguration progressionConfig;
     private StageScalingConfig stageScalingConfig = new StageScalingConfig(DEFAULT_STAGE_HEALTH_GROWTH, DEFAULT_STAGE_DAMAGE_GROWTH, DEFAULT_WAVE_HEALTH_GROWTH, DEFAULT_WAVE_DAMAGE_GROWTH, DEFAULT_WAVE_MOVE_SPEED_GROWTH);
@@ -510,8 +511,8 @@ public class StrongholdRunManager implements Listener {
         }
         showTemporaryDoorHologram(doorBlock,
                 ChatColor.RED + "🔒 " + ChatColor.WHITE + "Locked",
-                ChatColor.GRAY + "Requires " + ChatColor.GOLD + "Castle key");
-        send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Castle key to open this gate.");
+                ChatColor.GRAY + "Requires " + ChatColor.GOLD + "Stronghold Key");
+        send(player, MessageType.WARNING, ChatColor.GOLD + "You need a Stronghold Key to open this gate.");
     }
 
     private void showStrongholdDoorOpenedMessage(Player player, Block doorBlock) {
@@ -1018,21 +1019,15 @@ public class StrongholdRunManager implements Listener {
             if (state != null) state.chestsOpened++;
         }
 
-        private String calculateStageRating(SurvivorState state, long elapsedMs) {
-            if (state == null) return "F";
-            double score = 0.0;
+        private ScoreResult calculateStageRating(SurvivorState state, long elapsedMs) {
+            if (state == null) return new ScoreResult(0,0,0,0,"F");
             double secs = Math.max(1.0, elapsedMs / 1000.0);
-            score += Math.max(0, 30.0 - (secs / 10.0));
-            score += Math.max(0, 30.0 - (state.damageTaken / 40.0));
-            score += Math.min(20.0, state.doorsOpened * 2.5);
-            score += Math.min(20.0, state.chestsOpened * 5.0);
-            if (score >= 85) return "S";
-            if (score >= 72) return "A";
-            if (score >= 60) return "B";
-            if (score >= 48) return "C";
-            if (score >= 36) return "D";
-            if (score >= 24) return "E";
-            return "F";
+            int objectiveScore = (int) Math.max(0, Math.min(40, Math.round(Math.min(20.0, state.doorsOpened * 2.5) + Math.min(20.0, state.chestsOpened * 5.0))));
+            int damageScore = (int) Math.max(0, Math.min(30, Math.round(Math.max(0, 30.0 - (state.damageTaken / 40.0)))));
+            int timeScore = (int) Math.max(0, Math.min(30, Math.round(Math.max(0, 30.0 - (secs / 10.0)))));
+            int total = objectiveScore + damageScore + timeScore;
+            String rank = total >= 85 ? "S" : total >= 72 ? "A" : total >= 60 ? "B" : total >= 48 ? "C" : total >= 36 ? "D" : total >= 24 ? "E" : "F";
+            return new ScoreResult(total, objectiveScore, damageScore, timeScore, rank);
         }
 
         private Location resolveFixedResultsLocation(Player player) {
@@ -1047,14 +1042,10 @@ public class StrongholdRunManager implements Listener {
             return null;
         }
 
-        private void showStageRating(Player player, String rating, long elapsedMs, SurvivorState state) {
-            if (player == null || rating == null || state == null) return;
-            logResultPlacementDebug("Attempting stage result render for " + player.getName() + " rating=" + rating);
-            String title = ChatColor.GOLD + "Stage Rating: " + ChatColor.WHITE + rating;
-            String breakdown = ChatColor.DARK_GRAY + "Time " + ChatColor.GRAY + (elapsedMs / 1000) + "s"
-                    + ChatColor.DARK_GRAY + " | Dmg " + ChatColor.GRAY + (int) state.damageTaken
-                    + ChatColor.DARK_GRAY + " | Doors " + ChatColor.GRAY + state.doorsOpened
-                    + ChatColor.DARK_GRAY + " | Chests " + ChatColor.GRAY + state.chestsOpened;
+        private void showStageRating(Player player, ScoreResult result, long elapsedMs, SurvivorState state) {
+            if (player == null || result == null || state == null) return;
+            logResultPlacementDebug("Attempting stage result render for " + player.getName() + " rating=" + result.rank());
+            String title = ChatColor.GOLD + "SCORE " + ChatColor.WHITE + result.total();
 
             Location fixed = resolveFixedResultsLocation(player);
             if (fixed == null) {
@@ -1063,17 +1054,14 @@ public class StrongholdRunManager implements Listener {
             }
             logResultPlacementDebug("Rendering results at " + fixed.getBlockX()+","+fixed.getBlockY()+","+fixed.getBlockZ());
             String tag = "stronghold_rating_marker_" + player.getUniqueId();
-            MultiLineHologram.removeAll(fixed, 6.0, tag);
-            MultiLineHologram hologram = new MultiLineHologram(fixed, tag);
-            hologram.spawn(java.util.List.of(
-                    ChatColor.DARK_GRAY + "--------------------",
+            spawnFixedResultScreen(fixed, java.util.List.of(
                     ChatColor.LIGHT_PURPLE + "Stronghold Results",
                     title,
-                    breakdown,
-                    ChatColor.GRAY + "Stage " + ChatColor.WHITE + toStageProgress(Math.max(1, wave)).stage() + ChatColor.GRAY + " cleared",
-                    ChatColor.DARK_GRAY + "--------------------"
-            ));
-            Bukkit.getScheduler().runTaskLater(plugin, hologram::despawn, 20L * 15L);
+                    ChatColor.GRAY + "Objectives " + ChatColor.WHITE + result.objectives(),
+                    ChatColor.GRAY + "Damage Taken " + ChatColor.WHITE + result.damage(),
+                    ChatColor.GRAY + "Time Cleared " + ChatColor.WHITE + (elapsedMs / 1000) + "s" + ChatColor.DARK_GRAY + " (" + result.time() + ")",
+                    ChatColor.GRAY + "Rank " + ChatColor.WHITE + result.rank()
+            ), tag);
         }
 
         private void concludeRunAndSpawnExitPortal() {
@@ -1088,8 +1076,8 @@ public class StrongholdRunManager implements Listener {
                 SurvivorState state = playerStates.get(player.getUniqueId());
                 if (state != null) {
                     long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
-                    String rating = calculateStageRating(state, elapsed);
-                    state.lastStageRating = rating;
+                    ScoreResult result = calculateStageRating(state, elapsed);
+                    state.lastStageRating = result.rank();
                 }
                 int nextStageWave = Math.min(MAX_ABSOLUTE_WAVE, (clearedStage * WAVES_PER_STAGE) + 1);
                 highestAbsoluteWaveByPlayer.merge(player.getUniqueId(), nextStageWave, Math::max);
@@ -1110,7 +1098,7 @@ public class StrongholdRunManager implements Listener {
                             SurvivorState state = playerStates.get(online.getUniqueId());
                             if (state != null && state.lastStageRating != null) {
                                 long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
-                                showStageRating(online, state.lastStageRating, elapsed, state);
+                                showStageRating(online, calculateStageRating(state, elapsed), elapsed, state);
                             }
                         }
                     }, 30L);
@@ -1132,7 +1120,7 @@ public class StrongholdRunManager implements Listener {
                         SurvivorState state = playerStates.get(player.getUniqueId());
                         if (state != null && state.lastStageRating != null) {
                             long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
-                            showStageRating(player, state.lastStageRating, elapsed, state);
+                            showStageRating(player, calculateStageRating(state, elapsed), elapsed, state);
                         }
                     }
                 }, 30L);
@@ -2782,6 +2770,31 @@ public class StrongholdRunManager implements Listener {
         }
     }
 
+    private void clearActiveStageResultDisplays() {
+        for (org.bukkit.entity.TextDisplay display : new java.util.ArrayList<>(activeStageResultDisplays)) {
+            if (display != null && !display.isDead()) display.remove();
+        }
+        activeStageResultDisplays.clear();
+    }
+
+    private void spawnFixedResultScreen(Location base, java.util.List<String> lines, String tag) {
+        if (base == null || base.getWorld() == null || lines == null || lines.isEmpty()) return;
+        clearActiveStageResultDisplays();
+        double y = 0.0;
+        for (String line : lines) {
+            Location loc = base.clone().add(0, y, 0);
+            org.bukkit.entity.TextDisplay display = (org.bukkit.entity.TextDisplay) base.getWorld().spawnEntity(loc, org.bukkit.entity.EntityType.TEXT_DISPLAY);
+            display.setBillboard(org.bukkit.entity.Display.Billboard.FIXED);
+            display.setText(line);
+            display.setShadowRadius(0f);
+            display.setShadowStrength(0f);
+            display.setBackgroundColor(org.bukkit.Color.fromARGB(0,0,0,0));
+            if (tag != null && !tag.isBlank()) display.addScoreboardTag(tag);
+            activeStageResultDisplays.add(display);
+            y -= 0.28;
+        }
+    }
+
     private void logResultPlacementDebug(String message) {
         if (message == null) return;
         plugin.getLogger().info("[Stronghold][ResultScreen] " + message);
@@ -2848,6 +2861,7 @@ public class StrongholdRunManager implements Listener {
     private void placePortalAt(Location anchor) {
         World world = anchor.getWorld();
         activePortalRatingMarkers.clear();
+        clearActiveStageResultDisplays();
         Map<Integer, List<PortalTemplateBlock>> byLayer = new java.util.TreeMap<>();
         List<PortalTemplateBlock> portalBlocks = new ArrayList<>();
         for (PortalTemplateBlock block : strongholdExitPortalTemplate) {
@@ -3129,6 +3143,8 @@ public class StrongholdRunManager implements Listener {
                                  StatsManager.StatType statType,
                                  int statAmount) {
     }
+
+    public record ScoreResult(int total, int objectives, int damage, int time, String rank) {}
 
     public record StageStatus(int stage, int wave, int enemiesRemaining, String archetypeBuff) {
     }
