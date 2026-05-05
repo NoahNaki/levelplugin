@@ -1085,7 +1085,6 @@ public class StrongholdRunManager implements Listener {
                     long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
                     String rating = calculateStageRating(state, elapsed);
                     state.lastStageRating = rating;
-                    showStageRating(player, rating, elapsed, state);
                 }
                 int nextStageWave = Math.min(MAX_ABSOLUTE_WAVE, (clearedStage * WAVES_PER_STAGE) + 1);
                 highestAbsoluteWaveByPlayer.merge(player.getUniqueId(), nextStageWave, Math::max);
@@ -1099,6 +1098,13 @@ public class StrongholdRunManager implements Listener {
                 exitPortalBounds = tryPlaceExitPortalNearPlayer(player);
                 if (exitPortalBounds != null) {
                     portalPlacementPendingNotified = false;
+                    for (Player online : playersInWorld(world)) {
+                        SurvivorState state = playerStates.get(online.getUniqueId());
+                        if (state != null && state.lastStageRating != null) {
+                            long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
+                            showStageRating(online, state.lastStageRating, elapsed, state);
+                        }
+                    }
                     ChatFormatter.constructDivider(player, "§a§l-", 45);
                     ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
                     ChatFormatter.sendCenteredMessage(player, "");
@@ -1111,6 +1117,11 @@ public class StrongholdRunManager implements Listener {
             if (!portalPlacementPendingNotified) {
                 portalPlacementPendingNotified = true;
                 for (Player player : playersInWorld(world)) {
+                    SurvivorState state = playerStates.get(player.getUniqueId());
+                    if (state != null && state.lastStageRating != null) {
+                        long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
+                        showStageRating(player, state.lastStageRating, elapsed, state);
+                    }
                     ChatFormatter.constructDivider(player, "§a§l-", 45);
                     ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
                     ChatFormatter.sendCenteredMessage(player, "");
