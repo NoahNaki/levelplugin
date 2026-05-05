@@ -1044,7 +1044,7 @@ public class StrongholdRunManager implements Listener {
             if (world != null && exitPortalBounds != null) {
                 return exitPortalBounds.guideTarget(world);
             }
-            return player == null ? null : player.getLocation().clone().add(0, 2.2, 0);
+            return null;
         }
 
         private void showStageRating(Player player, String rating, long elapsedMs, SurvivorState state) {
@@ -2834,7 +2834,11 @@ public class StrongholdRunManager implements Listener {
                     for (PortalTemplateBlock block : layers.get(index)) {
                         Block target = world.getBlockAt(anchor.getBlockX() + block.dx, anchor.getBlockY() + block.dy, anchor.getBlockZ() + block.dz);
                         if (block.data.getMaterial() == Material.WHITE_WOOL) {
-                            activePortalRatingMarkers.add(target.getLocation().add(0.5, 1.0, 0.5));
+                            Location marker = target.getLocation().add(0.5, 1.0, 0.5);
+                            boolean exists = activePortalRatingMarkers.stream().anyMatch(existing -> existing.distanceSquared(marker) < 0.01);
+                            if (!exists && activePortalRatingMarkers.size() < 2) {
+                                activePortalRatingMarkers.add(marker);
+                            }
                             target.setType(Material.AIR, false);
                             continue;
                         }
