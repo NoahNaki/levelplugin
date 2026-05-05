@@ -1104,13 +1104,16 @@ public class StrongholdRunManager implements Listener {
                 if (exitPortalBounds != null) {
                     portalPlacementPendingNotified = false;
                     logResultPlacementDebug("Exit portal placed. Markers=" + activePortalRatingMarkers.size());
-                    for (Player online : playersInWorld(world)) {
-                        SurvivorState state = playerStates.get(online.getUniqueId());
-                        if (state != null && state.lastStageRating != null) {
-                            long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
-                            showStageRating(online, state.lastStageRating, elapsed, state);
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        logResultPlacementDebug("Delayed result render pass. Markers=" + activePortalRatingMarkers.size());
+                        for (Player online : playersInWorld(world)) {
+                            SurvivorState state = playerStates.get(online.getUniqueId());
+                            if (state != null && state.lastStageRating != null) {
+                                long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
+                                showStageRating(online, state.lastStageRating, elapsed, state);
+                            }
                         }
-                    }
+                    }, 30L);
                     ChatFormatter.constructDivider(player, "§a§l-", 45);
                     ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
                     ChatFormatter.sendCenteredMessage(player, "");
@@ -1123,12 +1126,17 @@ public class StrongholdRunManager implements Listener {
             if (!portalPlacementPendingNotified) {
                 portalPlacementPendingNotified = true;
                 logResultPlacementDebug("Portal placement pending fallback branch. Markers=" + activePortalRatingMarkers.size());
-                for (Player player : playersInWorld(world)) {
-                    SurvivorState state = playerStates.get(player.getUniqueId());
-                    if (state != null && state.lastStageRating != null) {
-                        long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
-                        showStageRating(player, state.lastStageRating, elapsed, state);
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    logResultPlacementDebug("Delayed fallback result render pass. Markers=" + activePortalRatingMarkers.size());
+                    for (Player player : playersInWorld(world)) {
+                        SurvivorState state = playerStates.get(player.getUniqueId());
+                        if (state != null && state.lastStageRating != null) {
+                            long elapsed = Math.max(1000L, System.currentTimeMillis() - stageStartedAtMs);
+                            showStageRating(player, state.lastStageRating, elapsed, state);
+                        }
                     }
+                }, 30L);
+                for (Player player : playersInWorld(world)) {
                     ChatFormatter.constructDivider(player, "§a§l-", 45);
                     ChatFormatter.sendCenteredMessage(player, "§a§lSTRONGHOLD STAGE CLEARED");
                     ChatFormatter.sendCenteredMessage(player, "");
