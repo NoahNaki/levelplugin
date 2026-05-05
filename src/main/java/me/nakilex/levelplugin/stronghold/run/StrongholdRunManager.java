@@ -18,7 +18,6 @@ import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.StrongholdStartupProfiler;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
-import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.utils.StrongholdWorldUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
@@ -1036,6 +1035,18 @@ public class StrongholdRunManager implements Listener {
             return "F";
         }
 
+        private Location resolveFixedResultsLocation(Player player) {
+            Location marker = nearestPortalRatingMarker(player);
+            if (marker != null) {
+                return marker;
+            }
+            World world = player == null ? null : player.getWorld();
+            if (world != null && exitPortalBounds != null) {
+                return exitPortalBounds.guideTarget(world);
+            }
+            return player == null ? null : player.getLocation().clone().add(0, 2.2, 0);
+        }
+
         private void showStageRating(Player player, String rating, long elapsedMs, SurvivorState state) {
             if (player == null || rating == null || state == null) return;
             String title = ChatColor.GOLD + "Stage Rating: " + ChatColor.WHITE + rating;
@@ -1044,33 +1055,20 @@ public class StrongholdRunManager implements Listener {
                     + ChatColor.DARK_GRAY + " | Doors " + ChatColor.GRAY + state.doorsOpened
                     + ChatColor.DARK_GRAY + " | Chests " + ChatColor.GRAY + state.chestsOpened;
 
-            Location marker = nearestPortalRatingMarker(player);
-            if (marker != null) {
-                String tag = "stronghold_rating_marker_" + player.getUniqueId();
-                MultiLineHologram.removeAll(marker, 4.0, tag);
-                MultiLineHologram hologram = new MultiLineHologram(marker, tag);
-                hologram.spawn(java.util.List.of(
-                        ChatColor.DARK_GRAY + "--------------------",
-                        ChatColor.LIGHT_PURPLE + "Stronghold Results",
-                        title,
-                        breakdown,
-                        ChatColor.GRAY + "Stage " + ChatColor.WHITE + toStageProgress(Math.max(1, wave)).stage() + ChatColor.GRAY + " cleared",
-                        ChatColor.DARK_GRAY + "--------------------"
-                ));
-                Bukkit.getScheduler().runTaskLater(plugin, hologram::despawn, 20L * 15L);
-                return;
-            }
-            EntityTextDisplay top = new EntityTextDisplay(plugin, player, 1.7);
-            EntityTextDisplay mid = new EntityTextDisplay(plugin, player, 1.4);
-            EntityTextDisplay bottom = new EntityTextDisplay(plugin, player, 1.1);
-            top.update(ChatColor.LIGHT_PURPLE + "Stronghold Results");
-            mid.update(title);
-            bottom.update(breakdown);
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                top.remove();
-                mid.remove();
-                bottom.remove();
-            }, 20L * 10L);
+            Location fixed = resolveFixedResultsLocation(player);
+            if (fixed == null) return;
+            String tag = "stronghold_rating_marker_" + player.getUniqueId();
+            MultiLineHologram.removeAll(fixed, 6.0, tag);
+            MultiLineHologram hologram = new MultiLineHologram(fixed, tag);
+            hologram.spawn(java.util.List.of(
+                    ChatColor.DARK_GRAY + "--------------------",
+                    ChatColor.LIGHT_PURPLE + "Stronghold Results",
+                    title,
+                    breakdown,
+                    ChatColor.GRAY + "Stage " + ChatColor.WHITE + toStageProgress(Math.max(1, wave)).stage() + ChatColor.GRAY + " cleared",
+                    ChatColor.DARK_GRAY + "--------------------"
+            ));
+            Bukkit.getScheduler().runTaskLater(plugin, hologram::despawn, 20L * 15L);
         }
 
         private void concludeRunAndSpawnExitPortal() {
