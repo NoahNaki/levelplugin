@@ -162,7 +162,7 @@ commands:
     usage: /stronghold [join|leave|open|template|shrine] [solo|duo|squad]
   gemdungeon:
     description: Opens the Gem Dungeon menu
-    usage: /gemdungeon
+    usage: /gemdungeon [debug]
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage
