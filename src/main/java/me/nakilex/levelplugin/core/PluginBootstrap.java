@@ -141,6 +141,8 @@ public class PluginBootstrap {
     private ArenaCombatTracker arenaCombatTracker;
     private ArenaQueueGUI arenaQueueGUI;
     private ArenaInstanceManager arenaInstanceManager;
+    private me.nakilex.levelplugin.stageddungeon.StagedDungeonManager stagedDungeonManager;
+    private me.nakilex.levelplugin.stageddungeon.StagedDungeonGUI gemDungeonGUI;
     private StrongholdQueueManager strongholdQueueManager;
     private StrongholdQueueGUI strongholdQueueGUI;
     private StrongholdShrineManager strongholdShrineManager;
@@ -399,9 +401,11 @@ public class PluginBootstrap {
         strongholdQueueGUI = new StrongholdQueueGUI(strongholdQueueManager);
         strongholdShrineManager = new StrongholdShrineManager(plugin);
         strongholdRunManager = new StrongholdRunManager(plugin, strongholdShrineManager);
-        if (arenaSystemEnabled) {
-            arenaInstanceManager = new ArenaInstanceManager(plugin);
-        }
+        arenaInstanceManager = new ArenaInstanceManager(plugin);
+        stagedDungeonManager = new me.nakilex.levelplugin.stageddungeon.StagedDungeonManager(plugin, arenaInstanceManager);
+        gemDungeonGUI = stagedDungeonManager.getDefinition("gem")
+                .map(definition -> new me.nakilex.levelplugin.stageddungeon.StagedDungeonGUI(stagedDungeonManager, definition))
+                .orElse(null);
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.init(plugin);
@@ -656,6 +660,9 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.animatedlb.AnimatedLeaderboardPlugin(animatedLbManager);
         plugin.getCommand("animatedlb").setExecutor(animatedLbCmd);
         plugin.getCommand("animatedlb").setTabCompleter(animatedLbCmd);
+        if (gemDungeonGUI != null) {
+            plugin.getCommand("gemdungeon").setExecutor(new me.nakilex.levelplugin.stageddungeon.GemDungeonCommand(gemDungeonGUI));
+        }
 
         me.nakilex.levelplugin.guild.siege.GuildSiegeCommand siegeCmd =
                 new me.nakilex.levelplugin.guild.siege.GuildSiegeCommand(guildSiegeManager);
@@ -693,6 +700,10 @@ public class PluginBootstrap {
         plugin.getServer().getPluginManager().registerEvents(strongholdQueueGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(strongholdShrineManager, plugin);
         plugin.getServer().getPluginManager().registerEvents(strongholdRunManager, plugin);
+        plugin.getServer().getPluginManager().registerEvents(stagedDungeonManager, plugin);
+        if (gemDungeonGUI != null) {
+            plugin.getServer().getPluginManager().registerEvents(gemDungeonGUI, plugin);
+        }
 
         ListenerRegistry.registerListeners(
             plugin,
@@ -852,6 +863,7 @@ public class PluginBootstrap {
         if (strongholdShrineManager != null) strongholdShrineManager.cleanup();
         if (strongholdRunManager != null) strongholdRunManager.stopAll();
         if (strongholdQueueTickTask != null) strongholdQueueTickTask.cancel();
+        if (stagedDungeonManager != null) stagedDungeonManager.stopAll();
         if (arenaInstanceManager != null) arenaInstanceManager.cleanup();
         if (itemConfig != null) itemConfig.saveItems();
         if (guildManager != null) guildManager.save();
@@ -942,6 +954,7 @@ public class PluginBootstrap {
     public ArenaTeamMatchManager getArenaTeamMatchManager() { return arenaTeamMatchManager; }
     public ArenaQueueGUI getArenaQueueGUI() { return arenaQueueGUI; }
     public ArenaInstanceManager getArenaInstanceManager() { return arenaInstanceManager; }
+    public me.nakilex.levelplugin.stageddungeon.StagedDungeonManager getStagedDungeonManager() { return stagedDungeonManager; }
     public StrongholdQueueManager getStrongholdQueueManager() { return strongholdQueueManager; }
     public StrongholdQueueGUI getStrongholdQueueGUI() { return strongholdQueueGUI; }
     public StrongholdShrineManager getStrongholdShrineManager() { return strongholdShrineManager; }
