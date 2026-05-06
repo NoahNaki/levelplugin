@@ -32,8 +32,7 @@ public class StagedDungeonGUI implements Listener {
     public void open(Player player) {
         Inventory inv = Bukkit.createInventory(null, SIZE, title);
         GuiUtil.fillBorder(inv, GuiUtil.createFiller(org.bukkit.Material.GRAY_STAINED_GLASS_PANE));
-        inv.setItem(13, GuiUtil.createGuiItem(definition.icon(),
-                definition.themeColor() + "§l" + definition.displayName(), buildLore(player)));
+        renderEntryButton(inv, player);
         player.openInventory(inv);
     }
 
@@ -45,8 +44,8 @@ public class StagedDungeonGUI implements Listener {
         if (event.getClickedInventory() != event.getView().getTopInventory()) return;
         if (event.getRawSlot() != 13) return;
         if (event.getClick() == ClickType.RIGHT || event.getClick() == ClickType.SHIFT_RIGHT) {
-            player.closeInventory();
             manager.sweep(player, definition);
+            renderEntryButton(event.getView().getTopInventory(), player);
             return;
         }
         if (event.getClick().isLeftClick()) {
@@ -55,14 +54,19 @@ public class StagedDungeonGUI implements Listener {
         }
     }
 
+    private void renderEntryButton(Inventory inventory, Player player) {
+        inventory.setItem(13, GuiUtil.createGuiItem(definition.icon(),
+                definition.themeColor() + "§l" + definition.displayName(), buildLore(player)));
+    }
+
     private List<String> buildLore(Player player) {
         int highest = manager.getHighestCleared(player, definition);
         int nextStage = definition.nextStage(highest);
         int sweepStage = definition.sweepStage(highest);
         int sweepsLeft = manager.getSweepsLeft(player, definition);
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "A reusable idle-style dungeon with");
-        lore.add(ChatColor.GRAY + "stage progression and sweep rewards.");
+        lore.add(ChatColor.GRAY + "Earn " + definition.rewardName() + " by clearing higher stages.");
+        lore.add(ChatColor.GRAY + "Push your best clear, then sweep it for quick rewards.");
         lore.add(" ");
         lore.add(TooltipUtil.sectionHeader("Progress"));
         lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Highest Cleared: " + ChatColor.WHITE + highest));
