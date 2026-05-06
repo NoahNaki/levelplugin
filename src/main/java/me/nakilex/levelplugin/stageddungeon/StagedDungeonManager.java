@@ -102,12 +102,12 @@ public class StagedDungeonManager implements Listener {
     }
 
     public int getHighestCleared(Player player, StagedDungeonDefinition definition) {
-        Integer slot = profileManager.getActiveSlot(player.getUniqueId());
+        Integer slot = resolveProgressSlot(player.getUniqueId());
         return slot == null ? 0 : playerConfig.getStagedDungeonBestStage(player.getUniqueId(), slot, definition.id());
     }
 
     public int getSweepsUsed(Player player, StagedDungeonDefinition definition) {
-        Integer slot = profileManager.getActiveSlot(player.getUniqueId());
+        Integer slot = resolveProgressSlot(player.getUniqueId());
         if (slot == null) return 0;
         String today = currentSweepResetKey();
         String stored = playerConfig.getStagedDungeonSweepResetKey(player.getUniqueId(), slot, definition.id());
@@ -165,7 +165,7 @@ public class StagedDungeonManager implements Listener {
             ChatMessageUtil.send(player, MessageType.WARNING, "You have no sweeps left for " + definition.displayName() + ".");
             return;
         }
-        Integer slot = profileManager.getActiveSlot(player.getUniqueId());
+        Integer slot = resolveProgressSlot(player.getUniqueId());
         if (slot == null) {
             ChatMessageUtil.send(player, MessageType.ERROR, "No active profile found.");
             return;
@@ -347,8 +347,12 @@ public class StagedDungeonManager implements Listener {
     }
 
     private void persistHighestCleared(Player player, StagedDungeonDefinition definition, int stage) {
-        Integer slot = profileManager.getActiveSlot(player.getUniqueId());
-        if (slot == null) return;
+        Integer slot = resolveProgressSlot(player.getUniqueId());
+        if (slot == null) {
+            plugin.getLogger().warning("Unable to persist " + definition.displayName() + " Stage " + stage
+                    + " for " + player.getName() + " because no profile slot could be resolved.");
+            return;
+        }
         int current = playerConfig.getStagedDungeonBestStage(player.getUniqueId(), slot, definition.id());
         playerConfig.setStagedDungeonBestStage(player.getUniqueId(), slot, definition.id(), Math.max(current, stage));
         playerConfig.savePlayer(player.getUniqueId());
@@ -368,11 +372,24 @@ public class StagedDungeonManager implements Listener {
 
     private void updateProfileLocation(UUID id, Location back) {
         if (back == null) return;
-        Integer slot = profileManager.getActiveSlot(id);
+        Integer slot = resolveProgressSlot(id);
         if (slot != null) {
             playerConfig.setProfileLocation(id, slot, back);
             playerConfig.savePlayer(id);
         }
+    }
+
+    private Integer resolveProgressSlot(UUID playerId) {
+        Integer activeSlot = profileManager.getActiveSlot(playerId);
+        if (activeSlot != null) {
+            return activeSlot;
+        }
+        boolean profilesEnabled = plugin.getCustomConfig() == null
+                || plugin.getCustomConfig().getBoolean("features.profiles", true);
+        if (!profilesEnabled) {
+            return 0;
+        }
+        return profileManager.getProfile(playerId, 0) == null ? null : 0;
     }
 
     public boolean isInstanceWorld(World world) {
