@@ -14,7 +14,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.attribute.Attribute;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -74,8 +73,8 @@ public class StagedDungeonManager implements Listener {
                 "gem_dungeon",
                 org.bukkit.entity.EntityType.SLIME,
                 "Common Slime",
-                100.0D,
-                50.0D,
+                250.0D,
+                250.0D,
                 3,
                 "gems",
                 "<glyph:purple_orb_icon>",
@@ -209,15 +208,11 @@ public class StagedDungeonManager implements Listener {
 
     private void spawnStageMob(StagedDungeonRun run) {
         Location spawn = run.instance.getSecondSpawn();
-        Attribute maxHealthAttr = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
         LivingEntity entity = (LivingEntity) spawn.getWorld().spawnEntity(spawn, run.definition.mobType());
-        if (maxHealthAttr != null && entity.getAttribute(maxHealthAttr) != null) {
-            entity.getAttribute(maxHealthAttr).setBaseValue(run.mobHealth);
-            entity.setHealth(run.mobHealth);
-        }
         if (entity instanceof Slime slime) {
             slime.setSize(1);
         }
+        AttributeUtil.setMaxHealthAndHeal(entity, run.mobHealth);
         entity.setCustomName(run.definition.themeColor() + run.definition.mobDisplayName()
                 + ChatColor.GRAY + " [Stage " + run.stage + "]");
         entity.setCustomNameVisible(true);
