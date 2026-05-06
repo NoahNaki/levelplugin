@@ -27,7 +27,10 @@ import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.configuration.file.YamlConfiguration;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Collection;
@@ -50,13 +53,16 @@ public class StagedDungeonManager implements Listener {
     private final ProfileManager profileManager = ProfileManager.getInstance();
     private final Map<String, StagedDungeonDefinition> definitions = new HashMap<>();
     private final Map<UUID, StagedDungeonRun> activeRuns = new HashMap<>();
-    private final Map<UUID, Map<String, Integer>> highestClearedCache = new HashMap<>();
+    private final Map<String, Map<UUID, Integer>> highestCompletedStageByDungeon = new HashMap<>();
+    private File progressionFile;
+    private YamlConfiguration progressionConfig;
 
     public StagedDungeonManager(Main plugin, ArenaInstanceManager instanceManager) {
         this.plugin = plugin;
         this.instanceManager = instanceManager;
         this.playerConfig = plugin.getPlayerConfig();
         registerDefaults();
+        loadProgressionData();
     }
 
     private void registerDefaults() {
@@ -105,11 +111,12 @@ public class StagedDungeonManager implements Listener {
     public int getHighestCleared(Player player, StagedDungeonDefinition definition) {
         UUID playerId = player.getUniqueId();
         Integer slot = resolveProgressSlot(playerId);
-        int stored = slot == null ? 0 : playerConfig.getStagedDungeonBestStage(playerId, slot, definition.id());
-        int cached = getCachedHighestCleared(playerId, definition);
-        int resolved = Math.max(stored, cached);
-        if (resolved > cached) {
-            cacheHighestCleared(playerId, definition, resolved);
+        int legacyProfileStage = slot == null ? 0 : playerConfig.getStagedDungeonBestStage(playerId, slot, definition.id());
+        int progressionStage = getProgressionStage(playerId, definition);
+        int resolved = Math.max(legacyProfileStage, progressionStage);
+        if (resolved > progressionStage) {
+            setProgressionStage(playerId, definition, resolved);
+            saveProgressionData();
         }
         return resolved;
     }
@@ -357,20 +364,29 @@ public class StagedDungeonManager implements Listener {
     }
 
     private void persistHighestCleared(Player player, StagedDungeonDefinition definition, int stage) {
-        Integer slot = resolveProgressSlot(player.getUniqueId());
+        UUID playerId = player.getUniqueId();
+        int previousProgression = getProgressionStage(playerId, definition);
+        int updated = Math.max(previousProgression, stage);
+        setProgressionStage(playerId, definition, updated);
+        saveProgressionData();
+
+        Integer slot = resolveProgressSlot(playerId);
+        int previousProfile = 0;
+        int verifiedProfile = 0;
         if (slot == null) {
-            plugin.getLogger().warning("Unable to persist " + definition.displayName() + " Stage " + stage
-                    + " for " + player.getName() + " because no profile slot could be resolved.");
-            return;
+            plugin.getLogger().warning("No profile slot resolved while mirroring " + definition.displayName()
+                    + " Stage " + stage + " for " + player.getName()
+                    + "; manager progression was still saved.");
+        } else {
+            previousProfile = playerConfig.getStagedDungeonBestStage(playerId, slot, definition.id());
+            playerConfig.setStagedDungeonBestStage(playerId, slot, definition.id(), Math.max(previousProfile, updated));
+            playerConfig.savePlayer(playerId);
+            verifiedProfile = playerConfig.getStagedDungeonBestStage(playerId, slot, definition.id());
         }
-        int current = playerConfig.getStagedDungeonBestStage(player.getUniqueId(), slot, definition.id());
-        int updated = Math.max(current, stage);
-        cacheHighestCleared(player.getUniqueId(), definition, updated);
-        playerConfig.setStagedDungeonBestStage(player.getUniqueId(), slot, definition.id(), updated);
-        playerConfig.savePlayer(player.getUniqueId());
-        int verified = playerConfig.getStagedDungeonBestStage(player.getUniqueId(), slot, definition.id());
-        debugProgress(player, definition, "clear", "cleared=" + stage + ", previousStored=" + current
-                + ", updated=" + updated + ", verifiedInMemory=" + verified + ", next=" + definition.nextStage(updated));
+        debugProgress(player, definition, "clear", "cleared=" + stage
+                + ", previousProgression=" + previousProgression + ", updated=" + updated
+                + ", previousProfile=" + previousProfile + ", verifiedProfile=" + verifiedProfile
+                + ", next=" + definition.nextStage(updated));
     }
 
     private void sendCompletionMessage(Player player, StagedDungeonRun run, int reward) {
@@ -409,16 +425,57 @@ public class StagedDungeonManager implements Listener {
         return profileManager.getProfile(playerId, 0) == null ? null : 0;
     }
 
-    private int getCachedHighestCleared(UUID playerId, StagedDungeonDefinition definition) {
-        return highestClearedCache
-                .getOrDefault(playerId, java.util.Collections.emptyMap())
-                .getOrDefault(progressKey(definition), 0);
+    private void loadProgressionData() {
+        progressionFile = new File(plugin.getDataFolder(), "staged_dungeon_progression.yml");
+        progressionConfig = YamlConfiguration.loadConfiguration(progressionFile);
+        highestCompletedStageByDungeon.clear();
+        if (!progressionConfig.isConfigurationSection("dungeons")) {
+            return;
+        }
+        for (String dungeonId : progressionConfig.getConfigurationSection("dungeons").getKeys(false)) {
+            String playersPath = "dungeons." + dungeonId + ".players";
+            if (!progressionConfig.isConfigurationSection(playersPath)) {
+                continue;
+            }
+            Map<UUID, Integer> stages = highestCompletedStageByDungeon.computeIfAbsent(
+                    dungeonId.toLowerCase(java.util.Locale.ROOT), ignored -> new HashMap<>());
+            for (String key : progressionConfig.getConfigurationSection(playersPath).getKeys(false)) {
+                try {
+                    stages.put(UUID.fromString(key), Math.max(0, progressionConfig.getInt(playersPath + "." + key + ".highest-completed-stage", 0)));
+                } catch (IllegalArgumentException ignored) {
+                    plugin.getLogger().warning("Ignoring invalid staged dungeon progression UUID: " + key);
+                }
+            }
+        }
     }
 
-    private void cacheHighestCleared(UUID playerId, StagedDungeonDefinition definition, int stage) {
-        highestClearedCache
-                .computeIfAbsent(playerId, ignored -> new HashMap<>())
-                .merge(progressKey(definition), Math.max(0, stage), Math::max);
+    private void saveProgressionData() {
+        if (progressionConfig == null || progressionFile == null) return;
+        progressionConfig.set("dungeons", null);
+        for (Map.Entry<String, Map<UUID, Integer>> dungeonEntry : highestCompletedStageByDungeon.entrySet()) {
+            String dungeonId = dungeonEntry.getKey();
+            for (Map.Entry<UUID, Integer> playerEntry : dungeonEntry.getValue().entrySet()) {
+                progressionConfig.set("dungeons." + dungeonId + ".players." + playerEntry.getKey()
+                        + ".highest-completed-stage", Math.max(0, playerEntry.getValue()));
+            }
+        }
+        try {
+            progressionConfig.save(progressionFile);
+        } catch (IOException ex) {
+            plugin.getLogger().severe("Failed to save staged_dungeon_progression.yml: " + ex.getMessage());
+        }
+    }
+
+    private int getProgressionStage(UUID playerId, StagedDungeonDefinition definition) {
+        return highestCompletedStageByDungeon
+                .getOrDefault(progressKey(definition), java.util.Collections.emptyMap())
+                .getOrDefault(playerId, 0);
+    }
+
+    private void setProgressionStage(UUID playerId, StagedDungeonDefinition definition, int stage) {
+        highestCompletedStageByDungeon
+                .computeIfAbsent(progressKey(definition), ignored -> new HashMap<>())
+                .merge(playerId, Math.max(0, stage), Math::max);
     }
 
     private String progressKey(StagedDungeonDefinition definition) {
@@ -429,12 +486,13 @@ public class StagedDungeonManager implements Listener {
         if (player == null || definition == null) return;
         Integer activeSlot = profileManager.getActiveSlot(player.getUniqueId());
         Integer resolvedSlot = resolveProgressSlot(player.getUniqueId());
-        int stored = resolvedSlot == null ? 0 : playerConfig.getStagedDungeonBestStage(player.getUniqueId(), resolvedSlot, definition.id());
-        int cached = getCachedHighestCleared(player.getUniqueId(), definition);
+        int profileStored = resolvedSlot == null ? 0 : playerConfig.getStagedDungeonBestStage(player.getUniqueId(), resolvedSlot, definition.id());
+        int progressionStored = getProgressionStage(player.getUniqueId(), definition);
         int highest = getHighestCleared(player, definition);
         ChatMessageUtil.send(player, MessageType.INFO, "[GemDungeonDebug] activeSlot=" + activeSlot
-                + ", resolvedSlot=" + resolvedSlot + ", stored=" + stored + ", cached=" + cached
-                + ", highest=" + highest + ", next=" + definition.nextStage(highest)
+                + ", resolvedSlot=" + resolvedSlot + ", profileStored=" + profileStored
+                + ", progressionStored=" + progressionStored + ", highest=" + highest
+                + ", next=" + definition.nextStage(highest)
                 + ", inRun=" + activeRuns.containsKey(player.getUniqueId()));
     }
 
@@ -442,11 +500,11 @@ public class StagedDungeonManager implements Listener {
         UUID playerId = player.getUniqueId();
         Integer activeSlot = profileManager.getActiveSlot(playerId);
         Integer resolvedSlot = resolveProgressSlot(playerId);
-        int stored = resolvedSlot == null ? 0 : playerConfig.getStagedDungeonBestStage(playerId, resolvedSlot, definition.id());
-        int cached = getCachedHighestCleared(playerId, definition);
+        int profileStored = resolvedSlot == null ? 0 : playerConfig.getStagedDungeonBestStage(playerId, resolvedSlot, definition.id());
+        int progressionStored = getProgressionStage(playerId, definition);
         String message = "[StagedDungeonDebug] player=" + player.getName() + ", dungeon=" + definition.id()
                 + ", action=" + action + ", activeSlot=" + activeSlot + ", resolvedSlot=" + resolvedSlot
-                + ", stored=" + stored + ", cached=" + cached + ", " + detail;
+                + ", profileStored=" + profileStored + ", progressionStored=" + progressionStored + ", " + detail;
         plugin.getLogger().info(message);
         ChatMessageUtil.send(player, MessageType.INFO, message);
     }
