@@ -163,6 +163,9 @@ commands:
   gemdungeon:
     description: Opens the Gem Dungeon menu
     usage: /gemdungeon
+  coindungeon:
+    description: Opens the Coin Dungeon menu
+    usage: /coindungeon
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage

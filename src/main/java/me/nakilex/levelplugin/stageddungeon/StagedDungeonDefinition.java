@@ -24,6 +24,7 @@ public record StagedDungeonDefinition(
         String rewardGlyph,
         int stageTimeSeconds,
         BarColor bossBarColor,
+        StagedDungeonObjective objective,
         RewardGrant rewardGrant
 ) {
     public int nextStage(int highestCleared) {
@@ -38,7 +39,27 @@ public record StagedDungeonDefinition(
         return Math.max(1.0, baseMobHealth + (Math.max(1, stage) - 1) * healthPerStage);
     }
 
+    public boolean isDamageMeter() {
+        return objective == StagedDungeonObjective.DAMAGE_METER;
+    }
+
+    public boolean supportsSweeps() {
+        return sweepAttempts > 0;
+    }
+
+    public double runMobHealth(int stage) {
+        return isDamageMeter() ? 1_000_000_000.0D : mobHealth(stage);
+    }
+
     public int rewardForStage(int stage) {
-        return Math.max(1, (int) Math.round(mobHealth(stage) * 0.10D));
+        return Math.max(1, rewardFromDamage(mobHealth(stage)));
+    }
+
+    public int rewardForSweep(int stage, double bestDamage) {
+        return isDamageMeter() ? rewardFromDamage(bestDamage) : rewardForStage(stage);
+    }
+
+    public int rewardFromDamage(double damage) {
+        return Math.max(0, (int) Math.round(Math.max(0.0D, damage) * 0.10D));
     }
 }

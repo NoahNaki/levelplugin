@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.NumberUtil;
 import me.nakilex.levelplugin.utils.TeleportUtils;
+import me.nakilex.levelplugin.utils.CombatTargetUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -21,6 +22,7 @@ import org.bukkit.entity.Slime;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.SlimeSplitEvent;
@@ -52,7 +54,7 @@ public class StagedDungeonManager implements Listener {
     private final ProfileManager profileManager = ProfileManager.getInstance();
     private final Map<String, StagedDungeonDefinition> definitions = new HashMap<>();
     private final Map<UUID, StagedDungeonRun> activeRuns = new HashMap<>();
-    private final Map<String, Map<UUID, Integer>> highestCompletedStageByDungeon = new HashMap<>();
+    private final Map<String, Map<UUID, DungeonProgress>> progressByDungeon = new HashMap<>();
     private File progressionFile;
     private YamlConfiguration progressionConfig;
 
@@ -80,7 +82,26 @@ public class StagedDungeonManager implements Listener {
                 "<glyph:purple_orb_icon>",
                 20,
                 org.bukkit.boss.BarColor.PURPLE,
+                StagedDungeonObjective.KILL_MOB,
                 (player, amount) -> plugin.getGemsManager().addUnits(player, amount)
+        ));
+        registerDefinition(new StagedDungeonDefinition(
+                "coin",
+                "Coin Dungeon",
+                ChatColor.GOLD,
+                org.bukkit.Material.GOLD_NUGGET,
+                "coin_dungeon",
+                org.bukkit.entity.EntityType.SLIME,
+                "Golden Slime",
+                500.0D,
+                500.0D,
+                3,
+                "coins",
+                "<glyph:coins_icon>",
+                20,
+                org.bukkit.boss.BarColor.YELLOW,
+                StagedDungeonObjective.DAMAGE_METER,
+                (player, amount) -> plugin.getEconomyManager().addCoins(player, amount)
         ));
     }
 
@@ -114,13 +135,14 @@ public class StagedDungeonManager implements Listener {
         int progressionStage = getProgressionStage(playerId, definition);
         int resolved = Math.max(legacyProfileStage, progressionStage);
         if (resolved > progressionStage) {
-            setProgressionStage(playerId, definition, resolved);
+            setProgression(playerId, definition, resolved, getProgression(playerId, definition).bestDamage());
             saveProgressionData();
         }
         return resolved;
     }
 
     public int getSweepsUsed(Player player, StagedDungeonDefinition definition) {
+        if (!definition.supportsSweeps()) return 0;
         Integer slot = resolveProgressSlot(player.getUniqueId());
         if (slot == null) return 0;
         String today = currentSweepResetKey();
@@ -134,6 +156,7 @@ public class StagedDungeonManager implements Listener {
     }
 
     public int getSweepsLeft(Player player, StagedDungeonDefinition definition) {
+        if (!definition.supportsSweeps()) return 0;
         return Math.max(0, definition.sweepAttempts() - getSweepsUsed(player, definition));
     }
 
@@ -154,7 +177,7 @@ public class StagedDungeonManager implements Listener {
             return;
         }
         StagedDungeonRun run = new StagedDungeonRun(player.getUniqueId(), definition, stage,
-                definition.mobHealth(stage), player.getLocation(), instance);
+                definition.runMobHealth(stage), player.getLocation(), instance);
         activeRuns.put(player.getUniqueId(), run);
         TeleportUtils.safeTeleport(player, instance.getFirstSpawn());
         spawnStageMob(run);
@@ -186,7 +209,8 @@ public class StagedDungeonManager implements Listener {
             return;
         }
         int stage = definition.sweepStage(highest);
-        int reward = definition.rewardForStage(stage);
+        double bestDamage = getBestDamage(player, definition);
+        int reward = definition.rewardForSweep(stage, bestDamage);
         definition.rewardGrant().grant(player, reward);
         int used = getSweepsUsed(player, definition) + 1;
         playerConfig.setStagedDungeonSweeps(player.getUniqueId(), slot, definition.id(), used, currentSweepResetKey());
@@ -195,7 +219,10 @@ public class StagedDungeonManager implements Listener {
                 "You received " + definition.themeColor() + NumberUtil.formatCommas(reward) + " "
                         + definition.rewardGlyph() + " " + ChatColor.GOLD + definition.rewardName()
                         + ChatColor.GOLD + " from sweeping " + definition.displayName() + " Stage "
-                        + ChatColor.WHITE + stage + ChatColor.GOLD + ".");
+                        + ChatColor.WHITE + stage + ChatColor.GOLD
+                        + (definition.isDamageMeter()
+                        ? ChatColor.GRAY + " (Best Damage: " + ChatColor.WHITE + NumberUtil.formatCommas(Math.round(bestDamage)) + ChatColor.GRAY + ")"
+                        : "") + ChatColor.GOLD + ".");
     }
 
     public void stopAll() {
@@ -212,6 +239,10 @@ public class StagedDungeonManager implements Listener {
             slime.setSize(1);
         }
         AttributeUtil.setMaxHealthAndHeal(entity, run.mobHealth);
+        if (run.definition.isDamageMeter()) {
+            entity.setAI(false);
+            entity.setRemoveWhenFarAway(false);
+        }
         entity.setCustomName(run.definition.themeColor() + run.definition.mobDisplayName()
                 + ChatColor.GRAY + " [Stage " + run.stage + "]");
         entity.setCustomNameVisible(true);
@@ -245,7 +276,11 @@ public class StagedDungeonManager implements Listener {
                     updateScoreboard(player);
                 }
                 if (System.currentTimeMillis() >= run.deadlineMs) {
-                    failRun(run);
+                    if (run.definition.isDamageMeter()) {
+                        completeRun(run);
+                    } else {
+                        failRun(run);
+                    }
                     cancel();
                 }
             }
@@ -254,6 +289,17 @@ public class StagedDungeonManager implements Listener {
 
     private void updateHealthBar(StagedDungeonRun run) {
         if (run == null || run.healthBar == null) return;
+        if (run.definition.isDamageMeter()) {
+            int reward = run.definition.rewardFromDamage(run.damageDealt);
+            run.healthBar.setTitle(run.definition.themeColor() + "§l" + run.definition.mobDisplayName()
+                    + ChatColor.DARK_GRAY + " | " + ChatColor.GRAY + "Reward: "
+                    + run.definition.themeColor() + NumberUtil.formatCommas(reward) + " "
+                    + run.definition.rewardGlyph() + " " + run.definition.rewardName());
+            double secondsLeft = Math.max(0.0D, (run.deadlineMs - System.currentTimeMillis()) / 1000.0D);
+            run.healthBar.setProgress(Math.max(0.0D, Math.min(1.0D,
+                    secondsLeft / Math.max(1.0D, run.definition.stageTimeSeconds()))));
+            return;
+        }
         LivingEntity mob = run.getMob();
         double current = mob == null || mob.isDead() ? 0.0D : Math.max(0.0D, mob.getHealth());
         double max = Math.max(1.0D, run.mobHealth);
@@ -264,6 +310,26 @@ public class StagedDungeonManager implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity living)) return;
+        StagedDungeonRun run = findRunByMob(living.getUniqueId());
+        if (run == null || run.finishing || !run.definition.isDamageMeter()) return;
+        if (!CombatTargetUtil.isPlayerSourced(event.getDamager())) return;
+        // Run after stat-scaling listeners so the meter records the real damage the hit would deal.
+        run.damageDealt += Math.max(0.0D, event.getFinalDamage());
+        event.setDamage(0.0D);
+        LivingEntity mob = run.getMob();
+        if (mob != null && !mob.isDead()) {
+            mob.setHealth(Math.min(run.mobHealth, getMaxHealth(mob)));
+        }
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            StagedDungeonRun current = activeRuns.get(run.playerId);
+            healDamageMeterMob(current);
+            updateHealthBar(current);
+        });
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageEvent event) {
         if (!(event.getEntity() instanceof LivingEntity living)) return;
         StagedDungeonRun run = findRunByMob(living.getUniqueId());
@@ -271,6 +337,12 @@ public class StagedDungeonManager implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> {
             StagedDungeonRun current = activeRuns.get(run.playerId);
             if (current == null || current.finishing) return;
+            if (current.definition.isDamageMeter()) {
+                event.setDamage(0.0D);
+                healDamageMeterMob(current);
+                updateHealthBar(current);
+                return;
+            }
             updateHealthBar(current);
             LivingEntity mob = current.getMob();
             if (mob == null || mob.isDead() || mob.getHealth() <= 0.0D) {
@@ -299,6 +371,9 @@ public class StagedDungeonManager implements Listener {
         if (run == null || run.finishing) return;
         event.getDrops().clear();
         event.setDroppedExp(0);
+        if (run.definition.isDamageMeter()) {
+            return;
+        }
         completeRun(run);
     }
 
@@ -315,11 +390,13 @@ public class StagedDungeonManager implements Listener {
     private void completeRun(StagedDungeonRun run) {
         if (run == null || run.finishing) return;
         run.finishing = true;
-        int reward = run.definition.rewardForStage(run.stage);
+        int reward = run.definition.isDamageMeter()
+                ? run.definition.rewardFromDamage(run.damageDealt)
+                : run.definition.rewardForStage(run.stage);
         Player player = run.getPlayer();
         if (player != null) {
             run.definition.rewardGrant().grant(player, reward);
-            persistHighestCleared(player, run.definition, run.stage);
+            persistRunProgress(player, run.definition, run.stage, run.definition.isDamageMeter() ? run.damageDealt : 0.0D);
             sendCompletionMessage(player, run, reward);
         }
         finishRun(run, true, true);
@@ -349,6 +426,20 @@ public class StagedDungeonManager implements Listener {
         instanceManager.destroyInstance(run.instance);
     }
 
+    private void healDamageMeterMob(StagedDungeonRun run) {
+        if (run == null || !run.definition.isDamageMeter()) return;
+        LivingEntity mob = run.getMob();
+        if (mob == null || mob.isDead()) return;
+        mob.setHealth(Math.min(run.mobHealth, getMaxHealth(mob)));
+    }
+
+    private double getMaxHealth(LivingEntity mob) {
+        if (mob == null) return 1.0D;
+        org.bukkit.attribute.Attribute maxHealthAttribute = AttributeUtil.resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+        org.bukkit.attribute.AttributeInstance attribute = maxHealthAttribute == null ? null : mob.getAttribute(maxHealthAttribute);
+        return attribute == null ? Math.max(1.0D, mob.getHealth()) : Math.max(1.0D, attribute.getValue());
+    }
+
     private StagedDungeonRun findRunByMob(UUID mobId) {
         if (mobId == null) return null;
         return activeRuns.values().stream()
@@ -357,11 +448,12 @@ public class StagedDungeonManager implements Listener {
                 .orElse(null);
     }
 
-    private void persistHighestCleared(Player player, StagedDungeonDefinition definition, int stage) {
+    private void persistRunProgress(Player player, StagedDungeonDefinition definition, int stage, double damageDealt) {
         UUID playerId = player.getUniqueId();
-        int previousProgression = getProgressionStage(playerId, definition);
-        int updated = Math.max(previousProgression, stage);
-        setProgressionStage(playerId, definition, updated);
+        DungeonProgress previousProgression = getProgression(playerId, definition);
+        int updated = Math.max(previousProgression.highestCompletedStage(), stage);
+        double updatedBestDamage = Math.max(previousProgression.bestDamage(), damageDealt);
+        setProgression(playerId, definition, updated, updatedBestDamage);
         saveProgressionData();
 
         Integer slot = resolveProgressSlot(playerId);
@@ -378,8 +470,8 @@ public class StagedDungeonManager implements Listener {
             verifiedProfile = playerConfig.getStagedDungeonBestStage(playerId, slot, definition.id());
         }
         plugin.getLogger().fine("Updated " + definition.displayName() + " progression for " + player.getName()
-                + ": cleared=" + stage + ", previousProgression=" + previousProgression
-                + ", updated=" + updated + ", previousProfile=" + previousProfile
+                + ": cleared=" + stage + ", previousProgression=" + previousProgression.highestCompletedStage()
+                + ", updated=" + updated + ", bestDamage=" + updatedBestDamage + ", previousProfile=" + previousProfile
                 + ", verifiedProfile=" + verifiedProfile + ", next=" + definition.nextStage(updated));
     }
 
@@ -388,7 +480,13 @@ public class StagedDungeonManager implements Listener {
         ChatFormatter.sendCenteredMessage(player, run.definition.themeColor() + "§l" + run.definition.displayName().toUpperCase() + " CLEARED");
         ChatFormatter.sendCenteredMessage(player, "");
         ChatFormatter.sendCenteredMessage(player,
-                ChatColor.GRAY + "Stage " + ChatColor.WHITE + run.stage + ChatColor.GRAY + " defeated.");
+                ChatColor.GRAY + "Stage " + ChatColor.WHITE + run.stage + ChatColor.GRAY
+                        + (run.definition.isDamageMeter() ? " completed." : " defeated."));
+        if (run.definition.isDamageMeter()) {
+            ChatFormatter.sendCenteredMessage(player,
+                    ChatColor.GRAY + "Damage Dealt: " + ChatColor.WHITE
+                            + NumberUtil.formatCommas(Math.round(run.damageDealt)));
+        }
         ChatFormatter.sendCenteredMessage(player,
                 ChatColor.GRAY + "Reward: " + run.definition.themeColor() + NumberUtil.formatCommas(reward)
                         + " " + run.definition.rewardGlyph() + " " + run.definition.rewardName());
@@ -422,7 +520,7 @@ public class StagedDungeonManager implements Listener {
     private void loadProgressionData() {
         progressionFile = new File(plugin.getDataFolder(), "staged_dungeon_progression.yml");
         progressionConfig = YamlConfiguration.loadConfiguration(progressionFile);
-        highestCompletedStageByDungeon.clear();
+        progressByDungeon.clear();
         if (!progressionConfig.isConfigurationSection("dungeons")) {
             return;
         }
@@ -431,11 +529,14 @@ public class StagedDungeonManager implements Listener {
             if (!progressionConfig.isConfigurationSection(playersPath)) {
                 continue;
             }
-            Map<UUID, Integer> stages = highestCompletedStageByDungeon.computeIfAbsent(
+            Map<UUID, DungeonProgress> progress = progressByDungeon.computeIfAbsent(
                     dungeonId.toLowerCase(java.util.Locale.ROOT), ignored -> new HashMap<>());
             for (String key : progressionConfig.getConfigurationSection(playersPath).getKeys(false)) {
                 try {
-                    stages.put(UUID.fromString(key), Math.max(0, progressionConfig.getInt(playersPath + "." + key + ".highest-completed-stage", 0)));
+                    String playerPath = playersPath + "." + key;
+                    int highestStage = Math.max(0, progressionConfig.getInt(playerPath + ".highest-completed-stage", 0));
+                    double bestDamage = Math.max(0.0D, progressionConfig.getDouble(playerPath + ".best-damage", 0.0D));
+                    progress.put(UUID.fromString(key), new DungeonProgress(highestStage, bestDamage));
                 } catch (IllegalArgumentException ignored) {
                     plugin.getLogger().warning("Ignoring invalid staged dungeon progression UUID: " + key);
                 }
@@ -446,11 +547,13 @@ public class StagedDungeonManager implements Listener {
     private void saveProgressionData() {
         if (progressionConfig == null || progressionFile == null) return;
         progressionConfig.set("dungeons", null);
-        for (Map.Entry<String, Map<UUID, Integer>> dungeonEntry : highestCompletedStageByDungeon.entrySet()) {
+        for (Map.Entry<String, Map<UUID, DungeonProgress>> dungeonEntry : progressByDungeon.entrySet()) {
             String dungeonId = dungeonEntry.getKey();
-            for (Map.Entry<UUID, Integer> playerEntry : dungeonEntry.getValue().entrySet()) {
-                progressionConfig.set("dungeons." + dungeonId + ".players." + playerEntry.getKey()
-                        + ".highest-completed-stage", Math.max(0, playerEntry.getValue()));
+            for (Map.Entry<UUID, DungeonProgress> playerEntry : dungeonEntry.getValue().entrySet()) {
+                String playerPath = "dungeons." + dungeonId + ".players." + playerEntry.getKey();
+                DungeonProgress progress = playerEntry.getValue();
+                progressionConfig.set(playerPath + ".highest-completed-stage", Math.max(0, progress.highestCompletedStage()));
+                progressionConfig.set(playerPath + ".best-damage", progress.bestDamage() > 0.0D ? progress.bestDamage() : null);
             }
         }
         try {
@@ -461,15 +564,40 @@ public class StagedDungeonManager implements Listener {
     }
 
     private int getProgressionStage(UUID playerId, StagedDungeonDefinition definition) {
-        return highestCompletedStageByDungeon
-                .getOrDefault(progressKey(definition), java.util.Collections.emptyMap())
-                .getOrDefault(playerId, 0);
+        return getProgression(playerId, definition).highestCompletedStage();
     }
 
-    private void setProgressionStage(UUID playerId, StagedDungeonDefinition definition, int stage) {
-        highestCompletedStageByDungeon
+    public double getBestDamage(Player player, StagedDungeonDefinition definition) {
+        if (player == null || definition == null) return 0.0D;
+        return getProgression(player.getUniqueId(), definition).bestDamage();
+    }
+
+    public int getSweepReward(Player player, StagedDungeonDefinition definition) {
+        if (player == null || definition == null) return 0;
+        int highest = getHighestCleared(player, definition);
+        return definition.rewardForSweep(definition.sweepStage(highest), getBestDamage(player, definition));
+    }
+
+    private DungeonProgress getProgression(UUID playerId, StagedDungeonDefinition definition) {
+        return progressByDungeon
+                .getOrDefault(progressKey(definition), java.util.Collections.emptyMap())
+                .getOrDefault(playerId, DungeonProgress.EMPTY);
+    }
+
+    private void setProgression(UUID playerId, StagedDungeonDefinition definition, int stage, double bestDamage) {
+        progressByDungeon
                 .computeIfAbsent(progressKey(definition), ignored -> new HashMap<>())
-                .merge(playerId, Math.max(0, stage), Math::max);
+                .merge(playerId, new DungeonProgress(Math.max(0, stage), Math.max(0.0D, bestDamage)), DungeonProgress::bestOf);
+    }
+
+    private record DungeonProgress(int highestCompletedStage, double bestDamage) {
+        private static final DungeonProgress EMPTY = new DungeonProgress(0, 0.0D);
+
+        private static DungeonProgress bestOf(DungeonProgress first, DungeonProgress second) {
+            return new DungeonProgress(
+                    Math.max(first.highestCompletedStage, second.highestCompletedStage),
+                    Math.max(first.bestDamage, second.bestDamage));
+        }
     }
 
     private String progressKey(StagedDungeonDefinition definition) {
