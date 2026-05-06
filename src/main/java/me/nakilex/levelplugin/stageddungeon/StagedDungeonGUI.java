@@ -63,6 +63,8 @@ public class StagedDungeonGUI implements Listener {
         int highest = manager.getHighestCleared(player, definition);
         int nextStage = definition.nextStage(highest);
         int sweepStage = definition.sweepStage(highest);
+        int sweepReward = definition.supportsSweeps() ? manager.getSweepReward(player, definition) : 0;
+        double bestDamage = definition.isDamageMeter() ? manager.getBestDamage(player, definition) : 0.0D;
         int sweepsLeft = definition.supportsSweeps() ? manager.getSweepsLeft(player, definition) : 0;
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + "Earn " + definition.rewardName() + " by clearing higher stages.");
@@ -92,24 +94,20 @@ public class StagedDungeonGUI implements Listener {
         }
         lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Timer: " + ChatColor.WHITE
                 + definition.stageTimeSeconds() + "s"));
-        if (definition.supportsSweeps()) {
-            if (highest > 0) {
-                lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Sweep Stage: " + ChatColor.WHITE + sweepStage
-                        + ChatColor.GRAY + " (" + definition.themeColor()
-                        + NumberUtil.formatCommas(definition.rewardForStage(sweepStage)) + " " + definition.rewardGlyph()
-                        + ChatColor.GRAY + ")"));
-            } else {
-                lore.add(TooltipUtil.arrowLine(ChatColor.RED + "Clear Stage 1 to unlock sweeps."));
+        if (highest > 0) {
+            if (definition.isDamageMeter()) {
+                lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Best Damage: " + ChatColor.WHITE
+                        + NumberUtil.formatCommas(Math.round(bestDamage))));
             }
+            lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Sweep Stage: " + ChatColor.WHITE + sweepStage
+                    + ChatColor.GRAY + " (" + definition.themeColor()
+                    + NumberUtil.formatCommas(sweepReward) + " " + definition.rewardGlyph()
+                    + ChatColor.GRAY + ")"));
         } else {
-            lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Sweeps: " + ChatColor.RED + "Unavailable for damage meter runs."));
+            lore.add(TooltipUtil.arrowLine(ChatColor.RED + "Clear Stage 1 to unlock sweeps."));
         }
         lore.add(" ");
-        if (definition.supportsSweeps()) {
-            lore.addAll(TooltipUtil.clickInstructions("to enter the next stage", "to sweep your highest cleared stage"));
-        } else {
-            lore.addAll(TooltipUtil.clickInstructions("to enter the next stage", null));
-        }
+        lore.addAll(TooltipUtil.clickInstructions("to enter the next stage", "to sweep your highest cleared stage"));
         return lore;
     }
 }

@@ -44,11 +44,19 @@ public record StagedDungeonDefinition(
     }
 
     public boolean supportsSweeps() {
-        return !isDamageMeter();
+        return sweepAttempts > 0;
+    }
+
+    public double runMobHealth(int stage) {
+        return isDamageMeter() ? 1_000_000_000.0D : mobHealth(stage);
     }
 
     public int rewardForStage(int stage) {
         return Math.max(1, rewardFromDamage(mobHealth(stage)));
+    }
+
+    public int rewardForSweep(int stage, double bestDamage) {
+        return isDamageMeter() ? rewardFromDamage(bestDamage) : rewardForStage(stage);
     }
 
     public int rewardFromDamage(double damage) {
