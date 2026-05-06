@@ -15,13 +15,18 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
+import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Slime;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
+import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -36,6 +41,8 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 /** Coordinates reusable stage-based currency dungeon runs and progression. */
 public class StagedDungeonManager implements Listener {
     private static final String RUN_MOB_TAG = "staged_dungeon_mob";
+
+    public record StageStatus(String displayName, ChatColor color, int stage, int secondsLeft) {}
 
     private final Main plugin;
     private final ArenaInstanceManager instanceManager;
@@ -65,6 +72,8 @@ public class StagedDungeonManager implements Listener {
                 3,
                 "gems",
                 "<glyph:purple_orb_icon>",
+                20,
+                org.bukkit.boss.BarColor.PURPLE,
                 (player, amount) -> plugin.getGemsManager().addUnits(player, amount)
         ));
     }
@@ -84,6 +93,12 @@ public class StagedDungeonManager implements Listener {
 
     public boolean isInRun(UUID playerId) {
         return activeRuns.containsKey(playerId);
+    }
+
+    public StageStatus getStageStatus(UUID playerId) {
+        StagedDungeonRun run = activeRuns.get(playerId);
+        if (run == null) return null;
+        return new StageStatus(run.definition.displayName(), run.definition.themeColor(), run.stage, secondsLeft(run));
     }
 
     public int getHighestCleared(Player player, StagedDungeonDefinition definition) {
@@ -128,6 +143,8 @@ public class StagedDungeonManager implements Listener {
         activeRuns.put(player.getUniqueId(), run);
         TeleportUtils.safeTeleport(player, instance.getFirstSpawn());
         spawnStageMob(run);
+        startTimer(run);
+        updateScoreboard(player);
         ChatMessageUtil.send(player, MessageType.SUCCESS,
                 "Entering " + definition.themeColor() + definition.displayName() + ChatColor.GREEN
                         + " Stage " + ChatColor.WHITE + stage + ChatColor.GREEN + ".");
@@ -182,7 +199,7 @@ public class StagedDungeonManager implements Listener {
             entity.setHealth(run.mobHealth);
         }
         if (entity instanceof Slime slime) {
-            slime.setSize(2);
+            slime.setSize(1);
         }
         entity.setCustomName(run.definition.themeColor() + run.definition.mobDisplayName()
                 + ChatColor.GRAY + " [Stage " + run.stage + "]");
@@ -190,17 +207,85 @@ public class StagedDungeonManager implements Listener {
         entity.addScoreboardTag(RUN_MOB_TAG);
         entity.addScoreboardTag("staged_dungeon_" + run.definition.id());
         run.mobId = entity.getUniqueId();
+        createHealthBar(run);
+    }
+
+    private void createHealthBar(StagedDungeonRun run) {
+        Player player = run.getPlayer();
+        if (player == null) return;
+        run.healthBar = Bukkit.createBossBar("", run.definition.bossBarColor(), BarStyle.SOLID);
+        run.healthBar.addPlayer(player);
+        run.healthBar.setVisible(true);
+        updateHealthBar(run);
+    }
+
+    private void startTimer(StagedDungeonRun run) {
+        run.deadlineMs = System.currentTimeMillis() + Math.max(1, run.definition.stageTimeSeconds()) * 1000L;
+        run.timerTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!activeRuns.containsKey(run.playerId) || run.finishing) {
+                    cancel();
+                    return;
+                }
+                updateHealthBar(run);
+                Player player = run.getPlayer();
+                if (player != null) {
+                    updateScoreboard(player);
+                }
+                if (System.currentTimeMillis() >= run.deadlineMs) {
+                    failRun(run);
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 10L);
+    }
+
+    private void updateHealthBar(StagedDungeonRun run) {
+        if (run == null || run.healthBar == null) return;
+        LivingEntity mob = run.getMob();
+        double current = mob == null || mob.isDead() ? 0.0D : Math.max(0.0D, mob.getHealth());
+        double max = Math.max(1.0D, run.mobHealth);
+        run.healthBar.setTitle(run.definition.themeColor() + "§l" + run.definition.mobDisplayName()
+                + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + NumberUtil.formatCommas(Math.round(current))
+                + ChatColor.GRAY + "/" + ChatColor.WHITE + NumberUtil.formatCommas(Math.round(max)) + " HP");
+        run.healthBar.setProgress(Math.max(0.0D, Math.min(1.0D, current / max)));
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity living)) return;
+        StagedDungeonRun run = findRunByMob(living.getUniqueId());
+        if (run == null || run.finishing) return;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            StagedDungeonRun current = activeRuns.get(run.playerId);
+            if (current == null || current.finishing) return;
+            updateHealthBar(current);
+            LivingEntity mob = current.getMob();
+            if (mob == null || mob.isDead() || mob.getHealth() <= 0.0D) {
+                completeRun(current);
+            }
+        });
+    }
+
+    @EventHandler
+    public void onSlimeSplit(SlimeSplitEvent event) {
+        if (findRunByMob(event.getEntity().getUniqueId()) != null) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler
     public void onEntityDeath(EntityDeathEvent event) {
         if (!event.getEntity().getScoreboardTags().contains(RUN_MOB_TAG)) return;
-        UUID mobId = event.getEntity().getUniqueId();
-        StagedDungeonRun run = activeRuns.values().stream()
-                .filter(candidate -> mobId.equals(candidate.mobId))
-                .findFirst()
-                .orElse(null);
-        if (run == null) return;
+        StagedDungeonRun run = findRunByMob(event.getEntity().getUniqueId());
+        if (run == null) {
+            run = activeRuns.values().stream()
+                    .filter(candidate -> candidate.instance.getWorld().equals(event.getEntity().getWorld()))
+                    .findFirst()
+                    .orElse(null);
+        }
+        if (run == null || run.finishing) return;
         event.getDrops().clear();
         event.setDroppedExp(0);
         completeRun(run);
@@ -210,12 +295,15 @@ public class StagedDungeonManager implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         StagedDungeonRun run = activeRuns.remove(event.getPlayer().getUniqueId());
         if (run == null) return;
+        run.cleanupUi();
         run.removeMob();
         instanceManager.destroyInstance(run.instance);
         updateProfileLocation(run.playerId, run.returnLocation);
     }
 
     private void completeRun(StagedDungeonRun run) {
+        if (run == null || run.finishing) return;
+        run.finishing = true;
         int reward = run.definition.rewardForStage(run.stage);
         Player player = run.getPlayer();
         if (player != null) {
@@ -226,15 +314,36 @@ public class StagedDungeonManager implements Listener {
         finishRun(run, true, true);
     }
 
+    private void failRun(StagedDungeonRun run) {
+        if (run == null || run.finishing) return;
+        run.finishing = true;
+        Player player = run.getPlayer();
+        if (player != null) {
+            ChatMessageUtil.send(player, MessageType.ERROR,
+                    "Time ran out! You failed " + run.definition.displayName() + " Stage " + ChatColor.WHITE + run.stage + ChatColor.RED + ".");
+        }
+        finishRun(run, true, true);
+    }
+
     private void finishRun(StagedDungeonRun run, boolean teleportBack, boolean removeFromActive) {
         if (removeFromActive) activeRuns.remove(run.playerId);
+        run.cleanupUi();
         run.removeMob();
         Player player = run.getPlayer();
         if (teleportBack && player != null) {
             TeleportUtils.safeTeleport(player, run.returnLocation);
             updateProfileLocation(player.getUniqueId(), run.returnLocation);
+            Bukkit.getScheduler().runTask(plugin, () -> updateScoreboard(player));
         }
         instanceManager.destroyInstance(run.instance);
+    }
+
+    private StagedDungeonRun findRunByMob(UUID mobId) {
+        if (mobId == null) return null;
+        return activeRuns.values().stream()
+                .filter(candidate -> mobId.equals(candidate.mobId))
+                .findFirst()
+                .orElse(null);
     }
 
     private void persistHighestCleared(Player player, StagedDungeonDefinition definition, int stage) {
@@ -269,6 +378,16 @@ public class StagedDungeonManager implements Listener {
     public boolean isInstanceWorld(World world) {
         if (world == null) return false;
         return activeRuns.values().stream().anyMatch(run -> run.instance.getWorld().equals(world));
+    }
+
+    private int secondsLeft(StagedDungeonRun run) {
+        return (int) Math.max(0L, Math.ceil((run.deadlineMs - System.currentTimeMillis()) / 1000.0D));
+    }
+
+    private void updateScoreboard(Player player) {
+        if (plugin.getScoreboardManager() != null) {
+            plugin.getScoreboardManager().updateBoard(player);
+        }
     }
 
     private String currentSweepResetKey() {

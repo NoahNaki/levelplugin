@@ -5,6 +5,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.boss.BossBar;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.UUID;
 
@@ -16,6 +18,10 @@ final class StagedDungeonRun {
     final Location returnLocation;
     final ArenaInstance instance;
     UUID mobId;
+    BossBar healthBar;
+    BukkitTask timerTask;
+    long deadlineMs;
+    boolean finishing;
 
     StagedDungeonRun(UUID playerId, StagedDungeonDefinition definition, int stage,
                      double mobHealth, Location returnLocation, ArenaInstance instance) {
@@ -42,5 +48,17 @@ final class StagedDungeonRun {
             mob.remove();
         }
         mobId = null;
+    }
+
+    void cleanupUi() {
+        if (timerTask != null) {
+            timerTask.cancel();
+            timerTask = null;
+        }
+        if (healthBar != null) {
+            healthBar.removeAll();
+            healthBar.setVisible(false);
+            healthBar = null;
+        }
     }
 }

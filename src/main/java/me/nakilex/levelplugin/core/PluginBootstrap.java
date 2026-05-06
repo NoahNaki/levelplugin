@@ -440,6 +440,7 @@ public class PluginBootstrap {
         }
         scoreboardManager.setStrongholdQueueManager(strongholdQueueManager);
         scoreboardManager.setStrongholdRunManager(strongholdRunManager);
+        scoreboardManager.setStagedDungeonManager(stagedDungeonManager);
         if (arenaSystemEnabled && arenaQueueManager != null && arenaRatingManager != null && arenaInstanceManager != null && arenaQueueGUI != null) {
             arenaCombatTracker = new ArenaCombatTracker();
             arenaMatchManager = new ArenaMatchManager(plugin, arenaQueueManager, arenaInstanceManager, arenaRatingManager, scoreboardManager, arenaCombatTracker);

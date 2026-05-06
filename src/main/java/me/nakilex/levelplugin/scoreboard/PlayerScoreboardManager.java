@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.arena.ArenaQueueManager;
 import me.nakilex.levelplugin.arena.rating.ArenaRatingManager;
 import me.nakilex.levelplugin.catacombs.CatacombsManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
+import me.nakilex.levelplugin.stageddungeon.StagedDungeonManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
 import me.nakilex.levelplugin.stronghold.run.StrongholdRunManager;
 import me.nakilex.levelplugin.party.Party;
@@ -40,6 +41,7 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
     private final ArenaRatingManager arenaRatingManager;
     private StrongholdQueueManager strongholdQueueManager;
     private StrongholdRunManager strongholdRunManager;
+    private StagedDungeonManager stagedDungeonManager;
     private CatacombsManager catacombsManager;
 
     private final Map<UUID, Scoreboard> boards = new HashMap<>();
@@ -96,6 +98,10 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
     public void setStrongholdRunManager(StrongholdRunManager strongholdRunManager) {
         this.strongholdRunManager = strongholdRunManager;
+    }
+
+    public void setStagedDungeonManager(StagedDungeonManager stagedDungeonManager) {
+        this.stagedDungeonManager = stagedDungeonManager;
     }
 
     public void createBoard(Player player) {
@@ -261,8 +267,11 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         boolean strongholdActive = strongholdStage != null;
 
         boolean catacombsActive = catacombsManager != null && catacombsManager.getStage(id) != null;
+        StagedDungeonManager.StageStatus stagedDungeonStatus =
+                stagedDungeonManager == null ? null : stagedDungeonManager.getStageStatus(id);
+        boolean stagedDungeonActive = stagedDungeonStatus != null;
 
-        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || strongholdQueueing || strongholdActive || catacombsActive;
+        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || strongholdQueueing || strongholdActive || catacombsActive || stagedDungeonActive;
         Scoreboard board = boards.get(id);
         if (!showBoard) {
             if (board != null) {
@@ -314,6 +323,32 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
             idx++; line--;
 
             current[idx] = ChatColor.RED + "<glyph:flagleft_icon> " + ChatColor.WHITE + "Duration: " + ChatColor.GRAY + siege.getFormattedRemaining();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = " ";
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+        }
+
+        if (stagedDungeonActive) {
+            current[idx] = stagedDungeonStatus.color() + stagedDungeonStatus.displayName();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = ChatColor.GRAY + "Stage: " + ChatColor.WHITE + stagedDungeonStatus.stage();
+            if (!current[idx].equals(prev[idx])) {
+                setLine(board, obj, idx, line, current[idx]);
+            }
+            idx++; line--;
+
+            current[idx] = ChatColor.GRAY + "Time Left: " + ChatColor.WHITE + formatDuration(Duration.ofSeconds(stagedDungeonStatus.secondsLeft()));
             if (!current[idx].equals(prev[idx])) {
                 setLine(board, obj, idx, line, current[idx]);
             }

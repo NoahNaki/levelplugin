@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.stageddungeon;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
+import org.bukkit.boss.BarColor;
 
 /**
  * Immutable configuration for a single stage-based dungeon type.
@@ -21,6 +22,8 @@ public record StagedDungeonDefinition(
         int sweepAttempts,
         String rewardName,
         String rewardGlyph,
+        int stageTimeSeconds,
+        BarColor bossBarColor,
         RewardGrant rewardGrant
 ) {
     public int nextStage(int highestCleared) {

@@ -74,6 +74,8 @@ public class StagedDungeonGUI implements Listener {
         lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Mob: " + definition.themeColor() + definition.mobDisplayName()));
         lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "HP: " + ChatColor.WHITE
                 + NumberUtil.formatCommas(Math.round(definition.mobHealth(nextStage)))));
+        lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Timer: " + ChatColor.WHITE
+                + definition.stageTimeSeconds() + "s"));
         lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Clear Reward: " + definition.themeColor()
                 + NumberUtil.formatCommas(definition.rewardForStage(nextStage)) + " " + definition.rewardGlyph()));
         if (highest > 0) {
