@@ -73,8 +73,8 @@ public class StagedDungeonManager implements Listener {
                 "gem_dungeon",
                 org.bukkit.entity.EntityType.SLIME,
                 "Common Slime",
-                250.0D,
-                250.0D,
+                500.0D,
+                500.0D,
                 3,
                 "gems",
                 "<glyph:purple_orb_icon>",
@@ -148,7 +148,6 @@ public class StagedDungeonManager implements Listener {
         }
         int highestCleared = getHighestCleared(player, definition);
         int stage = definition.nextStage(highestCleared);
-        debugProgress(player, definition, "start", "highest=" + highestCleared + ", attempting=" + stage);
         ArenaInstance instance = instanceManager.createInstance(definition.worldPrefix());
         if (instance == null) {
             ChatMessageUtil.send(player, MessageType.ERROR, "Failed to create a dungeon instance.");
@@ -378,10 +377,10 @@ public class StagedDungeonManager implements Listener {
             playerConfig.savePlayer(playerId);
             verifiedProfile = playerConfig.getStagedDungeonBestStage(playerId, slot, definition.id());
         }
-        debugProgress(player, definition, "clear", "cleared=" + stage
-                + ", previousProgression=" + previousProgression + ", updated=" + updated
-                + ", previousProfile=" + previousProfile + ", verifiedProfile=" + verifiedProfile
-                + ", next=" + definition.nextStage(updated));
+        plugin.getLogger().fine("Updated " + definition.displayName() + " progression for " + player.getName()
+                + ": cleared=" + stage + ", previousProgression=" + previousProgression
+                + ", updated=" + updated + ", previousProfile=" + previousProfile
+                + ", verifiedProfile=" + verifiedProfile + ", next=" + definition.nextStage(updated));
     }
 
     private void sendCompletionMessage(Player player, StagedDungeonRun run, int reward) {
@@ -477,32 +476,28 @@ public class StagedDungeonManager implements Listener {
         return definition.id().toLowerCase(java.util.Locale.ROOT);
     }
 
-    public void sendDebug(Player player, StagedDungeonDefinition definition) {
-        if (player == null || definition == null) return;
-        Integer activeSlot = profileManager.getActiveSlot(player.getUniqueId());
-        Integer resolvedSlot = resolveProgressSlot(player.getUniqueId());
-        int profileStored = resolvedSlot == null ? 0 : playerConfig.getStagedDungeonBestStage(player.getUniqueId(), resolvedSlot, definition.id());
-        int progressionStored = getProgressionStage(player.getUniqueId(), definition);
-        int highest = getHighestCleared(player, definition);
-        ChatMessageUtil.send(player, MessageType.INFO, "[GemDungeonDebug] activeSlot=" + activeSlot
-                + ", resolvedSlot=" + resolvedSlot + ", profileStored=" + profileStored
-                + ", progressionStored=" + progressionStored + ", highest=" + highest
-                + ", next=" + definition.nextStage(highest)
-                + ", inRun=" + activeRuns.containsKey(player.getUniqueId()));
+    public SweepAdjustment adjustSweeps(Player player, StagedDungeonDefinition definition, int deltaAvailableSweeps) {
+        if (player == null || definition == null || deltaAvailableSweeps == 0) {
+            return null;
+        }
+        Integer slot = resolveProgressSlot(player.getUniqueId());
+        if (slot == null) {
+            return null;
+        }
+        String today = currentSweepResetKey();
+        String stored = playerConfig.getStagedDungeonSweepResetKey(player.getUniqueId(), slot, definition.id());
+        int used = today.equals(stored)
+                ? playerConfig.getStagedDungeonSweepsUsed(player.getUniqueId(), slot, definition.id())
+                : 0;
+        int beforeLeft = Math.max(0, definition.sweepAttempts() - used);
+        int afterLeft = Math.max(0, Math.min(definition.sweepAttempts(), beforeLeft + deltaAvailableSweeps));
+        int newUsed = Math.max(0, definition.sweepAttempts() - afterLeft);
+        playerConfig.setStagedDungeonSweeps(player.getUniqueId(), slot, definition.id(), newUsed, today);
+        playerConfig.savePlayer(player.getUniqueId());
+        return new SweepAdjustment(beforeLeft, afterLeft, definition.sweepAttempts());
     }
 
-    private void debugProgress(Player player, StagedDungeonDefinition definition, String action, String detail) {
-        UUID playerId = player.getUniqueId();
-        Integer activeSlot = profileManager.getActiveSlot(playerId);
-        Integer resolvedSlot = resolveProgressSlot(playerId);
-        int profileStored = resolvedSlot == null ? 0 : playerConfig.getStagedDungeonBestStage(playerId, resolvedSlot, definition.id());
-        int progressionStored = getProgressionStage(playerId, definition);
-        String message = "[StagedDungeonDebug] player=" + player.getName() + ", dungeon=" + definition.id()
-                + ", action=" + action + ", activeSlot=" + activeSlot + ", resolvedSlot=" + resolvedSlot
-                + ", profileStored=" + profileStored + ", progressionStored=" + progressionStored + ", " + detail;
-        plugin.getLogger().info(message);
-        ChatMessageUtil.send(player, MessageType.INFO, message);
-    }
+    public record SweepAdjustment(int beforeLeft, int afterLeft, int total) {}
 
     public boolean isInstanceWorld(World world) {
         if (world == null) return false;

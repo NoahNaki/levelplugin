@@ -662,9 +662,7 @@ public class PluginBootstrap {
         plugin.getCommand("animatedlb").setExecutor(animatedLbCmd);
         plugin.getCommand("animatedlb").setTabCompleter(animatedLbCmd);
         if (gemDungeonGUI != null) {
-            stagedDungeonManager.getDefinition("gem").ifPresent(definition ->
-                    plugin.getCommand("gemdungeon").setExecutor(
-                            new me.nakilex.levelplugin.stageddungeon.GemDungeonCommand(gemDungeonGUI, stagedDungeonManager, definition)));
+            plugin.getCommand("gemdungeon").setExecutor(new me.nakilex.levelplugin.stageddungeon.GemDungeonCommand(gemDungeonGUI));
         }
 
         me.nakilex.levelplugin.guild.siege.GuildSiegeCommand siegeCmd =

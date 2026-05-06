@@ -143,7 +143,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|npcmodel|npcundisguise|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage + ">");
             }
             return true;
         }
@@ -682,6 +682,69 @@ public class DebugCommand implements TabExecutor {
                 ChatMessageUtil.send(strongholdPlayer, ChatMessageUtil.MessageType.ERROR,
                         "Unknown stronghold template: " + args[2] + ". Available: test, towerwall");
                 return true;
+            case "gemdungeonsweep":
+                if (args.length < 4) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug gemdungeonsweep add/remove <playername> <amount>");
+                    return true;
+                }
+                String action = args[1].toLowerCase();
+                if (!action.equals("add") && !action.equals("remove")) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Action must be add or remove.");
+                    return true;
+                }
+                Player sweepTarget = Bukkit.getPlayerExact(args[2]);
+                if (sweepTarget == null || !sweepTarget.isOnline()) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Player not found or offline: " + args[2]);
+                    return true;
+                }
+                int sweepAmount;
+                try {
+                    sweepAmount = Integer.parseInt(args[3]);
+                } catch (NumberFormatException ex) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Invalid amount. Example: /debug gemdungeonsweep add " + sweepTarget.getName() + " 1");
+                    return true;
+                }
+                if (sweepAmount <= 0) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Amount must be greater than 0.");
+                    return true;
+                }
+                var stagedManager = Main.getInstance().getStagedDungeonManager();
+                if (stagedManager == null) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Staged dungeon manager unavailable.");
+                    return true;
+                }
+                var gemDefinition = stagedManager.getDefinition("gem").orElse(null);
+                if (gemDefinition == null) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Gem Dungeon definition unavailable.");
+                    return true;
+                }
+                int delta = action.equals("add") ? sweepAmount : -sweepAmount;
+                var adjustment = stagedManager.adjustSweeps(sweepTarget, gemDefinition, delta);
+                if (adjustment == null) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "Unable to adjust sweeps for " + sweepTarget.getName() + ".");
+                    return true;
+                }
+                ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
+                        "Gem Dungeon sweeps for " + ChatColor.WHITE + sweepTarget.getName() + ChatColor.GREEN
+                                + ": " + ChatColor.WHITE + adjustment.beforeLeft() + ChatColor.GRAY + "/"
+                                + ChatColor.WHITE + adjustment.total() + ChatColor.GREEN + " -> "
+                                + ChatColor.WHITE + adjustment.afterLeft() + ChatColor.GRAY + "/"
+                                + ChatColor.WHITE + adjustment.total() + ChatColor.GREEN + ".");
+                if (!sender.equals(sweepTarget)) {
+                    ChatMessageUtil.send(sweepTarget, ChatMessageUtil.MessageType.INFO,
+                            "Your Gem Dungeon sweeps were adjusted to " + ChatColor.WHITE
+                                    + adjustment.afterLeft() + ChatColor.GRAY + "/"
+                                    + ChatColor.WHITE + adjustment.total() + ChatColor.GRAY + ".");
+                }
+                return true;
             case "strongholdxp":
                 if (!(sender instanceof Player strongholdXpPlayer)) {
                     sender.sendMessage(ChatColor.RED + "Players only.");
@@ -735,7 +798,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|lootchestanimation|npcmodel|npcundisguise|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -1034,10 +1097,23 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "lootchestanimation", "npcmodel", "npcundisguise"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("gemdungeonsweep")) {
+            return List.of("add", "remove").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("gemdungeonsweep")) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 4 && args[0].equalsIgnoreCase("gemdungeonsweep")) {
+            return List.of("1", "2", "3").stream()
+                    .filter(opt -> opt.startsWith(args[3].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("strongholdxp")) {
             return List.of("50", "100", "150", "250").stream()
