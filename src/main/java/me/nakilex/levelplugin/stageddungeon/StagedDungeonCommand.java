@@ -8,10 +8,11 @@ import org.bukkit.entity.Player;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 
-public class GemDungeonCommand implements CommandExecutor {
+/** Opens the GUI for a configured staged currency dungeon. */
+public class StagedDungeonCommand implements CommandExecutor {
     private final StagedDungeonGUI gui;
 
-    public GemDungeonCommand(StagedDungeonGUI gui) {
+    public StagedDungeonCommand(StagedDungeonGUI gui) {
         this.gui = gui;
     }
 

@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.NumberUtil;
 import me.nakilex.levelplugin.utils.TeleportUtils;
+import me.nakilex.levelplugin.utils.CombatTargetUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -21,6 +22,7 @@ import org.bukkit.entity.Slime;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.SlimeSplitEvent;
@@ -80,7 +82,26 @@ public class StagedDungeonManager implements Listener {
                 "<glyph:purple_orb_icon>",
                 20,
                 org.bukkit.boss.BarColor.PURPLE,
+                StagedDungeonObjective.KILL_MOB,
                 (player, amount) -> plugin.getGemsManager().addUnits(player, amount)
+        ));
+        registerDefinition(new StagedDungeonDefinition(
+                "coin",
+                "Coin Dungeon",
+                ChatColor.GOLD,
+                org.bukkit.Material.GOLD_NUGGET,
+                "coin_dungeon",
+                org.bukkit.entity.EntityType.SLIME,
+                "Golden Slime",
+                500.0D,
+                500.0D,
+                3,
+                "coins",
+                "<glyph:coins_icon>",
+                20,
+                org.bukkit.boss.BarColor.YELLOW,
+                StagedDungeonObjective.DAMAGE_METER,
+                (player, amount) -> plugin.getEconomyManager().addCoins(player, amount)
         ));
     }
 
@@ -121,6 +142,7 @@ public class StagedDungeonManager implements Listener {
     }
 
     public int getSweepsUsed(Player player, StagedDungeonDefinition definition) {
+        if (!definition.supportsSweeps()) return 0;
         Integer slot = resolveProgressSlot(player.getUniqueId());
         if (slot == null) return 0;
         String today = currentSweepResetKey();
@@ -134,6 +156,7 @@ public class StagedDungeonManager implements Listener {
     }
 
     public int getSweepsLeft(Player player, StagedDungeonDefinition definition) {
+        if (!definition.supportsSweeps()) return 0;
         return Math.max(0, definition.sweepAttempts() - getSweepsUsed(player, definition));
     }
 
@@ -168,6 +191,11 @@ public class StagedDungeonManager implements Listener {
     public void sweep(Player player, StagedDungeonDefinition definition) {
         if (activeRuns.containsKey(player.getUniqueId())) {
             ChatMessageUtil.send(player, MessageType.WARNING, "Finish your active dungeon before sweeping.");
+            return;
+        }
+        if (!definition.supportsSweeps()) {
+            ChatMessageUtil.send(player, MessageType.WARNING,
+                    definition.displayName() + " rewards are based on live damage and cannot be swept.");
             return;
         }
         int highest = getHighestCleared(player, definition);
@@ -212,6 +240,9 @@ public class StagedDungeonManager implements Listener {
             slime.setSize(1);
         }
         AttributeUtil.setMaxHealthAndHeal(entity, run.mobHealth);
+        if (run.definition.isDamageMeter()) {
+            entity.setAI(false);
+        }
         entity.setCustomName(run.definition.themeColor() + run.definition.mobDisplayName()
                 + ChatColor.GRAY + " [Stage " + run.stage + "]");
         entity.setCustomNameVisible(true);
@@ -245,7 +276,11 @@ public class StagedDungeonManager implements Listener {
                     updateScoreboard(player);
                 }
                 if (System.currentTimeMillis() >= run.deadlineMs) {
-                    failRun(run);
+                    if (run.definition.isDamageMeter()) {
+                        completeRun(run);
+                    } else {
+                        failRun(run);
+                    }
                     cancel();
                 }
             }
@@ -254,6 +289,17 @@ public class StagedDungeonManager implements Listener {
 
     private void updateHealthBar(StagedDungeonRun run) {
         if (run == null || run.healthBar == null) return;
+        if (run.definition.isDamageMeter()) {
+            int reward = run.definition.rewardFromDamage(run.damageDealt);
+            run.healthBar.setTitle(run.definition.themeColor() + "§l" + run.definition.mobDisplayName()
+                    + ChatColor.DARK_GRAY + " | " + ChatColor.GRAY + "Reward: "
+                    + run.definition.themeColor() + NumberUtil.formatCommas(reward) + " "
+                    + run.definition.rewardGlyph() + " " + run.definition.rewardName());
+            double secondsLeft = Math.max(0.0D, (run.deadlineMs - System.currentTimeMillis()) / 1000.0D);
+            run.healthBar.setProgress(Math.max(0.0D, Math.min(1.0D,
+                    secondsLeft / Math.max(1.0D, run.definition.stageTimeSeconds()))));
+            return;
+        }
         LivingEntity mob = run.getMob();
         double current = mob == null || mob.isDead() ? 0.0D : Math.max(0.0D, mob.getHealth());
         double max = Math.max(1.0D, run.mobHealth);
@@ -261,6 +307,17 @@ public class StagedDungeonManager implements Listener {
                 + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + NumberUtil.formatCommas(Math.round(current))
                 + ChatColor.GRAY + "/" + ChatColor.WHITE + NumberUtil.formatCommas(Math.round(max)) + " HP");
         run.healthBar.setProgress(Math.max(0.0D, Math.min(1.0D, current / max)));
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity living)) return;
+        StagedDungeonRun run = findRunByMob(living.getUniqueId());
+        if (run == null || run.finishing || !run.definition.isDamageMeter()) return;
+        if (!CombatTargetUtil.isPlayerSourced(event.getDamager())) return;
+        run.damageDealt += Math.max(0.0D, event.getFinalDamage());
+        event.setDamage(0.0D);
+        Bukkit.getScheduler().runTask(plugin, () -> updateHealthBar(activeRuns.get(run.playerId)));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -272,6 +329,7 @@ public class StagedDungeonManager implements Listener {
             StagedDungeonRun current = activeRuns.get(run.playerId);
             if (current == null || current.finishing) return;
             updateHealthBar(current);
+            if (current.definition.isDamageMeter()) return;
             LivingEntity mob = current.getMob();
             if (mob == null || mob.isDead() || mob.getHealth() <= 0.0D) {
                 completeRun(current);
@@ -315,7 +373,9 @@ public class StagedDungeonManager implements Listener {
     private void completeRun(StagedDungeonRun run) {
         if (run == null || run.finishing) return;
         run.finishing = true;
-        int reward = run.definition.rewardForStage(run.stage);
+        int reward = run.definition.isDamageMeter()
+                ? run.definition.rewardFromDamage(run.damageDealt)
+                : run.definition.rewardForStage(run.stage);
         Player player = run.getPlayer();
         if (player != null) {
             run.definition.rewardGrant().grant(player, reward);
@@ -388,7 +448,13 @@ public class StagedDungeonManager implements Listener {
         ChatFormatter.sendCenteredMessage(player, run.definition.themeColor() + "§l" + run.definition.displayName().toUpperCase() + " CLEARED");
         ChatFormatter.sendCenteredMessage(player, "");
         ChatFormatter.sendCenteredMessage(player,
-                ChatColor.GRAY + "Stage " + ChatColor.WHITE + run.stage + ChatColor.GRAY + " defeated.");
+                ChatColor.GRAY + "Stage " + ChatColor.WHITE + run.stage + ChatColor.GRAY
+                        + (run.definition.isDamageMeter() ? " completed." : " defeated."));
+        if (run.definition.isDamageMeter()) {
+            ChatFormatter.sendCenteredMessage(player,
+                    ChatColor.GRAY + "Damage Dealt: " + ChatColor.WHITE
+                            + NumberUtil.formatCommas(Math.round(run.damageDealt)));
+        }
         ChatFormatter.sendCenteredMessage(player,
                 ChatColor.GRAY + "Reward: " + run.definition.themeColor() + NumberUtil.formatCommas(reward)
                         + " " + run.definition.rewardGlyph() + " " + run.definition.rewardName());

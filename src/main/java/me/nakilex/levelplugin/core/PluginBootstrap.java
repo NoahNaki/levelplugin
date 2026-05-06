@@ -143,6 +143,7 @@ public class PluginBootstrap {
     private ArenaInstanceManager arenaInstanceManager;
     private me.nakilex.levelplugin.stageddungeon.StagedDungeonManager stagedDungeonManager;
     private me.nakilex.levelplugin.stageddungeon.StagedDungeonGUI gemDungeonGUI;
+    private me.nakilex.levelplugin.stageddungeon.StagedDungeonGUI coinDungeonGUI;
     private StrongholdQueueManager strongholdQueueManager;
     private StrongholdQueueGUI strongholdQueueGUI;
     private StrongholdShrineManager strongholdShrineManager;
@@ -406,6 +407,9 @@ public class PluginBootstrap {
         gemDungeonGUI = stagedDungeonManager.getDefinition("gem")
                 .map(definition -> new me.nakilex.levelplugin.stageddungeon.StagedDungeonGUI(stagedDungeonManager, definition))
                 .orElse(null);
+        coinDungeonGUI = stagedDungeonManager.getDefinition("coin")
+                .map(definition -> new me.nakilex.levelplugin.stageddungeon.StagedDungeonGUI(stagedDungeonManager, definition))
+                .orElse(null);
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.init(plugin);
@@ -662,7 +666,10 @@ public class PluginBootstrap {
         plugin.getCommand("animatedlb").setExecutor(animatedLbCmd);
         plugin.getCommand("animatedlb").setTabCompleter(animatedLbCmd);
         if (gemDungeonGUI != null) {
-            plugin.getCommand("gemdungeon").setExecutor(new me.nakilex.levelplugin.stageddungeon.GemDungeonCommand(gemDungeonGUI));
+            plugin.getCommand("gemdungeon").setExecutor(new me.nakilex.levelplugin.stageddungeon.StagedDungeonCommand(gemDungeonGUI));
+        }
+        if (coinDungeonGUI != null) {
+            plugin.getCommand("coindungeon").setExecutor(new me.nakilex.levelplugin.stageddungeon.StagedDungeonCommand(coinDungeonGUI));
         }
 
         me.nakilex.levelplugin.guild.siege.GuildSiegeCommand siegeCmd =
@@ -704,6 +711,9 @@ public class PluginBootstrap {
         plugin.getServer().getPluginManager().registerEvents(stagedDungeonManager, plugin);
         if (gemDungeonGUI != null) {
             plugin.getServer().getPluginManager().registerEvents(gemDungeonGUI, plugin);
+        }
+        if (coinDungeonGUI != null) {
+            plugin.getServer().getPluginManager().registerEvents(coinDungeonGUI, plugin);
         }
 
         ListenerRegistry.registerListeners(

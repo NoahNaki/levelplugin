@@ -21,6 +21,7 @@ final class StagedDungeonRun {
     BossBar healthBar;
     BukkitTask timerTask;
     long deadlineMs;
+    double damageDealt;
     boolean finishing;
 
     StagedDungeonRun(UUID playerId, StagedDungeonDefinition definition, int stage,
