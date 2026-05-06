@@ -309,12 +309,13 @@ public class StagedDungeonManager implements Listener {
         run.healthBar.setProgress(Math.max(0.0D, Math.min(1.0D, current / max)));
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof LivingEntity living)) return;
         StagedDungeonRun run = findRunByMob(living.getUniqueId());
         if (run == null || run.finishing || !run.definition.isDamageMeter()) return;
         if (!CombatTargetUtil.isPlayerSourced(event.getDamager())) return;
+        // Run after stat-scaling listeners so the meter records the real damage the hit would deal.
         run.damageDealt += Math.max(0.0D, event.getFinalDamage());
         event.setDamage(0.0D);
         LivingEntity mob = run.getMob();
