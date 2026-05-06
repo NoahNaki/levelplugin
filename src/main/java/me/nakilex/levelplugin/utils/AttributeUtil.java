@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.utils;
 
 import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.LivingEntity;
 
 /** Utility helpers for resolving Bukkit attributes across versions. */
 public final class AttributeUtil {
@@ -24,5 +26,25 @@ public final class AttributeUtil {
             }
         }
         return null;
+    }
+
+    /**
+     * Set an entity's max health and immediately heal it to that max value.
+     * This should be called after entity-specific mutations such as slime size changes
+     * because those mutations may reset vanilla health attributes.
+     */
+    public static void setMaxHealthAndHeal(LivingEntity entity, double maxHealth) {
+        if (entity == null) {
+            return;
+        }
+        double safeHealth = Math.max(1.0D, maxHealth);
+        Attribute maxHealthAttr = resolve("GENERIC_MAX_HEALTH", "MAX_HEALTH");
+        AttributeInstance attribute = maxHealthAttr == null ? null : entity.getAttribute(maxHealthAttr);
+        if (attribute != null) {
+            attribute.setBaseValue(safeHealth);
+            entity.setHealth(Math.min(safeHealth, attribute.getValue()));
+            return;
+        }
+        entity.setHealth(Math.min(safeHealth, entity.getHealth()));
     }
 }

@@ -459,6 +459,35 @@ public class PlayerConfig {
         config.set(base + "best_stage", Math.max(0, stage));
     }
 
+    // ----- Generic Stage Dungeon Progress -----
+
+    private String stagedDungeonPath(UUID uuid, int slot, String dungeonId) {
+        String safeId = dungeonId == null || dungeonId.isBlank() ? "default" : dungeonId.toLowerCase(java.util.Locale.ROOT);
+        return "players." + uuid + ".profiles." + slot + ".stage_dungeons." + safeId + ".";
+    }
+
+    public int getStagedDungeonBestStage(UUID uuid, int slot, String dungeonId) {
+        return config.getInt(stagedDungeonPath(uuid, slot, dungeonId) + "best_stage", 0);
+    }
+
+    public void setStagedDungeonBestStage(UUID uuid, int slot, String dungeonId, int stage) {
+        config.set(stagedDungeonPath(uuid, slot, dungeonId) + "best_stage", Math.max(0, stage));
+    }
+
+    public int getStagedDungeonSweepsUsed(UUID uuid, int slot, String dungeonId) {
+        return config.getInt(stagedDungeonPath(uuid, slot, dungeonId) + "sweeps.used", 0);
+    }
+
+    public String getStagedDungeonSweepResetKey(UUID uuid, int slot, String dungeonId) {
+        return config.getString(stagedDungeonPath(uuid, slot, dungeonId) + "sweeps.reset_key", "");
+    }
+
+    public void setStagedDungeonSweeps(UUID uuid, int slot, String dungeonId, int used, String resetKey) {
+        String base = stagedDungeonPath(uuid, slot, dungeonId) + "sweeps.";
+        config.set(base + "used", Math.max(0, used));
+        config.set(base + "reset_key", resetKey == null ? "" : resetKey);
+    }
+
     // ----- Global Town Ownership -----
 
     /** Get the UUID of the player who owns the specified global town. */

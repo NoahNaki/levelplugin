@@ -109,11 +109,20 @@ public class ArenaInstanceManager {
      * @return the created instance, or {@code null} if the template is missing
      */
     public ArenaInstance createInstance() {
+        return createInstance("arena");
+    }
+
+    /**
+     * Create a fresh instance world using the arena template and a custom world-name prefix.
+     * This lets other instanced systems reuse the same structure capture/paste pipeline.
+     */
+    public ArenaInstance createInstance(String worldPrefix) {
         if (!templateLoaded) {
             return null;
         }
 
-        String worldName = "arena_" + instanceCounter.incrementAndGet();
+        String safePrefix = (worldPrefix == null || worldPrefix.isBlank()) ? "arena" : worldPrefix.toLowerCase().replaceAll("[^a-z0-9_-]", "_");
+        String worldName = safePrefix + "_" + instanceCounter.incrementAndGet();
         WorldCreator creator = new WorldCreator(worldName);
         creator.generator(new VoidWorldGenerator());
         creator.type(WorldType.FLAT);

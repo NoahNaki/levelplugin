@@ -160,6 +160,9 @@ commands:
   stronghold:
     description: Manage the stronghold queue
     usage: /stronghold [join|leave|open|template|shrine] [solo|duo|squad]
+  gemdungeon:
+    description: Opens the Gem Dungeon menu
+    usage: /gemdungeon
   salvage:
     description: Opens the Salvage GUI
     usage: /salvage
@@ -301,7 +304,7 @@ commands:
     usage: /enchant
   debug:
     description: Developer debug tools
-    usage: /debug [mobinfo|tps|siege|drops|hand|chatgame|expedition|dungeonexpedition|spellinput|spellcooldown|spellmanacost|beaconentity|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|cityowner|citymax|stronghold|strongholdxp]
+    usage: /debug [mobinfo|tps|siege|drops|hand|chatgame|expedition|dungeonexpedition|spellinput|spellcooldown|spellmanacost|beaconentity|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|cityowner|citymax|stronghold|strongholdxp|gemdungeonsweep]
   se:
     description: Spawn an entity with ModelEngine models for testing
     usage: /se <entity> <model...> | /se list | /se inspect [verbose] | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop]
