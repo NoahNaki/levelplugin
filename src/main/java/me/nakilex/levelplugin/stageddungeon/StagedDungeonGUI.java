@@ -66,6 +66,7 @@ public class StagedDungeonGUI implements Listener {
         int sweepReward = definition.supportsSweeps() ? manager.getSweepReward(player, definition) : 0;
         double bestDamage = definition.isDamageMeter() ? manager.getBestDamage(player, definition) : 0.0D;
         int sweepsLeft = definition.supportsSweeps() ? manager.getSweepsLeft(player, definition) : 0;
+        int totalSweeps = definition.supportsSweeps() ? manager.getTotalSweepAttempts(player, definition) : 0;
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.GRAY + "Earn " + definition.rewardName() + " by clearing higher stages.");
         lore.add(definition.isDamageMeter()
@@ -77,7 +78,7 @@ public class StagedDungeonGUI implements Listener {
         lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Next Stage: " + ChatColor.WHITE + nextStage));
         if (definition.supportsSweeps()) {
             lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Sweeps: " + ChatColor.WHITE + sweepsLeft
-                    + ChatColor.GRAY + "/" + ChatColor.WHITE + definition.sweepAttempts()));
+                    + ChatColor.GRAY + "/" + ChatColor.WHITE + totalSweeps));
         }
         lore.add(" ");
         lore.add(TooltipUtil.sectionHeader("Selected Stage"));

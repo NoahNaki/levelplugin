@@ -8,6 +8,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.boss.BossBar;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 final class StagedDungeonRun {
@@ -23,6 +25,10 @@ final class StagedDungeonRun {
     long deadlineMs;
     double damageDealt;
     boolean finishing;
+    final Map<String, String> activeSpellByBase = new HashMap<>();
+    final Map<String, Long> lastAutoCastAtBySpell = new HashMap<>();
+    final Map<String, Integer> spellChargesByBase = new HashMap<>();
+    long lastMobilityChargeRefillAt;
 
     StagedDungeonRun(UUID playerId, StagedDungeonDefinition definition, int stage,
                      double mobHealth, Location returnLocation, ArenaInstance instance) {
