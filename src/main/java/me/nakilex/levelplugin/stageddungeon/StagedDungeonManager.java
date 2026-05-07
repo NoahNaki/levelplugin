@@ -49,6 +49,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -72,6 +74,7 @@ public class StagedDungeonManager implements Listener {
     private final Map<UUID, StagedDungeonRun> activeRuns = new HashMap<>();
     private final Map<String, Map<UUID, DungeonProgress>> progressByDungeon = new HashMap<>();
     private final Map<UUID, SpellUpgradeSession> pendingSpellUpgrades = new HashMap<>();
+    private final Set<UUID> skipNextSpellUpgradeReopen = new HashSet<>();
     private File progressionFile;
     private YamlConfiguration progressionConfig;
 
@@ -661,6 +664,10 @@ public class StagedDungeonManager implements Listener {
             player.closeInventory();
             return;
         }
+        if (event.getRawSlot() == RunSpellUpgradeGuiUtil.DEFAULT_REROLL_SLOT) {
+            rerollSpellUpgrades(player, session);
+            return;
+        }
         int choiceIndex = RunSpellUpgradeGuiUtil.choiceIndex(event.getRawSlot());
         if (choiceIndex < 0 || choiceIndex >= session.choices().size()) return;
         SpellUpgradeChoice choice = session.choices().get(choiceIndex);
@@ -671,18 +678,17 @@ public class StagedDungeonManager implements Listener {
         }
         int left = Math.max(0, session.remainingSelections() - 1);
         if (left <= 0) {
-            pendingSpellUpgrades.remove(player.getUniqueId());
-            player.closeInventory();
+            closeSpellUpgradeGui(player);
             return;
         }
         List<SpellUpgradeChoice> choices = rollSpellUpgradeChoices(player, 3);
         if (choices.isEmpty()) {
-            pendingSpellUpgrades.remove(player.getUniqueId());
-            player.closeInventory();
+            closeSpellUpgradeGui(player);
             return;
         }
         SpellUpgradeSession next = new SpellUpgradeSession(left, choices);
         pendingSpellUpgrades.put(player.getUniqueId(), next);
+        skipNextSpellUpgradeReopen.add(player.getUniqueId());
         Bukkit.getScheduler().runTask(plugin, () -> openSpellUpgradeGui(player, next));
     }
 
@@ -690,6 +696,7 @@ public class StagedDungeonManager implements Listener {
     public void onSpellUpgradeClose(InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) return;
         if (!GuiUtil.titleMatches(event.getView().getTitle(), SPELL_UPGRADE_TITLE)) return;
+        if (skipNextSpellUpgradeReopen.remove(player.getUniqueId())) return;
         SpellUpgradeSession session = pendingSpellUpgrades.get(player.getUniqueId());
         if (session == null || session.remainingSelections() <= 0) return;
         Bukkit.getScheduler().runTask(plugin, () -> {
@@ -715,12 +722,41 @@ public class StagedDungeonManager implements Listener {
         Bukkit.getScheduler().runTask(plugin, () -> openSpellUpgradeGui(player, session));
     }
 
+
+    private void rerollSpellUpgrades(Player player, SpellUpgradeSession session) {
+        if (player == null || session == null) return;
+        List<SpellUpgradeChoice> choices = rollSpellUpgradeChoices(player, 3);
+        if (choices.isEmpty()) {
+            closeSpellUpgradeGui(player);
+            return;
+        }
+        SpellUpgradeSession rerolled = new SpellUpgradeSession(session.remainingSelections(), choices);
+        pendingSpellUpgrades.put(player.getUniqueId(), rerolled);
+        Inventory top = player.getOpenInventory() == null ? null : player.getOpenInventory().getTopInventory();
+        if (top != null && top.getSize() == RunSpellUpgradeGuiUtil.GUI_SIZE) {
+            RunSpellUpgradeGuiUtil.populateChoices(top, rerolled.choices(),
+                    choice -> RunSpellUpgradeGuiUtil.createSpellUpgradeChoiceItem(toUpgradeView(player, choice, rerolled.remainingSelections())),
+                    true);
+            player.updateInventory();
+            player.playSound(player.getLocation(), org.bukkit.Sound.UI_BUTTON_CLICK, 0.4f, 1.6f);
+            return;
+        }
+        openSpellUpgradeGui(player, rerolled);
+    }
+
+    private void closeSpellUpgradeGui(Player player) {
+        if (player == null) return;
+        pendingSpellUpgrades.remove(player.getUniqueId());
+        skipNextSpellUpgradeReopen.add(player.getUniqueId());
+        player.closeInventory();
+    }
+
     private void openSpellUpgradeGui(Player player, SpellUpgradeSession session) {
         if (player == null || session == null) return;
         Inventory inv = Bukkit.createInventory(player, RunSpellUpgradeGuiUtil.GUI_SIZE, SPELL_UPGRADE_TITLE);
         RunSpellUpgradeGuiUtil.populateChoices(inv, session.choices(),
                 choice -> RunSpellUpgradeGuiUtil.createSpellUpgradeChoiceItem(toUpgradeView(player, choice, session.remainingSelections())),
-                false);
+                true);
         player.openInventory(inv);
     }
 
@@ -782,6 +818,7 @@ public class StagedDungeonManager implements Listener {
 
     private void clearDungeonSpellUpgrades(UUID playerId) {
         pendingSpellUpgrades.remove(playerId);
+        skipNextSpellUpgradeReopen.remove(playerId);
         SpellProgressionManager.getInstance().clearTemporarySpellLevels(playerId);
     }
 
