@@ -13,6 +13,7 @@ import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellDefinition;
 import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
+import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.spells.SpellAccessUtil;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.StrongholdStartupProfiler;
@@ -778,23 +779,10 @@ public class StrongholdRunManager implements Listener {
     private void initializeAutoCastPool() {
         autoCastBasePool.clear();
         mobilityBasePool.clear();
+        SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
+        autoCastBasePool.addAll(progressionManager.getUpgradeableBaseSpells(false));
+        mobilityBasePool.addAll(progressionManager.getUpgradeableBaseSpells(true));
         SpellRegistry registry = SpellRegistry.getInstance();
-        for (SpellProgression progression : registry.getAllProgressions()) {
-            if (progression == null || progression.baseSpellId() == null) {
-                continue;
-            }
-            String baseId = progression.baseSpellId().toLowerCase(Locale.ROOT);
-            SpellRegistry.SpellEntry entry = registry.getSpell(baseId);
-            if (entry == null || entry.definition() == null) {
-                continue;
-            }
-            SpellDefinition definition = entry.definition();
-            if (definition.movementSpell()) {
-                mobilityBasePool.add(baseId);
-                continue;
-            }
-            autoCastBasePool.add(baseId);
-        }
         for (String mobilityBase : DEFAULT_MOBILITY_BASE_SPELLS) {
             SpellRegistry.SpellEntry entry = registry.getSpell(mobilityBase);
             if (entry == null || entry.definition() == null || !entry.definition().movementSpell()) {

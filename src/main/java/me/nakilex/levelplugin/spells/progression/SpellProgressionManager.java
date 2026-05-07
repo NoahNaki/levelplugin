@@ -220,19 +220,49 @@ public final class SpellProgressionManager {
         if (playerClass == null) {
             return List.of();
         }
+        return getBaseSpellsForClass(playerClass);
+    }
+
+    public List<String> getBaseSpellsForClass(PlayerClass playerClass) {
+        if (playerClass == null) {
+            return List.of();
+        }
         List<String> spellIds = new ArrayList<>();
-        for (SpellProgression progression : SpellRegistry.getInstance().getAllProgressions()) {
-            String id = progression.baseSpellId();
-            SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(id);
-            if (entry == null) {
-                continue;
-            }
+        for (String id : getUpgradeableBaseSpells(false)) {
             if (isBoundForClass(playerClass, id)) {
                 spellIds.add(id);
             }
         }
         spellIds.sort(String::compareToIgnoreCase);
         return spellIds;
+    }
+
+    public List<String> getUpgradeableBaseSpells(boolean movementSpellsOnly) {
+        List<String> spellIds = new ArrayList<>();
+        for (SpellProgression progression : SpellRegistry.getInstance().getAllProgressions()) {
+            if (progression == null || progression.baseSpellId() == null) {
+                continue;
+            }
+            String id = progression.baseSpellId();
+            SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(id);
+            if (entry == null || entry.definition() == null) {
+                continue;
+            }
+            if (entry.definition().movementSpell() != movementSpellsOnly) {
+                continue;
+            }
+            spellIds.add(id);
+        }
+        spellIds.sort(String::compareToIgnoreCase);
+        return spellIds;
+    }
+
+    public List<String> getUpgradeableBaseSpellsForPlayer(Player player, boolean includeUnboundFallback) {
+        List<String> classSpells = getClassBaseSpells(player);
+        if (!classSpells.isEmpty() || !includeUnboundFallback) {
+            return classSpells;
+        }
+        return getUpgradeableBaseSpells(false);
     }
 
     private boolean isBoundForClass(PlayerClass playerClass, String spellId) {

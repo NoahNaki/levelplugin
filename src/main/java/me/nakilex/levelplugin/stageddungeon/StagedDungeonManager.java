@@ -686,7 +686,6 @@ public class StagedDungeonManager implements Listener {
         List<SpellUpgradeChoice> choices = rollSpellUpgradeChoices(player, 3);
         if (choices.isEmpty()) {
             pendingSpellUpgrades.remove(player.getUniqueId());
-            ChatMessageUtil.send(player, MessageType.INFO, "No more spell upgrades are available for this run.");
             player.closeInventory();
             return;
         }
@@ -714,7 +713,6 @@ public class StagedDungeonManager implements Listener {
         SpellProgressionManager.getInstance().clearTemporarySpellLevels(player.getUniqueId());
         List<SpellUpgradeChoice> choices = rollSpellUpgradeChoices(player, 3);
         if (choices.isEmpty()) {
-            ChatMessageUtil.send(player, MessageType.INFO, "No temporary spell upgrades are available for your current class.");
             return;
         }
         SpellUpgradeSession session = new SpellUpgradeSession(DUNGEON_ENTRY_UPGRADES, choices);
@@ -763,7 +761,7 @@ public class StagedDungeonManager implements Listener {
     private List<SpellUpgradeChoice> rollSpellUpgradeChoices(Player player, int count) {
         SpellProgressionManager progression = SpellProgressionManager.getInstance();
         List<SpellUpgradeChoice> candidates = new ArrayList<>();
-        for (String baseId : progression.getClassBaseSpells(player)) {
+        for (String baseId : progression.getUpgradeableBaseSpellsForPlayer(player, true)) {
             SpellUpgradeChoice choice = spellUpgradeChoiceFor(player, baseId);
             if (choice != null) {
                 candidates.add(choice);
