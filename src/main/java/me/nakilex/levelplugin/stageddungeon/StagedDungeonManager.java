@@ -5,16 +5,23 @@ import me.nakilex.levelplugin.arena.instance.ArenaInstance;
 import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
+import me.nakilex.levelplugin.pet.PetEffectType;
+import me.nakilex.levelplugin.spells.SpellProgression;
+import me.nakilex.levelplugin.spells.SpellRegistry;
+import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.NumberUtil;
 import me.nakilex.levelplugin.utils.TeleportUtils;
 import me.nakilex.levelplugin.utils.CombatTargetUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.Material;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -26,8 +33,13 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.SlimeSplitEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -39,12 +51,19 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.ThreadLocalRandom;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 
 /** Coordinates reusable stage-based currency dungeon runs and progression. */
 public class StagedDungeonManager implements Listener {
     private static final String RUN_MOB_TAG = "staged_dungeon_mob";
+    private static final String SPELL_UPGRADE_TITLE = "Dungeon Spell Upgrades";
+    private static final int[] SPELL_UPGRADE_SLOTS = {11, 13, 15};
+    private static final int DUNGEON_ENTRY_UPGRADES = 5;
 
     public record StageStatus(String displayName, ChatColor color, int stage, int secondsLeft) {}
 
@@ -55,6 +74,7 @@ public class StagedDungeonManager implements Listener {
     private final Map<String, StagedDungeonDefinition> definitions = new HashMap<>();
     private final Map<UUID, StagedDungeonRun> activeRuns = new HashMap<>();
     private final Map<String, Map<UUID, DungeonProgress>> progressByDungeon = new HashMap<>();
+    private final Map<UUID, SpellUpgradeSession> pendingSpellUpgrades = new HashMap<>();
     private File progressionFile;
     private YamlConfiguration progressionConfig;
 
@@ -157,7 +177,7 @@ public class StagedDungeonManager implements Listener {
 
     public int getSweepsLeft(Player player, StagedDungeonDefinition definition) {
         if (!definition.supportsSweeps()) return 0;
-        return Math.max(0, definition.sweepAttempts() - getSweepsUsed(player, definition));
+        return Math.max(0, getTotalSweepAttempts(player, definition) - getSweepsUsed(player, definition));
     }
 
     public void startStage(Player player, StagedDungeonDefinition definition) {
@@ -183,6 +203,7 @@ public class StagedDungeonManager implements Listener {
         spawnStageMob(run);
         startTimer(run);
         updateScoreboard(player);
+        beginDungeonSpellUpgrades(player, definition);
         ChatMessageUtil.send(player, MessageType.SUCCESS,
                 "Entering " + definition.themeColor() + definition.displayName() + ChatColor.GREEN
                         + " Stage " + ChatColor.WHITE + stage + ChatColor.GREEN + ".");
@@ -210,7 +231,7 @@ public class StagedDungeonManager implements Listener {
         }
         int stage = definition.sweepStage(highest);
         double bestDamage = getBestDamage(player, definition);
-        int reward = definition.rewardForSweep(stage, bestDamage);
+        int reward = applyDungeonYieldPetBonus(player, definition, definition.rewardForSweep(stage, bestDamage));
         definition.rewardGrant().grant(player, reward);
         int used = getSweepsUsed(player, definition) + 1;
         playerConfig.setStagedDungeonSweeps(player.getUniqueId(), slot, definition.id(), used, currentSweepResetKey());
@@ -383,6 +404,7 @@ public class StagedDungeonManager implements Listener {
         if (run == null) return;
         run.cleanupUi();
         run.removeMob();
+        clearDungeonSpellUpgrades(run.playerId);
         instanceManager.destroyInstance(run.instance);
         updateProfileLocation(run.playerId, run.returnLocation);
     }
@@ -395,6 +417,7 @@ public class StagedDungeonManager implements Listener {
                 : run.definition.rewardForStage(run.stage);
         Player player = run.getPlayer();
         if (player != null) {
+            reward = applyDungeonYieldPetBonus(player, run.definition, reward);
             run.definition.rewardGrant().grant(player, reward);
             persistRunProgress(player, run.definition, run.stage, run.definition.isDamageMeter() ? run.damageDealt : 0.0D);
             sendCompletionMessage(player, run, reward);
@@ -417,6 +440,7 @@ public class StagedDungeonManager implements Listener {
         if (removeFromActive) activeRuns.remove(run.playerId);
         run.cleanupUi();
         run.removeMob();
+        clearDungeonSpellUpgrades(run.playerId);
         Player player = run.getPlayer();
         if (teleportBack && player != null) {
             TeleportUtils.safeTeleport(player, run.returnLocation);
@@ -617,15 +641,194 @@ public class StagedDungeonManager implements Listener {
         int used = today.equals(stored)
                 ? playerConfig.getStagedDungeonSweepsUsed(player.getUniqueId(), slot, definition.id())
                 : 0;
-        int beforeLeft = Math.max(0, definition.sweepAttempts() - used);
-        int afterLeft = Math.max(0, Math.min(definition.sweepAttempts(), beforeLeft + deltaAvailableSweeps));
-        int newUsed = Math.max(0, definition.sweepAttempts() - afterLeft);
+        int totalAttempts = getTotalSweepAttempts(player, definition);
+        int beforeLeft = Math.max(0, totalAttempts - used);
+        int afterLeft = Math.max(0, Math.min(totalAttempts, beforeLeft + deltaAvailableSweeps));
+        int newUsed = Math.max(0, totalAttempts - afterLeft);
         playerConfig.setStagedDungeonSweeps(player.getUniqueId(), slot, definition.id(), newUsed, today);
         playerConfig.savePlayer(player.getUniqueId());
-        return new SweepAdjustment(beforeLeft, afterLeft, definition.sweepAttempts());
+        return new SweepAdjustment(beforeLeft, afterLeft, getTotalSweepAttempts(player, definition));
     }
 
     public record SweepAdjustment(int beforeLeft, int afterLeft, int total) {}
+
+
+    @EventHandler
+    public void onSpellUpgradeClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (event.getView() == null || !GuiUtil.titleMatches(event.getView().getTitle(), SPELL_UPGRADE_TITLE)) return;
+        event.setCancelled(true);
+        if (event.getClickedInventory() != event.getView().getTopInventory()) return;
+        SpellUpgradeSession session = pendingSpellUpgrades.get(player.getUniqueId());
+        if (session == null) {
+            player.closeInventory();
+            return;
+        }
+        int choiceIndex = switch (event.getRawSlot()) {
+            case 11 -> 0;
+            case 13 -> 1;
+            case 15 -> 2;
+            default -> -1;
+        };
+        if (choiceIndex < 0 || choiceIndex >= session.choices().size()) return;
+        SpellUpgradeChoice choice = session.choices().get(choiceIndex);
+        SpellProgressionManager progression = SpellProgressionManager.getInstance();
+        if (progression.addTemporarySpellLevel(player.getUniqueId(), choice.baseSpellId(), 1)) {
+            ChatMessageUtil.send(player, MessageType.SUCCESS,
+                    "Dungeon spell upgrade: " + ChatColor.WHITE + choice.displayName() + ChatColor.GRAY + ".");
+        }
+        int left = Math.max(0, session.remainingSelections() - 1);
+        if (left <= 0) {
+            pendingSpellUpgrades.remove(player.getUniqueId());
+            player.closeInventory();
+            return;
+        }
+        List<SpellUpgradeChoice> choices = rollSpellUpgradeChoices(player, 3);
+        if (choices.isEmpty()) {
+            pendingSpellUpgrades.remove(player.getUniqueId());
+            ChatMessageUtil.send(player, MessageType.INFO, "No more spell upgrades are available for this run.");
+            player.closeInventory();
+            return;
+        }
+        SpellUpgradeSession next = new SpellUpgradeSession(left, choices);
+        pendingSpellUpgrades.put(player.getUniqueId(), next);
+        Bukkit.getScheduler().runTask(plugin, () -> openSpellUpgradeGui(player, next));
+    }
+
+    @EventHandler
+    public void onSpellUpgradeClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) return;
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), SPELL_UPGRADE_TITLE)) return;
+        SpellUpgradeSession session = pendingSpellUpgrades.get(player.getUniqueId());
+        if (session == null || session.remainingSelections() <= 0) return;
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Player online = Bukkit.getPlayer(player.getUniqueId());
+            SpellUpgradeSession current = pendingSpellUpgrades.get(player.getUniqueId());
+            if (online != null && online.isOnline() && current != null && activeRuns.containsKey(player.getUniqueId())) {
+                openSpellUpgradeGui(online, current);
+            }
+        });
+    }
+
+    private void beginDungeonSpellUpgrades(Player player, StagedDungeonDefinition definition) {
+        SpellProgressionManager.getInstance().clearTemporarySpellLevels(player.getUniqueId());
+        List<SpellUpgradeChoice> choices = rollSpellUpgradeChoices(player, 3);
+        if (choices.isEmpty()) {
+            ChatMessageUtil.send(player, MessageType.INFO, "No temporary spell upgrades are available for your current class.");
+            return;
+        }
+        SpellUpgradeSession session = new SpellUpgradeSession(DUNGEON_ENTRY_UPGRADES, choices);
+        pendingSpellUpgrades.put(player.getUniqueId(), session);
+        ChatMessageUtil.send(player, MessageType.INFO,
+                definition.displayName() + " grants " + ChatColor.AQUA + DUNGEON_ENTRY_UPGRADES
+                        + ChatColor.GRAY + " temporary spell upgrades for this run.");
+        Bukkit.getScheduler().runTask(plugin, () -> openSpellUpgradeGui(player, session));
+    }
+
+    private void openSpellUpgradeGui(Player player, SpellUpgradeSession session) {
+        if (player == null || session == null) return;
+        Inventory inv = Bukkit.createInventory(player, 27, SPELL_UPGRADE_TITLE);
+        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+        for (int slot = 0; slot < inv.getSize(); slot++) {
+            inv.setItem(slot, filler);
+        }
+        for (int i = 0; i < SPELL_UPGRADE_SLOTS.length && i < session.choices().size(); i++) {
+            inv.setItem(SPELL_UPGRADE_SLOTS[i], createSpellUpgradeItem(player, session.choices().get(i), session.remainingSelections()));
+        }
+        player.openInventory(inv);
+    }
+
+    private ItemStack createSpellUpgradeItem(Player player, SpellUpgradeChoice choice, int remainingSelections) {
+        Material icon = choice.unlock() ? Material.BOOK : Material.ENCHANTED_BOOK;
+        ItemStack item = new ItemStack(icon);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName((choice.unlock() ? ChatColor.GREEN : ChatColor.AQUA) + choice.displayName());
+            List<String> lore = new ArrayList<>();
+            lore.add(ChatColor.GRAY + (choice.unlock() ? "Unlock this spell for the run." : "Upgrade this spell for the run."));
+            lore.add(" ");
+            lore.add(TooltipUtil.sectionHeader("Run Upgrade"));
+            lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Remaining Choices: " + ChatColor.WHITE + remainingSelections));
+            lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Current Run Rank: " + ChatColor.WHITE
+                    + SpellProgressionManager.getInstance().getSpellLevel(player.getUniqueId(), choice.baseSpellId())));
+            lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Next Spell: " + ChatColor.WHITE + choice.resultDisplayName()));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to choose this temporary upgrade", null));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private List<SpellUpgradeChoice> rollSpellUpgradeChoices(Player player, int count) {
+        SpellProgressionManager progression = SpellProgressionManager.getInstance();
+        List<SpellUpgradeChoice> candidates = new ArrayList<>();
+        for (String baseId : progression.getClassBaseSpells(player)) {
+            SpellUpgradeChoice choice = spellUpgradeChoiceFor(player, baseId);
+            if (choice != null) {
+                candidates.add(choice);
+            }
+        }
+        List<SpellUpgradeChoice> rolled = new ArrayList<>();
+        ThreadLocalRandom rng = ThreadLocalRandom.current();
+        while (!candidates.isEmpty() && rolled.size() < count) {
+            rolled.add(candidates.remove(rng.nextInt(candidates.size())));
+        }
+        return rolled;
+    }
+
+    private SpellUpgradeChoice spellUpgradeChoiceFor(Player player, String baseSpellId) {
+        if (player == null || baseSpellId == null) return null;
+        SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
+        SpellRegistry registry = SpellRegistry.getInstance();
+        String base = baseSpellId.toLowerCase(Locale.ROOT);
+        int current = progressionManager.getSpellLevel(player.getUniqueId(), base);
+        int max = progressionManager.getMaxLevel(base);
+        if (current >= max) return null;
+        SpellProgression progression = registry.getProgression(base);
+        if (progression == null || progression.upgradeSpellIds().isEmpty()) return null;
+        String resultId;
+        boolean unlock = current <= 0;
+        if (unlock) {
+            var baseEntry = registry.getSpell(base);
+            if (baseEntry == null || baseEntry.definition() == null) return null;
+            resultId = progression.upgradeSpellIds().get(0);
+            var resultEntry = registry.getSpell(resultId);
+            return new SpellUpgradeChoice(base, "Unlock " + baseEntry.definition().displayName(),
+                    resultEntry == null || resultEntry.definition() == null ? resultId : resultEntry.definition().displayName(), true);
+        }
+        resultId = progression.upgradeSpellIds().get(current);
+        var upgraded = registry.getSpell(resultId);
+        if (upgraded == null || upgraded.definition() == null) return null;
+        return new SpellUpgradeChoice(base, "Upgrade: " + upgraded.definition().displayName(), upgraded.definition().displayName(), false);
+    }
+
+    private void clearDungeonSpellUpgrades(UUID playerId) {
+        pendingSpellUpgrades.remove(playerId);
+        SpellProgressionManager.getInstance().clearTemporarySpellLevels(playerId);
+    }
+
+    private int applyDungeonYieldPetBonus(Player player, StagedDungeonDefinition definition, int reward) {
+        if (player == null || definition == null || reward <= 0 || plugin.getPetManager() == null) return reward;
+        PetEffectType type = switch (definition.id().toLowerCase(Locale.ROOT)) {
+            case "gem" -> PetEffectType.GEM_DUNGEON_YIELD;
+            case "coin" -> PetEffectType.COIN_DUNGEON_YIELD;
+            default -> null;
+        };
+        return type == null ? reward : plugin.getPetManager().applyActiveEffectMultiplier(player.getUniqueId(), type, reward);
+    }
+
+    public int getTotalSweepAttempts(Player player, StagedDungeonDefinition definition) {
+        if (player == null || definition == null) return 0;
+        int base = Math.max(0, definition.sweepAttempts());
+        if (plugin.getPetManager() == null) return base;
+        int bonus = (int) Math.floor(plugin.getPetManager()
+                .getActiveEffectValue(player.getUniqueId(), PetEffectType.STAGED_DUNGEON_SWEEP_ATTEMPTS));
+        return Math.max(0, base + Math.max(0, bonus));
+    }
+
+    private record SpellUpgradeSession(int remainingSelections, List<SpellUpgradeChoice> choices) {}
+    private record SpellUpgradeChoice(String baseSpellId, String displayName, String resultDisplayName, boolean unlock) {}
 
     public boolean isInstanceWorld(World world) {
         if (world == null) return false;

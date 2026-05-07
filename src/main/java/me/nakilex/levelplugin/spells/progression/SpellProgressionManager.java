@@ -26,6 +26,7 @@ public final class SpellProgressionManager {
 
     private final Map<ProfileKey, Integer> spellPoints = new HashMap<>();
     private final Map<ProfileKey, Map<String, Integer>> spellLevels = new HashMap<>();
+    private final Map<UUID, Map<String, Integer>> temporarySpellLevels = new HashMap<>();
 
     private SpellProgressionManager() {
     }
@@ -49,7 +50,45 @@ public final class SpellProgressionManager {
         if (playerId == null || baseSpellId == null) {
             return 0;
         }
+        int permanent = getPermanentSpellLevel(playerId, baseSpellId);
+        int temporary = temporarySpellLevels.getOrDefault(playerId, Map.of()).getOrDefault(normalize(baseSpellId), 0);
+        return Math.max(0, Math.min(permanent + temporary, getMaxLevel(baseSpellId)));
+    }
+
+    private int getPermanentSpellLevel(UUID playerId, String baseSpellId) {
+        if (playerId == null || baseSpellId == null) {
+            return 0;
+        }
         return spellLevels.getOrDefault(resolveKey(playerId), Map.of()).getOrDefault(normalize(baseSpellId), 0);
+    }
+
+    public int getTemporarySpellLevel(UUID playerId, String baseSpellId) {
+        if (playerId == null || baseSpellId == null) {
+            return 0;
+        }
+        return temporarySpellLevels.getOrDefault(playerId, Map.of()).getOrDefault(normalize(baseSpellId), 0);
+    }
+
+    public boolean addTemporarySpellLevel(UUID playerId, String baseSpellId, int amount) {
+        if (playerId == null || baseSpellId == null || amount <= 0) {
+            return false;
+        }
+        int current = getSpellLevel(playerId, baseSpellId);
+        int max = getMaxLevel(baseSpellId);
+        if (current >= max) {
+            return false;
+        }
+        String normalized = normalize(baseSpellId);
+        int add = Math.min(amount, max - current);
+        temporarySpellLevels.computeIfAbsent(playerId, ignored -> new HashMap<>())
+                .merge(normalized, add, Integer::sum);
+        return true;
+    }
+
+    public void clearTemporarySpellLevels(UUID playerId) {
+        if (playerId != null) {
+            temporarySpellLevels.remove(playerId);
+        }
     }
 
     public int getMaxLevel(String baseSpellId) {
@@ -65,7 +104,7 @@ public final class SpellProgressionManager {
         if (points <= 0) {
             return false;
         }
-        int level = getSpellLevel(playerId, baseSpellId);
+        int level = getPermanentSpellLevel(playerId, baseSpellId);
         int max = getMaxLevel(baseSpellId);
         if (level >= max) {
             return false;
@@ -81,7 +120,7 @@ public final class SpellProgressionManager {
         if (playerId == null || baseSpellId == null) {
             return false;
         }
-        int level = getSpellLevel(playerId, baseSpellId);
+        int level = getPermanentSpellLevel(playerId, baseSpellId);
         if (level <= 0) {
             return false;
         }
@@ -111,6 +150,7 @@ public final class SpellProgressionManager {
         }
         spellPoints.keySet().removeIf(key -> key.playerId().equals(playerId));
         spellLevels.keySet().removeIf(key -> key.playerId().equals(playerId));
+        temporarySpellLevels.remove(playerId);
     }
 
     public void loadProfileData(UUID playerId, int slot, int points, List<String> levelEntries) {

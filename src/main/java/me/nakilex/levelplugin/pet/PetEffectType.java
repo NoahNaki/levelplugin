@@ -119,7 +119,19 @@ public enum PetEffectType {
             }),
     ITEM_MAGNET("item_magnet", "Treasure Magnet",
             value -> "Pulls dropped items within "
-                    + ChatColor.AQUA + formatFlat(value) + ChatColor.GRAY + " blocks");
+                    + ChatColor.AQUA + formatFlat(value) + ChatColor.GRAY + " blocks"),
+    GEM_DUNGEON_YIELD("gem_dungeon_yield", "Crystal Yield",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " rewards from Gem Dungeon clears and sweeps"),
+    COIN_DUNGEON_YIELD("coin_dungeon_yield", "Vault Yield",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " rewards from Coin Dungeon clears and sweeps"),
+    STAGED_DUNGEON_SWEEP_ATTEMPTS("staged_dungeon_sweep_attempts", "Sweep Cache",
+            value -> {
+                int attempts = Math.max(0, (int) Math.floor(value));
+                return ChatColor.AQUA + "+" + attempts + ChatColor.GRAY
+                        + (attempts == 1 ? " daily dungeon sweep attempt" : " daily dungeon sweep attempts");
+            });
 
     private final String id;
     private final String displayName;

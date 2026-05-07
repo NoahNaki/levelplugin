@@ -497,3 +497,76 @@ pets:
     - type: ITEM_MAGNET
       base: 4.5
       per-level: 0.035
+  crystal_gremlin:
+    name: §dCrystal Gremlin
+    rarity: EPIC
+    models:
+    - cubee-amethyst
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      tec: 4
+      int: 4
+    effects:
+    - type: GEM_DUNGEON_YIELD
+      base: 0.08
+      per-level: 0.0012
+  gilded_treasurer:
+    name: §6Gilded Treasurer
+    rarity: LEGENDARY
+    models:
+    - cubee-gold
+    max-level: 140
+    xp-per-level: 210
+    owned-stats:
+      tec: 6
+      wil: 3
+    effects:
+    - type: COIN_DUNGEON_YIELD
+      base: 0.10
+      per-level: 0.0014
+  sweep_scarab:
+    name: §bSweep Scarab
+    rarity: RARE
+    models:
+    - cubee-beetle
+    max-level: 100
+    xp-per-level: 150
+    owned-stats:
+      agi: 3
+      tec: 3
+    effects:
+    - type: STAGED_DUNGEON_SWEEP_ATTEMPTS
+      base: 1
+      per-level: 0
+  stronghold_pathfinder:
+    name: §6Stronghold Pathfinder
+    rarity: LEGENDARY
+    models:
+    - cubee-compass
+    max-level: 140
+    xp-per-level: 210
+    owned-stats:
+      str: 4
+      agi: 4
+    effects:
+    - type: STRONGHOLD_WAVE_RIDER
+      base: 1
+      per-level: 0
+  dungeon_packrat:
+    name: §dDungeon Packrat
+    rarity: EPIC
+    models:
+    - cubee-rat
+    max-level: 120
+    xp-per-level: 180
+    owned-stats:
+      dex: 4
+      tec: 4
+    effects:
+    - type: ITEM_MAGNET
+      base: 3.0
+      per-level: 0.025
+    - type: STAGED_DUNGEON_SWEEP_ATTEMPTS
+      base: 1
+      per-level: 0
