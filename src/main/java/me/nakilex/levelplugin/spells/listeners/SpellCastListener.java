@@ -24,6 +24,9 @@ public class SpellCastListener implements Listener {
     @EventHandler
     public void onSpellInput(SpellInputEvent event) {
         Player player = event.getPlayer();
+        if (plugin.getStagedDungeonManager() != null && plugin.getStagedDungeonManager().isInRun(player.getUniqueId())) {
+            return;
+        }
         var playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
         SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().resolveSpell(playerClass,
                 event.getInputMode(), event.getInputSequence(), event.getInputType());

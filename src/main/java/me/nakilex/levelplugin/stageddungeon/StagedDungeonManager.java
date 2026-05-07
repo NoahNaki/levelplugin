@@ -6,12 +6,15 @@ import me.nakilex.levelplugin.arena.instance.ArenaInstanceManager;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.pet.PetEffectType;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.spells.SpellAccessUtil;
 import me.nakilex.levelplugin.spells.SpellCastManager;
-import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellDefinition;
 import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
+import me.nakilex.levelplugin.stronghold.run.RunSpellCastUtil;
+import me.nakilex.levelplugin.stronghold.run.RunSpellCastUtil.ManualCastTrigger;
 import me.nakilex.levelplugin.stronghold.run.RunSpellUpgradeGuiUtil;
 import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
@@ -33,16 +36,19 @@ import org.bukkit.entity.Slime;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.SlimeSplitEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.util.Vector;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -68,8 +74,9 @@ public class StagedDungeonManager implements Listener {
     private static final String RUN_MOB_TAG = "staged_dungeon_mob";
     private static final String SPELL_UPGRADE_TITLE = "Dungeon Spell Upgrades";
     private static final int DUNGEON_ENTRY_UPGRADES = 5;
-    private static final double AUTO_CAST_TARGET_RANGE = 32.0D;
-    private static final long MIN_AUTO_CAST_COOLDOWN_MS = 900L;
+    private static final long BASE_AUTOCAST_COOLDOWN_MS = 1_400L;
+    private static final long MOBILITY_CHARGE_REFILL_MS = 4_000L;
+    private static final long MANUAL_CAST_DEBOUNCE_MS = 80L;
 
     public record StageStatus(String displayName, ChatColor color, int stage, int secondsLeft) {}
 
@@ -82,6 +89,7 @@ public class StagedDungeonManager implements Listener {
     private final Map<String, Map<UUID, DungeonProgress>> progressByDungeon = new HashMap<>();
     private final Map<UUID, SpellUpgradeSession> pendingSpellUpgrades = new HashMap<>();
     private final Set<UUID> skipNextSpellUpgradeReopen = new HashSet<>();
+    private final Map<UUID, Long> lastManualCastAttemptAt = new HashMap<>();
     private File progressionFile;
     private YamlConfiguration progressionConfig;
 
@@ -348,55 +356,141 @@ public class StagedDungeonManager implements Listener {
         LivingEntity target = run.getMob();
         if (player == null || !player.isOnline() || target == null || target.isDead()) return;
         if (!player.getWorld().equals(target.getWorld())) return;
-        if (player.getLocation().distanceSquared(target.getLocation()) > AUTO_CAST_TARGET_RANGE * AUTO_CAST_TARGET_RANGE) return;
         if (target instanceof Mob mob && (mob.getTarget() == null || !mob.getTarget().equals(player))) {
             mob.setTarget(player);
         }
-        faceTarget(player, target);
+        refillMobilityCharges(run, System.currentTimeMillis());
         long now = System.currentTimeMillis();
         for (String spellId : new ArrayList<>(run.activeSpellByBase.values())) {
             SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(spellId);
-            if (spellEntry == null || spellEntry.definition() == null || spellEntry.definition().movementSpell()) continue;
+            if (spellEntry == null || spellEntry.definition() == null) continue;
             SpellDefinition definition = spellEntry.definition();
-            long cooldown = Math.max(MIN_AUTO_CAST_COOLDOWN_MS, SpellCastManager.getInstance().getCooldownMs(player, definition));
+            if (RunSpellCastUtil.manualCastTrigger(definition) != ManualCastTrigger.NONE) continue;
+            if (!RunSpellCastUtil.shouldAutoCastSpellNow(player, definition.id())) continue;
+            long cooldown = RunSpellCastUtil.computeAutoCastCooldownMs(player, definition, 0, BASE_AUTOCAST_COOLDOWN_MS);
             long last = run.lastAutoCastAtBySpell.getOrDefault(spellId.toLowerCase(Locale.ROOT), 0L);
             if (now - last < cooldown) continue;
-            if (castDungeonSpell(player, spellEntry)) {
+            if (RunSpellCastUtil.castSpell(plugin, player, spellEntry,
+                    RunSpellCastUtil.createSyntheticInputEvent(player, "AUTO"), false,
+                    castPlayer -> hasValidDungeonWeapon(castPlayer, false))) {
                 run.lastAutoCastAtBySpell.put(spellId.toLowerCase(Locale.ROOT), now);
             }
         }
     }
 
-    private void faceTarget(Player player, LivingEntity target) {
-        if (player == null || target == null) return;
-        Location from = player.getEyeLocation();
-        Location to = target.getEyeLocation();
-        Vector direction = to.toVector().subtract(from.toVector());
-        if (direction.lengthSquared() <= 0.000001D) return;
-        Location updated = player.getLocation().clone();
-        updated.setDirection(direction.normalize());
-        player.teleport(updated);
+    private boolean tryManualCastSpell(Player player, ManualCastTrigger trigger) {
+        if (trigger == null || trigger == ManualCastTrigger.NONE || player == null) return false;
+        StagedDungeonRun run = activeRuns.get(player.getUniqueId());
+        if (run == null || run.finishing || run.activeSpellByBase.isEmpty()) return false;
+        if (!hasValidDungeonWeapon(player, true)) return false;
+        long now = System.currentTimeMillis();
+        long lastAttemptAt = lastManualCastAttemptAt.getOrDefault(player.getUniqueId(), 0L);
+        if (now - lastAttemptAt < MANUAL_CAST_DEBOUNCE_MS) return false;
+        lastManualCastAttemptAt.put(player.getUniqueId(), now);
+        SpellRegistry.SpellEntry manualSpell = RunSpellCastUtil.resolveOwnedManualSpell(run.activeSpellByBase, trigger);
+        if (manualSpell == null || manualSpell.definition() == null) return false;
+        SpellDefinition definition = manualSpell.definition();
+        String baseSpellId = normalizeBaseSpellId(definition.id());
+        if (definition.movementSpell() && getSpellCharges(run, baseSpellId) <= 0) {
+            long elapsedMs = Math.max(0L, now - run.lastMobilityChargeRefillAt);
+            long remainingMs = Math.max(0L, MOBILITY_CHARGE_REFILL_MS - elapsedMs);
+            int seconds = Math.max(1, (int) Math.ceil(remainingMs / 1000.0));
+            ChatMessageUtil.send(player, MessageType.WARNING,
+                    definition.displayName() + " has no charges left. Next charge in " + seconds + "s.");
+            return true;
+        }
+        SpellCastManager castManager = SpellCastManager.getInstance();
+        long remainingCooldown = castManager.getRemainingCooldownMs(player, definition);
+        if (SpellCastManager.areCooldownsEnabled() && remainingCooldown > 0L) {
+            int seconds = (int) Math.ceil(remainingCooldown / 1000.0);
+            ChatMessageUtil.send(player, MessageType.WARNING, definition.displayName() + " is on cooldown for " + seconds + "s.");
+            return true;
+        }
+        int manaCost = castManager.getManaCost(player, definition);
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        if (SpellCastManager.areManaCostsEnabled() && manaCost > 0 && stats.getCurrentMana() < manaCost) {
+            ChatMessageUtil.send(player, MessageType.WARNING, "Not enough mana for " + definition.displayName() + " (" + manaCost + ").");
+            return true;
+        }
+        boolean casted = RunSpellCastUtil.castSpell(plugin, player, manualSpell,
+                RunSpellCastUtil.createSyntheticInputEvent(player,
+                        trigger == ManualCastTrigger.RIGHT_CLICK ? "STRONGHOLD_MOBILITY" : "STRONGHOLD_BASIC"),
+                true,
+                castPlayer -> hasValidDungeonWeapon(castPlayer, false));
+        if (casted && definition.movementSpell()) {
+            consumeSpellCharge(run, baseSpellId);
+        }
+        return casted;
     }
 
-    private boolean castDungeonSpell(Player player, SpellRegistry.SpellEntry spellEntry) {
-        try {
-            if (player == null || spellEntry == null || spellEntry.definition() == null) return false;
-            spellEntry.handler().cast(new SpellContext(plugin, player, spellEntry.definition(), createDungeonAutoInputEvent(player)));
-            return true;
-        } catch (Exception ex) {
-            plugin.getLogger().fine("Failed to auto-cast staged dungeon spell "
-                    + (spellEntry == null || spellEntry.definition() == null ? "unknown" : spellEntry.definition().id())
-                    + ": " + ex.getMessage());
+    private boolean hasValidDungeonWeapon(Player player, boolean notifyFailure) {
+        if (player == null) return false;
+        if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) return false;
+        String requirementFailure = SpellAccessUtil.getHeldWeaponRequirementFailure(player);
+        if (requirementFailure != null) {
+            if (notifyFailure) {
+                ChatMessageUtil.send(player, MessageType.WARNING, requirementFailure);
+            }
             return false;
+        }
+        return true;
+    }
+
+    private String normalizeBaseSpellId(String spellId) {
+        if (spellId == null || spellId.isBlank()) return "";
+        String normalized = spellId.toLowerCase(Locale.ROOT);
+        SpellRegistry registry = SpellRegistry.getInstance();
+        SpellProgression progression = registry.getProgression(normalized);
+        if (progression != null) return progression.baseSpellId().toLowerCase(Locale.ROOT);
+        for (SpellProgression candidate : registry.getAllProgressions()) {
+            if (candidate == null || candidate.upgradeSpellIds() == null) continue;
+            for (String upgradeId : candidate.upgradeSpellIds()) {
+                if (upgradeId != null && upgradeId.equalsIgnoreCase(normalized)) {
+                    return candidate.baseSpellId().toLowerCase(Locale.ROOT);
+                }
+            }
+        }
+        return normalized;
+    }
+
+    private int getSpellCharges(StagedDungeonRun run, String baseSpellId) {
+        if (run == null || baseSpellId == null || baseSpellId.isBlank()) return 0;
+        return Math.max(0, run.spellChargesByBase.getOrDefault(baseSpellId.toLowerCase(Locale.ROOT), 0));
+    }
+
+    private int getMaxSpellCharges(StagedDungeonRun run, String baseSpellId) {
+        if (run == null || baseSpellId == null || baseSpellId.isBlank()) return 0;
+        return Math.max(0, SpellProgressionManager.getInstance().getSpellLevel(run.playerId, baseSpellId));
+    }
+
+    private void addSpellCharges(StagedDungeonRun run, String baseSpellId, int amount) {
+        if (run == null || baseSpellId == null || baseSpellId.isBlank() || amount <= 0) return;
+        String base = baseSpellId.toLowerCase(Locale.ROOT);
+        int maxCharges = getMaxSpellCharges(run, base);
+        int current = getSpellCharges(run, base);
+        run.spellChargesByBase.put(base, Math.min(maxCharges, current + amount));
+    }
+
+    private void refillMobilityCharges(StagedDungeonRun run, long nowMs) {
+        if (run == null || nowMs - run.lastMobilityChargeRefillAt < MOBILITY_CHARGE_REFILL_MS) return;
+        run.lastMobilityChargeRefillAt = nowMs;
+        for (Map.Entry<String, String> entry : run.activeSpellByBase.entrySet()) {
+            String base = entry.getKey() == null ? "" : entry.getKey().toLowerCase(Locale.ROOT);
+            String spellId = entry.getValue();
+            SpellRegistry.SpellEntry spellEntry = spellId == null ? null : SpellRegistry.getInstance().getSpell(spellId);
+            if (base.isBlank() || spellEntry == null || spellEntry.definition() == null || !spellEntry.definition().movementSpell()) continue;
+            if (getMaxSpellCharges(run, base) <= 0) continue;
+            addSpellCharges(run, base, 1);
         }
     }
 
-    private me.nakilex.levelplugin.spells.input.SpellInputEvent createDungeonAutoInputEvent(Player player) {
-        return new me.nakilex.levelplugin.spells.input.SpellInputEvent(
-                player,
-                me.nakilex.levelplugin.spells.input.SpellInputType.BASIC_ATTACK,
-                me.nakilex.levelplugin.spells.input.SpellInputMode.MOUSE_COMBO,
-                "AUTO");
+    private boolean consumeSpellCharge(StagedDungeonRun run, String baseSpellId) {
+        if (run == null || baseSpellId == null || baseSpellId.isBlank()) return false;
+        String base = baseSpellId.toLowerCase(Locale.ROOT);
+        int current = getSpellCharges(run, base);
+        if (current <= 0) return false;
+        run.spellChargesByBase.put(base, current - 1);
+        return true;
     }
 
     private void updateHealthBar(StagedDungeonRun run) {
@@ -487,6 +581,46 @@ public class StagedDungeonManager implements Listener {
             return;
         }
         completeRun(run);
+    }
+
+
+    @EventHandler
+    public void onStagedDungeonMobilityInteract(PlayerInteractEvent event) {
+        if (event == null || event.getPlayer() == null) return;
+        if (event.getHand() != EquipmentSlot.HAND || !isRightClickAction(event.getAction())) return;
+        if (!tryManualCastSpell(event.getPlayer(), ManualCastTrigger.RIGHT_CLICK)) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onStagedDungeonMobilityEntityInteract(PlayerInteractEntityEvent event) {
+        if (event == null || event.getPlayer() == null || event.getHand() != EquipmentSlot.HAND) return;
+        if (!tryManualCastSpell(event.getPlayer(), ManualCastTrigger.RIGHT_CLICK)) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onStagedDungeonRogueArcInteract(PlayerInteractEvent event) {
+        if (event == null || event.getPlayer() == null) return;
+        if (event.getHand() != EquipmentSlot.HAND || !isLeftClickAction(event.getAction())) return;
+        if (!tryManualCastSpell(event.getPlayer(), ManualCastTrigger.LEFT_CLICK_BASIC)) return;
+        event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onStagedDungeonRogueArcBasicAttack(EntityDamageByEntityEvent event) {
+        if (event == null || !(event.getDamager() instanceof Player player)) return;
+        if (event.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) return;
+        if (!tryManualCastSpell(player, ManualCastTrigger.LEFT_CLICK_BASIC)) return;
+        event.setCancelled(true);
+    }
+
+    private boolean isRightClickAction(Action action) {
+        return action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
+    }
+
+    private boolean isLeftClickAction(Action action) {
+        return action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
     }
 
     @EventHandler
@@ -766,7 +900,13 @@ public class StagedDungeonManager implements Listener {
         if (progression.addTemporarySpellLevel(player.getUniqueId(), choice.baseSpellId(), 1)) {
             StagedDungeonRun run = activeRuns.get(player.getUniqueId());
             if (run != null) {
-                run.activeSpellByBase.put(choice.baseSpellId().toLowerCase(Locale.ROOT), choice.resultSpellId().toLowerCase(Locale.ROOT));
+                String base = choice.baseSpellId().toLowerCase(Locale.ROOT);
+                String spellId = choice.resultSpellId().toLowerCase(Locale.ROOT);
+                run.activeSpellByBase.put(base, spellId);
+                SpellRegistry.SpellEntry selectedEntry = SpellRegistry.getInstance().getSpell(spellId);
+                if (selectedEntry != null && selectedEntry.definition() != null && selectedEntry.definition().movementSpell()) {
+                    addSpellCharges(run, base, 1);
+                }
             }
             ChatMessageUtil.send(player, MessageType.SUCCESS,
                     "Dungeon spell upgrade: " + ChatColor.WHITE + choice.displayName() + ChatColor.GRAY + ".");

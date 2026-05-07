@@ -27,6 +27,8 @@ final class StagedDungeonRun {
     boolean finishing;
     final Map<String, String> activeSpellByBase = new HashMap<>();
     final Map<String, Long> lastAutoCastAtBySpell = new HashMap<>();
+    final Map<String, Integer> spellChargesByBase = new HashMap<>();
+    long lastMobilityChargeRefillAt;
 
     StagedDungeonRun(UUID playerId, StagedDungeonDefinition definition, int stage,
                      double mobHealth, Location returnLocation, ArenaInstance instance) {

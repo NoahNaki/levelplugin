@@ -9,7 +9,6 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.spells.SpellCastManager;
-import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellDefinition;
 import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
@@ -91,6 +90,7 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
+import me.nakilex.levelplugin.stronghold.run.RunSpellCastUtil.ManualCastTrigger;
 
 public class StrongholdRunManager implements Listener {
     private static final String UPGRADE_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Upgrades";
@@ -172,12 +172,6 @@ public class StrongholdRunManager implements Listener {
     private File progressionFile;
     private YamlConfiguration progressionConfig;
     private StageScalingConfig stageScalingConfig = new StageScalingConfig(DEFAULT_STAGE_HEALTH_GROWTH, DEFAULT_STAGE_DAMAGE_GROWTH, DEFAULT_WAVE_HEALTH_GROWTH, DEFAULT_WAVE_DAMAGE_GROWTH, DEFAULT_WAVE_MOVE_SPEED_GROWTH);
-
-    private enum ManualCastTrigger {
-        NONE,
-        RIGHT_CLICK,
-        LEFT_CLICK_BASIC
-    }
 
     public StrongholdRunManager(Main plugin, StrongholdShrineManager shrineManager) {
         this.plugin = plugin;
@@ -2146,18 +2140,18 @@ public class StrongholdRunManager implements Listener {
                         continue;
                     }
                     SpellDefinition definition = spellEntry.definition();
-                    if (manualCastTrigger(definition) != ManualCastTrigger.NONE) {
+                    if (RunSpellCastUtil.manualCastTrigger(definition) != ManualCastTrigger.NONE) {
                         continue;
                     }
-                    if (!shouldAutoCastSpellNow(player, definition.id())) {
+                    if (!RunSpellCastUtil.shouldAutoCastSpellNow(player, definition.id())) {
                         continue;
                     }
-                    long cooldown = computeAutoCastCooldownMs(player, definition, state);
+                    long cooldown = RunSpellCastUtil.computeAutoCastCooldownMs(player, definition, state == null ? 0 : state.cooldownUpgradeTier, BASE_AUTOCAST_COOLDOWN_MS);
                     long last = state.lastCastAtBySpell.getOrDefault(spellId, 0L);
                     if (now - last < cooldown) {
                         continue;
                     }
-                    castSpell(player, spellEntry, createSyntheticInputEvent(player, "AUTO"), false);
+                    RunSpellCastUtil.castSpell(plugin, player, spellEntry, RunSpellCastUtil.createSyntheticInputEvent(player, "AUTO"), false, p -> hasValidStrongholdWeapon(p, false));
                     state.lastCastAtBySpell.put(spellId, now);
                 }
             }
@@ -2276,7 +2270,7 @@ public class StrongholdRunManager implements Listener {
             }
             lastManualCastAttemptAt.put(player.getUniqueId(), now);
             SurvivorState state = playerStates.get(player.getUniqueId());
-            SpellRegistry.SpellEntry manualSpell = resolveOwnedManualSpell(state, trigger);
+            SpellRegistry.SpellEntry manualSpell = RunSpellCastUtil.resolveOwnedManualSpell(state == null ? null : state.activeSpellByBase, trigger);
             if (manualSpell == null) {
                 return false;
             }
@@ -2302,47 +2296,12 @@ public class StrongholdRunManager implements Listener {
                 send(player, MessageType.WARNING, "Not enough mana for " + definition.displayName() + " (" + manaCost + ").");
                 return true;
             }
-            boolean casted = castSpell(player, manualSpell, createSyntheticInputEvent(player, trigger == ManualCastTrigger.RIGHT_CLICK
-                    ? "STRONGHOLD_MOBILITY" : "STRONGHOLD_BASIC"), true);
+            boolean casted = RunSpellCastUtil.castSpell(plugin, player, manualSpell, RunSpellCastUtil.createSyntheticInputEvent(player, trigger == ManualCastTrigger.RIGHT_CLICK
+                    ? "STRONGHOLD_MOBILITY" : "STRONGHOLD_BASIC"), true, p -> hasValidStrongholdWeapon(p, false));
             if (casted && definition.movementSpell()) {
                 consumeSpellCharge(state, baseSpellId);
             }
             return casted;
-        }
-
-        private long computeAutoCastCooldownMs(Player player, SpellDefinition definition, SurvivorState state) {
-            if (definition == null) {
-                return BASE_AUTOCAST_COOLDOWN_MS;
-            }
-            long cooldown = Math.max(BASE_AUTOCAST_COOLDOWN_MS, SpellCastManager.getInstance().getCooldownMs(player, definition));
-            int tier = state == null ? 0 : Math.max(0, state.cooldownUpgradeTier);
-            double multiplier = Math.max(0.45, 1.0 - (tier * 0.10));
-            return Math.max(600L, Math.round(cooldown * multiplier));
-        }
-
-        private boolean shouldAutoCastSpellNow(Player player, String spellId) {
-            if (player == null || spellId == null || spellId.isBlank()) {
-                return false;
-            }
-            String normalized = spellId.toLowerCase(Locale.ROOT);
-            if (normalized.startsWith("warrior_guarded_resolve")) {
-                return countNearbyEnemies(player, 7.0) >= 3 || player.getHealth() <= Math.max(6.0, player.getMaxHealth() * 0.70);
-            }
-            return findNearestLockTarget(player, 16.0) != null;
-        }
-
-        private LivingEntity findNearestLockTarget(Player caster, double range) {
-            return me.nakilex.levelplugin.spells.SpellEffectUtil.getLivingTargets(caster.getLocation(), Math.max(2.0, range),
-                            living -> !living.equals(caster))
-                    .stream()
-                    .min(java.util.Comparator.comparingDouble(living -> living.getLocation().distanceSquared(caster.getLocation())))
-                    .orElse(null);
-        }
-
-        private int countNearbyEnemies(Player player, double radius) {
-            return me.nakilex.levelplugin.spells.SpellEffectUtil
-                    .getLivingTargets(player.getLocation(), Math.max(2.0, radius), living -> !living.equals(player))
-                    .size();
         }
 
 
@@ -2398,65 +2357,6 @@ public class StrongholdRunManager implements Listener {
                 buff = "Prismatic Surge: Speed+Power";
             }
             state.activeArchetypeBuff = buff;
-        }
-
-        private SpellRegistry.SpellEntry resolveOwnedManualSpell(SurvivorState state, ManualCastTrigger trigger) {
-            if (state == null || state.activeSpellByBase.isEmpty()) {
-                return null;
-            }
-            SpellRegistry registry = SpellRegistry.getInstance();
-            for (String spellId : state.activeSpellByBase.values()) {
-                SpellRegistry.SpellEntry entry = registry.getSpell(spellId);
-                if (entry == null || entry.definition() == null || manualCastTrigger(entry.definition()) != trigger) {
-                    continue;
-                }
-                return entry;
-            }
-            return null;
-        }
-
-        private ManualCastTrigger manualCastTrigger(SpellDefinition definition) {
-            if (definition == null || definition.id() == null) {
-                return ManualCastTrigger.NONE;
-            }
-            if (definition.movementSpell()) {
-                return ManualCastTrigger.RIGHT_CLICK;
-            }
-            String spellId = definition.id().toLowerCase(Locale.ROOT);
-            if (spellId.startsWith("rogue_arc_basic")) {
-                return ManualCastTrigger.LEFT_CLICK_BASIC;
-            }
-            return ManualCastTrigger.NONE;
-        }
-
-        private me.nakilex.levelplugin.spells.input.SpellInputEvent createSyntheticInputEvent(Player player, String inputSequence) {
-            return new me.nakilex.levelplugin.spells.input.SpellInputEvent(
-                    player,
-                    me.nakilex.levelplugin.spells.input.SpellInputType.BASIC_ATTACK,
-                    me.nakilex.levelplugin.spells.input.SpellInputMode.MOUSE_COMBO,
-                    inputSequence);
-        }
-
-        private boolean castSpell(Player player,
-                                  SpellRegistry.SpellEntry spellEntry,
-                                  me.nakilex.levelplugin.spells.input.SpellInputEvent inputEvent,
-                                  boolean consumeResources) {
-            try {
-                if (player == null || spellEntry == null || spellEntry.definition() == null || inputEvent == null) {
-                    return false;
-                }
-                if (!hasValidStrongholdWeapon(player, false)) {
-                    return false;
-                }
-                if (consumeResources && !SpellCastManager.getInstance().tryConsumeResources(player, spellEntry.definition())) {
-                    return false;
-                }
-                spellEntry.handler().cast(new SpellContext(plugin, player, spellEntry.definition(), inputEvent));
-                return true;
-            } catch (Exception ignored) {
-                // Guard auto-cast loop from individual spell runtime issues.
-                return false;
-            }
         }
 
         private void applyTempStatDelta(UUID playerId, StatsManager.StatType statType, int delta) {
