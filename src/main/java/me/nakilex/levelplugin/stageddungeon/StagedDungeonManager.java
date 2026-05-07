@@ -207,8 +207,6 @@ public class StagedDungeonManager implements Listener {
                 definition.runMobHealth(stage), player.getLocation(), instance);
         activeRuns.put(player.getUniqueId(), run);
         TeleportUtils.safeTeleport(player, instance.getFirstSpawn());
-        spawnStageMob(run);
-        startTimer(run);
         updateScoreboard(player);
         beginDungeonSpellUpgrades(player, definition);
         ChatMessageUtil.send(player, MessageType.SUCCESS,
@@ -260,7 +258,29 @@ public class StagedDungeonManager implements Listener {
         activeRuns.clear();
     }
 
+    private void startDungeonCombat(StagedDungeonRun run) {
+        if (run == null || run.finishing || !activeRuns.containsKey(run.playerId)) return;
+        if (run.mobId == null) {
+            spawnStageMob(run);
+        }
+        if (run.timerTask == null) {
+            startTimer(run);
+        }
+        Player player = run.getPlayer();
+        if (player != null) {
+            updateScoreboard(player);
+            ChatMessageUtil.send(player, MessageType.INFO,
+                    run.definition.displayName() + " timer started. Clear Stage " + ChatColor.WHITE + run.stage + ChatColor.GRAY + ".");
+        }
+    }
+
+    private void startDungeonCombat(Player player) {
+        if (player == null) return;
+        startDungeonCombat(activeRuns.get(player.getUniqueId()));
+    }
+
     private void spawnStageMob(StagedDungeonRun run) {
+        if (run == null || run.mobId != null) return;
         Location spawn = run.instance.getSecondSpawn();
         LivingEntity entity = (LivingEntity) spawn.getWorld().spawnEntity(spawn, run.definition.mobType());
         if (entity instanceof Slime slime) {
@@ -294,6 +314,7 @@ public class StagedDungeonManager implements Listener {
     }
 
     private void startTimer(StagedDungeonRun run) {
+        if (run == null || run.timerTask != null) return;
         run.deadlineMs = System.currentTimeMillis() + Math.max(1, run.definition.stageTimeSeconds()) * 1000L;
         run.timerTask = new BukkitRunnable() {
             @Override
@@ -752,12 +773,12 @@ public class StagedDungeonManager implements Listener {
         }
         int left = Math.max(0, session.remainingSelections() - 1);
         if (left <= 0) {
-            closeSpellUpgradeGui(player);
+            completeSpellUpgradeSelection(player);
             return;
         }
         List<SpellUpgradeChoice> choices = rollSpellUpgradeChoices(player, 3);
         if (choices.isEmpty()) {
-            closeSpellUpgradeGui(player);
+            completeSpellUpgradeSelection(player);
             return;
         }
         SpellUpgradeSession next = new SpellUpgradeSession(left, choices);
@@ -786,6 +807,7 @@ public class StagedDungeonManager implements Listener {
         SpellProgressionManager.getInstance().clearTemporarySpellLevels(player.getUniqueId());
         List<SpellUpgradeChoice> choices = rollSpellUpgradeChoices(player, 3);
         if (choices.isEmpty()) {
+            startDungeonCombat(player);
             return;
         }
         SpellUpgradeSession session = new SpellUpgradeSession(DUNGEON_ENTRY_UPGRADES, choices);
@@ -801,7 +823,7 @@ public class StagedDungeonManager implements Listener {
         if (player == null || session == null) return;
         List<SpellUpgradeChoice> choices = rollSpellUpgradeChoices(player, 3);
         if (choices.isEmpty()) {
-            closeSpellUpgradeGui(player);
+            completeSpellUpgradeSelection(player);
             return;
         }
         SpellUpgradeSession rerolled = new SpellUpgradeSession(session.remainingSelections(), choices);
@@ -818,11 +840,12 @@ public class StagedDungeonManager implements Listener {
         openSpellUpgradeGui(player, rerolled);
     }
 
-    private void closeSpellUpgradeGui(Player player) {
+    private void completeSpellUpgradeSelection(Player player) {
         if (player == null) return;
         pendingSpellUpgrades.remove(player.getUniqueId());
         skipNextSpellUpgradeReopen.add(player.getUniqueId());
         player.closeInventory();
+        Bukkit.getScheduler().runTask(plugin, () -> startDungeonCombat(player));
     }
 
     private void openSpellUpgradeGui(Player player, SpellUpgradeSession session) {
