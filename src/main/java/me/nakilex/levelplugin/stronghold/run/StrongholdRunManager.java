@@ -96,7 +96,6 @@ public class StrongholdRunManager implements Listener {
     private static final String UPGRADE_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Upgrades";
     private static final int UPGRADE_GUI_ROWS = 5;
     private static final int UPGRADE_GUI_SIZE = UPGRADE_GUI_ROWS * 9;
-    private static final int[] UPGRADE_CHOICE_SLOTS = {11, 13, 15};
     private static final int UPGRADE_REROLL_SLOT = 31;
     private static final String RESULTS_GUI_TITLE = ChatColor.DARK_PURPLE + "Stronghold Results";
     private static final String RESULTS_CONFIRM_GUI_TITLE = ChatColor.DARK_RED + "Exit Stronghold Results?";
@@ -1729,17 +1728,10 @@ public class StrongholdRunManager implements Listener {
         }
 
         private void populateUpgradeInventory(Inventory inv, SurvivorState state) {
-            if (inv == null || state == null) {
+            if (state == null) {
                 return;
             }
-            ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-            for (int slot = 0; slot < inv.getSize(); slot++) {
-                inv.setItem(slot, filler);
-            }
-            for (int i = 0; i < UPGRADE_CHOICE_SLOTS.length && i < state.pendingUpgrades.size(); i++) {
-                inv.setItem(UPGRADE_CHOICE_SLOTS[i], upgradeItem(state.pendingUpgrades.get(i), state));
-            }
-            inv.setItem(UPGRADE_REROLL_SLOT, rerollItem());
+            RunSpellUpgradeGuiUtil.populateChoices(inv, state.pendingUpgrades, choice -> upgradeItem(choice, state), true, UPGRADE_REROLL_SLOT);
         }
 
         private ItemStack upgradeItem(UpgradeChoice choice, SurvivorState state) {
@@ -1748,14 +1740,18 @@ public class StrongholdRunManager implements Listener {
                     ? 0
                     : state.ownedSpellRanks.getOrDefault(choice.baseSpellId, 0);
             if (choice.type == UpgradeType.SPELL_UNLOCK || choice.type == UpgradeType.SPELL_UPGRADE) {
-                int nextRank = choice.type == UpgradeType.SPELL_UNLOCK
-                        ? 1
-                        : Math.max(1, spellCurrentRank + 1);
-                item = createSpellUpgradeItem(choice.displayName, choice.resultSpellId, nextRank);
-            } else {
-                Material material = choice.type == UpgradeType.STAT ? Material.NETHER_STAR : Material.ENCHANTED_BOOK;
-                item = new ItemStack(material);
+                return RunSpellUpgradeGuiUtil.createSpellUpgradeChoiceItem(new RunSpellUpgradeGuiUtil.SpellUpgradeView(
+                        choice.displayName,
+                        choice.description,
+                        choice.baseSpellId,
+                        choice.resultSpellId,
+                        spellCurrentRank,
+                        choice.type == UpgradeType.SPELL_UNLOCK,
+                        List.of(),
+                        "to choose this upgrade"));
             }
+            Material material = choice.type == UpgradeType.STAT ? Material.NETHER_STAR : Material.ENCHANTED_BOOK;
+            item = new ItemStack(material);
             ItemMeta meta = item.getItemMeta();
             if (meta != null) {
                 if (meta.getDisplayName() == null || meta.getDisplayName().isBlank()) {
@@ -1764,22 +1760,7 @@ public class StrongholdRunManager implements Listener {
                 List<String> lore = new ArrayList<>();
                 appendWrappedBulletBlock(lore, choice.description);
                 lore.add(" ");
-                if (choice.type == UpgradeType.SPELL_UNLOCK || choice.type == UpgradeType.SPELL_UPGRADE) {
-                    lore.add(TooltipUtil.sectionHeader("Spell Upgrade"));
-                    lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Current Rank",
-                            ChatColor.WHITE, String.valueOf(spellCurrentRank)));
-                    lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.GRAY, "Next Spell",
-                            ChatColor.WHITE, resolveUpgradeSpellDisplay(choice.resultSpellId)));
-                    lore.add(" ");
-                    lore.add(TooltipUtil.sectionHeader("Spell Effect"));
-                    StrongholdSpellTooltipUtil.appendSpellEffectLore(lore, choice.resultSpellId);
-                    lore.add(TooltipUtil.sectionHeader("Upgrade Effect"));
-                    StrongholdSpellTooltipUtil.appendUpgradeDeltaLore(
-                            lore,
-                            choice.baseSpellId,
-                            spellCurrentRank,
-                            choice.type == UpgradeType.SPELL_UNLOCK);
-                } else if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
+                if (choice.type == UpgradeType.GLOBAL_COOLDOWN) {
                     lore.add(TooltipUtil.sectionHeader("Global Cooldown"));
                     lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GRAY, "Cooldown Tier",
                             ChatColor.WHITE, String.valueOf(state.cooldownUpgradeTier)));
@@ -1814,101 +1795,6 @@ public class StrongholdRunManager implements Listener {
             }
         }
 
-        private String resolveUpgradeSpellDisplay(String spellId) {
-            if (spellId == null || spellId.isBlank()) {
-                return "Unknown";
-            }
-            SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().getSpell(spellId);
-            if (entry == null || entry.definition() == null || entry.definition().displayName() == null) {
-                return me.nakilex.levelplugin.utils.TextUtil.beautifyWords(spellId);
-            }
-            return entry.definition().displayName();
-        }
-
-        private ItemStack createSpellUpgradeItem(String displayName, String spellId, int nextRank) {
-            String iconBaseId = resolveSpellUpgradeBaseIconId(spellId);
-            for (String iconId : resolveTieredIconCandidates(iconBaseId, nextRank)) {
-                ItemStack candidate = GuiUtil.getNexoItem(iconId, ChatColor.GOLD + displayName);
-                if (candidate.getType() != Material.BARRIER) {
-                    return candidate;
-                }
-            }
-            return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.GOLD + displayName, List.of());
-        }
-
-        private List<String> resolveTieredIconCandidates(String baseIconId, int rank) {
-            if (baseIconId == null || baseIconId.isBlank()) {
-                return List.of("efficiency");
-            }
-            int safeRank = Math.max(1, rank);
-            if (safeRank <= 1) {
-                return List.of(baseIconId, "efficiency");
-            }
-            return List.of(baseIconId + "_" + safeRank, baseIconId, "efficiency");
-        }
-
-        private String resolveSpellUpgradeBaseIconId(String spellId) {
-            String normalized = spellId == null ? "" : spellId.toLowerCase(Locale.ROOT);
-            if (normalized.startsWith("mage_fireball")) {
-                return "flame";
-            }
-            if (normalized.startsWith("meteor")) {
-                return "fire_aspect";
-            }
-            if (normalized.startsWith("blackhole")) {
-                return "curse_of_binding";
-            }
-            if (normalized.startsWith("mage_heal")) {
-                return "mending";
-            }
-            if (normalized.startsWith("archer_quickshot")) {
-                return "power";
-            }
-            if (normalized.startsWith("archer_homing_barrage")) {
-                return "multishot";
-            }
-            if (normalized.startsWith("archer_arrow_rain")) {
-                return "piercing";
-            }
-            if (normalized.startsWith("archer_windguard")) {
-                return "feather_falling";
-            }
-            if (normalized.startsWith("rogue_arc_basic")) {
-                return "sweeping_edge";
-            }
-            if (normalized.startsWith("rogue_sky_ripper")) {
-                return "sharpness";
-            }
-            if (normalized.startsWith("rogue_phantom_cross")) {
-                return "knockback";
-            }
-            if (normalized.startsWith("rogue_veil_counter")) {
-                return "curse_of_vanishing";
-            }
-            if (normalized.startsWith("warrior_earthquake")) {
-                return "density";
-            }
-            if (normalized.startsWith("warrior_rupture_cyclone")) {
-                return "breach";
-            }
-            if (normalized.startsWith("warrior_execution_arc")) {
-                return "smite";
-            }
-            if (normalized.startsWith("warrior_guarded_resolve")) {
-                return "protection";
-            }
-            return "efficiency";
-        }
-
-        private ItemStack rerollItem() {
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Refresh all three current");
-            lore.add(ChatColor.GRAY + "upgrade choices.");
-            lore.add(" ");
-            lore.addAll(TooltipUtil.clickInstructions("to reroll options", null));
-            return GuiUtil.getNexoItem("refresh", ChatColor.RED + "Reroll Upgrades", lore);
-        }
-
         private void handleUpgradeClick(Player player, int slot) {
             SurvivorState state = playerStates.get(player.getUniqueId());
             if (state == null || state.pendingUpgrades == null || state.pendingUpgrades.isEmpty()) {
@@ -1923,12 +1809,7 @@ public class StrongholdRunManager implements Listener {
                 playRerollAnimation(player, state);
                 return;
             }
-            int idx = switch (slot) {
-                case 11 -> 0;
-                case 13 -> 1;
-                case 15 -> 2;
-                default -> -1;
-            };
+            int idx = RunSpellUpgradeGuiUtil.choiceIndex(slot);
             if (idx < 0 || idx >= state.pendingUpgrades.size()) {
                 return;
             }

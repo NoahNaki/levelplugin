@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.spells.SpellProgression;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
+import me.nakilex.levelplugin.stronghold.run.RunSpellUpgradeGuiUtil;
 import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -21,7 +22,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.Material;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -38,8 +38,6 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
@@ -62,7 +60,6 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 public class StagedDungeonManager implements Listener {
     private static final String RUN_MOB_TAG = "staged_dungeon_mob";
     private static final String SPELL_UPGRADE_TITLE = "Dungeon Spell Upgrades";
-    private static final int[] SPELL_UPGRADE_SLOTS = {11, 13, 15};
     private static final int DUNGEON_ENTRY_UPGRADES = 5;
 
     public record StageStatus(String displayName, ChatColor color, int stage, int secondsLeft) {}
@@ -664,12 +661,7 @@ public class StagedDungeonManager implements Listener {
             player.closeInventory();
             return;
         }
-        int choiceIndex = switch (event.getRawSlot()) {
-            case 11 -> 0;
-            case 13 -> 1;
-            case 15 -> 2;
-            default -> -1;
-        };
+        int choiceIndex = RunSpellUpgradeGuiUtil.choiceIndex(event.getRawSlot());
         if (choiceIndex < 0 || choiceIndex >= session.choices().size()) return;
         SpellUpgradeChoice choice = session.choices().get(choiceIndex);
         SpellProgressionManager progression = SpellProgressionManager.getInstance();
@@ -725,37 +717,26 @@ public class StagedDungeonManager implements Listener {
 
     private void openSpellUpgradeGui(Player player, SpellUpgradeSession session) {
         if (player == null || session == null) return;
-        Inventory inv = Bukkit.createInventory(player, 27, SPELL_UPGRADE_TITLE);
-        ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
-        for (int slot = 0; slot < inv.getSize(); slot++) {
-            inv.setItem(slot, filler);
-        }
-        for (int i = 0; i < SPELL_UPGRADE_SLOTS.length && i < session.choices().size(); i++) {
-            inv.setItem(SPELL_UPGRADE_SLOTS[i], createSpellUpgradeItem(player, session.choices().get(i), session.remainingSelections()));
-        }
+        Inventory inv = Bukkit.createInventory(player, RunSpellUpgradeGuiUtil.GUI_SIZE, SPELL_UPGRADE_TITLE);
+        RunSpellUpgradeGuiUtil.populateChoices(inv, session.choices(),
+                choice -> RunSpellUpgradeGuiUtil.createSpellUpgradeChoiceItem(toUpgradeView(player, choice, session.remainingSelections())),
+                false);
         player.openInventory(inv);
     }
 
-    private ItemStack createSpellUpgradeItem(Player player, SpellUpgradeChoice choice, int remainingSelections) {
-        Material icon = choice.unlock() ? Material.BOOK : Material.ENCHANTED_BOOK;
-        ItemStack item = new ItemStack(icon);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName((choice.unlock() ? ChatColor.GREEN : ChatColor.AQUA) + choice.displayName());
-            List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + (choice.unlock() ? "Unlock this spell for the run." : "Upgrade this spell for the run."));
-            lore.add(" ");
-            lore.add(TooltipUtil.sectionHeader("Run Upgrade"));
-            lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Remaining Choices: " + ChatColor.WHITE + remainingSelections));
-            lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Current Run Rank: " + ChatColor.WHITE
-                    + SpellProgressionManager.getInstance().getSpellLevel(player.getUniqueId(), choice.baseSpellId())));
-            lore.add(TooltipUtil.arrowLine(ChatColor.GRAY + "Next Spell: " + ChatColor.WHITE + choice.resultDisplayName()));
-            lore.add(" ");
-            lore.addAll(TooltipUtil.clickInstructions("to choose this temporary upgrade", null));
-            meta.setLore(lore);
-            item.setItemMeta(meta);
-        }
-        return item;
+    private RunSpellUpgradeGuiUtil.SpellUpgradeView toUpgradeView(Player player, SpellUpgradeChoice choice, int remainingSelections) {
+        int currentRank = SpellProgressionManager.getInstance().getSpellLevel(player.getUniqueId(), choice.baseSpellId());
+        List<String> details = List.of(TooltipUtil.iconLabelValueLine("⏵", ChatColor.LIGHT_PURPLE, ChatColor.GRAY,
+                "Remaining Choices", ChatColor.WHITE, String.valueOf(remainingSelections)));
+        return new RunSpellUpgradeGuiUtil.SpellUpgradeView(
+                choice.displayName(),
+                choice.unlock() ? "Unlock this spell for the run." : "Upgrade this spell for the run.",
+                choice.baseSpellId(),
+                choice.resultSpellId(),
+                currentRank,
+                choice.unlock(),
+                details,
+                "to choose this temporary upgrade");
     }
 
     private List<SpellUpgradeChoice> rollSpellUpgradeChoices(Player player, int count) {
@@ -791,14 +772,12 @@ public class StagedDungeonManager implements Listener {
             var baseEntry = registry.getSpell(base);
             if (baseEntry == null || baseEntry.definition() == null) return null;
             resultId = progression.upgradeSpellIds().get(0);
-            var resultEntry = registry.getSpell(resultId);
-            return new SpellUpgradeChoice(base, "Unlock " + baseEntry.definition().displayName(),
-                    resultEntry == null || resultEntry.definition() == null ? resultId : resultEntry.definition().displayName(), true);
+            return new SpellUpgradeChoice(base, "Unlock " + baseEntry.definition().displayName(), resultId, true);
         }
         resultId = progression.upgradeSpellIds().get(current);
         var upgraded = registry.getSpell(resultId);
         if (upgraded == null || upgraded.definition() == null) return null;
-        return new SpellUpgradeChoice(base, "Upgrade: " + upgraded.definition().displayName(), upgraded.definition().displayName(), false);
+        return new SpellUpgradeChoice(base, "Upgrade: " + upgraded.definition().displayName(), resultId, false);
     }
 
     private void clearDungeonSpellUpgrades(UUID playerId) {
@@ -826,7 +805,7 @@ public class StagedDungeonManager implements Listener {
     }
 
     private record SpellUpgradeSession(int remainingSelections, List<SpellUpgradeChoice> choices) {}
-    private record SpellUpgradeChoice(String baseSpellId, String displayName, String resultDisplayName, boolean unlock) {}
+    private record SpellUpgradeChoice(String baseSpellId, String displayName, String resultSpellId, boolean unlock) {}
 
     public boolean isInstanceWorld(World world) {
         if (world == null) return false;
