@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.stronghold.StrongholdGearBand;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
 import me.nakilex.levelplugin.stronghold.StrongholdStartupProfiler;
+import me.nakilex.levelplugin.stronghold.run.StrongholdHeat;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
@@ -105,6 +106,7 @@ public class StrongholdQueueGUI implements Listener {
         list.add(widget(11, StrongholdQueueMode.SOLO, "solo_swords_icon", Material.IRON_SWORD));
         list.add(widget(13, StrongholdQueueMode.DUO, "group_swords_icon", Material.DIAMOND_SWORD));
         list.add(widget(15, StrongholdQueueMode.SQUAD, "party_banner_icon", Material.NETHERITE_AXE));
+        list.add(new ActionWidget(22, ctx -> createHeatButton(ctx.player()), (click, ctx) -> handleHeatClick(ctx.player())));
         return list;
     }
 
@@ -112,6 +114,41 @@ public class StrongholdQueueGUI implements Listener {
         return new ActionWidget(slot,
                 context -> createQueueButton(context.player(), mode, nexoId, fallback),
                 (click, context) -> handleQueueClick(context.player(), mode));
+    }
+
+    private ItemStack createHeatButton(Player viewer) {
+        var runManager = Main.getInstance() == null ? null : Main.getInstance().getStrongholdRunManager();
+        StrongholdHeat heat = runManager == null ? StrongholdHeat.NONE : runManager.getQueuedHeat(viewer);
+        ItemStack item = new ItemStack(heat == StrongholdHeat.NONE ? Material.CAMPFIRE : Material.SOUL_CAMPFIRE);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(heat.color() + "" + ChatColor.BOLD + "Stronghold Heat: " + heat.displayName());
+            List<String> lore = new ArrayList<>();
+            lore.add("");
+            lore.add(ChatColor.GRAY + "Optional risk/reward modifier for your next run.");
+            lore.add("");
+            for (String line : heat.description()) {
+                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + line));
+            }
+            lore.addAll(TooltipUtil.rewardList(heat == StrongholdHeat.NONE ? "Standard rewards" : "Higher score potential"));
+            lore.add("");
+            lore.addAll(TooltipUtil.clickInstructions("to cycle heat", null));
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private void handleHeatClick(Player player) {
+        var runManager = Main.getInstance() == null ? null : Main.getInstance().getStrongholdRunManager();
+        if (runManager == null) {
+            send(player, MessageType.ERROR, "Stronghold run manager unavailable.");
+            return;
+        }
+        StrongholdHeat heat = runManager.cycleQueuedHeat(player);
+        send(player, heat == StrongholdHeat.NONE ? MessageType.INFO : MessageType.WARNING,
+                "Stronghold heat set to " + heat.coloredName() + ChatColor.GRAY + ".");
+        refreshOpenInventories();
     }
 
     private ItemStack createQueueButton(Player viewer, StrongholdQueueMode mode, String icon, Material fallback) {

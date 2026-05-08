@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
 import me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI;
+import me.nakilex.levelplugin.stronghold.run.StrongholdHeat;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
@@ -86,6 +87,17 @@ public class StrongholdCommand implements TabExecutor {
             return true;
         }
 
+        if (equalsAny(args[0], "heat", "curse")) {
+            StrongholdHeat heat = args.length >= 2 ? StrongholdHeat.byId(args[1]) : plugin.getStrongholdRunManager().cycleQueuedHeat(player);
+            if (args.length >= 2) {
+                plugin.getStrongholdRunManager().queueHeat(player, heat);
+            }
+            send(player, heat == StrongholdHeat.NONE ? MessageType.INFO : MessageType.WARNING,
+                    "Stronghold heat set to " + heat.coloredName() + ChatColor.GRAY + ".");
+            gui.refresh();
+            return true;
+        }
+
         if (equalsAny(args[0], "leave", "quit")) {
             Optional<StrongholdQueueMode> current = queueManager.getMode(id);
             if (current.isEmpty()) {
@@ -98,17 +110,20 @@ public class StrongholdCommand implements TabExecutor {
             return true;
         }
 
-        send(player, MessageType.INFO, "Usage: /" + label + " [join|leave|open|template|shrine]");
+        send(player, MessageType.INFO, "Usage: /" + label + " [join|leave|open|heat|template|shrine]");
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return partial(args[0], List.of("join", "leave", "open", "template", "shrine"));
+            return partial(args[0], List.of("join", "leave", "open", "heat", "template", "shrine"));
         }
         if (args.length == 2 && equalsAny(args[0], "join", "queue")) {
             return partial(args[1], Arrays.asList("solo", "duo", "squad"));
+        }
+        if (args.length == 2 && equalsAny(args[0], "heat", "curse")) {
+            return partial(args[1], Arrays.stream(StrongholdHeat.values()).map(StrongholdHeat::id).toList());
         }
         if (args.length == 2 && equalsAny(args[0], "template")) {
             return partial(args[1], List.of("set", "clear", "show"));
