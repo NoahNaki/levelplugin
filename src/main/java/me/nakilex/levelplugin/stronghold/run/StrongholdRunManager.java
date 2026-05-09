@@ -859,6 +859,8 @@ public class StrongholdRunManager implements Listener {
         private UUID waveBossId;
         private int currentWaveDeathEvents;
         private int currentWaveSpawnedTotal;
+        private int pendingWaveAnnouncement;
+        private int waveBeforePendingSpawn;
         private boolean portalPlacementPendingNotified = false;
         private long nextPortalGuideAt = 0L;
         private long startedAtMs = 0L;
@@ -908,9 +910,10 @@ public class StrongholdRunManager implements Listener {
                 updateStuckMobPull(world);
                 int aliveCurrentWave = countAliveCurrentWave();
                 if (aliveCurrentWave > 0) {
+                    announcePendingWaveStart(world);
                     return;
                 }
-                if (retryWaveIfSpawnedEnemiesVanished(world)) {
+                if (cancelPendingWaveStartIfSpawnVanished()) {
                     return;
                 }
                 StageProgress liveProgress = toStageProgress(Math.max(1, wave));
@@ -938,9 +941,11 @@ public class StrongholdRunManager implements Listener {
                 int waveStep = computeWaveAdvance(playersInWorld(world));
                 int previousWave = wave;
                 wave = Math.min(MAX_ABSOLUTE_WAVE, wave + waveStep);
+                waveBeforePendingSpawn = previousWave;
                 boolean spawned = spawnWave(world, wave);
                 if (!spawned) {
                     wave = previousWave;
+                    waveBeforePendingSpawn = previousWave;
                     secondsUntilNextWave = 2;
                     return;
                 }
@@ -990,6 +995,8 @@ public class StrongholdRunManager implements Listener {
             currentWaveSpawned.clear();
             currentWaveDeathEvents = 0;
             currentWaveSpawnedTotal = 0;
+            pendingWaveAnnouncement = 0;
+            waveBeforePendingSpawn = 0;
             activeEliteObjectives.clear();
             mobMotionStates.clear();
             lastManualCastAttemptAt.clear();
@@ -1306,18 +1313,10 @@ public class StrongholdRunManager implements Listener {
                 currentWaveSpawned.clear();
                 currentWaveSpawnedTotal = 0;
                 currentWaveDeathEvents = 0;
+                pendingWaveAnnouncement = 0;
                 return false;
             }
-            for (Player player : players) {
-                StageProgress progress = toStageProgress(waveNumber);
-                send(player, MessageType.INFO, "Stage " + ChatColor.WHITE + progress.stage() + ChatColor.GRAY + "-" + ChatColor.WHITE + progress.wave() + ChatColor.GRAY + " started.");
-                if (plugin.getQuestManager() != null) {
-                    plugin.getQuestManager().handleStrongholdWaveClear(player, waveNumber);
-                    if (progress.wave() == WAVES_PER_STAGE) {
-                        plugin.getQuestManager().handleStrongholdStageComplete(player, progress.stage());
-                    }
-                }
-            }
+            pendingWaveAnnouncement = waveNumber;
             return true;
         }
 
@@ -1336,26 +1335,35 @@ public class StrongholdRunManager implements Listener {
             return true;
         }
 
-        private boolean retryWaveIfSpawnedEnemiesVanished(World world) {
-            if (world == null || completed || wave <= 0 || wave != lastSpawnedWave || currentWaveSpawnedTotal <= 0) {
+        private void announcePendingWaveStart(World world) {
+            if (pendingWaveAnnouncement <= 0 || pendingWaveAnnouncement != wave) {
+                return;
+            }
+            StageProgress progress = toStageProgress(pendingWaveAnnouncement);
+            for (Player player : playersInWorld(world)) {
+                send(player, MessageType.INFO, "Stage " + ChatColor.WHITE + progress.stage() + ChatColor.GRAY + "-" + ChatColor.WHITE + progress.wave() + ChatColor.GRAY + " started.");
+                if (plugin.getQuestManager() != null) {
+                    plugin.getQuestManager().handleStrongholdWaveClear(player, pendingWaveAnnouncement);
+                    if (progress.wave() == WAVES_PER_STAGE) {
+                        plugin.getQuestManager().handleStrongholdStageComplete(player, progress.stage());
+                    }
+                }
+            }
+            pendingWaveAnnouncement = 0;
+        }
+
+        private boolean cancelPendingWaveStartIfSpawnVanished() {
+            if (pendingWaveAnnouncement <= 0 || currentWaveSpawnedTotal <= 0 || currentWaveDeathEvents > 0) {
                 return false;
             }
-            if (currentWaveDeathEvents > 0) {
-                return false;
-            }
-            plugin.getLogger().warning("[Stronghold] Wave " + wave + " had tracked mobs vanish before any death events; retrying the same wave instead of advancing.");
-            int retryWave = wave;
+            plugin.getLogger().warning("[Stronghold] Wave " + pendingWaveAnnouncement + " spawned no lasting enemies; cancelling start and rescheduling without chat spam.");
             currentWaveSpawned.clear();
             currentWaveSpawnedTotal = 0;
             currentWaveDeathEvents = 0;
-            secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
-            if (spawnWave(world, retryWave)) {
-                lastSpawnedWave = retryWave;
-            } else {
-                wave = Math.max(0, retryWave - 1);
-                lastSpawnedWave = wave;
-                secondsUntilNextWave = 2;
-            }
+            wave = Math.max(0, waveBeforePendingSpawn);
+            lastSpawnedWave = wave;
+            pendingWaveAnnouncement = 0;
+            secondsUntilNextWave = 2;
             return true;
         }
 
