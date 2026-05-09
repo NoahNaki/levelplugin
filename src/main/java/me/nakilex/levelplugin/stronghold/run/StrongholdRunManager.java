@@ -857,6 +857,8 @@ public class StrongholdRunManager implements Listener {
         private boolean completed = false;
         private PlacedPortalBounds exitPortalBounds;
         private UUID waveBossId;
+        private int currentWaveDeathEvents;
+        private int currentWaveSpawnedTotal;
         private boolean portalPlacementPendingNotified = false;
         private long nextPortalGuideAt = 0L;
         private long startedAtMs = 0L;
@@ -904,7 +906,11 @@ public class StrongholdRunManager implements Listener {
                 syncRunPlayers(world);
                 cleanupDeadSpawned();
                 updateStuckMobPull(world);
-                if (countAliveCurrentWave() > 0) {
+                int aliveCurrentWave = countAliveCurrentWave();
+                if (aliveCurrentWave > 0) {
+                    return;
+                }
+                if (retryWaveIfSpawnedEnemiesVanished(world)) {
                     return;
                 }
                 StageProgress liveProgress = toStageProgress(Math.max(1, wave));
@@ -982,6 +988,8 @@ public class StrongholdRunManager implements Listener {
             }
             spawned.clear();
             currentWaveSpawned.clear();
+            currentWaveDeathEvents = 0;
+            currentWaveSpawnedTotal = 0;
             activeEliteObjectives.clear();
             mobMotionStates.clear();
             lastManualCastAttemptAt.clear();
@@ -997,7 +1005,10 @@ public class StrongholdRunManager implements Listener {
             }
             UUID deadId = entity.getUniqueId();
             spawned.remove(deadId);
-            currentWaveSpawned.remove(deadId);
+            boolean wasCurrentWaveMob = currentWaveSpawned.remove(deadId);
+            if (wasCurrentWaveMob) {
+                currentWaveDeathEvents++;
+            }
             mobMotionStates.remove(deadId);
 
             EliteObjective objective = activeEliteObjectives.remove(deadId);
@@ -1259,6 +1270,8 @@ public class StrongholdRunManager implements Listener {
                 return false;
             }
             currentWaveSpawned.clear();
+            currentWaveDeathEvents = 0;
+            currentWaveSpawnedTotal = 0;
             int spawnedCount = 0;
             int spawnCount = modifiers.modifyWaveMobCount(computeWaveSpawnCount(waveNumber, players.size()));
             for (int i = 0; i < spawnCount; i++) {
@@ -1272,13 +1285,11 @@ public class StrongholdRunManager implements Listener {
                     continue;
                 }
                 applyWaveMobScaling(mob, waveNumber, false);
-                spawned.add(mob.getUniqueId());
-                currentWaveSpawned.add(mob.getUniqueId());
+                if (!trackCurrentWaveMob(mob)) {
+                    mob.remove();
+                    continue;
+                }
                 spawnedCount++;
-                mobMotionStates.put(mob.getUniqueId(), new MobMotionState(
-                        mob.getLocation().clone(),
-                        System.currentTimeMillis(),
-                        System.currentTimeMillis()));
                 if (mob instanceof Mob hostile) {
                     if (pausedPlayers.contains(target.getUniqueId())) {
                         hostile.setTarget(null);
@@ -1291,7 +1302,10 @@ public class StrongholdRunManager implements Listener {
             }
             spawnedCount += spawnEliteObjectiveIfNeeded(world, players, waveNumber);
             spawnedCount += spawnMilestoneBossIfNeeded(world, players, waveNumber);
-            if (spawnedCount <= 0) {
+            if (spawnedCount <= 0 || countAliveCurrentWave() <= 0) {
+                currentWaveSpawned.clear();
+                currentWaveSpawnedTotal = 0;
+                currentWaveDeathEvents = 0;
                 return false;
             }
             for (Player player : players) {
@@ -1303,6 +1317,44 @@ public class StrongholdRunManager implements Listener {
                         plugin.getQuestManager().handleStrongholdStageComplete(player, progress.stage());
                     }
                 }
+            }
+            return true;
+        }
+
+        private boolean trackCurrentWaveMob(LivingEntity mob) {
+            if (mob == null || mob.isDead() || !mob.isValid()) {
+                return false;
+            }
+            UUID mobId = mob.getUniqueId();
+            spawned.add(mobId);
+            currentWaveSpawned.add(mobId);
+            currentWaveSpawnedTotal++;
+            mobMotionStates.put(mobId, new MobMotionState(
+                    mob.getLocation().clone(),
+                    System.currentTimeMillis(),
+                    System.currentTimeMillis()));
+            return true;
+        }
+
+        private boolean retryWaveIfSpawnedEnemiesVanished(World world) {
+            if (world == null || completed || wave <= 0 || wave != lastSpawnedWave || currentWaveSpawnedTotal <= 0) {
+                return false;
+            }
+            if (currentWaveDeathEvents > 0) {
+                return false;
+            }
+            plugin.getLogger().warning("[Stronghold] Wave " + wave + " had tracked mobs vanish before any death events; retrying the same wave instead of advancing.");
+            int retryWave = wave;
+            currentWaveSpawned.clear();
+            currentWaveSpawnedTotal = 0;
+            currentWaveDeathEvents = 0;
+            secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
+            if (spawnWave(world, retryWave)) {
+                lastSpawnedWave = retryWave;
+            } else {
+                wave = Math.max(0, retryWave - 1);
+                lastSpawnedWave = wave;
+                secondsUntilNextWave = 2;
             }
             return true;
         }
@@ -1336,10 +1388,11 @@ public class StrongholdRunManager implements Listener {
             EliteObjective objective = new EliteObjective(affix, System.currentTimeMillis());
             applyWaveMobScaling(elite, waveNumber, true);
             applyEliteAffix(elite, affix);
-            spawned.add(elite.getUniqueId());
-            currentWaveSpawned.add(elite.getUniqueId());
+            if (!trackCurrentWaveMob(elite)) {
+                elite.remove();
+                return 0;
+            }
             activeEliteObjectives.put(elite.getUniqueId(), objective);
-            mobMotionStates.put(elite.getUniqueId(), new MobMotionState(elite.getLocation().clone(), System.currentTimeMillis(), System.currentTimeMillis()));
             if (elite instanceof Mob hostile) hostile.setTarget(target);
             for (Player player : players) {
                 send(player, MessageType.WARNING, "Elite hunt: " + affix.color + affix.displayName
@@ -1408,12 +1461,11 @@ public class StrongholdRunManager implements Listener {
             applyWaveMobScaling(boss, waveNumber, true);
             applyKingSlimeSize(boss, waveNumber == 30 ? BOSS_SLIME_SIZE : MINIBOSS_SLIME_SIZE);
             waveBossId = boss.getUniqueId();
-            spawned.add(boss.getUniqueId());
-            currentWaveSpawned.add(boss.getUniqueId());
-            mobMotionStates.put(boss.getUniqueId(), new MobMotionState(
-                    boss.getLocation().clone(),
-                    System.currentTimeMillis(),
-                    System.currentTimeMillis()));
+            if (!trackCurrentWaveMob(boss)) {
+                boss.remove();
+                waveBossId = null;
+                return 0;
+            }
             if (boss instanceof Mob hostile) {
                 hostile.setTarget(target);
             }
@@ -2640,18 +2692,48 @@ public class StrongholdRunManager implements Listener {
             if (world == null || base == null || fallbackOrigin == null) {
                 return null;
             }
-            int y = world.getHighestBlockYAt(base);
-            Material groundType = world.getBlockAt(base.getBlockX(), y, base.getBlockZ()).getType();
+            int preferredY = (int) Math.floor(fallbackOrigin.getY());
+            Location preferred = resolveSafeSpawnAtHeight(world, base, preferredY, 5, grassOnly);
+            if (preferred != null) {
+                return preferred;
+            }
+
+            int groundY = world.getHighestBlockYAt(base);
+            Material groundType = world.getBlockAt(base.getBlockX(), groundY, base.getBlockZ()).getType();
             if (!isAllowedSpawnGround(groundType, grassOnly)) {
                 return null;
             }
-            int spawnY = (int) Math.round(fallbackOrigin.getY());
-            Location spawn = new Location(world, base.getX(), spawnY, base.getZ());
-            Block below = world.getBlockAt(base.getBlockX(), spawnY - 1, base.getBlockZ());
-            if (!below.getType().isSolid()) {
+            return resolveSafeSpawnAtExactY(world, base, groundY + 1, grassOnly);
+        }
+
+        private Location resolveSafeSpawnAtHeight(World world, Location base, int preferredY, int verticalRange, boolean grassOnly) {
+            int safeRange = Math.max(0, verticalRange);
+            for (int offset = 0; offset <= safeRange; offset++) {
+                Location atPreferred = resolveSafeSpawnAtExactY(world, base, preferredY + offset, grassOnly);
+                if (atPreferred != null) {
+                    return atPreferred;
+                }
+                if (offset == 0) {
+                    continue;
+                }
+                Location belowPreferred = resolveSafeSpawnAtExactY(world, base, preferredY - offset, grassOnly);
+                if (belowPreferred != null) {
+                    return belowPreferred;
+                }
+            }
+            return null;
+        }
+
+        private Location resolveSafeSpawnAtExactY(World world, Location base, int spawnY, boolean grassOnly) {
+            if (spawnY <= world.getMinHeight() || spawnY >= world.getMaxHeight() - 1) {
                 return null;
             }
-            if (spawn.getBlock().getType().isAir() && spawn.clone().add(0, 1, 0).getBlock().getType().isAir()) {
+            Block below = world.getBlockAt(base.getBlockX(), spawnY - 1, base.getBlockZ());
+            if (!isAllowedSpawnGround(below.getType(), grassOnly)) {
+                return null;
+            }
+            Location spawn = new Location(world, base.getX(), spawnY, base.getZ());
+            if (spawn.getBlock().isPassable() && spawn.clone().add(0, 1, 0).getBlock().isPassable()) {
                 return spawn;
             }
             return null;
