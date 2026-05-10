@@ -6,12 +6,14 @@ import com.sk89q.worldedit.WorldEdit;
 import com.sk89q.worldedit.bukkit.BukkitAdapter;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
+import me.nakilex.levelplugin.stronghold.StrongholdTemplateConfig;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.Difficulty;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -420,10 +422,11 @@ public final class StrongholdDebugGenerator {
         GenerationDiagnostics diagnostics = new GenerationDiagnostics();
         diagnostics.templateConnectorSummary = templateConnectorSummary(captured);
 
-        int originX = 0;
-        int originZ = 0;
+        GenerationOrigin origin = resolveGenerationOrigin(plugin);
+        int originX = origin.x();
+        int originY = origin.y();
+        int originZ = origin.z();
         world.getChunkAt(Math.floorDiv(originX, 16), Math.floorDiv(originZ, 16)).load(true);
-        int originY = -61;
 
         List<PlacedTemplate> placed = new ArrayList<>();
         Set<Long> occupied = new HashSet<>();
@@ -687,9 +690,10 @@ public final class StrongholdDebugGenerator {
             return true;
         }
 
-        int originX = 0;
-        int originY = -61;
-        int originZ = 0;
+        GenerationOrigin origin = resolveGenerationOrigin(plugin);
+        int originX = origin.x();
+        int originY = origin.y();
+        int originZ = origin.z();
         world.getChunkAt(Math.floorDiv(originX, 16), Math.floorDiv(originZ, 16)).load(true);
 
         List<PlacedTemplate> placed = new ArrayList<>();
@@ -2232,20 +2236,30 @@ public final class StrongholdDebugGenerator {
         }
         world.setKeepSpawnInMemory(false);
         world.setAutoSave(false);
+        Difficulty previousDifficulty = world.getDifficulty();
+        world.setDifficulty(Difficulty.NORMAL);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
+        if (previousDifficulty == Difficulty.PEACEFUL) {
+            plugin.getLogger().warning("[Stronghold] Template world clone was PEACEFUL; forced generated Stronghold world '"
+                    + world.getName() + "' to NORMAL so hostile mobs do not instantly despawn.");
+        }
         if (player != null && player.isOnline()) {
+            GenerationOrigin origin = resolveGenerationOrigin(plugin);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Stronghold origin fixed at " + ChatColor.WHITE + "(0, -61, 0)"
+                    "Stronghold origin set to " + ChatColor.WHITE + "(" + origin.x() + ", " + origin.y() + ", " + origin.z() + ")"
                             + ChatColor.GRAY + " in world '" + world.getName() + "'.");
         }
         return world;
     }
 
     private static String resolveGeneratedWorldTemplate(Main plugin) {
-        if (plugin == null || plugin.getCustomConfig() == null) {
-            return "";
-        }
-        return plugin.getCustomConfig().getString("stronghold.generated-world-template", "").trim();
+        return StrongholdTemplateConfig.templateWorld(plugin);
+    }
+
+    private static GenerationOrigin resolveGenerationOrigin(Main plugin) {
+        return StrongholdTemplateConfig.templateOrigin(plugin)
+                .map(origin -> new GenerationOrigin(origin.x(), origin.y(), origin.z()))
+                .orElse(GenerationOrigin.DEFAULT);
     }
 
     private static SourceSetup prepareSourceTemplates(Player player, boolean forceRefresh) {
@@ -4582,6 +4596,10 @@ public final class StrongholdDebugGenerator {
     }
 
     private record StructureFootprint(int minX, int maxX, int minZ, int maxZ) {}
+
+    private record GenerationOrigin(int x, int y, int z) {
+        private static final GenerationOrigin DEFAULT = new GenerationOrigin(0, -61, 0);
+    }
 
     private static void paste(World world, Template template, BlockVector3 origin, int rotation) {
         RotatedTemplate rotated = rotateTemplate(template, rotation);

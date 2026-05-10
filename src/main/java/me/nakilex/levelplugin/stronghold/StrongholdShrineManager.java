@@ -311,13 +311,14 @@ public class StrongholdShrineManager implements Listener {
     }
 
     private void startShrineEvent(ShrineAnchor anchor, Player activator) {
-        ActiveShrineEvent event = new ActiveShrineEvent(anchor, activator.getUniqueId(), DEFAULT_DURATION_SECONDS);
+        ShrineObjective objective = ShrineObjective.random();
+        ActiveShrineEvent event = new ActiveShrineEvent(anchor, activator.getUniqueId(), DEFAULT_DURATION_SECONDS + objective.extraSeconds(), objective);
         activeByAnchor.put(anchor.id(), event);
         send(activator, MessageType.INFO,
-                "Shrine defense started. Keep mobs off the shrine for " + DEFAULT_DURATION_SECONDS + " seconds.");
+                objective.displayName + ChatColor.GRAY + " started: " + objective.startHint);
         anchor.interaction().remove();
-        anchor.subtitle().setText(ChatColor.RED + "Defend the shrine!");
-        anchor.title().setText(ChatColor.LIGHT_PURPLE + "<glyph:star> " + ChatColor.WHITE + "Shrine " + ChatColor.GRAY + "[Active]");
+        anchor.subtitle().setText(objective.color + objective.startHint);
+        anchor.title().setText(objective.color + "<glyph:star> " + ChatColor.WHITE + objective.displayName + ChatColor.GRAY + " [Active]");
         event.start();
     }
 
@@ -355,6 +356,11 @@ public class StrongholdShrineManager implements Listener {
 
     @EventHandler
     public void onShrineDeath(EntityDeathEvent event) {
+        for (ActiveShrineEvent active : new ArrayList<>(activeByAnchor.values())) {
+            if (active.handleMobDeath(event.getEntity(), event.getEntity().getKiller())) {
+                return;
+            }
+        }
         UUID shrineId = readShrineId(event.getEntity());
         if (shrineId == null) {
             return;
@@ -379,12 +385,12 @@ public class StrongholdShrineManager implements Listener {
         active.stop();
         activeByAnchor.remove(active.anchor.id());
         notifyNearby(active.anchor.origin, MessageType.SUCCESS,
-                "Shrine defended successfully! You earned a boon and a reward bomb.");
+                active.objective.displayName + ChatColor.GREEN + " completed! You earned a boon and a reward bomb.");
 
         Player activator = plugin.getServer().getPlayer(active.activator);
         if (activator != null && activator.isOnline()) {
             grantSimpleBoon(activator);
-            grantShrineRunRewards(activator);
+            grantShrineRunRewards(activator, active.rewardMultiplier());
             RewardBombUtil.startRewardBomb(plugin, active.anchor.origin.clone().add(0.0, 0.3, 0.0),
                     () -> rollShrineReward(activator), 100, activator);
         } else {
@@ -401,11 +407,16 @@ public class StrongholdShrineManager implements Listener {
     }
 
     private void grantShrineRunRewards(Player player) {
+        grantShrineRunRewards(player, 1.0);
+    }
+
+    private void grantShrineRunRewards(Player player, double multiplier) {
         if (player == null || !player.isOnline()) {
             return;
         }
-        int xp = ThreadLocalRandom.current().nextInt(SHRINE_BONUS_XP_MIN, SHRINE_BONUS_XP_MAX + 1);
-        int coins = ThreadLocalRandom.current().nextInt(SHRINE_BONUS_COINS_MIN, SHRINE_BONUS_COINS_MAX + 1);
+        double safeMultiplier = Math.max(0.25, multiplier);
+        int xp = (int) Math.round(ThreadLocalRandom.current().nextInt(SHRINE_BONUS_XP_MIN, SHRINE_BONUS_XP_MAX + 1) * safeMultiplier);
+        int coins = (int) Math.round(ThreadLocalRandom.current().nextInt(SHRINE_BONUS_COINS_MIN, SHRINE_BONUS_COINS_MAX + 1) * safeMultiplier);
         plugin.getLevelManager().addXP(player, xp);
         plugin.getEconomyManager().addCoins(player, coins);
         send(player, MessageType.REWARD,
@@ -606,6 +617,36 @@ public class StrongholdShrineManager implements Listener {
         }
     }
 
+    private enum ShrineObjective {
+        DEFENSE("Defense Shrine", ChatColor.LIGHT_PURPLE, "Keep mobs off the shrine.", 0),
+        BLOOD("Blood Shrine", ChatColor.RED, "Kill mobs inside the circle to charge it.", 8),
+        GREED("Greed Shrine", ChatColor.GOLD, "Collect gold sparks before time expires.", 5),
+        STORM("Storm Shrine", ChatColor.AQUA, "Keep moving through the lightning storm.", 4),
+        SACRIFICE("Sacrifice Shrine", ChatColor.DARK_RED, "Pay health now for richer rewards.", 0),
+        BOSS("Boss Shrine", ChatColor.DARK_PURPLE, "Slay the shrine champion.", 10);
+
+        private final String displayName;
+        private final ChatColor color;
+        private final String startHint;
+        private final int extraSeconds;
+
+        ShrineObjective(String displayName, ChatColor color, String startHint, int extraSeconds) {
+            this.displayName = displayName;
+            this.color = color;
+            this.startHint = startHint;
+            this.extraSeconds = extraSeconds;
+        }
+
+        private int extraSeconds() {
+            return extraSeconds;
+        }
+
+        private static ShrineObjective random() {
+            ShrineObjective[] values = values();
+            return values[ThreadLocalRandom.current().nextInt(values.length)];
+        }
+    }
+
     public record ShrineAnchor(UUID id,
                                org.bukkit.entity.ItemDisplay shrineDisplay,
                                LivingEntity entity,
@@ -624,19 +665,25 @@ public class StrongholdShrineManager implements Listener {
         private final ShrineAnchor anchor;
         private final UUID activator;
         private final int durationSeconds;
+        private final ShrineObjective objective;
         private final List<UUID> spawnedMobs = new ArrayList<>();
+        private final List<Location> greedSparks = new ArrayList<>();
 
         private BukkitTask task;
         private int elapsedTicks;
         private int spawnTicks;
+        private int objectiveProgress;
+        private UUID bossMobId;
 
-        private ActiveShrineEvent(ShrineAnchor anchor, UUID activator, int durationSeconds) {
+        private ActiveShrineEvent(ShrineAnchor anchor, UUID activator, int durationSeconds, ShrineObjective objective) {
             this.anchor = anchor;
             this.activator = activator;
             this.durationSeconds = Math.max(5, durationSeconds);
+            this.objective = objective == null ? ShrineObjective.DEFENSE : objective;
         }
 
         private void start() {
+            initializeObjective();
             this.task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
                 if (!anchor.isValid()) {
                     failShrine(this, "The shrine vanished.");
@@ -646,23 +693,144 @@ public class StrongholdShrineManager implements Listener {
                 spawnTicks++;
 
                 renderZoneParticles(anchor.origin, anchor.zoneRadius);
+                tickObjective();
                 retargetMobsToShrine(anchor.entity);
 
                 if (spawnTicks >= 20) {
                     spawnTicks = 0;
-                    spawnPulse(anchor.origin, anchor.zoneRadius, anchor.entity);
+                    if (objective != ShrineObjective.GREED && objective != ShrineObjective.BOSS) {
+                        spawnPulse(anchor.origin, anchor.zoneRadius, anchor.entity);
+                    }
                 }
 
                 int remaining = Math.max(0, durationSeconds - (elapsedTicks / 20));
                 if (remaining % 2 == 0) {
-                    anchor.subtitle().setText(ChatColor.GRAY + "Hold for " + ChatColor.WHITE + remaining + "s"
-                            + ChatColor.GRAY + " | HP " + ChatColor.RED + (int) Math.ceil(anchor.entity.getHealth()));
+                    anchor.subtitle().setText(statusLine(remaining));
                 }
 
                 if (elapsedTicks >= durationSeconds * 20) {
-                    completeShrine(this);
+                    if (objective == ShrineObjective.BOSS) {
+                        failShrine(this, "The champion survived.");
+                    } else {
+                        completeShrine(this);
+                    }
                 }
             }, 1L, 1L);
+        }
+
+        private void initializeObjective() {
+            Player player = plugin.getServer().getPlayer(activator);
+            if (objective == ShrineObjective.SACRIFICE && player != null && player.isOnline()) {
+                double cost = Math.max(1.0, player.getHealth() * 0.25);
+                player.damage(Math.min(player.getHealth() - 1.0, cost));
+                send(player, MessageType.WARNING, "Sacrifice accepted. Shrine rewards increased.");
+                objectiveProgress = 3;
+            } else if (objective == ShrineObjective.GREED) {
+                spawnGreedSparks(7);
+            } else if (objective == ShrineObjective.BOSS) {
+                LivingEntity boss = spawnShrineMob(anchor.origin.clone().add(anchor.zoneRadius + 1.5, 0.0, 0.0));
+                if (boss != null) {
+                    bossMobId = boss.getUniqueId();
+                    spawnedMobs.add(bossMobId);
+                    boss.setCustomName(ChatColor.DARK_PURPLE + "Shrine Champion");
+                    boss.setCustomNameVisible(true);
+                    if (boss instanceof Mob mob) mob.setTarget(player == null ? anchor.entity : player);
+                    if (boss.getAttribute(Attribute.MAX_HEALTH) != null) {
+                        boss.getAttribute(Attribute.MAX_HEALTH).setBaseValue(boss.getAttribute(Attribute.MAX_HEALTH).getBaseValue() * 4.0);
+                        boss.setHealth(boss.getAttribute(Attribute.MAX_HEALTH).getValue());
+                    }
+                }
+            }
+        }
+
+        private void tickObjective() {
+            if (objective == ShrineObjective.STORM) {
+                tickStormHazard();
+            } else if (objective == ShrineObjective.GREED) {
+                tickGreedSparks();
+            }
+        }
+
+        private String statusLine(int remaining) {
+            return switch (objective) {
+                case BLOOD -> ChatColor.GRAY + "Charge " + ChatColor.RED + objectiveProgress + ChatColor.GRAY + "/6 | " + ChatColor.WHITE + remaining + "s";
+                case GREED -> ChatColor.GRAY + "Collected " + ChatColor.GOLD + objectiveProgress + ChatColor.GRAY + " sparks | " + ChatColor.WHITE + remaining + "s";
+                case BOSS -> ChatColor.GRAY + "Champion alive | " + ChatColor.WHITE + remaining + "s";
+                default -> ChatColor.GRAY + "Hold for " + ChatColor.WHITE + remaining + "s" + ChatColor.GRAY + " | HP " + ChatColor.RED + (int) Math.ceil(anchor.entity.getHealth());
+            };
+        }
+
+        private double rewardMultiplier() {
+            return switch (objective) {
+                case BLOOD -> 1.0 + Math.min(0.75, objectiveProgress * 0.08);
+                case GREED -> 1.0 + Math.min(1.0, objectiveProgress * 0.12);
+                case STORM, SACRIFICE, BOSS -> 1.35;
+                default -> 1.0;
+            };
+        }
+
+        private boolean handleMobDeath(LivingEntity dead, Player killer) {
+            if (dead == null || !spawnedMobs.remove(dead.getUniqueId())) {
+                return false;
+            }
+            if (objective == ShrineObjective.BOSS && dead.getUniqueId().equals(bossMobId)) {
+                objectiveProgress++;
+                completeShrine(this);
+                return true;
+            }
+            if (objective == ShrineObjective.BLOOD && dead.getLocation().distanceSquared(anchor.origin) <= anchor.zoneRadius * anchor.zoneRadius) {
+                objectiveProgress++;
+                if (objectiveProgress >= 6) {
+                    completeShrine(this);
+                }
+            }
+            return true;
+        }
+
+        private void spawnGreedSparks(int amount) {
+            greedSparks.clear();
+            World world = anchor.origin.getWorld();
+            if (world == null) return;
+            for (int i = 0; i < amount; i++) {
+                double angle = ThreadLocalRandom.current().nextDouble(0, Math.PI * 2);
+                double radius = ThreadLocalRandom.current().nextDouble(1.5, anchor.zoneRadius + 2.0);
+                Location spark = anchor.origin.clone().add(Math.cos(angle) * radius, 0.25, Math.sin(angle) * radius);
+                greedSparks.add(spark);
+            }
+        }
+
+        private void tickGreedSparks() {
+            World world = anchor.origin.getWorld();
+            if (world == null) return;
+            for (Location spark : new ArrayList<>(greedSparks)) {
+                world.spawnParticle(Particle.GLOW, spark, 3, 0.15, 0.15, 0.15, 0.01);
+                for (Player player : world.getPlayers()) {
+                    if (player.getLocation().distanceSquared(spark) <= 1.4 * 1.4) {
+                        greedSparks.remove(spark);
+                        objectiveProgress++;
+                        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.45f, 1.4f);
+                        break;
+                    }
+                }
+            }
+            if (greedSparks.isEmpty()) {
+                spawnGreedSparks(4);
+            }
+        }
+
+        private void tickStormHazard() {
+            World world = anchor.origin.getWorld();
+            if (world == null) return;
+            double angle = (elapsedTicks / 12.0) % (Math.PI * 2);
+            Location strike = anchor.origin.clone().add(Math.cos(angle) * (anchor.zoneRadius * 0.65), 0.1, Math.sin(angle) * (anchor.zoneRadius * 0.65));
+            world.spawnParticle(Particle.ELECTRIC_SPARK, strike, 12, 0.6, 0.15, 0.6, 0.02);
+            if (elapsedTicks % 20 != 0) return;
+            for (Player player : world.getPlayers()) {
+                if (player.getLocation().distanceSquared(strike) <= 2.2 * 2.2) {
+                    player.damage(2.0, anchor.entity);
+                    send(player, MessageType.WARNING, "Lightning zone hit you. Keep moving!");
+                }
+            }
         }
 
         private void stop() {

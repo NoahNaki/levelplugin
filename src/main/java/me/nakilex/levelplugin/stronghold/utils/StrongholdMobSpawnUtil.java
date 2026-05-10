@@ -24,10 +24,19 @@ public final class StrongholdMobSpawnUtil {
             String mobId = mobPool.get(ThreadLocalRandom.current().nextInt(mobPool.size()));
             List<LivingEntity> spawned = customMobManager.spawn(mobId, at, 1);
             if (!spawned.isEmpty()) {
-                return spawned.get(0);
+                return prepareStrongholdHostile(spawned.get(0));
             }
         }
         Entity fallback = at.getWorld().spawnEntity(at, EntityType.ZOMBIE);
-        return fallback instanceof LivingEntity living ? living : null;
+        return fallback instanceof LivingEntity living ? prepareStrongholdHostile(living) : null;
+    }
+
+    private static LivingEntity prepareStrongholdHostile(LivingEntity living) {
+        if (living == null) {
+            return null;
+        }
+        living.setRemoveWhenFarAway(false);
+        living.setPersistent(true);
+        return living;
     }
 }

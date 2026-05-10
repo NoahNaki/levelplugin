@@ -1,10 +1,13 @@
 package me.nakilex.levelplugin.stronghold.commands;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.debug.StrongholdDebugGenerator;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
+import me.nakilex.levelplugin.stronghold.StrongholdTemplateConfig;
 import me.nakilex.levelplugin.stronghold.gui.StrongholdQueueGUI;
+import me.nakilex.levelplugin.stronghold.run.StrongholdHeat;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.World;
@@ -24,8 +27,6 @@ import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
 
 public class StrongholdCommand implements TabExecutor {
-    private static final String TEMPLATE_CONFIG_KEY = "stronghold.generated-world-template";
-
     private final Main plugin;
     private final StrongholdQueueGUI gui;
     private final StrongholdQueueManager queueManager;
@@ -46,6 +47,9 @@ public class StrongholdCommand implements TabExecutor {
         }
         if (args.length > 0 && equalsAny(args[0], "shrine")) {
             return handleShrineSubcommand(sender, args);
+        }
+        if (args.length > 0 && equalsAny(args[0], "debug")) {
+            return handleDebugSubcommand(sender, args);
         }
 
         if (!(sender instanceof Player player)) {
@@ -86,6 +90,17 @@ public class StrongholdCommand implements TabExecutor {
             return true;
         }
 
+        if (equalsAny(args[0], "heat", "curse")) {
+            StrongholdHeat heat = args.length >= 2 ? StrongholdHeat.byId(args[1]) : plugin.getStrongholdRunManager().cycleQueuedHeat(player);
+            if (args.length >= 2) {
+                plugin.getStrongholdRunManager().queueHeat(player, heat);
+            }
+            send(player, heat == StrongholdHeat.NONE ? MessageType.INFO : MessageType.WARNING,
+                    "Stronghold heat set to " + heat.coloredName() + ChatColor.GRAY + ".");
+            gui.refresh();
+            return true;
+        }
+
         if (equalsAny(args[0], "leave", "quit")) {
             Optional<StrongholdQueueMode> current = queueManager.getMode(id);
             if (current.isEmpty()) {
@@ -98,17 +113,20 @@ public class StrongholdCommand implements TabExecutor {
             return true;
         }
 
-        send(player, MessageType.INFO, "Usage: /" + label + " [join|leave|open|template|shrine]");
+        send(player, MessageType.INFO, "Usage: /" + label + " [join|leave|open|heat|template|shrine|debug]");
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return partial(args[0], List.of("join", "leave", "open", "template", "shrine"));
+            return partial(args[0], List.of("join", "leave", "open", "heat", "template", "shrine", "debug"));
         }
         if (args.length == 2 && equalsAny(args[0], "join", "queue")) {
             return partial(args[1], Arrays.asList("solo", "duo", "squad"));
+        }
+        if (args.length == 2 && equalsAny(args[0], "heat", "curse")) {
+            return partial(args[1], Arrays.stream(StrongholdHeat.values()).map(StrongholdHeat::id).toList());
         }
         if (args.length == 2 && equalsAny(args[0], "template")) {
             return partial(args[1], List.of("set", "clear", "show"));
@@ -119,6 +137,9 @@ public class StrongholdCommand implements TabExecutor {
         }
         if (args.length == 2 && equalsAny(args[0], "shrine")) {
             return partial(args[1], List.of("create"));
+        }
+        if (args.length == 2 && equalsAny(args[0], "debug")) {
+            return partial(args[1], List.of("output", "status"));
         }
         return Collections.emptyList();
     }
@@ -161,21 +182,28 @@ public class StrongholdCommand implements TabExecutor {
             return true;
         }
         if (args.length < 2 || equalsAny(args[1], "show")) {
-            String current = plugin.getCustomConfig().getString(TEMPLATE_CONFIG_KEY, "").trim();
+            String current = StrongholdTemplateConfig.templateWorld(plugin);
             if (current.isBlank()) {
                 send(sender, MessageType.INFO, "Stronghold template world is currently unset (superflat fallback is used).");
             } else {
-                send(sender, MessageType.INFO, "Stronghold template world: " + ChatColor.WHITE + current);
+                String origin = StrongholdTemplateConfig.templateOrigin(plugin)
+                        .map(StrongholdTemplateConfig::formatOrigin)
+                        .orElse(ChatColor.GRAY + "unset (defaults to " + ChatColor.WHITE + "(0, -61, 0)" + ChatColor.GRAY + ")");
+                send(sender, MessageType.INFO, "Stronghold template world: " + ChatColor.WHITE + current
+                        + ChatColor.GRAY + " | Origin: " + origin);
             }
             return true;
         }
         if (equalsAny(args[1], "clear", "none", "off")) {
-            plugin.getCustomConfig().set(TEMPLATE_CONFIG_KEY, "");
-            plugin.saveCustomConfig();
-            send(sender, MessageType.SUCCESS, "Cleared Stronghold template world. New runs will use superflat fallback.");
+            StrongholdTemplateConfig.clearTemplate(plugin);
+            send(sender, MessageType.SUCCESS, "Cleared Stronghold template world and origin. New runs will use superflat fallback.");
             return true;
         }
         if (equalsAny(args[1], "set")) {
+            if (!(sender instanceof Player player)) {
+                send(sender, MessageType.ERROR, "Only players can set the Stronghold template origin because it uses your current position.");
+                return true;
+            }
             if (args.length < 3) {
                 send(sender, MessageType.WARNING, "Usage: /stronghold template set <worldName>");
                 return true;
@@ -186,12 +214,39 @@ public class StrongholdCommand implements TabExecutor {
                 send(sender, MessageType.ERROR, "World '" + worldName + "' is not loaded. Load/import it first.");
                 return true;
             }
-            plugin.getCustomConfig().set(TEMPLATE_CONFIG_KEY, world.getName());
-            plugin.saveCustomConfig();
-            send(sender, MessageType.SUCCESS, "Set Stronghold template world to " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
+            if (!player.getWorld().getUID().equals(world.getUID())) {
+                send(player, MessageType.WARNING, "Stand at the desired origin inside world '" + world.getName()
+                        + "' before running /stronghold template set " + world.getName() + ".");
+                return true;
+            }
+            StrongholdTemplateConfig.setTemplate(plugin, world, player.getLocation());
+            var origin = StrongholdTemplateConfig.templateOrigin(plugin).orElse(null);
+            send(sender, MessageType.SUCCESS, "Set Stronghold template world to " + ChatColor.WHITE + world.getName()
+                    + ChatColor.GREEN + " with generation origin " + StrongholdTemplateConfig.formatOrigin(origin) + ChatColor.GREEN + ".");
             return true;
         }
         send(sender, MessageType.WARNING, "Usage: /stronghold template <set|clear|show> [worldName]");
+        return true;
+    }
+
+    private boolean handleDebugSubcommand(CommandSender sender, String[] args) {
+        if (sender instanceof Player player && !player.hasPermission("levelplugin.admin")) {
+            send(player, MessageType.ERROR, "You do not have permission to manage Stronghold debug output.");
+            return true;
+        }
+        if (args.length < 2 || equalsAny(args[1], "status")) {
+            send(sender, MessageType.INFO, "Stronghold debug output is "
+                    + (StrongholdDebugGenerator.isStrongholdConsoleOutputEnabled() ? ChatColor.GREEN + "ON" : ChatColor.RED + "OFF")
+                    + ChatColor.GRAY + ". Use " + ChatColor.WHITE + "/stronghold debug output" + ChatColor.GRAY + " to toggle.");
+            return true;
+        }
+        if (equalsAny(args[1], "output", "toggle")) {
+            boolean enabled = StrongholdDebugGenerator.toggleStrongholdConsoleOutput();
+            send(sender, MessageType.SUCCESS, "Stronghold debug output is now "
+                    + (enabled ? ChatColor.GREEN + "ON" : ChatColor.RED + "OFF") + ChatColor.GREEN + ".");
+            return true;
+        }
+        send(sender, MessageType.WARNING, "Usage: /stronghold debug <output|status>");
         return true;
     }
 

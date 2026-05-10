@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.stronghold.run;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.debug.StrongholdDebugGenerator;
+import me.nakilex.levelplugin.dungeon.modifiers.RunModifierSet;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
@@ -166,6 +168,7 @@ public class StrongholdRunManager implements Listener {
     private final Map<UUID, Integer> highestCompletedStageByPlayer = new HashMap<>();
     private final BukkitPathfindingService pathfindingService = new BukkitPathfindingService();
     private final Map<UUID, Integer> queuedStartingStageByPlayer = new HashMap<>();
+    private final Map<UUID, StrongholdHeat> queuedHeatByPlayer = new HashMap<>();
     private final List<PortalTemplateBlock> strongholdExitPortalTemplate = new ArrayList<>();
     private final List<Location> activePortalRatingMarkers = new ArrayList<>();
     private final List<org.bukkit.entity.TextDisplay> activeStageResultDisplays = new ArrayList<>();
@@ -225,6 +228,34 @@ public class StrongholdRunManager implements Listener {
         return player == null ? null : queuedStartingStageByPlayer.remove(player.getUniqueId());
     }
 
+    public StrongholdHeat getQueuedHeat(Player player) {
+        return player == null ? StrongholdHeat.NONE : queuedHeatByPlayer.getOrDefault(player.getUniqueId(), StrongholdHeat.NONE);
+    }
+
+    public StrongholdHeat cycleQueuedHeat(Player player) {
+        if (player == null) return StrongholdHeat.NONE;
+        StrongholdHeat next = getQueuedHeat(player).next();
+        if (next == StrongholdHeat.NONE) {
+            queuedHeatByPlayer.remove(player.getUniqueId());
+        } else {
+            queuedHeatByPlayer.put(player.getUniqueId(), next);
+        }
+        return next;
+    }
+
+    public void queueHeat(Player player, StrongholdHeat heat) {
+        if (player == null) return;
+        StrongholdHeat safe = heat == null ? StrongholdHeat.NONE : heat;
+        if (safe == StrongholdHeat.NONE) queuedHeatByPlayer.remove(player.getUniqueId());
+        else queuedHeatByPlayer.put(player.getUniqueId(), safe);
+    }
+
+    private StrongholdHeat consumeQueuedHeat(Player player) {
+        if (player == null) return StrongholdHeat.NONE;
+        StrongholdHeat heat = queuedHeatByPlayer.remove(player.getUniqueId());
+        return heat == null ? StrongholdHeat.NONE : heat;
+    }
+
     private StageProgress toStageProgress(int absoluteWave) { int safe=Math.max(1, absoluteWave); int stage=((safe-1)/WAVES_PER_STAGE)+1; int waveIn=((safe-1)%WAVES_PER_STAGE)+1; return new StageProgress(stage,waveIn,safe); }
     private int maxSelectableStage() {
         return ((MAX_ABSOLUTE_WAVE - 1) / WAVES_PER_STAGE) + 1;
@@ -281,7 +312,7 @@ public class StrongholdRunManager implements Listener {
         }
 
         stepStart = profiler == null ? 0L : profiler.stepStarted("Initialize ActiveRun and begin waves");
-        ActiveRun run = new ActiveRun(worldId, origin, startingStage);
+        ActiveRun run = new ActiveRun(worldId, origin, startingStage, consumeQueuedHeat(player));
         activeRuns.put(worldId, run);
         run.start();
         if (profiler != null) {
@@ -546,6 +577,7 @@ public class StrongholdRunManager implements Listener {
         if (!(event.getEntity() instanceof Player player)) return;
         ActiveRun run = activeRuns.get(player.getWorld().getUID());
         if (run == null) return;
+        event.setDamage(run.modifyIncomingDamage(event.getDamage()));
         run.recordDamageTaken(player.getUniqueId(), event.getFinalDamage());
     }
 
@@ -809,6 +841,7 @@ public class StrongholdRunManager implements Listener {
         private final Location origin;
         private final List<UUID> spawned = new ArrayList<>();
         private final List<UUID> currentWaveSpawned = new ArrayList<>();
+        private final Map<UUID, EliteObjective> activeEliteObjectives = new HashMap<>();
         private final Map<UUID, MobMotionState> mobMotionStates = new HashMap<>();
         private final Map<UUID, SurvivorState> playerStates = new HashMap<>();
         private final Set<UUID> pausedPlayers = new HashSet<>();
@@ -822,19 +855,31 @@ public class StrongholdRunManager implements Listener {
         private final Integer selectedStartingStage;
         private int stageAnchor = 1;
         private int secondsUntilNextWave = FIRST_WAVE_DELAY_SECONDS;
+        private WavePhase wavePhase = WavePhase.WAITING;
         private boolean completed = false;
         private PlacedPortalBounds exitPortalBounds;
         private UUID waveBossId;
+        private int currentWaveDeathEvents;
+        private int currentWaveSpawnedTotal;
+        private int waveBeforeSpawnAttempt;
+        private int waveSpawnAttemptId;
+        private int currentWaveFailedSpawnLocations;
+        private int currentWaveFailedMobSpawns;
         private boolean portalPlacementPendingNotified = false;
         private long nextPortalGuideAt = 0L;
         private long startedAtMs = 0L;
         private long stageStartedAtMs = 0L;
         private final java.util.Set<String> openedChestLocations = new java.util.HashSet<>();
 
-        private ActiveRun(UUID worldId, Location origin, Integer selectedStartingStage) {
+        private final StrongholdHeat heat;
+        private final RunModifierSet modifiers;
+
+        private ActiveRun(UUID worldId, Location origin, Integer selectedStartingStage, StrongholdHeat heat) {
             this.worldId = worldId;
             this.origin = origin;
             this.selectedStartingStage = selectedStartingStage;
+            this.heat = heat == null ? StrongholdHeat.NONE : heat;
+            this.modifiers = this.heat == StrongholdHeat.NONE ? new RunModifierSet(List.of()) : new RunModifierSet(List.of(this.heat));
         }
 
         private void start() {
@@ -843,6 +888,12 @@ public class StrongholdRunManager implements Listener {
             World runWorld = plugin.getServer().getWorld(worldId);
             if (runWorld != null) {
                 initializePlayers(runWorld);
+                if (heat != StrongholdHeat.NONE) {
+                    for (Player player : playersInWorld(runWorld)) {
+                        send(player, MessageType.WARNING, "Stronghold heat active: " + heat.coloredName()
+                                + ChatColor.GRAY + " (risk/reward score multiplier enabled).");
+                    }
+                }
                 int checkpoint = playersInWorld(runWorld).stream()
                         .mapToInt(p -> ((Math.max(1, getHighestUnlockedStage(p.getUniqueId())) - 1) * WAVES_PER_STAGE) + 1)
                         .max().orElse(1);
@@ -852,6 +903,7 @@ public class StrongholdRunManager implements Listener {
                 stageAnchor = Math.max(1, toStageProgress(checkpoint).stage());
                 wave = Math.max(0, checkpoint - 1);
             }
+            debugWave("start run world=" + worldId + " origin=" + formatLocation(origin) + " startWave=" + wave + " phase=" + wavePhase + " heat=" + heat.displayName());
             this.task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
                 World world = plugin.getServer().getWorld(worldId);
                 if (world == null || !StrongholdWorldUtil.isStrongholdWorld(world)) {
@@ -861,41 +913,7 @@ public class StrongholdRunManager implements Listener {
                 syncRunPlayers(world);
                 cleanupDeadSpawned();
                 updateStuckMobPull(world);
-                if (countAliveCurrentWave() > 0) {
-                    return;
-                }
-                StageProgress liveProgress = toStageProgress(Math.max(1, wave));
-                if (!completed && wave == lastSpawnedWave && liveProgress.wave() == WAVES_PER_STAGE) {
-                    concludeRunAndSpawnExitPortal();
-                    return;
-                }
-                if (completed) {
-                    if (exitPortalBounds == null) {
-                        concludeRunAndSpawnExitPortal();
-                        return;
-                    }
-                    tickExitPortalGuidance(world);
-                    return;
-                }
-                if (wave >= MAX_ABSOLUTE_WAVE) {
-                    endRunAndShowRewardsForAllPlayers(ChatColor.GREEN + "Stage cap reached. Stronghold run complete.");
-                    return;
-                }
-                if (secondsUntilNextWave > 0) {
-                    secondsUntilNextWave--;
-                    return;
-                }
-                secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
-                int waveStep = computeWaveAdvance(playersInWorld(world));
-                int previousWave = wave;
-                wave = Math.min(MAX_ABSOLUTE_WAVE, wave + waveStep);
-                boolean spawned = spawnWave(world, wave);
-                if (!spawned) {
-                    wave = previousWave;
-                    secondsUntilNextWave = 2;
-                    return;
-                }
-                lastSpawnedWave = wave;
+                tickWaveState(world);
             }, 20L, 20L);
             this.autoCastTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickAutoCast, 20L, AUTOCAST_TICK_INTERVAL);
         }
@@ -934,11 +952,15 @@ public class StrongholdRunManager implements Listener {
             for (UUID id : spawned) {
                 var e = plugin.getServer().getEntity(id);
                 if (e instanceof LivingEntity living && !living.isDead()) {
+                    debugMob("stopRun removing tracked mob " + describeEntity(living));
                     living.remove();
                 }
             }
             spawned.clear();
             currentWaveSpawned.clear();
+            resetCurrentWaveTracking();
+            wavePhase = WavePhase.WAITING;
+            activeEliteObjectives.clear();
             mobMotionStates.clear();
             lastManualCastAttemptAt.clear();
             for (Map.Entry<UUID, SurvivorState> entry : new HashMap<>(playerStates).entrySet()) {
@@ -953,10 +975,19 @@ public class StrongholdRunManager implements Listener {
             }
             UUID deadId = entity.getUniqueId();
             spawned.remove(deadId);
-            currentWaveSpawned.remove(deadId);
+            boolean wasCurrentWaveMob = currentWaveSpawned.remove(deadId);
+            if (wasCurrentWaveMob) {
+                currentWaveDeathEvents++;
+            }
+            debugMob("death event currentWave=" + wasCurrentWaveMob + " wave=" + wave + " phase=" + wavePhase + " " + describeEntity(entity));
             mobMotionStates.remove(deadId);
 
+            EliteObjective objective = activeEliteObjectives.remove(deadId);
             Player killer = entity.getKiller();
+            if (objective != null) {
+                completeEliteObjective(entity, killer, objective);
+            }
+
             if (killer != null && killer.isOnline()) {
                 handleMobKillXp(killer, entity);
                 maybeDropStrongholdKey(entity.getLocation(), killer);
@@ -974,12 +1005,18 @@ public class StrongholdRunManager implements Listener {
             int activeStage = Math.max(stageAnchor, toStageProgress(Math.max(1, wave)).stage());
             int absoluteWave = ((activeStage - 1) * WAVES_PER_STAGE) + clampedWaveInStage;
             wave = Math.min(MAX_ABSOLUTE_WAVE, Math.max(0, absoluteWave - 1));
+            lastSpawnedWave = wave;
             secondsUntilNextWave = 1;
-            currentWaveSpawned.clear();
+            wavePhase = WavePhase.WAITING;
+            resetCurrentWaveTracking();
             for (Player player : playersInWorld(plugin.getServer().getWorld(worldId))) {
                 send(player, MessageType.INFO, "Debug waveskip set to " + ChatColor.WHITE + activeStage + "-" + clampedWaveInStage + ChatColor.GRAY + ".");
             }
             return true;
+        }
+
+        private double modifyIncomingDamage(double amount) {
+            return modifiers.modifyDamageTaken(amount);
         }
 
         private void recordDamageTaken(UUID playerId, double amount) {
@@ -1007,7 +1044,9 @@ public class StrongholdRunManager implements Listener {
             int objectiveScore = (int) Math.max(0, Math.min(40, Math.round(Math.min(20.0, state.doorsOpened * 2.5) + Math.min(20.0, state.chestsOpened * 5.0))));
             int damageScore = (int) Math.max(0, Math.min(30, Math.round(Math.max(0, 30.0 - (state.damageTaken / 40.0)))));
             int timeScore = (int) Math.max(0, Math.min(30, Math.round(Math.max(0, 30.0 - (secs / 10.0)))));
-            int total = objectiveScore + damageScore + timeScore;
+            int baseTotal = objectiveScore + damageScore + timeScore;
+            int total = (int) Math.round(baseTotal * modifiers.modifyScoreMultiplier(1.0));
+            total = Math.max(0, Math.min(120, total));
             String rank = total >= 85 ? "S" : total >= 72 ? "A" : total >= 60 ? "B" : total >= 48 ? "C" : total >= 36 ? "D" : total >= 24 ? "E" : "F";
             return new ScoreResult(total, objectiveScore, damageScore, timeScore, rank);
         }
@@ -1056,6 +1095,7 @@ public class StrongholdRunManager implements Listener {
                     formatResultMetricLine("Objectives", String.valueOf(result.objectives())),
                     formatResultMetricLine("Damage Taken", String.valueOf(result.damage())),
                     formatResultMetricLine("Time Cleared", (elapsedMs / 1000) + "s (" + result.time() + ")"),
+                    formatResultMetricLine("Heat", heat.displayName()),
                     formatResultMetricLine("Rank", result.rank())
             );
             for (Location fixed : fixedLocations) {
@@ -1202,27 +1242,36 @@ public class StrongholdRunManager implements Listener {
             if (players.isEmpty()) {
                 return false;
             }
-            currentWaveSpawned.clear();
+            resetCurrentWaveTracking();
+            waveSpawnAttemptId++;
+            int attemptId = waveSpawnAttemptId;
             int spawnedCount = 0;
-            int spawnCount = computeWaveSpawnCount(waveNumber, players.size());
+            int spawnCount = modifiers.modifyWaveMobCount(computeWaveSpawnCount(waveNumber, players.size()));
+            debugWave("spawn attempt #" + attemptId + " wave=" + waveNumber + " phase=" + wavePhase
+                    + " players=" + players.size() + " requested=" + spawnCount + " origin=" + formatLocation(origin));
             for (int i = 0; i < spawnCount; i++) {
                 Player target = players.get(ThreadLocalRandom.current().nextInt(players.size()));
                 Location spawn = findSpawnNear(target.getLocation(), origin, 14.0, 30.0);
                 if (spawn == null) {
+                    currentWaveFailedSpawnLocations++;
+                    debugWave("spawn attempt #" + attemptId + " no safe location for target=" + target.getName()
+                            + " targetLoc=" + formatLocation(target.getLocation()));
                     continue;
                 }
                 LivingEntity mob = StrongholdMobSpawnUtil.spawnStrongholdHostile(plugin.getCustomMobManager(), waveMobPool, spawn);
                 if (mob == null) {
+                    currentWaveFailedMobSpawns++;
+                    debugWave("spawn attempt #" + attemptId + " mob manager returned null at " + formatLocation(spawn));
                     continue;
                 }
+                debugMob("spawned attempt #" + attemptId + " wave=" + waveNumber + " at=" + formatLocation(spawn) + " " + describeEntity(mob));
                 applyWaveMobScaling(mob, waveNumber, false);
-                spawned.add(mob.getUniqueId());
-                currentWaveSpawned.add(mob.getUniqueId());
+                if (!trackCurrentWaveMob(mob)) {
+                    debugMob("track rejected; removing " + describeEntity(mob));
+                    mob.remove();
+                    continue;
+                }
                 spawnedCount++;
-                mobMotionStates.put(mob.getUniqueId(), new MobMotionState(
-                        mob.getLocation().clone(),
-                        System.currentTimeMillis(),
-                        System.currentTimeMillis()));
                 if (mob instanceof Mob hostile) {
                     if (pausedPlayers.contains(target.getUniqueId())) {
                         hostile.setTarget(null);
@@ -1233,21 +1282,231 @@ public class StrongholdRunManager implements Listener {
                 }
                 world.spawnParticle(Particle.SMOKE, spawn, 10, 0.2, 0.2, 0.2, 0.01);
             }
+            spawnedCount += spawnEliteObjectiveIfNeeded(world, players, waveNumber);
             spawnedCount += spawnMilestoneBossIfNeeded(world, players, waveNumber);
-            if (spawnedCount <= 0) {
+            int aliveAfterSpawn = countAliveCurrentWave();
+            debugWave("spawn attempt #" + attemptId + " summary wave=" + waveNumber
+                    + " spawned=" + spawnedCount + " tracked=" + currentWaveSpawnedTotal
+                    + " aliveNow=" + aliveAfterSpawn + " noLocation=" + currentWaveFailedSpawnLocations
+                    + " nullMob=" + currentWaveFailedMobSpawns);
+            if (spawnedCount <= 0 || aliveAfterSpawn <= 0) {
+                debugWave("spawn attempt #" + attemptId + " failed; clearing current wave tracking.");
+                resetCurrentWaveTracking();
                 return false;
             }
-            for (Player player : players) {
-                StageProgress progress = toStageProgress(waveNumber);
+            scheduleCurrentWaveProbe(attemptId, waveNumber, 1L);
+            scheduleCurrentWaveProbe(attemptId, waveNumber, 5L);
+            scheduleCurrentWaveProbe(attemptId, waveNumber, 20L);
+            return true;
+        }
+
+        private boolean trackCurrentWaveMob(LivingEntity mob) {
+            if (mob == null || mob.isDead() || !mob.isValid()) {
+                return false;
+            }
+            UUID mobId = mob.getUniqueId();
+            spawned.add(mobId);
+            currentWaveSpawned.add(mobId);
+            currentWaveSpawnedTotal++;
+            debugMob("tracking wave=" + wave + " phase=" + wavePhase + " total=" + currentWaveSpawnedTotal + " " + describeEntity(mob));
+            mobMotionStates.put(mobId, new MobMotionState(
+                    mob.getLocation().clone(),
+                    System.currentTimeMillis(),
+                    System.currentTimeMillis()));
+            return true;
+        }
+
+        private void tickWaveState(World world) {
+            if (completed) {
+                if (exitPortalBounds == null) {
+                    concludeRunAndSpawnExitPortal();
+                    return;
+                }
+                tickExitPortalGuidance(world);
+                return;
+            }
+            switch (wavePhase) {
+                case VALIDATING -> tickWaveValidation(world);
+                case ACTIVE -> tickActiveWave(world);
+                case WAITING -> tickWaitingForNextWave(world);
+            }
+        }
+
+        private void tickWaveValidation(World world) {
+            int alive = countAliveCurrentWave();
+            if (alive > 0) {
+                debugWave("validation passed wave=" + wave + " alive=" + alive + " tracked=" + currentWaveSpawnedTotal);
+                announceWaveStarted(world, wave);
+                wavePhase = WavePhase.ACTIVE;
+                return;
+            }
+            if (currentWaveDeathEvents > 0) {
+                debugWave("validation saw immediate deaths wave=" + wave + " deaths=" + currentWaveDeathEvents + " tracked=" + currentWaveSpawnedTotal);
+                completeCurrentWave(world);
+                return;
+            }
+            debugCurrentWaveSnapshot("validation failed wave=" + wave);
+            plugin.getLogger().warning("[Stronghold] Wave " + wave + " produced no lasting enemies; rescheduling without advancing.");
+            wave = Math.max(0, waveBeforeSpawnAttempt);
+            lastSpawnedWave = wave;
+            resetCurrentWaveTracking();
+            wavePhase = WavePhase.WAITING;
+            secondsUntilNextWave = 2;
+        }
+
+        private void tickActiveWave(World world) {
+            if (countAliveCurrentWave() > 0) {
+                return;
+            }
+            debugWave("active wave complete wave=" + wave + " deaths=" + currentWaveDeathEvents + " tracked=" + currentWaveSpawnedTotal);
+            completeCurrentWave(world);
+        }
+
+        private void tickWaitingForNextWave(World world) {
+            if (wave >= MAX_ABSOLUTE_WAVE) {
+                endRunAndShowRewardsForAllPlayers(ChatColor.GREEN + "Stage cap reached. Stronghold run complete.");
+                return;
+            }
+            if (secondsUntilNextWave > 0) {
+                secondsUntilNextWave--;
+                return;
+            }
+            startNextWave(world);
+        }
+
+        private void startNextWave(World world) {
+            int waveStep = computeWaveAdvance(playersInWorld(world));
+            int previousWave = wave;
+            int nextWave = Math.min(MAX_ABSOLUTE_WAVE, wave + waveStep);
+            wave = nextWave;
+            waveBeforeSpawnAttempt = previousWave;
+            if (!spawnWave(world, nextWave)) {
+                wave = previousWave;
+                lastSpawnedWave = previousWave;
+                resetCurrentWaveTracking();
+                wavePhase = WavePhase.WAITING;
+                secondsUntilNextWave = 2;
+                return;
+            }
+            lastSpawnedWave = nextWave;
+            wavePhase = WavePhase.VALIDATING;
+        }
+
+        private void announceWaveStarted(World world, int waveNumber) {
+            StageProgress progress = toStageProgress(waveNumber);
+            for (Player player : playersInWorld(world)) {
                 send(player, MessageType.INFO, "Stage " + ChatColor.WHITE + progress.stage() + ChatColor.GRAY + "-" + ChatColor.WHITE + progress.wave() + ChatColor.GRAY + " started.");
+            }
+        }
+
+        private void completeCurrentWave(World world) {
+            StageProgress progress = toStageProgress(Math.max(1, wave));
+            for (Player player : playersInWorld(world)) {
                 if (plugin.getQuestManager() != null) {
-                    plugin.getQuestManager().handleStrongholdWaveClear(player, waveNumber);
+                    plugin.getQuestManager().handleStrongholdWaveClear(player, wave);
                     if (progress.wave() == WAVES_PER_STAGE) {
                         plugin.getQuestManager().handleStrongholdStageComplete(player, progress.stage());
                     }
                 }
             }
-            return true;
+            resetCurrentWaveTracking();
+            if (progress.wave() == WAVES_PER_STAGE) {
+                concludeRunAndSpawnExitPortal();
+                return;
+            }
+            secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
+            wavePhase = WavePhase.WAITING;
+        }
+
+        private void resetCurrentWaveTracking() {
+            currentWaveSpawned.clear();
+            currentWaveDeathEvents = 0;
+            currentWaveSpawnedTotal = 0;
+            currentWaveFailedSpawnLocations = 0;
+            currentWaveFailedMobSpawns = 0;
+            activeEliteObjectives.clear();
+            waveBossId = null;
+        }
+
+        private void scheduleCurrentWaveProbe(int attemptId, int waveNumber, long delayTicks) {
+            if (!StrongholdDebugGenerator.isStrongholdConsoleOutputEnabled()) {
+                return;
+            }
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                ActiveRun active = activeRuns.get(worldId);
+                if (active != this) {
+                    return;
+                }
+                debugCurrentWaveSnapshot("probe attempt #" + attemptId + " wave=" + waveNumber + " delay=" + delayTicks + "t");
+            }, delayTicks);
+        }
+
+        private void debugCurrentWaveSnapshot(String reason) {
+            if (!StrongholdDebugGenerator.isStrongholdConsoleOutputEnabled()) {
+                return;
+            }
+            debugWave(reason + " phase=" + wavePhase + " currentWave=" + wave + " lastSpawned=" + lastSpawnedWave
+                    + " trackedTotal=" + currentWaveSpawnedTotal + " trackedList=" + currentWaveSpawned.size()
+                    + " deaths=" + currentWaveDeathEvents + " alive=" + countAliveCurrentWave());
+            for (UUID id : new ArrayList<>(currentWaveSpawned)) {
+                var entity = plugin.getServer().getEntity(id);
+                if (entity instanceof LivingEntity living) {
+                    debugMob("snapshot " + describeEntity(living));
+                } else {
+                    debugMob("snapshot missing uuid=" + id + " inSpawned=" + spawned.contains(id)
+                            + " motionTracked=" + mobMotionStates.containsKey(id));
+                }
+            }
+        }
+
+        private void debugWave(String message) {
+            if (StrongholdDebugGenerator.isStrongholdConsoleOutputEnabled()) {
+                plugin.getLogger().info("[StrongholdWaveDebug] " + message);
+            }
+        }
+
+        private void debugMob(String message) {
+            if (StrongholdDebugGenerator.isStrongholdConsoleOutputEnabled()) {
+                plugin.getLogger().info("[StrongholdMobDebug] " + message);
+            }
+        }
+
+        private String describeEntity(LivingEntity entity) {
+            if (entity == null) {
+                return "entity=null";
+            }
+            Location loc = entity.getLocation();
+            String customMobId = readMetadata(entity, "lp_custom_mob_id");
+            return "uuid=" + entity.getUniqueId()
+                    + " type=" + entity.getType()
+                    + " customMob=" + (customMobId == null ? "none" : customMobId)
+                    + " valid=" + entity.isValid()
+                    + " dead=" + entity.isDead()
+                    + " health=" + String.format(Locale.ROOT, "%.2f", Math.max(0.0, entity.getHealth()))
+                    + " removeWhenFar=" + entity.getRemoveWhenFarAway()
+                    + " persistent=" + entity.isPersistent()
+                    + " ticks=" + entity.getTicksLived()
+                    + " world=" + (loc.getWorld() == null ? "null" : loc.getWorld().getName())
+                    + " loc=" + formatLocation(loc)
+                    + " tags=" + entity.getScoreboardTags();
+        }
+
+        private String readMetadata(LivingEntity entity, String key) {
+            if (entity == null || key == null || !entity.hasMetadata(key)) {
+                return null;
+            }
+            return entity.getMetadata(key).stream()
+                    .filter(value -> value.getOwningPlugin() == plugin)
+                    .map(value -> value.asString())
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        private String formatLocation(Location location) {
+            if (location == null) {
+                return "null";
+            }
+            return "(" + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ() + ")";
         }
 
         private int computeWaveSpawnCount(int waveNumber, int playerCount) {
@@ -1256,6 +1515,82 @@ public class StrongholdRunManager implements Listener {
             int waveScaling = safeWave + safeWave + (safeWave / 2);
             int partyBonus = (safePlayers - 1) * 4;
             return Math.min(52, 6 + waveScaling + partyBonus);
+        }
+
+        private int spawnEliteObjectiveIfNeeded(World world, List<Player> players, int waveNumber) {
+            if (players == null || players.isEmpty() || waveNumber < 3 || waveNumber == 15 || waveNumber == 30) {
+                return 0;
+            }
+            double chance = modifiers.modifyEliteObjectiveChance(0.18);
+            if (ThreadLocalRandom.current().nextDouble() > chance) {
+                return 0;
+            }
+            Player target = players.get(ThreadLocalRandom.current().nextInt(players.size()));
+            Location spawn = findSpawnNear(target.getLocation(), origin, 10.0, 24.0);
+            if (spawn == null) {
+                return 0;
+            }
+            LivingEntity elite = StrongholdMobSpawnUtil.spawnStrongholdHostile(plugin.getCustomMobManager(), waveMobPool, spawn);
+            if (elite == null) {
+                return 0;
+            }
+            EliteAffix affix = EliteAffix.random();
+            EliteObjective objective = new EliteObjective(affix, System.currentTimeMillis());
+            applyWaveMobScaling(elite, waveNumber, true);
+            applyEliteAffix(elite, affix);
+            if (!trackCurrentWaveMob(elite)) {
+                elite.remove();
+                return 0;
+            }
+            activeEliteObjectives.put(elite.getUniqueId(), objective);
+            if (elite instanceof Mob hostile) hostile.setTarget(target);
+            for (Player player : players) {
+                send(player, MessageType.WARNING, "Elite hunt: " + affix.color + affix.displayName
+                        + ChatColor.GRAY + " — " + affix.objectiveText);
+                player.sendTitle(ChatColor.RED + "Elite Hunt", affix.color + affix.displayName, 5, 45, 10);
+            }
+            return 1;
+        }
+
+        private void applyEliteAffix(LivingEntity elite, EliteAffix affix) {
+            if (elite == null || affix == null) return;
+            elite.setCustomName(affix.color + affix.displayName);
+            elite.setCustomNameVisible(true);
+            switch (affix) {
+                case FRENZIED -> {
+                    scaleAttributeBase(elite, Attribute.MOVEMENT_SPEED, 1.45);
+                    scaleAttributeBase(elite, Attribute.MAX_HEALTH, 1.15);
+                }
+                case ARMORED -> scaleAttributeBase(elite, Attribute.MAX_HEALTH, 2.25);
+                case EXPLOSIVE -> scaleAttributeBase(elite, Attribute.MAX_HEALTH, 1.35);
+                case TREASURE_RUNNER -> {
+                    scaleAttributeBase(elite, Attribute.MOVEMENT_SPEED, 1.65);
+                    elite.addPotionEffect(new PotionEffect(PotionEffectType.GLOWING, 20 * 90, 0, true, true));
+                }
+                case COMMANDER -> scaleAttributeBase(elite, Attribute.MAX_HEALTH, 1.65);
+            }
+            AttributeInstance maxHealth = elite.getAttribute(Attribute.MAX_HEALTH);
+            if (maxHealth != null) elite.setHealth(Math.min(maxHealth.getValue(), maxHealth.getBaseValue()));
+        }
+
+        private void completeEliteObjective(LivingEntity elite, Player killer, EliteObjective objective) {
+            if (objective == null || elite == null) return;
+            World world = elite.getWorld();
+            if (objective.affix == EliteAffix.EXPLOSIVE) {
+                world.createExplosion(elite.getLocation(), 0.0f, false, false);
+                world.spawnParticle(Particle.EXPLOSION, elite.getLocation(), 3, 0.25, 0.25, 0.25, 0.02);
+            }
+            if (killer != null && killer.isOnline()) {
+                SurvivorState state = playerStates.get(killer.getUniqueId());
+                if (state != null) {
+                    state.eliteObjectivesCompleted++;
+                    state.chestsOpened += objective.affix == EliteAffix.TREASURE_RUNNER ? 2 : 1;
+                }
+                int xp = objective.affix == EliteAffix.TREASURE_RUNNER ? 90 : 55;
+                plugin.getLevelManager().addXP(killer, xp);
+                send(killer, MessageType.REWARD, "Elite hunt complete: " + objective.affix.color + objective.affix.displayName
+                        + ChatColor.GRAY + " (bonus score, +" + xp + " XP).");
+            }
         }
 
         private int spawnMilestoneBossIfNeeded(World world, List<Player> players, int waveNumber) {
@@ -1276,12 +1611,11 @@ public class StrongholdRunManager implements Listener {
             applyWaveMobScaling(boss, waveNumber, true);
             applyKingSlimeSize(boss, waveNumber == 30 ? BOSS_SLIME_SIZE : MINIBOSS_SLIME_SIZE);
             waveBossId = boss.getUniqueId();
-            spawned.add(boss.getUniqueId());
-            currentWaveSpawned.add(boss.getUniqueId());
-            mobMotionStates.put(boss.getUniqueId(), new MobMotionState(
-                    boss.getLocation().clone(),
-                    System.currentTimeMillis(),
-                    System.currentTimeMillis()));
+            if (!trackCurrentWaveMob(boss)) {
+                boss.remove();
+                waveBossId = null;
+                return 0;
+            }
             if (boss instanceof Mob hostile) {
                 hostile.setTarget(target);
             }
@@ -1428,6 +1762,8 @@ public class StrongholdRunManager implements Listener {
                         ChatColor.GRAY + "Reached Wave: " + ChatColor.WHITE + wave,
                         ChatColor.GRAY + "Run Rank: " + ChatColor.WHITE + state.level,
                         ChatColor.GRAY + "Stage Rating: " + ChatColor.WHITE + (state.lastStageRating == null ? "N/A" : state.lastStageRating),
+                        ChatColor.GRAY + "Heat: " + ChatColor.WHITE + heat.displayName(),
+                        ChatColor.GRAY + "Elite Hunts: " + ChatColor.WHITE + state.eliteObjectivesCompleted,
                         ChatColor.GRAY + "Keys Found: " + ChatColor.WHITE + state.keysCollected,
                         ChatColor.GRAY + "Loot Stash: " + ChatColor.WHITE + state.lootStash.size() + " item(s)"
                 ));
@@ -1462,18 +1798,22 @@ public class StrongholdRunManager implements Listener {
         }
 
         private void cleanupDeadSpawned() {
-            spawned.removeIf(id -> {
-                var entity = plugin.getServer().getEntity(id);
-                return !(entity instanceof LivingEntity living) || living.isDead();
-            });
-            currentWaveSpawned.removeIf(id -> {
-                var entity = plugin.getServer().getEntity(id);
-                return !(entity instanceof LivingEntity living) || living.isDead();
-            });
-            mobMotionStates.entrySet().removeIf(entry -> {
-                var entity = plugin.getServer().getEntity(entry.getKey());
-                return !(entity instanceof LivingEntity living) || living.isDead();
-            });
+            spawned.removeIf(id -> shouldRemoveMissingOrDeadTracking(id, "allSpawned"));
+            currentWaveSpawned.removeIf(id -> shouldRemoveMissingOrDeadTracking(id, "currentWave"));
+            mobMotionStates.entrySet().removeIf(entry -> shouldRemoveMissingOrDeadTracking(entry.getKey(), "motion"));
+        }
+
+        private boolean shouldRemoveMissingOrDeadTracking(UUID id, String source) {
+            var entity = plugin.getServer().getEntity(id);
+            if (entity instanceof LivingEntity living && !living.isDead()) {
+                return false;
+            }
+            debugMob("cleanup removed source=" + source + " uuid=" + id
+                    + " entity=" + (entity == null ? "missing" : entity.getType())
+                    + " valid=" + (entity != null && entity.isValid())
+                    + " dead=" + (entity instanceof LivingEntity living && living.isDead())
+                    + " wave=" + wave + " phase=" + wavePhase);
+            return true;
         }
 
         private void updateStuckMobPull(World world) {
@@ -2506,18 +2846,48 @@ public class StrongholdRunManager implements Listener {
             if (world == null || base == null || fallbackOrigin == null) {
                 return null;
             }
-            int y = world.getHighestBlockYAt(base);
-            Material groundType = world.getBlockAt(base.getBlockX(), y, base.getBlockZ()).getType();
+            int preferredY = (int) Math.floor(fallbackOrigin.getY());
+            Location preferred = resolveSafeSpawnAtHeight(world, base, preferredY, 5, grassOnly);
+            if (preferred != null) {
+                return preferred;
+            }
+
+            int groundY = world.getHighestBlockYAt(base);
+            Material groundType = world.getBlockAt(base.getBlockX(), groundY, base.getBlockZ()).getType();
             if (!isAllowedSpawnGround(groundType, grassOnly)) {
                 return null;
             }
-            int spawnY = (int) Math.round(fallbackOrigin.getY());
-            Location spawn = new Location(world, base.getX(), spawnY, base.getZ());
-            Block below = world.getBlockAt(base.getBlockX(), spawnY - 1, base.getBlockZ());
-            if (!below.getType().isSolid()) {
+            return resolveSafeSpawnAtExactY(world, base, groundY + 1, grassOnly);
+        }
+
+        private Location resolveSafeSpawnAtHeight(World world, Location base, int preferredY, int verticalRange, boolean grassOnly) {
+            int safeRange = Math.max(0, verticalRange);
+            for (int offset = 0; offset <= safeRange; offset++) {
+                Location atPreferred = resolveSafeSpawnAtExactY(world, base, preferredY + offset, grassOnly);
+                if (atPreferred != null) {
+                    return atPreferred;
+                }
+                if (offset == 0) {
+                    continue;
+                }
+                Location belowPreferred = resolveSafeSpawnAtExactY(world, base, preferredY - offset, grassOnly);
+                if (belowPreferred != null) {
+                    return belowPreferred;
+                }
+            }
+            return null;
+        }
+
+        private Location resolveSafeSpawnAtExactY(World world, Location base, int spawnY, boolean grassOnly) {
+            if (spawnY <= world.getMinHeight() || spawnY >= world.getMaxHeight() - 1) {
                 return null;
             }
-            if (spawn.getBlock().getType().isAir() && spawn.clone().add(0, 1, 0).getBlock().getType().isAir()) {
+            Block below = world.getBlockAt(base.getBlockX(), spawnY - 1, base.getBlockZ());
+            if (!isAllowedSpawnGround(below.getType(), grassOnly)) {
+                return null;
+            }
+            Location spawn = new Location(world, base.getX(), spawnY, base.getZ());
+            if (spawn.getBlock().isPassable() && spawn.clone().add(0, 1, 0).getBlock().isPassable()) {
                 return spawn;
             }
             return null;
@@ -2904,6 +3274,7 @@ public class StrongholdRunManager implements Listener {
         private double damageTaken;
         private int doorsOpened;
         private int chestsOpened;
+        private int eliteObjectivesCompleted;
         private String lastStageRating;
         private int startingGems;
         private int maxGemsDuringRun;
@@ -2934,7 +3305,38 @@ public class StrongholdRunManager implements Listener {
                                  int statAmount) {
     }
 
+    private enum WavePhase {
+        WAITING,
+        VALIDATING,
+        ACTIVE
+    }
+
     public record ScoreResult(int total, int objectives, int damage, int time, String rank) {}
+
+    private enum EliteAffix {
+        FRENZIED("Frenzied Elite", ChatColor.RED, "Kill it before it overruns the wave."),
+        ARMORED("Armored Elite", ChatColor.DARK_AQUA, "Break through its armor for bonus score."),
+        EXPLOSIVE("Explosive Elite", ChatColor.GOLD, "Kill it, then dodge the blast marker."),
+        TREASURE_RUNNER("Treasure Runner", ChatColor.YELLOW, "Stop it before it escapes with the loot."),
+        COMMANDER("Commander Elite", ChatColor.LIGHT_PURPLE, "Focus it down before it empowers the wave.");
+
+        private final String displayName;
+        private final ChatColor color;
+        private final String objectiveText;
+
+        EliteAffix(String displayName, ChatColor color, String objectiveText) {
+            this.displayName = displayName;
+            this.color = color;
+            this.objectiveText = objectiveText;
+        }
+
+        private static EliteAffix random() {
+            EliteAffix[] values = values();
+            return values[ThreadLocalRandom.current().nextInt(values.length)];
+        }
+    }
+
+    private record EliteObjective(EliteAffix affix, long startedAtMs) {}
 
     public record StageStatus(int stage, int wave, int enemiesRemaining, String archetypeBuff) {
     }
