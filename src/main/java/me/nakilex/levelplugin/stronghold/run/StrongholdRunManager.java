@@ -854,13 +854,13 @@ public class StrongholdRunManager implements Listener {
         private final Integer selectedStartingStage;
         private int stageAnchor = 1;
         private int secondsUntilNextWave = FIRST_WAVE_DELAY_SECONDS;
+        private WavePhase wavePhase = WavePhase.WAITING;
         private boolean completed = false;
         private PlacedPortalBounds exitPortalBounds;
         private UUID waveBossId;
         private int currentWaveDeathEvents;
         private int currentWaveSpawnedTotal;
-        private int pendingWaveAnnouncement;
-        private int waveBeforePendingSpawn;
+        private int waveBeforeSpawnAttempt;
         private boolean portalPlacementPendingNotified = false;
         private long nextPortalGuideAt = 0L;
         private long startedAtMs = 0L;
@@ -908,48 +908,7 @@ public class StrongholdRunManager implements Listener {
                 syncRunPlayers(world);
                 cleanupDeadSpawned();
                 updateStuckMobPull(world);
-                int aliveCurrentWave = countAliveCurrentWave();
-                if (aliveCurrentWave > 0) {
-                    announcePendingWaveStart(world);
-                    return;
-                }
-                if (cancelPendingWaveStartIfSpawnVanished()) {
-                    return;
-                }
-                StageProgress liveProgress = toStageProgress(Math.max(1, wave));
-                if (!completed && wave == lastSpawnedWave && liveProgress.wave() == WAVES_PER_STAGE) {
-                    concludeRunAndSpawnExitPortal();
-                    return;
-                }
-                if (completed) {
-                    if (exitPortalBounds == null) {
-                        concludeRunAndSpawnExitPortal();
-                        return;
-                    }
-                    tickExitPortalGuidance(world);
-                    return;
-                }
-                if (wave >= MAX_ABSOLUTE_WAVE) {
-                    endRunAndShowRewardsForAllPlayers(ChatColor.GREEN + "Stage cap reached. Stronghold run complete.");
-                    return;
-                }
-                if (secondsUntilNextWave > 0) {
-                    secondsUntilNextWave--;
-                    return;
-                }
-                secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
-                int waveStep = computeWaveAdvance(playersInWorld(world));
-                int previousWave = wave;
-                wave = Math.min(MAX_ABSOLUTE_WAVE, wave + waveStep);
-                waveBeforePendingSpawn = previousWave;
-                boolean spawned = spawnWave(world, wave);
-                if (!spawned) {
-                    wave = previousWave;
-                    waveBeforePendingSpawn = previousWave;
-                    secondsUntilNextWave = 2;
-                    return;
-                }
-                lastSpawnedWave = wave;
+                tickWaveState(world);
             }, 20L, 20L);
             this.autoCastTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tickAutoCast, 20L, AUTOCAST_TICK_INTERVAL);
         }
@@ -993,10 +952,8 @@ public class StrongholdRunManager implements Listener {
             }
             spawned.clear();
             currentWaveSpawned.clear();
-            currentWaveDeathEvents = 0;
-            currentWaveSpawnedTotal = 0;
-            pendingWaveAnnouncement = 0;
-            waveBeforePendingSpawn = 0;
+            resetCurrentWaveTracking();
+            wavePhase = WavePhase.WAITING;
             activeEliteObjectives.clear();
             mobMotionStates.clear();
             lastManualCastAttemptAt.clear();
@@ -1041,8 +998,10 @@ public class StrongholdRunManager implements Listener {
             int activeStage = Math.max(stageAnchor, toStageProgress(Math.max(1, wave)).stage());
             int absoluteWave = ((activeStage - 1) * WAVES_PER_STAGE) + clampedWaveInStage;
             wave = Math.min(MAX_ABSOLUTE_WAVE, Math.max(0, absoluteWave - 1));
+            lastSpawnedWave = wave;
             secondsUntilNextWave = 1;
-            currentWaveSpawned.clear();
+            wavePhase = WavePhase.WAITING;
+            resetCurrentWaveTracking();
             for (Player player : playersInWorld(plugin.getServer().getWorld(worldId))) {
                 send(player, MessageType.INFO, "Debug waveskip set to " + ChatColor.WHITE + activeStage + "-" + clampedWaveInStage + ChatColor.GRAY + ".");
             }
@@ -1276,9 +1235,7 @@ public class StrongholdRunManager implements Listener {
             if (players.isEmpty()) {
                 return false;
             }
-            currentWaveSpawned.clear();
-            currentWaveDeathEvents = 0;
-            currentWaveSpawnedTotal = 0;
+            resetCurrentWaveTracking();
             int spawnedCount = 0;
             int spawnCount = modifiers.modifyWaveMobCount(computeWaveSpawnCount(waveNumber, players.size()));
             for (int i = 0; i < spawnCount; i++) {
@@ -1310,13 +1267,9 @@ public class StrongholdRunManager implements Listener {
             spawnedCount += spawnEliteObjectiveIfNeeded(world, players, waveNumber);
             spawnedCount += spawnMilestoneBossIfNeeded(world, players, waveNumber);
             if (spawnedCount <= 0 || countAliveCurrentWave() <= 0) {
-                currentWaveSpawned.clear();
-                currentWaveSpawnedTotal = 0;
-                currentWaveDeathEvents = 0;
-                pendingWaveAnnouncement = 0;
+                resetCurrentWaveTracking();
                 return false;
             }
-            pendingWaveAnnouncement = waveNumber;
             return true;
         }
 
@@ -1335,36 +1288,110 @@ public class StrongholdRunManager implements Listener {
             return true;
         }
 
-        private void announcePendingWaveStart(World world) {
-            if (pendingWaveAnnouncement <= 0 || pendingWaveAnnouncement != wave) {
+        private void tickWaveState(World world) {
+            if (completed) {
+                if (exitPortalBounds == null) {
+                    concludeRunAndSpawnExitPortal();
+                    return;
+                }
+                tickExitPortalGuidance(world);
                 return;
             }
-            StageProgress progress = toStageProgress(pendingWaveAnnouncement);
+            switch (wavePhase) {
+                case VALIDATING -> tickWaveValidation(world);
+                case ACTIVE -> tickActiveWave(world);
+                case WAITING -> tickWaitingForNextWave(world);
+            }
+        }
+
+        private void tickWaveValidation(World world) {
+            int alive = countAliveCurrentWave();
+            if (alive > 0) {
+                announceWaveStarted(world, wave);
+                wavePhase = WavePhase.ACTIVE;
+                return;
+            }
+            if (currentWaveDeathEvents > 0) {
+                completeCurrentWave(world);
+                return;
+            }
+            plugin.getLogger().warning("[Stronghold] Wave " + wave + " produced no lasting enemies; rescheduling without advancing.");
+            wave = Math.max(0, waveBeforeSpawnAttempt);
+            lastSpawnedWave = wave;
+            resetCurrentWaveTracking();
+            wavePhase = WavePhase.WAITING;
+            secondsUntilNextWave = 2;
+        }
+
+        private void tickActiveWave(World world) {
+            if (countAliveCurrentWave() > 0) {
+                return;
+            }
+            completeCurrentWave(world);
+        }
+
+        private void tickWaitingForNextWave(World world) {
+            if (wave >= MAX_ABSOLUTE_WAVE) {
+                endRunAndShowRewardsForAllPlayers(ChatColor.GREEN + "Stage cap reached. Stronghold run complete.");
+                return;
+            }
+            if (secondsUntilNextWave > 0) {
+                secondsUntilNextWave--;
+                return;
+            }
+            startNextWave(world);
+        }
+
+        private void startNextWave(World world) {
+            int waveStep = computeWaveAdvance(playersInWorld(world));
+            int previousWave = wave;
+            int nextWave = Math.min(MAX_ABSOLUTE_WAVE, wave + waveStep);
+            wave = nextWave;
+            waveBeforeSpawnAttempt = previousWave;
+            if (!spawnWave(world, nextWave)) {
+                wave = previousWave;
+                lastSpawnedWave = previousWave;
+                resetCurrentWaveTracking();
+                wavePhase = WavePhase.WAITING;
+                secondsUntilNextWave = 2;
+                return;
+            }
+            lastSpawnedWave = nextWave;
+            wavePhase = WavePhase.VALIDATING;
+        }
+
+        private void announceWaveStarted(World world, int waveNumber) {
+            StageProgress progress = toStageProgress(waveNumber);
             for (Player player : playersInWorld(world)) {
                 send(player, MessageType.INFO, "Stage " + ChatColor.WHITE + progress.stage() + ChatColor.GRAY + "-" + ChatColor.WHITE + progress.wave() + ChatColor.GRAY + " started.");
+            }
+        }
+
+        private void completeCurrentWave(World world) {
+            StageProgress progress = toStageProgress(Math.max(1, wave));
+            for (Player player : playersInWorld(world)) {
                 if (plugin.getQuestManager() != null) {
-                    plugin.getQuestManager().handleStrongholdWaveClear(player, pendingWaveAnnouncement);
+                    plugin.getQuestManager().handleStrongholdWaveClear(player, wave);
                     if (progress.wave() == WAVES_PER_STAGE) {
                         plugin.getQuestManager().handleStrongholdStageComplete(player, progress.stage());
                     }
                 }
             }
-            pendingWaveAnnouncement = 0;
+            resetCurrentWaveTracking();
+            if (progress.wave() == WAVES_PER_STAGE) {
+                concludeRunAndSpawnExitPortal();
+                return;
+            }
+            secondsUntilNextWave = WAVE_INTERVAL_SECONDS;
+            wavePhase = WavePhase.WAITING;
         }
 
-        private boolean cancelPendingWaveStartIfSpawnVanished() {
-            if (pendingWaveAnnouncement <= 0 || currentWaveSpawnedTotal <= 0 || currentWaveDeathEvents > 0) {
-                return false;
-            }
-            plugin.getLogger().warning("[Stronghold] Wave " + pendingWaveAnnouncement + " spawned no lasting enemies; cancelling start and rescheduling without chat spam.");
+        private void resetCurrentWaveTracking() {
             currentWaveSpawned.clear();
-            currentWaveSpawnedTotal = 0;
             currentWaveDeathEvents = 0;
-            wave = Math.max(0, waveBeforePendingSpawn);
-            lastSpawnedWave = wave;
-            pendingWaveAnnouncement = 0;
-            secondsUntilNextWave = 2;
-            return true;
+            currentWaveSpawnedTotal = 0;
+            activeEliteObjectives.clear();
+            waveBossId = null;
         }
 
         private int computeWaveSpawnCount(int waveNumber, int playerCount) {
@@ -3157,6 +3184,12 @@ public class StrongholdRunManager implements Listener {
                                  String resultSpellId,
                                  StatsManager.StatType statType,
                                  int statAmount) {
+    }
+
+    private enum WavePhase {
+        WAITING,
+        VALIDATING,
+        ACTIVE
     }
 
     public record ScoreResult(int total, int objectives, int damage, int time, String rank) {}
