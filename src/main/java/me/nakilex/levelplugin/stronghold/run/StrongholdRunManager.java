@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.stronghold.run;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.debug.StrongholdDebugGenerator;
 import me.nakilex.levelplugin.dungeon.modifiers.RunModifierSet;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
@@ -861,6 +862,9 @@ public class StrongholdRunManager implements Listener {
         private int currentWaveDeathEvents;
         private int currentWaveSpawnedTotal;
         private int waveBeforeSpawnAttempt;
+        private int waveSpawnAttemptId;
+        private int currentWaveFailedSpawnLocations;
+        private int currentWaveFailedMobSpawns;
         private boolean portalPlacementPendingNotified = false;
         private long nextPortalGuideAt = 0L;
         private long startedAtMs = 0L;
@@ -899,6 +903,7 @@ public class StrongholdRunManager implements Listener {
                 stageAnchor = Math.max(1, toStageProgress(checkpoint).stage());
                 wave = Math.max(0, checkpoint - 1);
             }
+            debugWave("start run world=" + worldId + " origin=" + formatLocation(origin) + " startWave=" + wave + " phase=" + wavePhase + " heat=" + heat.displayName());
             this.task = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
                 World world = plugin.getServer().getWorld(worldId);
                 if (world == null || !StrongholdWorldUtil.isStrongholdWorld(world)) {
@@ -947,6 +952,7 @@ public class StrongholdRunManager implements Listener {
             for (UUID id : spawned) {
                 var e = plugin.getServer().getEntity(id);
                 if (e instanceof LivingEntity living && !living.isDead()) {
+                    debugMob("stopRun removing tracked mob " + describeEntity(living));
                     living.remove();
                 }
             }
@@ -973,6 +979,7 @@ public class StrongholdRunManager implements Listener {
             if (wasCurrentWaveMob) {
                 currentWaveDeathEvents++;
             }
+            debugMob("death event currentWave=" + wasCurrentWaveMob + " wave=" + wave + " phase=" + wavePhase + " " + describeEntity(entity));
             mobMotionStates.remove(deadId);
 
             EliteObjective objective = activeEliteObjectives.remove(deadId);
@@ -1236,20 +1243,31 @@ public class StrongholdRunManager implements Listener {
                 return false;
             }
             resetCurrentWaveTracking();
+            waveSpawnAttemptId++;
+            int attemptId = waveSpawnAttemptId;
             int spawnedCount = 0;
             int spawnCount = modifiers.modifyWaveMobCount(computeWaveSpawnCount(waveNumber, players.size()));
+            debugWave("spawn attempt #" + attemptId + " wave=" + waveNumber + " phase=" + wavePhase
+                    + " players=" + players.size() + " requested=" + spawnCount + " origin=" + formatLocation(origin));
             for (int i = 0; i < spawnCount; i++) {
                 Player target = players.get(ThreadLocalRandom.current().nextInt(players.size()));
                 Location spawn = findSpawnNear(target.getLocation(), origin, 14.0, 30.0);
                 if (spawn == null) {
+                    currentWaveFailedSpawnLocations++;
+                    debugWave("spawn attempt #" + attemptId + " no safe location for target=" + target.getName()
+                            + " targetLoc=" + formatLocation(target.getLocation()));
                     continue;
                 }
                 LivingEntity mob = StrongholdMobSpawnUtil.spawnStrongholdHostile(plugin.getCustomMobManager(), waveMobPool, spawn);
                 if (mob == null) {
+                    currentWaveFailedMobSpawns++;
+                    debugWave("spawn attempt #" + attemptId + " mob manager returned null at " + formatLocation(spawn));
                     continue;
                 }
+                debugMob("spawned attempt #" + attemptId + " wave=" + waveNumber + " at=" + formatLocation(spawn) + " " + describeEntity(mob));
                 applyWaveMobScaling(mob, waveNumber, false);
                 if (!trackCurrentWaveMob(mob)) {
+                    debugMob("track rejected; removing " + describeEntity(mob));
                     mob.remove();
                     continue;
                 }
@@ -1266,10 +1284,19 @@ public class StrongholdRunManager implements Listener {
             }
             spawnedCount += spawnEliteObjectiveIfNeeded(world, players, waveNumber);
             spawnedCount += spawnMilestoneBossIfNeeded(world, players, waveNumber);
-            if (spawnedCount <= 0 || countAliveCurrentWave() <= 0) {
+            int aliveAfterSpawn = countAliveCurrentWave();
+            debugWave("spawn attempt #" + attemptId + " summary wave=" + waveNumber
+                    + " spawned=" + spawnedCount + " tracked=" + currentWaveSpawnedTotal
+                    + " aliveNow=" + aliveAfterSpawn + " noLocation=" + currentWaveFailedSpawnLocations
+                    + " nullMob=" + currentWaveFailedMobSpawns);
+            if (spawnedCount <= 0 || aliveAfterSpawn <= 0) {
+                debugWave("spawn attempt #" + attemptId + " failed; clearing current wave tracking.");
                 resetCurrentWaveTracking();
                 return false;
             }
+            scheduleCurrentWaveProbe(attemptId, waveNumber, 1L);
+            scheduleCurrentWaveProbe(attemptId, waveNumber, 5L);
+            scheduleCurrentWaveProbe(attemptId, waveNumber, 20L);
             return true;
         }
 
@@ -1281,6 +1308,7 @@ public class StrongholdRunManager implements Listener {
             spawned.add(mobId);
             currentWaveSpawned.add(mobId);
             currentWaveSpawnedTotal++;
+            debugMob("tracking wave=" + wave + " phase=" + wavePhase + " total=" + currentWaveSpawnedTotal + " " + describeEntity(mob));
             mobMotionStates.put(mobId, new MobMotionState(
                     mob.getLocation().clone(),
                     System.currentTimeMillis(),
@@ -1307,14 +1335,17 @@ public class StrongholdRunManager implements Listener {
         private void tickWaveValidation(World world) {
             int alive = countAliveCurrentWave();
             if (alive > 0) {
+                debugWave("validation passed wave=" + wave + " alive=" + alive + " tracked=" + currentWaveSpawnedTotal);
                 announceWaveStarted(world, wave);
                 wavePhase = WavePhase.ACTIVE;
                 return;
             }
             if (currentWaveDeathEvents > 0) {
+                debugWave("validation saw immediate deaths wave=" + wave + " deaths=" + currentWaveDeathEvents + " tracked=" + currentWaveSpawnedTotal);
                 completeCurrentWave(world);
                 return;
             }
+            debugCurrentWaveSnapshot("validation failed wave=" + wave);
             plugin.getLogger().warning("[Stronghold] Wave " + wave + " produced no lasting enemies; rescheduling without advancing.");
             wave = Math.max(0, waveBeforeSpawnAttempt);
             lastSpawnedWave = wave;
@@ -1327,6 +1358,7 @@ public class StrongholdRunManager implements Listener {
             if (countAliveCurrentWave() > 0) {
                 return;
             }
+            debugWave("active wave complete wave=" + wave + " deaths=" + currentWaveDeathEvents + " tracked=" + currentWaveSpawnedTotal);
             completeCurrentWave(world);
         }
 
@@ -1390,8 +1422,91 @@ public class StrongholdRunManager implements Listener {
             currentWaveSpawned.clear();
             currentWaveDeathEvents = 0;
             currentWaveSpawnedTotal = 0;
+            currentWaveFailedSpawnLocations = 0;
+            currentWaveFailedMobSpawns = 0;
             activeEliteObjectives.clear();
             waveBossId = null;
+        }
+
+        private void scheduleCurrentWaveProbe(int attemptId, int waveNumber, long delayTicks) {
+            if (!StrongholdDebugGenerator.isStrongholdConsoleOutputEnabled()) {
+                return;
+            }
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                ActiveRun active = activeRuns.get(worldId);
+                if (active != this) {
+                    return;
+                }
+                debugCurrentWaveSnapshot("probe attempt #" + attemptId + " wave=" + waveNumber + " delay=" + delayTicks + "t");
+            }, delayTicks);
+        }
+
+        private void debugCurrentWaveSnapshot(String reason) {
+            if (!StrongholdDebugGenerator.isStrongholdConsoleOutputEnabled()) {
+                return;
+            }
+            debugWave(reason + " phase=" + wavePhase + " currentWave=" + wave + " lastSpawned=" + lastSpawnedWave
+                    + " trackedTotal=" + currentWaveSpawnedTotal + " trackedList=" + currentWaveSpawned.size()
+                    + " deaths=" + currentWaveDeathEvents + " alive=" + countAliveCurrentWave());
+            for (UUID id : new ArrayList<>(currentWaveSpawned)) {
+                var entity = plugin.getServer().getEntity(id);
+                if (entity instanceof LivingEntity living) {
+                    debugMob("snapshot " + describeEntity(living));
+                } else {
+                    debugMob("snapshot missing uuid=" + id + " inSpawned=" + spawned.contains(id)
+                            + " motionTracked=" + mobMotionStates.containsKey(id));
+                }
+            }
+        }
+
+        private void debugWave(String message) {
+            if (StrongholdDebugGenerator.isStrongholdConsoleOutputEnabled()) {
+                plugin.getLogger().info("[StrongholdWaveDebug] " + message);
+            }
+        }
+
+        private void debugMob(String message) {
+            if (StrongholdDebugGenerator.isStrongholdConsoleOutputEnabled()) {
+                plugin.getLogger().info("[StrongholdMobDebug] " + message);
+            }
+        }
+
+        private String describeEntity(LivingEntity entity) {
+            if (entity == null) {
+                return "entity=null";
+            }
+            Location loc = entity.getLocation();
+            String customMobId = readMetadata(entity, "lp_custom_mob_id");
+            return "uuid=" + entity.getUniqueId()
+                    + " type=" + entity.getType()
+                    + " customMob=" + (customMobId == null ? "none" : customMobId)
+                    + " valid=" + entity.isValid()
+                    + " dead=" + entity.isDead()
+                    + " health=" + String.format(Locale.ROOT, "%.2f", Math.max(0.0, entity.getHealth()))
+                    + " removeWhenFar=" + entity.getRemoveWhenFarAway()
+                    + " persistent=" + entity.isPersistent()
+                    + " ticks=" + entity.getTicksLived()
+                    + " world=" + (loc.getWorld() == null ? "null" : loc.getWorld().getName())
+                    + " loc=" + formatLocation(loc)
+                    + " tags=" + entity.getScoreboardTags();
+        }
+
+        private String readMetadata(LivingEntity entity, String key) {
+            if (entity == null || key == null || !entity.hasMetadata(key)) {
+                return null;
+            }
+            return entity.getMetadata(key).stream()
+                    .filter(value -> value.getOwningPlugin() == plugin)
+                    .map(value -> value.asString())
+                    .findFirst()
+                    .orElse(null);
+        }
+
+        private String formatLocation(Location location) {
+            if (location == null) {
+                return "null";
+            }
+            return "(" + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ() + ")";
         }
 
         private int computeWaveSpawnCount(int waveNumber, int playerCount) {
@@ -1683,18 +1798,22 @@ public class StrongholdRunManager implements Listener {
         }
 
         private void cleanupDeadSpawned() {
-            spawned.removeIf(id -> {
-                var entity = plugin.getServer().getEntity(id);
-                return !(entity instanceof LivingEntity living) || living.isDead();
-            });
-            currentWaveSpawned.removeIf(id -> {
-                var entity = plugin.getServer().getEntity(id);
-                return !(entity instanceof LivingEntity living) || living.isDead();
-            });
-            mobMotionStates.entrySet().removeIf(entry -> {
-                var entity = plugin.getServer().getEntity(entry.getKey());
-                return !(entity instanceof LivingEntity living) || living.isDead();
-            });
+            spawned.removeIf(id -> shouldRemoveMissingOrDeadTracking(id, "allSpawned"));
+            currentWaveSpawned.removeIf(id -> shouldRemoveMissingOrDeadTracking(id, "currentWave"));
+            mobMotionStates.entrySet().removeIf(entry -> shouldRemoveMissingOrDeadTracking(entry.getKey(), "motion"));
+        }
+
+        private boolean shouldRemoveMissingOrDeadTracking(UUID id, String source) {
+            var entity = plugin.getServer().getEntity(id);
+            if (entity instanceof LivingEntity living && !living.isDead()) {
+                return false;
+            }
+            debugMob("cleanup removed source=" + source + " uuid=" + id
+                    + " entity=" + (entity == null ? "missing" : entity.getType())
+                    + " valid=" + (entity != null && entity.isValid())
+                    + " dead=" + (entity instanceof LivingEntity living && living.isDead())
+                    + " wave=" + wave + " phase=" + wavePhase);
+            return true;
         }
 
         private void updateStuckMobPull(World world) {
