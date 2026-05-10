@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.stronghold.commands;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.debug.StrongholdDebugGenerator;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueManager;
 import me.nakilex.levelplugin.stronghold.StrongholdQueueMode;
 import me.nakilex.levelplugin.stronghold.StrongholdShrineManager;
@@ -46,6 +47,9 @@ public class StrongholdCommand implements TabExecutor {
         }
         if (args.length > 0 && equalsAny(args[0], "shrine")) {
             return handleShrineSubcommand(sender, args);
+        }
+        if (args.length > 0 && equalsAny(args[0], "debug")) {
+            return handleDebugSubcommand(sender, args);
         }
 
         if (!(sender instanceof Player player)) {
@@ -109,14 +113,14 @@ public class StrongholdCommand implements TabExecutor {
             return true;
         }
 
-        send(player, MessageType.INFO, "Usage: /" + label + " [join|leave|open|heat|template|shrine]");
+        send(player, MessageType.INFO, "Usage: /" + label + " [join|leave|open|heat|template|shrine|debug]");
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return partial(args[0], List.of("join", "leave", "open", "heat", "template", "shrine"));
+            return partial(args[0], List.of("join", "leave", "open", "heat", "template", "shrine", "debug"));
         }
         if (args.length == 2 && equalsAny(args[0], "join", "queue")) {
             return partial(args[1], Arrays.asList("solo", "duo", "squad"));
@@ -133,6 +137,9 @@ public class StrongholdCommand implements TabExecutor {
         }
         if (args.length == 2 && equalsAny(args[0], "shrine")) {
             return partial(args[1], List.of("create"));
+        }
+        if (args.length == 2 && equalsAny(args[0], "debug")) {
+            return partial(args[1], List.of("output", "status"));
         }
         return Collections.emptyList();
     }
@@ -219,6 +226,27 @@ public class StrongholdCommand implements TabExecutor {
             return true;
         }
         send(sender, MessageType.WARNING, "Usage: /stronghold template <set|clear|show> [worldName]");
+        return true;
+    }
+
+    private boolean handleDebugSubcommand(CommandSender sender, String[] args) {
+        if (sender instanceof Player player && !player.hasPermission("levelplugin.admin")) {
+            send(player, MessageType.ERROR, "You do not have permission to manage Stronghold debug output.");
+            return true;
+        }
+        if (args.length < 2 || equalsAny(args[1], "status")) {
+            send(sender, MessageType.INFO, "Stronghold debug output is "
+                    + (StrongholdDebugGenerator.isStrongholdConsoleOutputEnabled() ? ChatColor.GREEN + "ON" : ChatColor.RED + "OFF")
+                    + ChatColor.GRAY + ". Use " + ChatColor.WHITE + "/stronghold debug output" + ChatColor.GRAY + " to toggle.");
+            return true;
+        }
+        if (equalsAny(args[1], "output", "toggle")) {
+            boolean enabled = StrongholdDebugGenerator.toggleStrongholdConsoleOutput();
+            send(sender, MessageType.SUCCESS, "Stronghold debug output is now "
+                    + (enabled ? ChatColor.GREEN + "ON" : ChatColor.RED + "OFF") + ChatColor.GREEN + ".");
+            return true;
+        }
+        send(sender, MessageType.WARNING, "Usage: /stronghold debug <output|status>");
         return true;
     }
 

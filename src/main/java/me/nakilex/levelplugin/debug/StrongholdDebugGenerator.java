@@ -13,6 +13,7 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.ChunkSnapshot;
+import org.bukkit.Difficulty;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -2235,7 +2236,13 @@ public final class StrongholdDebugGenerator {
         }
         world.setKeepSpawnInMemory(false);
         world.setAutoSave(false);
+        Difficulty previousDifficulty = world.getDifficulty();
+        world.setDifficulty(Difficulty.NORMAL);
         world.setGameRule(org.bukkit.GameRule.DO_MOB_SPAWNING, false);
+        if (previousDifficulty == Difficulty.PEACEFUL) {
+            plugin.getLogger().warning("[Stronghold] Template world clone was PEACEFUL; forced generated Stronghold world '"
+                    + world.getName() + "' to NORMAL so hostile mobs do not instantly despawn.");
+        }
         if (player != null && player.isOnline()) {
             GenerationOrigin origin = resolveGenerationOrigin(plugin);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
