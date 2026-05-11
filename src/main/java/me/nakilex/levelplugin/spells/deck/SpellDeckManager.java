@@ -102,6 +102,147 @@ public final class SpellDeckManager {
                 SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
                 List.of("Initial Hit: 250 damage in 5 blocks", "Burn: 10s at 30/sec", "Burning deaths trigger Living Inferno", "Chain explosion: 140 damage in 4 blocks", "Chains up to 10 times at -15% damage", "Burning enemies reduce nearby fire resistance"),
                 List.of("Mana Cost: 75", "Cooldown: 14s", "Below 20% HP: lose 10% current HP")));
+        registerClassSpellCards();
+    }
+
+    private void registerClassSpellCards() {
+        registerCard("meteor_common", "meteor", "meteor", "Meteor",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Calls a falling meteor onto your target area.",
+                List.of("Damage: 18", "Impact Radius: 3.8 blocks", "Burn: 6s"), List.of());
+        registerCard("meteor_rare", "meteor", "meteor_double", "Emberfall Meteor",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Drops a stronger meteor and follow-up embers.",
+                List.of("Damage: 22", "Impact Radius: 5.8 blocks", "Secondary Meteors: 3"), List.of());
+        registerCard("meteor_epic", "meteor", "meteor_big", "Cataclysm Meteor",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Crushes a wide area with a catastrophic impact.",
+                List.of("Damage: 27", "Impact Radius: 7.4 blocks", "Secondary Meteors: 5"), List.of());
+
+        registerCard("blackhole_common", "blackhole", "blackhole", "Blackhole",
+                SpellDeckRarity.COMMON, SpellCardCategory.UTILITY, SpellInputType.SPELL_1,
+                "Creates a gravity well that pulls enemies inward.",
+                List.of("Radius: 4.2 blocks", "Pull Strength: 1.7", "Duration: 60 ticks"), List.of());
+        registerCard("blackhole_rare", "blackhole", "blackhole_gravitywell", "Gravity Well",
+                SpellDeckRarity.RARE, SpellCardCategory.UTILITY, SpellInputType.SPELL_1,
+                "A stronger blackhole that damages clustered enemies.",
+                List.of("Radius: 6.8 blocks", "Pull Strength: 2.9", "Pulses: 2"), List.of());
+        registerCard("blackhole_epic", "blackhole", "blackhole_singularity", "Singularity",
+                SpellDeckRarity.EPIC, SpellCardCategory.UTILITY, SpellInputType.SPELL_1,
+                "Compresses enemies into a violent singularity.",
+                List.of("Radius: 9 blocks", "Pull Strength: 4", "Pulses: 4"), List.of());
+
+        registerCard("arcane_mend_common", "arcane_mend", "mage_heal", "Arcane Mend",
+                SpellDeckRarity.COMMON, SpellCardCategory.SUPPORT, SpellInputType.SPELL_4,
+                "Restores health with a quick arcane pulse.",
+                List.of("Healing: 8", "Bonus Health: 8"), List.of());
+        registerCard("arcane_mend_rare", "arcane_mend", "mage_heal_rejuvenation", "Rejuvenating Mend",
+                SpellDeckRarity.RARE, SpellCardCategory.SUPPORT, SpellInputType.SPELL_4,
+                "Restores health and applies a short regeneration effect.",
+                List.of("Healing: 14", "Regen Duration: 2s", "Bonus Health: 22"), List.of());
+        registerCard("arcane_mend_epic", "arcane_mend", "mage_heal_party", "Party Pulse Mend",
+                SpellDeckRarity.EPIC, SpellCardCategory.SUPPORT, SpellInputType.SPELL_4,
+                "Restores you and nearby allies with rejuvenating magic.",
+                List.of("Healing: 12", "Party Heal: enabled", "Regen Duration: 2s"), List.of());
+
+        registerCard("seeker_barrage_rare", "seeker_barrage", "archer_homing_barrage", "Seeker Barrage",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Fires a volley of arrows that seek enemies.",
+                List.of("Arrows: 9", "Delay: 2 ticks", "Search Radius: 4.8 blocks"), List.of());
+        registerCard("arrow_rain_epic", "arrow_rain", "archer_arrow_rain", "Arrow Rain",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Rains arrows over a large target area.",
+                List.of("Arrows: 8", "Waves: 11", "Radius: 8.2 blocks"), List.of());
+        registerCard("windguard_rare", "windguard", "archer_windguard", "Windguard",
+                SpellDeckRarity.RARE, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Summons wind to guard you from incoming damage.",
+                List.of("Shield: 100", "Charges: 1", "Duration: 30s"), List.of());
+
+        registerCard("shadow_flurry_common", "shadow_flurry", "rogue_sky_ripper", "Shadow Flurry",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Strikes enemies with rapid shadow slashes.",
+                List.of("Strikes: 4", "Radius: 6 blocks", "Damage: 7.4"), List.of());
+        registerCard("shadow_flurry_rare", "shadow_flurry", "rogue_sky_ripper_tempest", "Tempest Dive",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Dives through foes with a stronger shadow storm.",
+                List.of("Strikes: 6", "Radius: 7.6 blocks", "Damage: 13"), List.of());
+        registerCard("shadow_flurry_epic", "shadow_flurry", "rogue_sky_ripper_execution", "Execution Drop",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Finishes enemies with a heavy shadow execution.",
+                List.of("Strikes: 8", "Radius: 8.9 blocks", "Damage: 17.6"), List.of());
+
+        registerCard("nightfall_lunge_common", "nightfall_lunge", "rogue_phantom_cross", "Nightfall Lunge",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Lunges through enemies with phantom cuts.",
+                List.of("Slashes: 4", "Range: 6 blocks", "Damage: 11.8"), List.of());
+        registerCard("nightfall_lunge_rare", "nightfall_lunge", "rogue_phantom_cross_cyclone", "Cyclone Lunge",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Cuts through enemies with a wider cyclone pattern.",
+                List.of("Slashes: 6", "Range: 7.5 blocks", "Damage: 17"), List.of());
+        registerCard("nightfall_lunge_epic", "nightfall_lunge", "rogue_phantom_cross_judgement", "Judgement Lunge",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Delivers a judgement strike after a phantom lunge.",
+                List.of("Slashes: 8", "Range: 8.6 blocks", "Damage: 23"), List.of());
+
+        registerCard("smoke_bomb_common", "smoke_bomb", "rogue_veil_counter", "Smoke Bomb",
+                SpellDeckRarity.COMMON, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Drops smoke that protects you and weakens enemies.",
+                List.of("Duration: 16s", "Radius: 2 blocks", "Shield: 100"), List.of());
+        registerCard("smoke_bomb_rare", "smoke_bomb", "rogue_veil_counter_obscure", "Obscure Smoke Bomb",
+                SpellDeckRarity.RARE, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Creates a broader smoke field with stronger cover.",
+                List.of("Duration: 22s", "Radius: 2.3 blocks", "Shield: 120"), List.of());
+        registerCard("smoke_bomb_epic", "smoke_bomb", "rogue_veil_counter_dread", "Dread Smoke Bomb",
+                SpellDeckRarity.EPIC, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Creates a dread cloud that heavily disrupts enemies.",
+                List.of("Duration: 30s", "Radius: 2.8 blocks", "Shield: 140"), List.of());
+
+        registerCard("earthquake_common", "earthquake", "warrior_earthquake", "Earthquake",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Shatters the ground around your target area.",
+                List.of("Radius: 3.8 blocks", "Damage: 6.2"), List.of());
+        registerCard("earthquake_rare", "earthquake", "warrior_earthquake_tremor", "Tremor Earthquake",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Creates a larger tremor with heavier impact.",
+                List.of("Radius: 6.3 blocks", "Damage: 10.8"), List.of());
+        registerCard("earthquake_epic", "earthquake", "warrior_earthquake_cataclysm", "Cataclysm Earthquake",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Breaks the battlefield with a cataclysmic shockwave.",
+                List.of("Radius: 8.8 blocks", "Damage: 14.2"), List.of());
+
+        registerCard("rupture_cyclone_rare", "rupture_cyclone", "warrior_rupture_cyclone", "Rupture Cyclone",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Spins through enemies and applies rupturing pressure.",
+                List.of("Hits: 9", "Radius: 3.8 blocks", "Damage Multiplier: 1x"), List.of());
+        registerCard("aegis_bastion_rare", "aegis_bastion", "warrior_guarded_resolve", "Aegis Bastion",
+                SpellDeckRarity.RARE, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Raises a bastion that absorbs incoming damage.",
+                List.of("Shield: 130", "Duration: 5s", "Guard Radius: 34 blocks"), List.of());
+        registerCard("cyclone_brand_rare", "cyclone_brand", "warrior_execution_arc", "Cyclone Brand",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Brands enemies with a sweeping execution arc.",
+                List.of("Damage: 120", "Radius: 6.4 blocks"), List.of());
+    }
+
+    private void registerCard(String cardId,
+                              String familyId,
+                              String spellId,
+                              String displayName,
+                              SpellDeckRarity rarity,
+                              SpellCardCategory category,
+                              SpellInputType defaultInputType,
+                              String description,
+                              List<String> effectLines,
+                              List<String> tradeoffLines) {
+        List<String> lore = new ArrayList<>();
+        if (description != null && !description.isBlank()) {
+            lore.add(description);
+        }
+        if (effectLines != null) {
+            lore.addAll(effectLines);
+        }
+        register(new SpellCardDefinition(cardId, familyId, spellId, displayName, rarity, category,
+                defaultInputType, null, lore, tradeoffLines == null ? List.of() : tradeoffLines));
     }
 
     public void register(SpellCardDefinition definition) {
