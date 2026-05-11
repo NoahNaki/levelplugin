@@ -253,7 +253,8 @@ public class SpellUpgradeGUI implements Listener {
     }
 
     private void addCardSummaryLore(Player player, List<String> lore, SpellCardDefinition card, SpellInputType inputType) {
-        SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(card.spellId());
+        String effectiveSpellId = deckManager.getEffectiveCardSpellId(player.getUniqueId(), card);
+        SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(effectiveSpellId);
         SpellDefinition definition = spellEntry == null ? null : spellEntry.definition();
         int manaCost = definition == null
                 ? readStatFromLore(card, "mana cost", 0)
@@ -267,6 +268,9 @@ public class SpellUpgradeGUI implements Listener {
         lore.add(spellTypeLine(inputType));
         for (String description : descriptionLines(card)) {
             lore.add(ChatColor.GRAY + description);
+        }
+        if (definition != null && !definition.id().equalsIgnoreCase(card.spellId())) {
+            lore.add(statLine("Active Tier", ChatColor.LIGHT_PURPLE, definition.displayName()));
         }
         lore.add(" ");
         lore.add(statLine("Mana Cost", ChatColor.AQUA, manaCost + " mana"));
