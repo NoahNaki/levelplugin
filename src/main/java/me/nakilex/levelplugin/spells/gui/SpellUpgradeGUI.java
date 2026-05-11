@@ -267,7 +267,6 @@ public class SpellUpgradeGUI implements Listener {
             lore.add(ChatColor.GRAY + description);
         }
         lore.add(" ");
-        lore.add(statLine("Rarity", card.rarity().color(), card.rarity().displayName().toUpperCase(Locale.ROOT)));
         lore.add(statLine("Mana Cost", ChatColor.AQUA, manaCost + " mana"));
         lore.add(statLine("Cooldown", ChatColor.GREEN, formatCooldown(cooldownMs)));
         lore.add(" ");
