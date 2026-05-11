@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.profile;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
+import me.nakilex.levelplugin.spells.input.SpellInputHudManager;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
 import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import org.bukkit.Bukkit;
@@ -64,6 +65,7 @@ public final class ProfileEntryUtil {
                 pm.createProfile(pid, 0, "Profile 1");
             }
             pm.setActiveSlot(pid, 0);
+            Main.getInstance().getSettingsManager().loadProfileSettings(pid, 0);
             PlayerConfig cfg = Main.getInstance().getPlayerConfig();
             org.bukkit.Location loc = cfg.getProfileLocation(pid, 0);
             if (loc != null) {
@@ -82,6 +84,7 @@ public final class ProfileEntryUtil {
             }
             if (!WorldExclusionUtil.isExcluded(player)) {
                 BetterHudUtil.addHud(player);
+                SpellInputHudManager.sync(player, Main.getInstance().getSettingsManager());
             }
         } else {
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {

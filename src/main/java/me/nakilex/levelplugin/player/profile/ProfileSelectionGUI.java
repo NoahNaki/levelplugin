@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
+import me.nakilex.levelplugin.spells.input.SpellInputHudManager;
 import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
 import org.bukkit.Bukkit;
@@ -370,6 +371,7 @@ public class ProfileSelectionGUI implements Listener {
         stopSelection(player);
         player.closeInventory();
         BetterHudUtil.addHud(player);
+        SpellInputHudManager.sync(player, Main.getInstance().getSettingsManager());
         resyncScoreboardAfterHud(player);
         Main.getInstance().getPetManager().handleProfileActivated(player);
 
@@ -497,6 +499,7 @@ public class ProfileSelectionGUI implements Listener {
             restoreActiveProfileAfterCancelledSelection(player, activeSlot);
             stopSelection(player);
             BetterHudUtil.addHud(player);
+            SpellInputHudManager.sync(player, Main.getInstance().getSettingsManager());
         }
     }
 

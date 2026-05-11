@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.classes.data.ClassUtil;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.spells.SpellAccessUtil;
@@ -13,6 +14,7 @@ import me.nakilex.levelplugin.spells.input.SpellComboTracker;
 import me.nakilex.levelplugin.spells.input.SpellClickInput;
 import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
 import me.nakilex.levelplugin.spells.input.SpellInputEvent;
+import me.nakilex.levelplugin.spells.input.SpellInputHudManager;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.spells.input.SpellKeybindLayout;
@@ -29,6 +31,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
@@ -183,6 +186,23 @@ public class SpellInputListener implements Listener {
             state.count = 0;
             dispatchBoundSpell(player, SpellInputMode.MOUSE_AND_KEYBOARD, SpellKeybindSlot.SLOT_4, "Sneak+Sneak");
         }
+    }
+
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            boolean profilesEnabled = Main.getInstance().getCustomConfig().getBoolean("features.profiles", true);
+            if (profilesEnabled && ProfileManager.getInstance().getActiveSlot(player.getUniqueId()) == null) {
+                SpellInputHudManager.remove(player);
+                return;
+            }
+            SpellInputHudManager.sync(player, settingsManager);
+        }, 60L);
     }
 
     @EventHandler

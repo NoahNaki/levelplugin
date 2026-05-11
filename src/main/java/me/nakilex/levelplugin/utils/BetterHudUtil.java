@@ -21,6 +21,22 @@ public final class BetterHudUtil {
                 "hud hud " + action + " " + player.getName() + " all");
     }
 
+    /**
+     * Toggles a specific BetterHud HUD for the target player.
+     *
+     * @param player target player
+     * @param hudId BetterHud HUD id
+     * @param enable true to add the HUD, false to remove
+     */
+    public static void setHud(Player player, String hudId, boolean enable) {
+        if (player == null || hudId == null || hudId.isBlank()) {
+            return;
+        }
+        String action = enable ? "add" : "remove";
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                "betterhud hud " + action + " " + player.getName() + " " + hudId);
+    }
+
     public static void addHud(Player player) {
         setHud(player, true);
     }

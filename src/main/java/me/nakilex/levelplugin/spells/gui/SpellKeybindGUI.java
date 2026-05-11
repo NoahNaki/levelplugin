@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
+import me.nakilex.levelplugin.spells.input.SpellInputHudManager;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.spells.input.SpellKeybindLayout;
@@ -278,6 +279,7 @@ public class SpellKeybindGUI implements Listener {
         }
 
         settingsManager.getSettings(player).setSpellInputMode(state.viewMode);
+        SpellInputHudManager.sync(player, state.viewMode);
 
         Integer slot = ProfileManager.getInstance().getActiveSlot(playerId);
         if (slot != null && slot >= 0) {

@@ -273,7 +273,7 @@ public final class SpellCatalog {
                         false, 0, 0, 0, 0, 0,
                         0.45, 0,
                         true, 4, 140, 10,
-                        0.20, 0.10, 0.55f));
+                        1.0, 0.10, 0.55f));
     }
 
     private static void registerDeckFireball(SpellRegistry registry,

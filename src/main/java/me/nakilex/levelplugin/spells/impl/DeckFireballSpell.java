@@ -40,7 +40,7 @@ public class DeckFireballSpell implements SpellHandler {
     @Override
     public void cast(SpellContext context) {
         Player caster = context.player();
-        double charge = resolveCharge(caster, context);
+        double charge = resolveCharge();
         Location eye = caster.getEyeLocation();
         Vector direction = eye.getDirection().clone().normalize();
         Location start = eye.clone().add(direction.clone().multiply(0.65));
@@ -48,15 +48,8 @@ public class DeckFireballSpell implements SpellHandler {
         launchProjectile(caster, start, direction, charge);
     }
 
-    private double resolveCharge(Player caster, SpellContext context) {
-        if (!config.chargeable) {
-            return 0.0;
-        }
-        String sequence = context == null || context.inputEvent() == null ? "" : context.inputEvent().getInputSequence();
-        if (caster.isSneaking() || sequence != null && sequence.toUpperCase(java.util.Locale.ROOT).contains("RIGHT")) {
-            return 1.0;
-        }
-        return 0.0;
+    private double resolveCharge() {
+        return config.chargeable ? 1.0 : 0.0;
     }
 
     private void launchProjectile(Player caster, Location start, Vector direction, double charge) {

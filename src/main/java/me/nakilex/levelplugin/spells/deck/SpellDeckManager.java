@@ -97,12 +97,12 @@ public final class SpellDeckManager {
                 List.of("Mana Cost increased to 35", "Cooldown increased to 9s")));
         register(new SpellCardDefinition("fireball_legendary", "fireball", "deck_fireball_legendary", "Dragonfire Orb",
                 SpellDeckRarity.LEGENDARY, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
-                List.of("Charge by holding right-click up to 2.5s", "Base: 170 damage in 3.5 blocks", "Full charge: 350 damage in 7 blocks", "Full charge burn: 8s at 24/sec", "Full charge creates 5 secondary explosions", "Full charge briefly stuns enemies"),
-                List.of("Mana scales from 30 to 60", "Movement is reduced while charging")));
+                List.of("Launches a fully empowered dragonfire orb.", "Damage: 350", "Impact Radius: 7 blocks", "Burn: 8s at 24/sec", "Secondary Explosions: 5", "Briefly stuns enemies"),
+                List.of("Mana Cost: 30", "Cooldown: 9s")));
         register(new SpellCardDefinition("fireball_mythic", "fireball", "deck_fireball_mythic", "Worldfire",
                 SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
                 List.of("Initial Hit: 250 damage in 5 blocks", "Burn: 10s at 30/sec", "Burning deaths trigger Living Inferno", "Chain explosion: 140 damage in 4 blocks", "Chains up to 10 times at -15% damage", "Burning enemies reduce nearby fire resistance"),
-                List.of("Mana Cost: 75", "Cooldown: 14s", "Below 20% HP: lose 10% current HP")));
+                List.of("Mana Cost: 75", "Cooldown: 14s", "Self Damage: 10% current HP")));
         registerClassSpellCards();
     }
 

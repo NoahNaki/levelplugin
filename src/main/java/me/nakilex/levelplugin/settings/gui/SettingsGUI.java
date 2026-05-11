@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.ToggleFeedbackUtil;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.spells.input.SpellInputHudManager;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
@@ -544,6 +545,7 @@ public class SettingsGUI implements Listener {
     private void cycleSpellInputMode(Player player, PlayerSettings settings) {
         settings.cycleSpellInputMode();
         settingsManager.saveActiveProfileSettings(player);
+        SpellInputHudManager.sync(player, settings.getSpellInputMode());
         openSettingsMenu(player);
     }
 
