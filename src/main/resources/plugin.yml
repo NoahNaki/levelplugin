@@ -324,6 +324,9 @@ commands:
   petsummon:
     description: Open the pet summon menu
     usage: /petsummon
+  spellsummon:
+    description: Open the spell summon menu
+    usage: /spellsummon
   petdebug:
     description: Debug commands for pets
     usage: /petdebug <list|summon|dismiss|setlevel|addxp|info|reload>

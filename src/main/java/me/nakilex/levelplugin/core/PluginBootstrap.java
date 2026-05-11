@@ -182,6 +182,8 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.pet.gui.PetMergeGUI petMergeGUI;
     private me.nakilex.levelplugin.pet.gui.PetSummonGUI petSummonGUI;
     private me.nakilex.levelplugin.pet.summon.PetSummonManager petSummonManager;
+    private me.nakilex.levelplugin.spells.gui.SpellSummonGUI spellSummonGUI;
+    private me.nakilex.levelplugin.spells.summon.SpellSummonManager spellSummonManager;
     private StorageEvents storageEvents;
     private StorageManager storageManager;
     private me.nakilex.levelplugin.guild.GuildVaultManager guildVaultManager;
@@ -595,6 +597,9 @@ public class PluginBootstrap {
         petSummonManager = new me.nakilex.levelplugin.pet.summon.PetSummonManager(plugin, petManager, plugin.getCutsceneManager());
         petSummonGUI = new me.nakilex.levelplugin.pet.gui.PetSummonGUI(petSummonManager);
         petSummonManager.setSummonGUI(petSummonGUI);
+        spellSummonManager = new me.nakilex.levelplugin.spells.summon.SpellSummonManager(plugin, me.nakilex.levelplugin.spells.deck.SpellDeckManager.getInstance(), plugin.getCutsceneManager());
+        spellSummonGUI = new me.nakilex.levelplugin.spells.gui.SpellSummonGUI(spellSummonManager);
+        spellSummonManager.setSummonGUI(spellSummonGUI);
         this.storageManager = new StorageManager();
         this.guildVaultManager = new me.nakilex.levelplugin.guild.GuildVaultManager(storageEvents, guildMemberGUI);
         CommandRegistry.registerCommands(
@@ -617,6 +622,7 @@ public class PluginBootstrap {
             mobDebugToggleManager,
             settingsGUI,
             spellUpgradeGUI,
+            spellSummonGUI,
             debugGUI,
             gemsManager,
             gemGui,
@@ -769,6 +775,8 @@ public class PluginBootstrap {
             petMergeGUI,
             petSummonGUI,
             petSummonManager,
+            spellSummonGUI,
+            spellSummonManager,
             customMobManager,
             arcSlashDebugManager,
             arcSlashDebugGUI

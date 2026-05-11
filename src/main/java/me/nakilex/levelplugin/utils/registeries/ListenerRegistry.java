@@ -48,6 +48,7 @@ import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.gui.SpellKeybindGUI;
 import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
+import me.nakilex.levelplugin.spells.gui.SpellSummonGUI;
 import me.nakilex.levelplugin.spells.listeners.SpellCastListener;
 import me.nakilex.levelplugin.spells.listeners.SpellInputListener;
 import me.nakilex.levelplugin.player.classes.gui.SubclassGUI;
@@ -87,6 +88,7 @@ import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.pet.gui.PetGUI;
 import me.nakilex.levelplugin.pet.gui.PetSummonGUI;
 import me.nakilex.levelplugin.pet.summon.PetSummonManager;
+import me.nakilex.levelplugin.spells.summon.SpellSummonManager;
 import me.nakilex.levelplugin.pet.listeners.PetPlayerListener;
 import me.nakilex.levelplugin.pet.listeners.PetCombatEffectListener;
 import me.nakilex.levelplugin.pet.listeners.PetMovementListener;
@@ -150,6 +152,8 @@ public class ListenerRegistry {
                                         me.nakilex.levelplugin.pet.gui.PetMergeGUI petMergeGUI,
                                         PetSummonGUI petSummonGUI,
                                         PetSummonManager petSummonManager,
+                                        SpellSummonGUI spellSummonGUI,
+                                        SpellSummonManager spellSummonManager,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
@@ -223,6 +227,12 @@ public class ListenerRegistry {
         }
         if (petSummonManager != null) {
             pm.registerEvents(petSummonManager, plugin);
+        }
+        if (spellSummonGUI != null) {
+            pm.registerEvents(spellSummonGUI, plugin);
+        }
+        if (spellSummonManager != null) {
+            pm.registerEvents(spellSummonManager, plugin);
         }
         pm.registerEvents(new StatsMenuListener(codexGUI), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);

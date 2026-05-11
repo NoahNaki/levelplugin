@@ -21,7 +21,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -42,12 +41,12 @@ public class SpellUpgradeGUI implements Listener {
     };
     private static final int PAGE_SIZE = SELECT_SLOTS.length;
     private static final int PREV_SLOT = 36;
-    private static final int NEXT_SLOT = 44;
-    private static final int BACK_SLOT = 39;
+    private static final int NEXT_SLOT = 43;
+    private static final int BACK_SLOT = 44;
     private static final int INVEST_ALL_SLOT = 22;
-    private static final int SORT_SLOT = 40;
-    private static final int CATEGORY_FILTER_SLOT = 41;
-    private static final int RARITY_FILTER_SLOT = 42;
+    private static final int SORT_SLOT = 39;
+    private static final int CATEGORY_FILTER_SLOT = 40;
+    private static final int RARITY_FILTER_SLOT = 41;
     private static final int[] SPELL_SLOTS = {10, 12, 14, 16};
     private static final SpellInputType[] EQUIP_INPUTS = {
             SpellInputType.SPELL_1,
@@ -406,16 +405,6 @@ public class SpellUpgradeGUI implements Listener {
                 .orElse(null);
         if (widget != null) {
             widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
-        }
-    }
-
-    @EventHandler
-    public void onClose(InventoryCloseEvent event) {
-        String viewTitle = LEGACY.serialize(event.getView().title());
-        if (isDeckTitle(viewTitle)) {
-            UUID id = event.getPlayer().getUniqueId();
-            widgetsByPlayer.remove(id);
-            selectingSlotByPlayer.remove(id);
         }
     }
 
