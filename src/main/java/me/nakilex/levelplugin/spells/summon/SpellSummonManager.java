@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.spells.gui.SpellSummonGUI;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GlowUtil;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -217,6 +218,7 @@ public class SpellSummonManager implements Listener {
             meta.setDisplayName(formatDisplayName(card));
             stack.setItemMeta(meta);
         }
+        ItemUtil.applyRarityTooltipStyle(stack, card.rarity().itemRarity());
         return stack;
     }
 

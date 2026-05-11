@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.spells.SpellDefinition;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.deck.SpellDeckRarity;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -201,8 +202,7 @@ public class SpellUpgradeGUI implements Listener {
         addCardSummaryLore(player, lore, equipped, true);
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to change this spell", null));
-        return GuiUtil.createGuiItem(equipped.rarity().displayMaterial(),
-                equipped.rarity().color() + labelForInput(inputType) + ": " + equipped.displayName(), lore);
+        return createSpellCardGuiItem(equipped, equipped.rarity().color() + equipped.displayName().toUpperCase(Locale.ROOT), lore);
     }
 
     private ItemStack createInvestAllItem(Player player) {
@@ -242,7 +242,14 @@ public class SpellUpgradeGUI implements Listener {
         }
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to equip to " + labelForInput(targetSlot), null));
-        return GuiUtil.createGuiItem(card.rarity().displayMaterial(), card.rarity().color() + card.displayName(), lore);
+        return createSpellCardGuiItem(card, card.rarity().color() + card.displayName().toUpperCase(Locale.ROOT), lore);
+    }
+
+    private ItemStack createSpellCardGuiItem(SpellCardDefinition card, String name, List<String> lore) {
+        Material material = card.displayMaterial() == null ? card.rarity().displayMaterial() : card.displayMaterial();
+        ItemStack item = GuiUtil.createGuiItem(material, name, lore);
+        ItemUtil.applyRarityTooltipStyle(item, card.rarity().itemRarity());
+        return item;
     }
 
     private void addCardSummaryLore(Player player, List<String> lore, SpellCardDefinition card, boolean includeEquippedLine) {
@@ -255,12 +262,16 @@ public class SpellUpgradeGUI implements Listener {
                 ? readStatFromLore(card, "cooldown", 0) * 1000L
                 : SpellCastManager.getInstance().getCooldownMs(player, definition);
 
-        lore.add(statLine("✦", ChatColor.GREEN, "Spell", card.rarity().color() + card.displayName().toUpperCase(Locale.ROOT)));
-        lore.add(statLine("◆", ChatColor.GREEN, "Rarity", card.rarity().color() + card.rarity().displayName()));
+        for (String description : descriptionLines(card)) {
+            lore.add(ChatColor.GRAY + "§o" + description);
+        }
+        lore.add(" ");
+        lore.add(rarityDivider(card));
+        lore.add(statLine("✦", ChatColor.GREEN, "Rarity", card.rarity().color() + card.rarity().displayName().toUpperCase(Locale.ROOT)));
         lore.add(statLine("✧", ChatColor.AQUA, "Mana Cost", ChatColor.WHITE + String.valueOf(manaCost) + ChatColor.GRAY + " mana"));
         lore.add(statLine("⌛", ChatColor.YELLOW, "Cooldown", ChatColor.WHITE + formatCooldown(cooldownMs)));
-        lore.add(" ");
-        lore.add(ChatColor.WHITE + "Effects");
+        lore.add(rarityDivider(card));
+        lore.add(ChatColor.LIGHT_PURPLE + "Effects");
         List<String> effectLines = visibleEffectLines(card);
         if (effectLines.isEmpty()) {
             lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "No extra effect details."));
@@ -276,6 +287,10 @@ public class SpellUpgradeGUI implements Listener {
     }
 
 
+    private String rarityDivider(SpellCardDefinition card) {
+        return card.rarity().color() + "✦" + ChatColor.DARK_PURPLE + "────────────────" + card.rarity().color() + "✦";
+    }
+
     private String statLine(String icon, ChatColor color, String label, String value) {
         return color + icon + " " + label.toUpperCase(Locale.ROOT) + ": " + value;
     }
@@ -287,17 +302,28 @@ public class SpellUpgradeGUI implements Listener {
         String trimmed = line.trim();
         int colon = trimmed.indexOf(':');
         if (colon > 0 && colon <= 28) {
-            String label = trimmed.substring(0, colon).trim().toUpperCase(Locale.ROOT);
+            String label = trimmed.substring(0, colon).trim();
             String value = trimmed.substring(colon + 1).trim();
-            return ChatColor.DARK_GRAY + "- " + ChatColor.YELLOW + label + ": " + highlightImportant(value);
+            return ChatColor.DARK_PURPLE + "✦ " + ChatColor.YELLOW + label + ": " + highlightImportant(value);
         }
-        return ChatColor.DARK_GRAY + "- " + highlightImportant(trimmed);
+        return ChatColor.DARK_PURPLE + "✦ " + highlightImportant(trimmed);
+    }
+
+    private List<String> descriptionLines(SpellCardDefinition card) {
+        List<String> lines = new ArrayList<>();
+        for (String line : card.effectLines()) {
+            if (line == null || line.isBlank() || line.contains(":")) {
+                continue;
+            }
+            lines.add(line.trim());
+        }
+        return lines;
     }
 
     private List<String> visibleEffectLines(SpellCardDefinition card) {
         List<String> lines = new ArrayList<>();
         for (String line : card.effectLines()) {
-            if (isManaOrCooldownLine(line)) {
+            if (line == null || line.isBlank() || isManaOrCooldownLine(line) || !line.contains(":")) {
                 continue;
             }
             lines.add(line);
