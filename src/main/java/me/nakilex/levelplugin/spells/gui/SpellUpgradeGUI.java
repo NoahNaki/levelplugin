@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 
 public class SpellUpgradeGUI implements Listener {
     private static final String SPELL_TYPE_GLYPH = "<glyph:spell>";
+    private static final int DESCRIPTION_WORDS_PER_LINE = 6;
     private static final int MAIN_GUI_SIZE = 27;
     private static final int SELECT_GUI_SIZE = 45;
     private static final int[] SELECT_SLOTS = {
@@ -201,7 +202,7 @@ public class SpellUpgradeGUI implements Listener {
             lore.addAll(TooltipUtil.clickInstructions("to choose a spell", null));
             return GuiUtil.createGuiItem(Material.GRAY_DYE, ChatColor.GRAY + labelForInput(inputType) + " Slot", lore);
         }
-        addCardSummaryLore(player, lore, equipped, inputType, true);
+        addCardSummaryLore(player, lore, equipped, inputType);
         lore.add(" ");
         lore.add(clickLine("to change", "this spell"));
         return createSpellCardGuiItem(equipped, equipped.rarity().color() + equipped.displayName().toUpperCase(Locale.ROOT), lore);
@@ -231,7 +232,7 @@ public class SpellUpgradeGUI implements Listener {
 
     private ItemStack createBrowserCardItem(Player player, SpellCardDefinition card, SpellInputType targetSlot) {
         List<String> lore = new ArrayList<>();
-        addCardSummaryLore(player, lore, card, targetSlot, false);
+        addCardSummaryLore(player, lore, card, targetSlot);
         SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
         SpellInputType equippedSlot = profile == null ? null : deckManager.getEquippedSlotForFamily(profile, card.familyId());
         if (equippedSlot != null && equippedSlot != targetSlot) {
@@ -251,7 +252,7 @@ public class SpellUpgradeGUI implements Listener {
         return item;
     }
 
-    private void addCardSummaryLore(Player player, List<String> lore, SpellCardDefinition card, SpellInputType inputType, boolean includeEquippedLine) {
+    private void addCardSummaryLore(Player player, List<String> lore, SpellCardDefinition card, SpellInputType inputType) {
         SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(card.spellId());
         SpellDefinition definition = spellEntry == null ? null : spellEntry.definition();
         int manaCost = definition == null
@@ -281,10 +282,6 @@ public class SpellUpgradeGUI implements Listener {
             for (String line : effectLines) {
                 lore.add(formatEffectLine(line));
             }
-        }
-        if (includeEquippedLine) {
-            lore.add(" ");
-            lore.add(TooltipUtil.selectionLine(true, "Equipped"));
         }
     }
 
@@ -398,7 +395,7 @@ public class SpellUpgradeGUI implements Listener {
             if (line == null || line.isBlank() || line.contains(":")) {
                 continue;
             }
-            lines.add(line.trim());
+            lines.addAll(TooltipUtil.wrapWords(line.trim(), DESCRIPTION_WORDS_PER_LINE));
         }
         return lines;
     }

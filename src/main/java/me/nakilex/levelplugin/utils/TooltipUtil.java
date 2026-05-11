@@ -476,6 +476,44 @@ public final class TooltipUtil {
                 + ChatColor.GRAY + " " + ChatColor.WHITE + safeValue + ChatColor.GRAY + safeLabel;
     }
 
+
+    /**
+     * Wrap text after a maximum number of words per line while preserving word order.
+     *
+     * @param text text to wrap
+     * @param maxWordsPerLine maximum words allowed per returned line
+     * @return wrapped lines; a blank input returns an empty list
+     */
+    public static List<String> wrapWords(String text, int maxWordsPerLine) {
+        if (text == null || text.isBlank()) {
+            return List.of();
+        }
+        int limit = Math.max(1, maxWordsPerLine);
+        String[] words = text.trim().split("\\s+");
+        List<String> lines = new ArrayList<>();
+        StringBuilder current = new StringBuilder();
+        int wordsInLine = 0;
+        for (String word : words) {
+            if (word.isBlank()) {
+                continue;
+            }
+            if (wordsInLine >= limit) {
+                lines.add(current.toString());
+                current = new StringBuilder();
+                wordsInLine = 0;
+            }
+            if (!current.isEmpty()) {
+                current.append(' ');
+            }
+            current.append(word);
+            wordsInLine++;
+        }
+        if (!current.isEmpty()) {
+            lines.add(current.toString());
+        }
+        return lines;
+    }
+
     /**
      * Format a rarity glyph line using the standard rarity color and symbol.
      *
