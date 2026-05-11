@@ -39,6 +39,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SpellUpgradeGUI implements Listener {
+    private static final String SPELL_TYPE_GLYPH = "<glyph:spell>";
     private static final int MAIN_GUI_SIZE = 27;
     private static final int SELECT_GUI_SIZE = 45;
     private static final int[] SELECT_SLOTS = {
@@ -260,7 +261,7 @@ public class SpellUpgradeGUI implements Listener {
                 ? readStatFromLore(card, "cooldown", 0) * 1000L
                 : SpellCastManager.getInstance().getCooldownMs(player, definition);
 
-        lore.add(rarityGlyph(card.rarity()));
+        lore.add(TooltipUtil.rarityGlyphLine(card.rarity().itemRarity(), SPELL_TYPE_GLYPH));
         lore.add(" ");
         lore.add(spellTypeLine(inputType));
         for (String description : descriptionLines(card)) {
@@ -317,11 +318,6 @@ public class SpellUpgradeGUI implements Listener {
 
     private String spellTypeLine(SpellInputType inputType) {
         return SPELL_ACCENT + labelForInput(inputType).toUpperCase(Locale.ROOT);
-    }
-
-    private String rarityGlyph(SpellDeckRarity rarity) {
-        SpellDeckRarity resolved = rarity == null ? SpellDeckRarity.COMMON : rarity;
-        return "<glyph:" + resolved.name().toLowerCase(Locale.ROOT) + ">";
     }
 
     private String statLine(String label, ChatColor valueColor, String value) {

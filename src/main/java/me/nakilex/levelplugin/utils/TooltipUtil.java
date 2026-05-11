@@ -491,6 +491,19 @@ public final class TooltipUtil {
     }
 
     /**
+     * Format a compact glyph-only rarity/type line, matching item tooltip glyph rows.
+     *
+     * @param rarity item rarity to format
+     * @param typeGlyph trailing type glyph, e.g. {@code <glyph:weapon>} or {@code <glyph:spell>}
+     * @return rarity glyph followed by the supplied type glyph
+     */
+    public static String rarityGlyphLine(ItemRarity rarity, String typeGlyph) {
+        ItemRarity resolved = rarity == null ? ItemRarity.COMMON : rarity;
+        String suffix = typeGlyph == null ? "" : typeGlyph;
+        return resolved.getSymbol() + suffix;
+    }
+
+    /**
      * Build a standard requirements block to keep requirement lines consistent
      * across action GUIs and item tooltips.
      */
