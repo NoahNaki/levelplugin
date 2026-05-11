@@ -234,8 +234,20 @@ public final class TooltipUtil {
      * @return formatted divider line
      */
     public static String sectionDivider(int chars) {
+        return sectionDivider(ChatColor.DARK_GRAY, chars);
+    }
+
+    /**
+     * Build a lightweight plain divider line for lore sections in a custom color.
+     *
+     * @param color divider color, falling back to dark gray
+     * @param chars number of divider characters to render
+     * @return formatted divider line
+     */
+    public static String sectionDivider(ChatColor color, int chars) {
         int width = Math.max(10, chars);
-        return ChatColor.DARK_GRAY + "-".repeat(width);
+        ChatColor resolved = color == null ? ChatColor.DARK_GRAY : color;
+        return resolved + "-".repeat(width);
     }
 
     /**
@@ -245,10 +257,21 @@ public final class TooltipUtil {
      * @return formatted divider line
      */
     public static String sectionDividerByPixels(int pixelWidth) {
+        return sectionDividerByPixels(ChatColor.DARK_GRAY, pixelWidth);
+    }
+
+    /**
+     * Build a divider in a custom color targeting a visual lore width in pixels.
+     *
+     * @param color divider color, falling back to dark gray
+     * @param pixelWidth target width in pixels
+     * @return formatted divider line
+     */
+    public static String sectionDividerByPixels(ChatColor color, int pixelWidth) {
         int target = Math.max(80, pixelWidth);
         int chars = (int) Math.ceil(target / (double) dividerUnitPixelWidth());
         chars = Math.max(16, Math.min(34, chars));
-        return sectionDivider(chars);
+        return sectionDivider(color, chars);
     }
 
     /**
@@ -384,23 +407,6 @@ public final class TooltipUtil {
 
     public static String accountLimitLine(int limit) {
         return purchaseLimitLine("Account", limit);
-    }
-
-
-    /**
-     * Center a single lore line around a fixed tooltip pixel midpoint.
-     * This lets GUIs center specific section labels without centering every
-     * lore line in the item tooltip.
-     *
-     * @param line line to center
-     * @param centerPixels target midpoint in Minecraft font pixels
-     * @return centered lore line
-     */
-    public static String centeredLoreLine(String line, int centerPixels) {
-        if (line == null || line.isBlank()) {
-            return "";
-        }
-        return ChatFormatter.getCenteredText(line, Math.max(1, centerPixels));
     }
 
     /**
