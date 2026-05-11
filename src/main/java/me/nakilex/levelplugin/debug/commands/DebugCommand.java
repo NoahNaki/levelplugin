@@ -42,6 +42,8 @@ import me.nakilex.levelplugin.particles.presets.ElementalPresets;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.spells.SpellCastManager;
+import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
+import me.nakilex.levelplugin.spells.deck.SpellCardDefinition;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
@@ -143,7 +145,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage + ">");
             }
             return true;
         }
@@ -319,6 +321,41 @@ public class DebugCommand implements TabExecutor {
                 PetChatUtil.send(petPlayer, ChatColor.YELLOW + "Pet pulls:");
                 PetPullSummaryUtil.sendSummary(petPlayer, "Pulled", pullResult.kept());
                 PetPullSummaryUtil.sendSummary(petPlayer, "Auto-discarded", pullResult.discarded());
+                return true;
+
+
+            case "spellpull":
+                if (!(sender instanceof Player spellPullPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.WARNING, "Usage: /debug spellpull <amount>");
+                    return true;
+                }
+                int spellPullAmount;
+                try {
+                    spellPullAmount = Integer.parseInt(args[1]);
+                } catch (NumberFormatException e) {
+                    ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.WARNING, "Amount must be a number.");
+                    return true;
+                }
+                if (spellPullAmount <= 0) {
+                    ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.WARNING, "Amount must be at least 1.");
+                    return true;
+                }
+                var spellPullResult = SpellDeckManager.getInstance().pull(spellPullPlayer, spellPullAmount);
+                if (spellPullResult.summary().isEmpty()) {
+                    ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.WARNING, "No spell cards available to pull.");
+                    return true;
+                }
+                ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.REWARD, ChatColor.YELLOW + "Spell pulls:");
+                for (Map.Entry<SpellCardDefinition, Integer> entry : spellPullResult.summary().entrySet()) {
+                    SpellCardDefinition card = entry.getKey();
+                    ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.INFO,
+                            ChatColor.DARK_GRAY + "- " + card.rarity().color() + card.displayName()
+                                    + ChatColor.GRAY + " x" + entry.getValue());
+                }
                 return true;
 
             case "spellinput":
@@ -798,7 +835,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -1096,11 +1133,15 @@ public class DebugCommand implements TabExecutor {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
-                    "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull",
+                    "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
                     "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("spellpull")) {
+            return List.of("1", "10", "25", "50", "100").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("gemdungeonsweep")) {
             return List.of("add", "remove").stream()

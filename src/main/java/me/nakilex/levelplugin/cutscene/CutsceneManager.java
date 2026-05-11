@@ -46,19 +46,10 @@ public class CutsceneManager {
         File dir = new File(plugin.getDataFolder(), "cutscenes");
         if (!dir.exists()) {
             dir.mkdirs();
-            // Copy example cutscene from the jar on first run
-            plugin.saveResource("cutscenes/intro.yml", false);
-            plugin.saveResource("cutscenes/pet_pull.yml", false);
-        } else {
-            File intro = new File(dir, "intro.yml");
-            if (!intro.exists()) {
-                plugin.saveResource("cutscenes/intro.yml", false);
-            }
-            File petPull = new File(dir, "pet_pull.yml");
-            if (!petPull.exists()) {
-                plugin.saveResource("cutscenes/pet_pull.yml", false);
-            }
         }
+        saveDefaultCutsceneResource(dir, "intro.yml");
+        saveDefaultCutsceneResource(dir, "pet_pull.yml");
+        saveDefaultCutsceneResource(dir, "spell_pull.yml");
         File[] files = dir.listFiles((d, name) -> name.endsWith(".yml"));
         if (files == null) return;
         for (File file : files) {
@@ -117,6 +108,13 @@ public class CutsceneManager {
                 }
             }
             cutscenes.put(id, new Cutscene(id, frames));
+        }
+    }
+
+    private void saveDefaultCutsceneResource(File dir, String fileName) {
+        File target = new File(dir, fileName);
+        if (!target.exists()) {
+            plugin.saveResource("cutscenes/" + fileName, false);
         }
     }
 

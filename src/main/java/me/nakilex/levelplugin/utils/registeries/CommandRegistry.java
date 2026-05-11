@@ -58,7 +58,9 @@ import me.nakilex.levelplugin.settings.commands.SettingsCommand;
 import me.nakilex.levelplugin.settings.gui.SettingsGUI;
 import me.nakilex.levelplugin.spells.commands.AddSpellPointsCommand;
 import me.nakilex.levelplugin.spells.commands.SpellUpgradeCommand;
+import me.nakilex.levelplugin.spells.commands.SpellSummonCommand;
 import me.nakilex.levelplugin.spells.gui.SpellUpgradeGUI;
+import me.nakilex.levelplugin.spells.gui.SpellSummonGUI;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.storage.commands.StorageCommand;
 import me.nakilex.levelplugin.tips.BroadcastManager;
@@ -144,6 +146,7 @@ public class CommandRegistry {
                                         PlayerToggleManager mobDebugToggleManager,
                                         SettingsGUI settingsGUI,
                                         SpellUpgradeGUI spellUpgradeGUI,
+                                        SpellSummonGUI spellSummonGUI,
                                         me.nakilex.levelplugin.debug.gui.DebugGUI debugGUI,
                                         GemsManager gemsManager,
                                         GemExchangeGUI gemGui,
@@ -389,6 +392,10 @@ public class CommandRegistry {
         if (petSummonGUI != null) {
             PetSummonCommand petSummonCommand = new PetSummonCommand(petSummonGUI);
             plugin.getCommand("petsummon").setExecutor(petSummonCommand);
+        }
+        if (spellSummonGUI != null) {
+            SpellSummonCommand spellSummonCommand = new SpellSummonCommand(spellSummonGUI);
+            plugin.getCommand("spellsummon").setExecutor(spellSummonCommand);
         }
 
         LevelPluginCommand levelPluginCommand = new LevelPluginCommand(plugin);

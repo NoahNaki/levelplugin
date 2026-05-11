@@ -1,0 +1,9 @@
+id: "spell_pull"
+frames:
+  - pos: "234 177 -203 180 0"
+    world: "world"
+    duration: 32000
+    title: "&bSpell Summon"
+    subtitle: "&7Weaving arcane cards..."
+    actionBar: "&dRevealing your spells..."
+    sound: "minecraft:block.enchantment_table.use"

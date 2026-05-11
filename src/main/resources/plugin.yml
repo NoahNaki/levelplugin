@@ -307,7 +307,7 @@ commands:
     usage: /enchant
   debug:
     description: Developer debug tools
-    usage: /debug [mobinfo|tps|siege|drops|hand|chatgame|expedition|dungeonexpedition|spellinput|spellcooldown|spellmanacost|beaconentity|particle|particlepath|particlepreset|petpull|inventorydebug|rewardbomb|cityowner|citymax|stronghold|strongholdxp|gemdungeonsweep]
+    usage: /debug [mobinfo|tps|siege|drops|hand|chatgame|expedition|dungeonexpedition|spellinput|spellcooldown|spellmanacost|beaconentity|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|cityowner|citymax|stronghold|strongholdxp|gemdungeonsweep]
   se:
     description: Spawn an entity with ModelEngine models for testing
     usage: /se <entity> <model...> | /se list | /se inspect [verbose] | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop]
@@ -324,6 +324,9 @@ commands:
   petsummon:
     description: Open the pet summon menu
     usage: /petsummon
+  spellsummon:
+    description: Open the spell summon menu
+    usage: /spellsummon
   petdebug:
     description: Debug commands for pets
     usage: /petdebug <list|summon|dismiss|setlevel|addxp|info|reload>

@@ -1,13 +1,16 @@
 package me.nakilex.levelplugin.spells.gui;
 
-import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
-import me.nakilex.levelplugin.player.classes.data.ClassUtil;
-import me.nakilex.levelplugin.player.classes.data.PlayerClass;
-import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
+import me.nakilex.levelplugin.spells.deck.SpellCardCategory;
+import me.nakilex.levelplugin.spells.deck.SpellCardDefinition;
+import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
+import me.nakilex.levelplugin.spells.deck.SpellDeckProfile;
+import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.SpellDefinition;
-import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.spells.SpellRegistry;
+import me.nakilex.levelplugin.spells.deck.SpellDeckRarity;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -15,509 +18,556 @@ import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
-import org.bukkit.Bukkit;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SpellUpgradeGUI implements Listener {
-    private static final String TITLE = "Spells";
-    private static final int[] SPELL_SLOTS = {0, 2, 4, 6, 8};
-    private static final SpellInputType[] SPELL_INPUTS = {
-            SpellInputType.BASIC_ATTACK,
+    private static final int MAIN_GUI_SIZE = 27;
+    private static final int SELECT_GUI_SIZE = 45;
+    private static final int[] SELECT_SLOTS = {
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34
+    };
+    private static final int PAGE_SIZE = SELECT_SLOTS.length;
+    private static final int BACK_SLOT = 36;
+    private static final int PREV_SLOT = 37;
+    private static final int NEXT_SLOT = 43;
+    private static final int INVEST_ALL_SLOT = 22;
+    private static final int SORT_SLOT = 39;
+    private static final int CATEGORY_FILTER_SLOT = 40;
+    private static final int RARITY_FILTER_SLOT = 41;
+    private static final int[] SPELL_SLOTS = {10, 12, 14, 16};
+    private static final SpellInputType[] EQUIP_INPUTS = {
             SpellInputType.SPELL_1,
             SpellInputType.SPELL_2,
             SpellInputType.SPELL_3,
             SpellInputType.SPELL_4
     };
+    private static final Pattern IMPORTANT_TOKEN_PATTERN = Pattern.compile(
+            "(?i)(\\b(?:damage|radius|stuns?|poisons?|burns?|burning|ignite[sd]?|inferno|chains?|charge|resistance|hp|movement|spread|explosions?|lose|projectile|speed)\\b|\\d+(?:\\.\\d+)?%?(?:/sec|s|x)?)");
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
+    private final SpellDeckManager deckManager = SpellDeckManager.getInstance();
+    private final String titlePrefix = ChatUtil.applyEmojis("§8Spell Deck");
+    private final String selectTitlePrefix = ChatUtil.applyEmojis("§8Select Spell");
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
-    private final Map<UUID, BukkitTask> refreshTasks = new HashMap<>();
+    private final Map<UUID, Integer> pages = new HashMap<>();
+    private final Map<UUID, SpellDeckRarity> rarityFilterByPlayer = new HashMap<>();
+    private final Map<UUID, SpellCardCategory> categoryFilterByPlayer = new HashMap<>();
+    private final Map<UUID, SortMode> sortByPlayer = new HashMap<>();
+    private final Map<UUID, SpellInputType> selectingSlotByPlayer = new HashMap<>();
 
     public void open(Player player) {
-        Inventory gui = GuiBuilder.create(9, TITLE).filler(Material.BLACK_STAINED_GLASS_PANE).build();
-        List<GuiWidget> widgets = buildWidgets(player);
+        Inventory gui = GuiBuilder.create(MAIN_GUI_SIZE, titlePrefix)
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
+                .build();
+        List<GuiWidget> widgets = buildMainWidgets(player);
         widgetsByPlayer.put(player.getUniqueId(), widgets);
+        render(gui, player, widgets);
+        player.openInventory(gui);
+    }
+
+    private void openSelection(Player player, SpellInputType inputType, int page) {
+        selectingSlotByPlayer.put(player.getUniqueId(), inputType);
+        List<SpellCardDefinition> cards = applySortAndFilter(player, deckManager.getOwnedCards(player.getUniqueId()));
+        int maxPage = Math.max(0, (cards.size() - 1) / PAGE_SIZE);
+        int current = Math.max(0, Math.min(page, maxPage));
+        pages.put(player.getUniqueId(), current);
+        Inventory gui = GuiBuilder.create(SELECT_GUI_SIZE, selectTitlePrefix + " §8(" + ChatColor.WHITE + labelForInput(inputType) + "§8)")
+                .filler(Material.GRAY_STAINED_GLASS_PANE)
+                .border()
+                .build();
+        List<GuiWidget> widgets = buildSelectionWidgets(player, inputType, cards, current, maxPage);
+        widgetsByPlayer.put(player.getUniqueId(), widgets);
+        render(gui, player, widgets);
+        player.openInventory(gui);
+    }
+
+    private List<GuiWidget> buildMainWidgets(Player player) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ActionWidget(4, ctx -> createInfoItem(ctx.player()), (click, context) -> {}));
+        for (int i = 0; i < EQUIP_INPUTS.length; i++) {
+            SpellInputType input = EQUIP_INPUTS[i];
+            int slot = SPELL_SLOTS[i];
+            widgets.add(new ActionWidget(slot, ctx -> createSpellSlotItem(ctx.player(), input),
+                    (click, context) -> openSelection(context.player(), input, 0)));
+        }
+        widgets.add(new ActionWidget(INVEST_ALL_SLOT, ctx -> createInvestAllItem(ctx.player()),
+                (click, context) -> {
+                    deckManager.investAllDuplicateCopies(context.player());
+                    open(context.player());
+                }));
+        return widgets;
+    }
+
+    private List<GuiWidget> buildSelectionWidgets(Player player,
+                                                  SpellInputType inputType,
+                                                  List<SpellCardDefinition> cards,
+                                                  int page,
+                                                  int maxPage) {
+        List<GuiWidget> widgets = new ArrayList<>();
+        if (cards.isEmpty()) {
+            widgets.add(new ActionWidget(22, ctx -> createEmptySelectionItem(), (click, context) -> {}));
+        }
+        int start = page * PAGE_SIZE;
+        int end = Math.min(cards.size(), start + PAGE_SIZE);
+        for (int i = start; i < end; i++) {
+            SpellCardDefinition card = cards.get(i);
+            int slot = SELECT_SLOTS[i - start];
+            widgets.add(new ActionWidget(slot, ctx -> createBrowserCardItem(ctx.player(), card, inputType),
+                    (click, context) -> {
+                        if (deckManager.equip(context.player(), inputType, card.cardId())) {
+                            open(context.player());
+                        } else {
+                            openSelection(context.player(), inputType, pages.getOrDefault(context.player().getUniqueId(), 0));
+                        }
+                    }));
+        }
+        if (page > 0) {
+            widgets.add(new ActionWidget(PREV_SLOT, ctx -> createNavItem(false),
+                    (click, context) -> openSelection(context.player(), inputType, page - 1)));
+        }
+        if (page < maxPage) {
+            widgets.add(new ActionWidget(NEXT_SLOT, ctx -> createNavItem(true),
+                    (click, context) -> openSelection(context.player(), inputType, page + 1)));
+        }
+        widgets.add(new ActionWidget(BACK_SLOT, ctx -> GuiUtil.getNexoItem("arrow_left", "§eBack",
+                TooltipUtil.clickInstructions("to return to spell slots", null)),
+                (click, context) -> open(context.player())));
+        widgets.add(new ActionWidget(SORT_SLOT, ctx -> sortButton(ctx.player()), (click, context) -> {
+            UUID id = context.player().getUniqueId();
+            SortMode next = SortMode.next(sortByPlayer.getOrDefault(id, SortMode.RARITY), click.isLeftClick());
+            sortByPlayer.put(id, next);
+            openSelection(context.player(), inputType, 0);
+        }));
+        widgets.add(new ActionWidget(CATEGORY_FILTER_SLOT, ctx -> categoryFilterButton(ctx.player()), (click, context) -> {
+            UUID id = context.player().getUniqueId();
+            categoryFilterByPlayer.put(id, nextCategoryFilter(categoryFilterByPlayer.get(id), click.isLeftClick()));
+            openSelection(context.player(), inputType, 0);
+        }));
+        widgets.add(new ActionWidget(RARITY_FILTER_SLOT, ctx -> rarityFilterButton(ctx.player()), (click, context) -> {
+            UUID id = context.player().getUniqueId();
+            rarityFilterByPlayer.put(id, nextRarityFilter(rarityFilterByPlayer.get(id), click.isLeftClick()));
+            openSelection(context.player(), inputType, 0);
+        }));
+        return widgets;
+    }
+
+    private ItemStack createInfoItem(Player player) {
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.addAll(TooltipUtil.bulletList(
+                "Equip up to four spell cards at once.",
+                "Click a gray slot to choose an unlocked spell.",
+                "Use /debug spellpull <amount> to test pulls."));
+        lore.add(" ");
+        lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.AQUA,
+                "Pity", ChatColor.WHITE, deckManager.getPityPullsSinceLegendary(player.getUniqueId())
+                        + "/" + deckManager.getPityThreshold() + " toward Legendary+"));
+        return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.AQUA + "Spell Deck", lore);
+    }
+
+    private ItemStack createSpellSlotItem(Player player, SpellInputType inputType) {
+        SpellCardDefinition equipped = deckManager.getEquippedCard(player.getUniqueId(), inputType);
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.DARK_GRAY + "Slot: " + ChatColor.WHITE + labelForInput(inputType));
+        lore.add(" ");
+        if (equipped == null) {
+            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED,
+                    "Equipped", ChatColor.GRAY, "Empty"));
+            lore.addAll(TooltipUtil.bulletList("Choose one of your unlocked spell cards."));
+            lore.add(" ");
+            lore.addAll(TooltipUtil.clickInstructions("to choose a spell", null));
+            return GuiUtil.createGuiItem(Material.GRAY_DYE, ChatColor.GRAY + labelForInput(inputType) + " Slot", lore);
+        }
+        addCardSummaryLore(player, lore, equipped, true);
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to change this spell", null));
+        return createSpellCardGuiItem(equipped, equipped.rarity().color() + equipped.displayName().toUpperCase(Locale.ROOT), lore);
+    }
+
+    private ItemStack createInvestAllItem(Player player) {
+        int duplicates = 0;
+        int owned = 0;
+        for (SpellCardDefinition card : deckManager.getDefinitions()) {
+            int copies = deckManager.getCopies(player.getUniqueId(), card.cardId());
+            if (copies > 0) {
+                owned++;
+            }
+            duplicates += Math.max(0, copies - 1);
+        }
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.AQUA,
+                "Owned Cards", ChatColor.WHITE, String.valueOf(owned)));
+        lore.add(TooltipUtil.iconLabelValueLine("◆", ChatColor.GOLD, ChatColor.GOLD,
+                "Duplicate Copies", ChatColor.WHITE, String.valueOf(duplicates)));
+        lore.add(" ");
+        lore.addAll(TooltipUtil.bulletList("Consumes every copy above the first.",
+                "Invested copies are saved for future spell upgrades."));
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to invest all duplicates", null));
+        return GuiUtil.createGuiItem(Material.AMETHYST_SHARD, ChatColor.LIGHT_PURPLE + "Invest Duplicate Spells", lore);
+    }
+
+    private ItemStack createBrowserCardItem(Player player, SpellCardDefinition card, SpellInputType targetSlot) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.DARK_GRAY + "Target Slot: " + ChatColor.WHITE + labelForInput(targetSlot));
+        addCardSummaryLore(player, lore, card, false);
+        SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
+        SpellInputType equippedSlot = profile == null ? null : profile.getEquippedSlot(card.cardId());
+        if (equippedSlot != null && equippedSlot != targetSlot) {
+            lore.add(" ");
+            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED,
+                    "Unavailable", ChatColor.GRAY, "Already in " + labelForInput(equippedSlot)));
+        }
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to equip to " + labelForInput(targetSlot), null));
+        return createSpellCardGuiItem(card, card.rarity().color() + card.displayName().toUpperCase(Locale.ROOT), lore);
+    }
+
+    private ItemStack createSpellCardGuiItem(SpellCardDefinition card, String name, List<String> lore) {
+        Material material = card.displayMaterial() == null ? card.rarity().displayMaterial() : card.displayMaterial();
+        ItemStack item = GuiUtil.createGuiItem(material, name, lore);
+        ItemUtil.applyRarityTooltipStyle(item, card.rarity().itemRarity());
+        return item;
+    }
+
+    private void addCardSummaryLore(Player player, List<String> lore, SpellCardDefinition card, boolean includeEquippedLine) {
+        SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(card.spellId());
+        SpellDefinition definition = spellEntry == null ? null : spellEntry.definition();
+        int manaCost = definition == null
+                ? readStatFromLore(card, "mana cost", 0)
+                : SpellCastManager.getInstance().getManaCost(player, definition);
+        long cooldownMs = definition == null
+                ? readStatFromLore(card, "cooldown", 0) * 1000L
+                : SpellCastManager.getInstance().getCooldownMs(player, definition);
+
+        for (String description : descriptionLines(card)) {
+            lore.add(ChatColor.GRAY + "§o" + description);
+        }
+        lore.add(" ");
+        lore.add(statLine("✦", "Rarity", card.rarity().displayName().toUpperCase(Locale.ROOT)));
+        lore.add(statLine("✧", "Mana Cost", manaCost + " mana"));
+        lore.add(statLine("⌛", "Cooldown", formatCooldown(cooldownMs)));
+        lore.add(" ");
+        lore.add(ChatColor.WHITE + "Effects");
+        List<String> effectLines = visibleEffectLines(card);
+        if (effectLines.isEmpty()) {
+            lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "No extra effect details."));
+        } else {
+            for (String line : effectLines) {
+                lore.add(formatEffectLine(line));
+            }
+        }
+        if (includeEquippedLine) {
+            lore.add(" ");
+            lore.add(TooltipUtil.selectionLine(true, "Equipped"));
+        }
+    }
+
+
+    private String statLine(String icon, String label, String value) {
+        return ChatColor.DARK_PURPLE + icon + " "
+                + ChatColor.GRAY + label.toUpperCase(Locale.ROOT) + ": "
+                + ChatColor.WHITE + value;
+    }
+
+    private String formatEffectLine(String line) {
+        if (line == null || line.isBlank()) {
+            return ChatColor.DARK_GRAY + "- " + ChatColor.GRAY;
+        }
+        String trimmed = line.trim();
+        return ChatColor.DARK_PURPLE + "✦ " + highlightImportant(trimmed);
+    }
+
+    private List<String> descriptionLines(SpellCardDefinition card) {
+        List<String> lines = new ArrayList<>();
+        for (String line : card.effectLines()) {
+            if (line == null || line.isBlank() || line.contains(":")) {
+                continue;
+            }
+            lines.add(line.trim());
+        }
+        return lines;
+    }
+
+    private List<String> visibleEffectLines(SpellCardDefinition card) {
+        List<String> lines = new ArrayList<>();
+        for (String line : card.effectLines()) {
+            if (line == null || line.isBlank() || isManaOrCooldownLine(line) || !line.contains(":")) {
+                continue;
+            }
+            lines.add(line);
+        }
+        for (String line : card.tradeoffLines()) {
+            if (isManaOrCooldownLine(line)) {
+                continue;
+            }
+            lines.add(line);
+        }
+        return lines;
+    }
+
+    private boolean isManaOrCooldownLine(String line) {
+        if (line == null) {
+            return false;
+        }
+        String normalized = line.toLowerCase(Locale.ROOT);
+        return normalized.contains("mana cost") || normalized.contains("cooldown");
+    }
+
+    private int readStatFromLore(SpellCardDefinition card, String label, int fallback) {
+        for (String line : card.effectLines()) {
+            Integer value = readFirstNumberAfterLabel(line, label);
+            if (value != null) {
+                return value;
+            }
+        }
+        for (String line : card.tradeoffLines()) {
+            Integer value = readFirstNumberAfterLabel(line, label);
+            if (value != null) {
+                return value;
+            }
+        }
+        return fallback;
+    }
+
+    private Integer readFirstNumberAfterLabel(String line, String label) {
+        if (line == null || label == null) {
+            return null;
+        }
+        String normalized = line.toLowerCase(Locale.ROOT);
+        int index = normalized.indexOf(label);
+        if (index < 0) {
+            return null;
+        }
+        Matcher matcher = Pattern.compile("\\d+").matcher(line.substring(index));
+        return matcher.find() ? Integer.parseInt(matcher.group()) : null;
+    }
+
+    private String formatCooldown(long cooldownMs) {
+        double seconds = Math.max(0L, cooldownMs) / 1000.0;
+        if (Math.abs(seconds - Math.rint(seconds)) < 0.001) {
+            return (int) Math.rint(seconds) + "s";
+        }
+        return String.format(Locale.ROOT, "%.1fs", seconds);
+    }
+
+    private String highlightImportant(String line) {
+        if (line == null || line.isBlank()) {
+            return ChatColor.GRAY.toString();
+        }
+        Matcher matcher = IMPORTANT_TOKEN_PATTERN.matcher(line);
+        StringBuilder highlighted = new StringBuilder(ChatColor.GRAY.toString());
+        int last = 0;
+        while (matcher.find()) {
+            highlighted.append(line, last, matcher.start());
+            highlighted.append(ChatColor.WHITE).append(matcher.group()).append(ChatColor.GRAY);
+            last = matcher.end();
+        }
+        highlighted.append(line.substring(last));
+        return highlighted.toString();
+    }
+
+    private ItemStack createEmptySelectionItem() {
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.addAll(TooltipUtil.bulletList("No unlocked spell cards match the current filters.",
+                "Pull cards or change your filters."));
+        return GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "No Spell Cards", lore);
+    }
+
+    private ItemStack createNavItem(boolean next) {
+        return GuiUtil.getNexoItem(next ? "arrow_right" : "arrow_left",
+                next ? "§aNext Page" : "§aPrevious Page",
+                TooltipUtil.clickInstructions("to change page", null));
+    }
+
+    private ItemStack sortButton(Player player) {
+        SortMode mode = sortByPlayer.getOrDefault(player.getUniqueId(), SortMode.RARITY);
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        for (SortMode value : SortMode.values()) {
+            lore.add(TooltipUtil.selectionLine(value == mode, value.label));
+        }
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to cycle forward", "to cycle backward"));
+        return GuiUtil.createGuiItem(Material.COMPARATOR, "§bSort", lore);
+    }
+
+    private ItemStack rarityFilterButton(Player player) {
+        SpellDeckRarity filter = rarityFilterByPlayer.get(player.getUniqueId());
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.add(TooltipUtil.selectionLine(filter == null, "All Rarities"));
+        for (SpellDeckRarity rarity : SpellDeckRarity.values()) {
+            lore.add(TooltipUtil.selectionLine(filter == rarity, rarity.color() + rarity.displayName()));
+        }
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to cycle forward", "to cycle backward"));
+        return GuiUtil.createGuiItem(Material.HOPPER, "§bFilter Rarity", lore);
+    }
+
+    private ItemStack categoryFilterButton(Player player) {
+        SpellCardCategory filter = categoryFilterByPlayer.get(player.getUniqueId());
+        List<String> lore = new ArrayList<>();
+        lore.add(" ");
+        lore.add(TooltipUtil.selectionLine(filter == null, "All Categories"));
+        for (SpellCardCategory category : SpellCardCategory.values()) {
+            lore.add(TooltipUtil.selectionLine(filter == category, category.color() + category.displayName()));
+        }
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to cycle forward", "to cycle backward"));
+        return GuiUtil.createGuiItem(Material.BOOK, "§bFilter Category", lore);
+    }
+
+    private List<SpellCardDefinition> applySortAndFilter(Player player, List<SpellCardDefinition> cards) {
+        UUID id = player.getUniqueId();
+        SpellDeckRarity rarityFilter = rarityFilterByPlayer.get(id);
+        SpellCardCategory categoryFilter = categoryFilterByPlayer.get(id);
+        SortMode sortMode = sortByPlayer.getOrDefault(id, SortMode.RARITY);
+        SpellDeckProfile profile = deckManager.getProfile(id);
+        List<SpellCardDefinition> filtered = new ArrayList<>();
+        for (SpellCardDefinition card : cards) {
+            if (rarityFilter != null && card.rarity() != rarityFilter) {
+                continue;
+            }
+            if (categoryFilter != null && card.category() != categoryFilter) {
+                continue;
+            }
+            filtered.add(card);
+        }
+        filtered.sort(comparatorFor(sortMode, profile));
+        return filtered;
+    }
+
+    private Comparator<SpellCardDefinition> comparatorFor(SortMode mode, SpellDeckProfile profile) {
+        return switch (mode) {
+            case NAME -> Comparator.comparing(SpellCardDefinition::displayName, String.CASE_INSENSITIVE_ORDER);
+            case RARITY -> Comparator.comparingInt((SpellCardDefinition card) -> card.rarity().ordinal()).reversed()
+                    .thenComparing(SpellCardDefinition::displayName, String.CASE_INSENSITIVE_ORDER);
+            case CATEGORY -> Comparator.comparing((SpellCardDefinition card) -> card.category().displayName())
+                    .thenComparing(SpellCardDefinition::displayName, String.CASE_INSENSITIVE_ORDER);
+            case COPIES -> Comparator.comparingInt((SpellCardDefinition card) -> profile == null ? 0 : profile.getCopies(card.cardId())).reversed()
+                    .thenComparing(SpellCardDefinition::displayName, String.CASE_INSENSITIVE_ORDER);
+            case INVESTED -> Comparator.comparingInt((SpellCardDefinition card) -> profile == null ? 0 : profile.getInvestedCopies(card.cardId())).reversed()
+                    .thenComparing(SpellCardDefinition::displayName, String.CASE_INSENSITIVE_ORDER);
+        };
+    }
+
+    private SpellDeckRarity nextRarityFilter(SpellDeckRarity current, boolean forward) {
+        List<SpellDeckRarity> order = new ArrayList<>();
+        order.add(null);
+        order.addAll(List.of(SpellDeckRarity.values()));
+        return cycle(order, current, forward);
+    }
+
+    private SpellCardCategory nextCategoryFilter(SpellCardCategory current, boolean forward) {
+        List<SpellCardCategory> order = new ArrayList<>();
+        order.add(null);
+        order.addAll(List.of(SpellCardCategory.values()));
+        return cycle(order, current, forward);
+    }
+
+    private <T> T cycle(List<T> order, T current, boolean forward) {
+        int idx = order.indexOf(current);
+        idx = forward ? idx + 1 : idx - 1;
+        if (idx >= order.size()) idx = 0;
+        if (idx < 0) idx = order.size() - 1;
+        return order.get(idx);
+    }
+
+    private void render(Inventory gui, Player player, List<GuiWidget> widgets) {
         GuiLayout layout = new GuiLayout(gui);
         GuiContext context = new GuiContext(player, gui);
         for (GuiWidget widget : widgets) {
             widget.contribute(layout, context);
         }
-        player.openInventory(gui);
-        startAutoRefresh(player);
-    }
-
-    private List<GuiWidget> buildWidgets(Player player) {
-        List<GuiWidget> widgets = new ArrayList<>();
-        PlayerClass playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
-        SpellRegistry registry = SpellRegistry.getInstance();
-
-        for (int i = 0; i < SPELL_INPUTS.length; i++) {
-            SpellInputType input = SPELL_INPUTS[i];
-            int slot = SPELL_SLOTS[i];
-            SpellRegistry.SpellEntry entry = registry.resolveSpell(playerClass, null, null, input);
-            widgets.add(new ActionWidget(slot,
-                    ctx -> createSpellItem(ctx.player(), playerClass, entry, input),
-                    null));
-        }
-        return widgets;
-    }
-
-    private ItemStack createSpellItem(Player player,
-                                      PlayerClass playerClass,
-                                      SpellRegistry.SpellEntry entry,
-                                      SpellInputType inputType) {
-        List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.DARK_GRAY + "Input: " + ChatColor.WHITE + labelForInput(inputType));
-
-        if (entry == null) {
-            lore.add(" ");
-            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Status",
-                    ChatColor.GRAY, "No spell is currently bound."));
-            return GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "Unbound", lore);
-        }
-
-        String spellId = entry.definition().id();
-        SpellDefinition spell = entry.definition();
-        lore.add(" ");
-        lore.addAll(describeSpell(player, playerClass, spellId));
-        lore.add(" ");
-
-        String damageLine = estimateDamageLine(player, playerClass, spellId, inputType);
-        lore.add(ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Base Damage");
-        if (damageLine != null) {
-            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Total Damage",
-                    ChatColor.WHITE, damageLine + ChatColor.GRAY + " (0 DEF estimate)"));
-            lore.addAll(buildBaseDamageBreakdown(player, spellId));
-        } else {
-            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Total Damage",
-                    ChatColor.GRAY, "Utility / non-damage spell"));
-        }
-
-        lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.AQUA, "Mana Cost",
-                ChatColor.WHITE, String.valueOf(spell.baseManaCost())));
-        lore.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GOLD, "Spell Type",
-                ChatColor.WHITE, spell.movementSpell() ? "Movement" : "Combat"));
-        lore.add(ChatColor.DARK_GRAY + "ID: " + spellId);
-
-        return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK,
-                ChatColor.GOLD + "" + ChatColor.BOLD + entry.definition().displayName(), lore);
-    }
-
-    private List<String> describeSpell(Player player, PlayerClass playerClass, String spellId) {
-        List<String> lines = new ArrayList<>();
-        if (spellId.startsWith("mage_heal")) {
-            double heal = estimateHealAmount(player, spellId);
-            addHighlightedDescription(lines,
-                    "Heals allies for ",
-                    ChatColor.GREEN,
-                    String.format("%.1f HP", heal),
-                    " and cleanses nearby party members from debuffs.");
-            lines.add(TooltipUtil.labelValueLine("Support", ChatColor.AQUA, "10 block range, mana restore on cast"));
-            return lines;
-        }
-        if (spellId.startsWith("archer_windguard")) {
-            addHighlightedDescription(lines,
-                    "Grants nearby allies ",
-                    ChatColor.AQUA,
-                    "Speed II",
-                    " and clears active spell cooldown chains.");
-            lines.add(TooltipUtil.labelValueLine("Duration", ChatColor.AQUA, "5.0 seconds"));
-            return lines;
-        }
-        if (spellId.startsWith("warrior_guarded_resolve")) {
-            addHighlightedDescription(lines,
-                    "Applies a ward that blocks ",
-                    ChatColor.YELLOW,
-                    "3 incoming hits",
-                    " before breaking.");
-            lines.add(TooltipUtil.labelValueLine("Duration", ChatColor.AQUA, "5.0 seconds"));
-            return lines;
-        }
-        if (spellId.startsWith("rogue_veil_counter")) {
-            addHighlightedDescription(lines,
-                    "Grants allies ",
-                    ChatColor.GOLD,
-                    "guaranteed crits",
-                    " and doubles outgoing damage.");
-            lines.add(TooltipUtil.labelValueLine("Duration", ChatColor.AQUA, "5.0 seconds"));
-            return lines;
-        }
-        if (ClassUtil.isMageFamily(playerClass) && spellId.startsWith("mage_fireball")) {
-            addHighlightedDescription(lines,
-                    "Launches firebolts dealing ",
-                    ChatColor.RED,
-                    estimateDamageLine(player, playerClass, spellId, SpellInputType.BASIC_ATTACK),
-                    " to a 0 DEF target.");
-            return lines;
-        }
-        if (ClassUtil.isArcherFamily(playerClass) && spellId.startsWith("archer_quickshot")) {
-            addHighlightedDescription(lines,
-                    "Fires arrows dealing ",
-                    ChatColor.RED,
-                    estimateDamageLine(player, playerClass, spellId, SpellInputType.BASIC_ATTACK),
-                    " (airborne shots fan into a 3-cone).");
-            return lines;
-        }
-        if (spellId.startsWith("mage_blink")) {
-            addHighlightedDescription(lines,
-                    "Teleports you up to ",
-                    ChatColor.AQUA,
-                    String.format("%.1f blocks", blinkRangeFor(spellId)),
-                    " to the nearest safe destination.");
-            return lines;
-        }
-        if (spellId.startsWith("blackhole")) {
-            addHighlightedDescription(lines,
-                    "Creates a pull zone that deals ",
-                    ChatColor.RED,
-                    blackholeTickDamageFor(spellId),
-                    " while enemies remain inside.");
-            return lines;
-        }
-        if (spellId.startsWith("meteor")) {
-            addHighlightedDescription(lines,
-                    "Calls down an impact for ",
-                    ChatColor.RED,
-                    estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_2),
-                    " in an area.");
-            return lines;
-        }
-        if (spellId.startsWith("archer_homing_barrage")) {
-            addHighlightedDescription(lines,
-                    "Unleashes homing arrows for ",
-                    ChatColor.RED,
-                    estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_1),
-                    " each.");
-            return lines;
-        }
-        if (spellId.startsWith("archer_arrow_rain")) {
-            addHighlightedDescription(lines,
-                    "Bombards a target zone for ",
-                    ChatColor.RED,
-                    estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_2),
-                    " per volley arrow.");
-            return lines;
-        }
-        if (spellId.startsWith("archer_skybound")) {
-            addHighlightedDescription(lines,
-                    "Launches you upward, then slam for ",
-                    ChatColor.RED,
-                    "5.4 + fall scaling",
-                    " on landing.");
-            return lines;
-        }
-        if (spellId.startsWith("warrior_execution_arc")) {
-            addHighlightedDescription(lines,
-                    "Spins through enemies for ",
-                    ChatColor.RED,
-                    estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_1),
-                    " and light pull pressure.");
-            return lines;
-        }
-        if (spellId.startsWith("warrior_rupture_cyclone")) {
-            addHighlightedDescription(lines,
-                    "Pulses around you for ",
-                    ChatColor.RED,
-                    estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_2),
-                    " across the full sequence.");
-            return lines;
-        }
-        if (spellId.startsWith("warrior_titan_vault")) {
-            addHighlightedDescription(lines,
-                    "Leaps forward and slams for ",
-                    ChatColor.RED,
-                    estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_3),
-                    " on impact.");
-            return lines;
-        }
-        if (spellId.startsWith("rogue_sky_ripper")) {
-            addHighlightedDescription(lines,
-                    "Performs a multi-hit aerial combo for ",
-                    ChatColor.RED,
-                    estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_1),
-                    " per major hit.");
-            return lines;
-        }
-        if (spellId.startsWith("rogue_phantom_cross")) {
-            addHighlightedDescription(lines,
-                    "Dashes through with combo strikes for ",
-                    ChatColor.RED,
-                    estimateDamageLine(player, playerClass, spellId, SpellInputType.SPELL_2),
-                    " on primary hits.");
-            return lines;
-        }
-        if (spellId.startsWith("rogue_razor_dash")) {
-            addHighlightedDescription(lines,
-                    "Dashes forward with fast slashes dealing ",
-                    ChatColor.RED,
-                    "4.2 arc damage",
-                    " on sweep contacts.");
-            return lines;
-        }
-        lines.add(ChatColor.GRAY + "Combat spell.");
-        return lines;
-    }
-
-    private void addHighlightedDescription(List<String> lines,
-                                           String prefix,
-                                           ChatColor valueColor,
-                                           String value,
-                                           String suffix) {
-        String highlighted = ChatColor.GRAY + (prefix == null ? "" : prefix)
-                + (valueColor == null ? ChatColor.WHITE : valueColor) + (value == null ? "" : value)
-                + ChatColor.GRAY + (suffix == null ? "" : suffix);
-        lines.addAll(TooltipUtil.wrapLoreLine(highlighted, 170, ChatColor.GRAY.toString()));
-    }
-
-    private double estimateHealAmount(Player player, String spellId) {
-        double base = spellId.startsWith("mage_heal_rejuvenation") ? 11.0
-                : spellId.startsWith("mage_heal_party") ? 9.0 : 8.0;
-        return SpellEffectUtil.computeIntTecScaledDamage(player, base, 0.35, 0.0);
-    }
-
-    private double blinkRangeFor(String spellId) {
-        if (spellId.startsWith("mage_blink_rift")) {
-            return 14.0;
-        }
-        if (spellId.startsWith("mage_blink_phase")) {
-            return 11.0;
-        }
-        return 8.0;
-    }
-
-    private String blackholeTickDamageFor(String spellId) {
-        if (spellId.startsWith("blackhole_singularity")) {
-            return "2.5 / tick (+9.5 collapse)";
-        }
-        if (spellId.startsWith("blackhole_gravitywell")) {
-            return "1.8 / tick";
-        }
-        return "1.2 / tick";
-    }
-
-    private List<String> buildBaseDamageBreakdown(Player player, String spellId) {
-        List<String> lines = new ArrayList<>();
-        var stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        int intelligence = stats.baseIntelligence + stats.bonusIntelligence;
-        int dexterity = stats.baseDexterity + stats.bonusDexterity;
-        int technique = stats.baseTechnique + stats.bonusTechnique;
-
-        if (spellId.startsWith("mage_fireball_basic")) {
-            lines.addAll(intScalingBreakdown(intelligence, technique, 3.2, 0.48, "/ bolt"));
-            return lines;
-        }
-        if (spellId.startsWith("mage_fireball_barrage")) {
-            lines.addAll(intScalingBreakdown(intelligence, technique, 3.8, 0.58, "/ bolt"));
-            return lines;
-        }
-        if (spellId.startsWith("mage_fireball_inferno")) {
-            lines.addAll(intScalingBreakdown(intelligence, technique, 5.0, 0.72, "/ bolt"));
-            return lines;
-        }
-        if (spellId.startsWith("archer_quickshot_basic")
-                || spellId.startsWith("archer_quickshot_seeker")
-                || spellId.startsWith("archer_quickshot_payload")) {
-            lines.addAll(dexScalingBreakdown(dexterity, technique, 3.4, 0.30, "/ arrow"));
-            return lines;
-        }
-        if (spellId.startsWith("archer_homing_barrage")) {
-            lines.addAll(dexScalingBreakdown(dexterity, technique, 3.8, 0.34, "/ arrow"));
-            return lines;
-        }
-        if (spellId.startsWith("archer_arrow_rain")) {
-            lines.addAll(dexScalingBreakdown(dexterity, technique, 6.8, 0.30, "/ volley arrow"));
-            return lines;
-        }
-        return lines;
-    }
-
-    private List<String> intScalingBreakdown(int intelligence, int technique, double base, double intScale, String suffix) {
-        double preTechnique = Math.max(0.0, base + intelligence * intScale);
-        double techniqueMult = 1.0 + technique * 0.001;
-        double finalValue = preTechnique * techniqueMult;
-        List<String> lines = new ArrayList<>();
-        lines.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GOLD, "Base",
-                ChatColor.WHITE, String.format("%.1f + INT(%d×%.2f) = %.1f", base, intelligence, intScale, preTechnique)));
-        lines.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.AQUA, "Technique",
-                ChatColor.WHITE, String.format("×(1 + %d×0.001) = ×%.3f", technique, techniqueMult)));
-        lines.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Final",
-                ChatColor.WHITE, String.format("%.1f %s", finalValue, suffix == null ? "" : suffix)));
-        return lines;
-    }
-
-    private List<String> dexScalingBreakdown(int dexterity, int technique, double base, double dexScale, String suffix) {
-        double preTechnique = Math.max(0.0, base + dexterity * dexScale);
-        double techniqueMult = 1.0 + technique * 0.001;
-        double finalValue = preTechnique * techniqueMult;
-        List<String> lines = new ArrayList<>();
-        lines.add(TooltipUtil.iconLabelValueLine("✣", ChatColor.GOLD, ChatColor.GOLD, "Base",
-                ChatColor.WHITE, String.format("%.1f + DEX(%d×%.2f) = %.1f", base, dexterity, dexScale, preTechnique)));
-        lines.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.AQUA, "Technique",
-                ChatColor.WHITE, String.format("×(1 + %d×0.001) = ×%.3f", technique, techniqueMult)));
-        lines.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED, "Final",
-                ChatColor.WHITE, String.format("%.1f %s", finalValue, suffix == null ? "" : suffix)));
-        return lines;
-    }
-
-    private String estimateDamageLine(Player player, PlayerClass playerClass, String spellId, SpellInputType inputType) {
-        var stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-        int intelligence = stats.baseIntelligence + stats.bonusIntelligence;
-        int dexterity = stats.baseDexterity + stats.bonusDexterity;
-        int technique = stats.baseTechnique + stats.bonusTechnique;
-        int strength = stats.baseStrength + stats.bonusStrength;
-
-        if (inputType == SpellInputType.BASIC_ATTACK && !ClassUtil.isMageFamily(playerClass)
-                && !ClassUtil.isArcherFamily(playerClass) && !ClassUtil.isRogueFamily(playerClass)) {
-            double base = (1.0 + (strength * 0.5)) * (1.0 + technique * 0.001) * 0.60;
-            return String.format("%.1f avg hit", base);
-        }
-
-        if (spellId.startsWith("mage_fireball_basic")) {
-            return String.format("%.1f / bolt", computeInt(intelligence, technique, 3.2, 0.48));
-        }
-        if (spellId.startsWith("mage_fireball_barrage")) {
-            return String.format("%.1f / bolt", computeInt(intelligence, technique, 3.8, 0.58));
-        }
-        if (spellId.startsWith("mage_fireball_inferno")) {
-            return String.format("%.1f / bolt", computeInt(intelligence, technique, 5.0, 0.72));
-        }
-        if (spellId.startsWith("meteor_big")) {
-            return String.format("%.1f impact", 23.0);
-        }
-        if (spellId.startsWith("meteor_double")) {
-            return String.format("%.1f impact", 18.0);
-        }
-        if (spellId.startsWith("meteor")) {
-            return String.format("%.1f impact", 14.5);
-        }
-
-        if (spellId.startsWith("archer_quickshot_basic")) {
-            return String.format("%.1f / arrow", computeDex(dexterity, technique, 3.4, 0.30));
-        }
-        if (spellId.startsWith("archer_quickshot_seeker")) {
-            return String.format("%.1f / arrow", computeDex(dexterity, technique, 3.4, 0.30));
-        }
-        if (spellId.startsWith("archer_quickshot_payload")) {
-            return String.format("%.1f / arrow", computeDex(dexterity, technique, 3.4, 0.30));
-        }
-        if (spellId.startsWith("archer_homing_barrage")) {
-            return String.format("%.1f / arrow", computeDex(dexterity, technique, 3.8, 0.34));
-        }
-        if (spellId.startsWith("archer_arrow_rain")) {
-            return String.format("%.1f / volley arrow", computeDex(dexterity, technique, 6.8, 0.30));
-        }
-
-        if (spellId.startsWith("rogue_arc_basic")) {
-            return "5.0 slash";
-        }
-        if (spellId.startsWith("rogue_sky_ripper")) {
-            return "7.4 combo hit";
-        }
-        if (spellId.startsWith("rogue_phantom_cross")) {
-            return "7.2 strike";
-        }
-        if (spellId.startsWith("rogue_razor_dash")) {
-            return "Dash utility";
-        }
-        if (spellId.startsWith("warrior_execution_arc")) {
-            return "6.4 strike + 1.3 DoT ticks";
-        }
-        if (spellId.startsWith("warrior_rupture_cyclone")) {
-            return "2.8+ pulse sequence";
-        }
-        if (spellId.startsWith("warrior_titan_vault")) {
-            return "7.2 impact";
-        }
-        return null;
-    }
-
-    private String labelForInput(SpellInputType inputType) {
-        return switch (inputType) {
-            case BASIC_ATTACK -> "Basic Attack";
-            case SPELL_1 -> "Spell 1";
-            case SPELL_2 -> "Spell 2";
-            case SPELL_3 -> "Spell 3";
-            case SPELL_4 -> "Spell 4";
-        };
-    }
-
-    private double computeInt(int intelligence, int technique, double base, double intScale) {
-        double value = Math.max(0.0, base + intelligence * intScale);
-        return value * (1.0 + technique * 0.001);
-    }
-
-    private double computeDex(int dexterity, int technique, double base, double dexScale) {
-        double value = Math.max(0.0, base + dexterity * dexScale);
-        return value * (1.0 + technique * 0.001);
-    }
-
-
-    private void startAutoRefresh(Player player) {
-        stopAutoRefresh(player.getUniqueId());
-        BukkitTask task = Bukkit.getScheduler().runTaskTimer(me.nakilex.levelplugin.Main.getInstance(), () -> {
-            if (player == null || !player.isOnline()) {
-                stopAutoRefresh(player == null ? null : player.getUniqueId());
-                return;
-            }
-            if (!GuiUtil.titleMatches(player.getOpenInventory().getTitle(), TITLE)) {
-                stopAutoRefresh(player.getUniqueId());
-                return;
-            }
-            Inventory top = player.getOpenInventory().getTopInventory();
-            Inventory refreshed = GuiBuilder.create(9, TITLE).filler(Material.BLACK_STAINED_GLASS_PANE).build();
-            List<GuiWidget> widgets = buildWidgets(player);
-            widgetsByPlayer.put(player.getUniqueId(), widgets);
-            GuiLayout layout = new GuiLayout(refreshed);
-            GuiContext context = new GuiContext(player, refreshed);
-            for (GuiWidget widget : widgets) {
-                widget.contribute(layout, context);
-            }
-            top.setContents(refreshed.getContents());
-        }, 20L, 20L);
-        refreshTasks.put(player.getUniqueId(), task);
-    }
-
-    private void stopAutoRefresh(UUID playerId) {
-        if (playerId == null) {
-            return;
-        }
-        BukkitTask task = refreshTasks.remove(playerId);
-        if (task != null) {
-            task.cancel();
-        }
     }
 
     @EventHandler
     public void onClick(InventoryClickEvent event) {
-        if (!(event.getWhoClicked() instanceof Player)) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        if (!GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) {
+        String viewTitle = LEGACY.serialize(event.getView().title());
+        if (!isDeckTitle(viewTitle)) {
             return;
         }
         event.setCancelled(true);
+        int slot = event.getRawSlot();
+        if (slot < 0 || slot >= event.getView().getTopInventory().getSize()) {
+            return;
+        }
+        List<GuiWidget> widgets = widgetsByPlayer.get(player.getUniqueId());
+        if (widgets == null) {
+            return;
+        }
+        GuiWidget widget = widgets.stream()
+                .filter(candidate -> candidate.handlesSlot(slot))
+                .findFirst()
+                .orElse(null);
+        if (widget != null) {
+            widget.onClick(slot, event.getClick(), new GuiContext(player, event.getView().getTopInventory()));
+        }
     }
 
-    @EventHandler
-    public void onClose(InventoryCloseEvent event) {
-        if (GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) {
-            UUID id = event.getPlayer().getUniqueId();
-            widgetsByPlayer.remove(id);
-            stopAutoRefresh(id);
+
+    private boolean isDeckTitle(String viewTitle) {
+        String normalized = GuiUtil.normalizeTitle(viewTitle);
+        return normalized.equalsIgnoreCase("Spell Deck")
+                || normalized.startsWith("Select Spell");
+    }
+
+    private String labelForInput(SpellInputType inputType) {
+        return switch (inputType) {
+            case SPELL_1 -> "Spell 1";
+            case SPELL_2 -> "Spell 2";
+            case SPELL_3 -> "Spell 3";
+            case SPELL_4 -> "Spell 4";
+            case BASIC_ATTACK -> "Basic Attack";
+        };
+    }
+
+    private enum SortMode {
+        RARITY("Rarity"),
+        NAME("Name"),
+        CATEGORY("Category"),
+        COPIES("Copies"),
+        INVESTED("Invested");
+
+        private final String label;
+
+        SortMode(String label) {
+            this.label = label;
+        }
+
+        private static SortMode next(SortMode current, boolean forward) {
+            SortMode[] values = values();
+            int index = current.ordinal() + (forward ? 1 : -1);
+            if (index >= values.length) index = 0;
+            if (index < 0) index = values.length - 1;
+            return values[index];
         }
     }
 }

@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.spells.SpellContext;
 import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.input.SpellInputDisplayManager;
+import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.spells.input.SpellInputEvent;
@@ -27,23 +28,37 @@ public class SpellCastListener implements Listener {
         if (plugin.getStagedDungeonManager() != null && plugin.getStagedDungeonManager().isInRun(player.getUniqueId())) {
             return;
         }
+        SpellRegistry.SpellEntry entry = SpellDeckManager.getInstance().getEquippedSpellEntry(player, event.getInputType());
+        boolean deckSpell = entry != null;
         var playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
-        SpellRegistry.SpellEntry entry = SpellRegistry.getInstance().resolveSpell(playerClass,
-                event.getInputMode(), event.getInputSequence(), event.getInputType());
+        if (entry == null) {
+            entry = SpellRegistry.getInstance().resolveSpell(playerClass,
+                    event.getInputMode(), event.getInputSequence(), event.getInputType());
+        }
         if (entry == null) {
             return;
         }
-        String resolvedBaseSpellId = entry.definition().id();
-        if (playerClass == null || !SpellRegistry.getInstance().isSpellBoundForClass(resolvedBaseSpellId, playerClass)) {
-            return;
+        if (!deckSpell) {
+            String resolvedBaseSpellId = entry.definition().id();
+            if (playerClass == null || !SpellRegistry.getInstance().isSpellBoundForClass(resolvedBaseSpellId, playerClass)) {
+                return;
+            }
+            String effectiveSpellId = SpellProgressionManager.getInstance()
+                    .getEffectiveSpellId(player.getUniqueId(), entry.definition().id());
+            SpellRegistry.SpellEntry effectiveEntry = SpellRegistry.getInstance().getSpell(effectiveSpellId);
+            if (effectiveEntry != null) {
+                entry = effectiveEntry;
+            }
         }
-        String effectiveSpellId = SpellProgressionManager.getInstance()
-                .getEffectiveSpellId(player.getUniqueId(), entry.definition().id());
-        SpellRegistry.SpellEntry effectiveEntry = SpellRegistry.getInstance().getSpell(effectiveSpellId);
-        if (effectiveEntry != null) {
-            entry = effectiveEntry;
-        }
-        if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) {
+        if (deckSpell) {
+            if (!SpellAccessUtil.isHoldingWeapon(player)) {
+                if (!SpellAccessUtil.isHoldingLifeSkillTool(player)) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "You must hold a weapon to cast spell cards.");
+                }
+                return;
+            }
+        } else if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) {
             if (!SpellAccessUtil.isHoldingLifeSkillTool(player) && SpellAccessUtil.isHoldingWeapon(player)) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                         "You must hold a valid weapon to cast skills.");
