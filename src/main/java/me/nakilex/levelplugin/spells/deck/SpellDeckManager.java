@@ -223,6 +223,224 @@ public final class SpellDeckManager {
                 SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
                 "Brands enemies with a sweeping execution arc.",
                 List.of("Damage: 120", "Radius: 6.4 blocks"), List.of());
+
+
+        registerCard("meteor_uncommon", "meteor", "meteor_sparkfall", "Sparkfall Meteor",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Drops a faster meteor with scattered sparks.",
+                List.of("Damage: 20", "Impact Radius: 4.6 blocks", "Secondary Meteors: 1"), List.of());
+        registerCard("meteor_legendary", "meteor", "meteor_starfall", "Starfall Meteor",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Calls a starfall cluster over the battlefield.",
+                List.of("Damage: 36", "Impact Radius: 9.2 blocks", "Secondary Meteors: 7"), List.of());
+        registerCard("meteor_mythic", "meteor", "meteor_apocalypse", "Apocalypse Meteor",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Unleashes a devastating apocalyptic meteor storm.",
+                List.of("Damage: 45", "Impact Radius: 11 blocks", "Secondary Meteors: 9"), List.of());
+
+        registerCard("blackhole_uncommon", "blackhole", "blackhole_deep_pull", "Deep Pull",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.UTILITY, SpellInputType.SPELL_1,
+                "Creates a deeper gravity well with stronger pull.",
+                List.of("Radius: 5.5 blocks", "Pull Strength: 2.2", "Duration: 75 ticks"), List.of());
+        registerCard("blackhole_legendary", "blackhole", "blackhole_event_horizon", "Event Horizon",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.UTILITY, SpellInputType.SPELL_1,
+                "Forms an event horizon that tears enemies apart.",
+                List.of("Radius: 10.8 blocks", "Pull Strength: 4.8", "Pulses: 6"), List.of());
+        registerCard("blackhole_mythic", "blackhole", "blackhole_void_collapse", "Void Collapse",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.UTILITY, SpellInputType.SPELL_1,
+                "Collapses the void with overwhelming gravitational force.",
+                List.of("Radius: 12.5 blocks", "Pull Strength: 5.7", "Pulses: 8"), List.of());
+
+        registerCard("arcane_mend_uncommon", "arcane_mend", "mage_heal_soothing", "Soothing Mend",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.SUPPORT, SpellInputType.SPELL_4,
+                "Restores health and returns a little mana.",
+                List.of("Healing: 10", "Bonus Health: 12", "Mana Restore: 10"), List.of());
+        registerCard("arcane_mend_legendary", "arcane_mend", "mage_heal_celestial", "Celestial Mend",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.SUPPORT, SpellInputType.SPELL_4,
+                "Bathes allies in celestial restorative energy.",
+                List.of("Healing: 20", "Party Heal: enabled", "Regen Duration: 3s"), List.of());
+        registerCard("arcane_mend_mythic", "arcane_mend", "mage_heal_renewal_nova", "Renewal Nova",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.SUPPORT, SpellInputType.SPELL_4,
+                "Releases a renewal nova for nearby allies.",
+                List.of("Healing: 26", "Party Heal: enabled", "Bonus Health: 36"), List.of());
+
+        registerCard("seeker_barrage_common", "seeker_barrage", "archer_homing_barrage_common", "Hunter Barrage",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Fires a small volley of seeking arrows.",
+                List.of("Arrows: 6", "Delay: 3 ticks", "Search Radius: 3.8 blocks"), List.of());
+        registerCard("seeker_barrage_uncommon", "seeker_barrage", "archer_homing_barrage_guided", "Guided Barrage",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Fires guided arrows with better tracking.",
+                List.of("Arrows: 7", "Delay: 3 ticks", "Search Radius: 4.2 blocks"), List.of());
+        registerCard("seeker_barrage_epic", "seeker_barrage", "archer_homing_barrage_stormseeker", "Stormseeker Barrage",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Fires a storm of precise seeking arrows.",
+                List.of("Arrows: 12", "Delay: 2 ticks", "Search Radius: 5.8 blocks"), List.of());
+        registerCard("seeker_barrage_legendary", "seeker_barrage", "archer_homing_barrage_astral", "Astral Barrage",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Fires astral arrows that aggressively seek targets.",
+                List.of("Arrows: 15", "Delay: 1 tick", "Search Radius: 6.8 blocks"), List.of());
+        registerCard("seeker_barrage_mythic", "seeker_barrage", "archer_homing_barrage_eclipse", "Eclipse Barrage",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Unleashes an eclipse volley of seeking arrows.",
+                List.of("Arrows: 18", "Delay: 1 tick", "Search Radius: 8 blocks"), List.of());
+
+        registerCard("arrow_rain_common", "arrow_rain", "archer_arrow_rain_common", "Light Arrow Rain",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Rains a light volley over a target area.",
+                List.of("Arrows: 5", "Waves: 6", "Radius: 5 blocks"), List.of());
+        registerCard("arrow_rain_uncommon", "arrow_rain", "archer_arrow_rain_uncommon", "Arrow Shower",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Showers an area with repeated arrow waves.",
+                List.of("Arrows: 6", "Waves: 8", "Radius: 6 blocks"), List.of());
+        registerCard("arrow_rain_rare", "arrow_rain", "archer_arrow_rain_rare", "Volley Rain",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Rains focused volleys over a larger area.",
+                List.of("Arrows: 7", "Waves: 9", "Radius: 7 blocks"), List.of());
+        registerCard("arrow_rain_legendary", "arrow_rain", "archer_arrow_rain_legendary", "Tempest Arrow Rain",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Summons a tempest of falling arrows.",
+                List.of("Arrows: 10", "Waves: 13", "Radius: 9.5 blocks"), List.of());
+        registerCard("arrow_rain_mythic", "arrow_rain", "archer_arrow_rain_mythic", "Celestial Arrow Rain",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Calls celestial arrows across a massive area.",
+                List.of("Arrows: 12", "Waves: 15", "Radius: 11 blocks"), List.of());
+
+        registerCard("windguard_common", "windguard", "archer_windguard_common", "Windguard Ward",
+                SpellDeckRarity.COMMON, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Summons a brief wind ward for protection.",
+                List.of("Shield: 70", "Charges: 1", "Duration: 20s"), List.of());
+        registerCard("windguard_uncommon", "windguard", "archer_windguard_uncommon", "Steady Windguard",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Summons steadier winds with longer protection.",
+                List.of("Shield: 85", "Charges: 1", "Duration: 25s"), List.of());
+        registerCard("windguard_epic", "windguard", "archer_windguard_epic", "Gale Aegis",
+                SpellDeckRarity.EPIC, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Summons a gale aegis for stronger cover.",
+                List.of("Shield: 125", "Charges: 2", "Duration: 35s"), List.of());
+        registerCard("windguard_legendary", "windguard", "archer_windguard_legendary", "Stormguard",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Summons storm winds that guard nearby allies.",
+                List.of("Shield: 155", "Charges: 2", "Duration: 40s"), List.of());
+        registerCard("windguard_mythic", "windguard", "archer_windguard_mythic", "Tempest Sanctuary",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Creates a tempest sanctuary around your party.",
+                List.of("Shield: 190", "Charges: 3", "Duration: 45s"), List.of());
+
+        registerCard("shadow_flurry_uncommon", "shadow_flurry", "rogue_sky_ripper_blitz", "Shadow Blitz",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Strikes faster with sharper shadow cuts.",
+                List.of("Strikes: 5", "Radius: 6.8 blocks", "Damage: 9.8"), List.of());
+        registerCard("shadow_flurry_legendary", "shadow_flurry", "rogue_sky_ripper_nightstorm", "Nightstorm Flurry",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Unleashes a relentless nightstorm of shadow strikes.",
+                List.of("Strikes: 10", "Radius: 10 blocks", "Damage: 22"), List.of());
+        registerCard("shadow_flurry_mythic", "shadow_flurry", "rogue_sky_ripper_voidfall", "Voidfall Flurry",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Drops through enemies with void-touched shadow strikes.",
+                List.of("Strikes: 12", "Radius: 11.2 blocks", "Damage: 28"), List.of());
+
+        registerCard("nightfall_lunge_uncommon", "nightfall_lunge", "rogue_phantom_cross_duelist", "Duelist Lunge",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Lunges with cleaner cuts and longer reach.",
+                List.of("Slashes: 5", "Range: 6.8 blocks", "Damage: 14.2"), List.of());
+        registerCard("nightfall_lunge_legendary", "nightfall_lunge", "rogue_phantom_cross_nightfall", "Nightfall Judgement",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Judges enemies with a devastating phantom chain.",
+                List.of("Slashes: 10", "Range: 9.8 blocks", "Damage: 29"), List.of());
+        registerCard("nightfall_lunge_mythic", "nightfall_lunge", "rogue_phantom_cross_eclipse", "Eclipse Lunge",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Crosses the battlefield in an eclipse slash.",
+                List.of("Slashes: 12", "Range: 11 blocks", "Damage: 36"), List.of());
+
+        registerCard("smoke_bomb_uncommon", "smoke_bomb", "rogue_veil_counter_haze", "Haze Smoke Bomb",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Drops haze that protects and empowers you.",
+                List.of("Duration: 19s", "Radius: 2.1 blocks", "Shield: 110"), List.of());
+        registerCard("smoke_bomb_legendary", "smoke_bomb", "rogue_veil_counter_nightveil", "Nightveil Smoke Bomb",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Creates nightveil smoke with exceptional cover.",
+                List.of("Duration: 34s", "Radius: 3.2 blocks", "Shield: 165"), List.of());
+        registerCard("smoke_bomb_mythic", "smoke_bomb", "rogue_veil_counter_voidveil", "Voidveil Smoke Bomb",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Creates voidveil smoke that overwhelms nearby foes.",
+                List.of("Duration: 40s", "Radius: 3.6 blocks", "Shield: 200"), List.of());
+
+        registerCard("earthquake_uncommon", "earthquake", "warrior_earthquake_aftershock", "Aftershock Earthquake",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Shatters the ground with a stronger aftershock.",
+                List.of("Radius: 5 blocks", "Damage: 8.4"), List.of());
+        registerCard("earthquake_legendary", "earthquake", "warrior_earthquake_worldbreaker", "Worldbreaker Earthquake",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Breaks the ground with worldbreaker force.",
+                List.of("Radius: 10.2 blocks", "Damage: 19"), List.of());
+        registerCard("earthquake_mythic", "earthquake", "warrior_earthquake_tectonic", "Tectonic Rupture",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Ruptures the battlefield with tectonic power.",
+                List.of("Radius: 12 blocks", "Damage: 25"), List.of());
+
+        registerCard("rupture_cyclone_common", "rupture_cyclone", "warrior_rupture_cyclone_common", "Lesser Cyclone",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Spins through enemies with light rupturing pressure.",
+                List.of("Hits: 6", "Radius: 2.8 blocks", "Damage Multiplier: 0.75x"), List.of());
+        registerCard("rupture_cyclone_uncommon", "rupture_cyclone", "warrior_rupture_cyclone_uncommon", "Rupture Spiral",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Spins with a wider rupturing spiral.",
+                List.of("Hits: 7", "Radius: 3.2 blocks", "Damage Multiplier: 0.9x"), List.of());
+        registerCard("rupture_cyclone_epic", "rupture_cyclone", "warrior_rupture_cyclone_epic", "Rending Cyclone",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Rends enemies with repeated cyclone pulses.",
+                List.of("Hits: 11", "Radius: 4.5 blocks", "Damage Multiplier: 1.25x"), List.of());
+        registerCard("rupture_cyclone_legendary", "rupture_cyclone", "warrior_rupture_cyclone_legendary", "Maelstrom Cyclone",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Becomes a maelstrom of rupturing pressure.",
+                List.of("Hits: 13", "Radius: 5.2 blocks", "Damage Multiplier: 1.5x"), List.of());
+        registerCard("rupture_cyclone_mythic", "rupture_cyclone", "warrior_rupture_cyclone_mythic", "Cataclysm Cyclone",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Tears through enemies with cataclysmic rotation.",
+                List.of("Hits: 15", "Radius: 6 blocks", "Damage Multiplier: 1.8x"), List.of());
+
+        registerCard("aegis_bastion_common", "aegis_bastion", "warrior_guarded_resolve_common", "Lesser Aegis",
+                SpellDeckRarity.COMMON, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Raises a short-lived guard against damage.",
+                List.of("Shield: 80", "Duration: 3s", "Guard Radius: 24 blocks"), List.of());
+        registerCard("aegis_bastion_uncommon", "aegis_bastion", "warrior_guarded_resolve_uncommon", "Steady Aegis",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Raises steadier protection for nearby allies.",
+                List.of("Shield: 105", "Duration: 4s", "Guard Radius: 28 blocks"), List.of());
+        registerCard("aegis_bastion_epic", "aegis_bastion", "warrior_guarded_resolve_epic", "Iron Bastion",
+                SpellDeckRarity.EPIC, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Raises an iron bastion against heavy attacks.",
+                List.of("Shield: 160", "Duration: 6s", "Guard Radius: 38 blocks"), List.of());
+        registerCard("aegis_bastion_legendary", "aegis_bastion", "warrior_guarded_resolve_legendary", "Titan Bastion",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Raises a titan bastion for your party.",
+                List.of("Shield: 210", "Duration: 7s", "Guard Radius: 44 blocks"), List.of());
+        registerCard("aegis_bastion_mythic", "aegis_bastion", "warrior_guarded_resolve_mythic", "Mythic Bastion",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Raises mythic protection against devastating attacks.",
+                List.of("Shield: 270", "Duration: 8s", "Guard Radius: 50 blocks"), List.of());
+
+        registerCard("cyclone_brand_common", "cyclone_brand", "warrior_execution_arc_common", "Lesser Brand",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Brands nearby enemies with a light arc.",
+                List.of("Damage: 80", "Radius: 4.8 blocks"), List.of());
+        registerCard("cyclone_brand_uncommon", "cyclone_brand", "warrior_execution_arc_uncommon", "Sweeping Brand",
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Brands enemies with a wider sweep.",
+                List.of("Damage: 100", "Radius: 5.6 blocks"), List.of());
+        registerCard("cyclone_brand_epic", "cyclone_brand", "warrior_execution_arc_epic", "Execution Brand",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Brands enemies with a heavy execution arc.",
+                List.of("Damage: 155", "Radius: 7.4 blocks"), List.of());
+        registerCard("cyclone_brand_legendary", "cyclone_brand", "warrior_execution_arc_legendary", "Storm Brand",
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Brands enemies in a storm of execution arcs.",
+                List.of("Damage: 205", "Radius: 8.8 blocks"), List.of());
+        registerCard("cyclone_brand_mythic", "cyclone_brand", "warrior_execution_arc_mythic", "Worldsplitter Brand",
+                SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Brands enemies with world-splitting execution force.",
+                List.of("Damage: 270", "Radius: 10 blocks"), List.of());
     }
 
     private void registerCard(String cardId,

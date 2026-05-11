@@ -213,10 +213,143 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(warriorGuardedResolve.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_4));
         registerStandardSequenceBindings(registry, warriorEarthquake.id(), warriorRuptureCyclone.id(), null, warriorGuardedResolve.id(), ClassUtil::isWarriorFamily);
 
-
+        registerAdditionalDeckRarityVariants(registry, plugin, particleService);
         registerDeckFireballs(registry, plugin);
 
         configureCooldowns();
+    }
+
+
+
+    private static void registerAdditionalDeckRarityVariants(SpellRegistry registry, Main plugin,
+                                                            ParticleService particleService) {
+        registerSpellWithCooldown(registry, "meteor_sparkfall", "Meteor: Sparkfall", 18, false,
+                new MeteorSpell(plugin, particleService, 20.0, 18.0, 7.0, 4.6, 3.0, 6.8, 7,
+                        1, 3.5, 0.20), 7400L);
+        registerSpellWithCooldown(registry, "meteor_starfall", "Meteor: Starfall", 24, false,
+                new MeteorSpell(plugin, particleService, 36.0, 38.0, 14.0, 9.2, 7.4, 12.5, 12,
+                        7, 8.5, 0.52), 6200L);
+        registerSpellWithCooldown(registry, "meteor_apocalypse", "Meteor: Apocalypse", 30, false,
+                new MeteorSpell(plugin, particleService, 45.0, 48.0, 17.0, 11.0, 9.6, 14.5, 14,
+                        9, 10.5, 0.62), 5800L);
+
+        registerSpellWithCooldown(registry, "blackhole_deep_pull", "Blackhole: Deep Pull", 22, false,
+                new BlackholeSpell(plugin, 5.5, 2.3, 0.34, 2.0, 75, 2.0,
+                        1, 1.0, 0.08), 6100L);
+        registerSpellWithCooldown(registry, "blackhole_event_horizon", "Blackhole: Event Horizon", 28, false,
+                new BlackholeSpell(plugin, 10.8, 5.0, 0.68, 6.6, 140, 32.0,
+                        6, 4.2, 0.26), 4900L);
+        registerSpellWithCooldown(registry, "blackhole_void_collapse", "Blackhole: Void Collapse", 34, false,
+                new BlackholeSpell(plugin, 12.5, 6.0, 0.78, 8.8, 160, 46.0,
+                        8, 5.6, 0.32), 4600L);
+
+        registerSpellWithCooldown(registry, "mage_heal_soothing", "Arcane Mend: Soothing", 16, false,
+                new MageHealSpell(plugin, 10.0, false, false, 12, 0), 5900L);
+        registerSpellWithCooldown(registry, "mage_heal_celestial", "Arcane Mend: Celestial", 22, false,
+                new MageHealSpell(plugin, 20.0, true, true, 30, 3), 4800L);
+        registerSpellWithCooldown(registry, "mage_heal_renewal_nova", "Arcane Mend: Renewal Nova", 28, false,
+                new MageHealSpell(plugin, 26.0, true, true, 36, 4), 4400L);
+
+        registerSpellWithCooldown(registry, "archer_homing_barrage_common", "Seeker Barrage: Hunter", 14, false,
+                new ArcherHomingBarrageSpell(plugin, 6, 3L, 2.8, 0.22, 3.8, 0.30), 6600L);
+        registerSpellWithCooldown(registry, "archer_homing_barrage_guided", "Seeker Barrage: Guided", 15, false,
+                new ArcherHomingBarrageSpell(plugin, 7, 3L, 3.0, 0.26, 4.2, 0.34), 6400L);
+        registerSpellWithCooldown(registry, "archer_homing_barrage_stormseeker", "Seeker Barrage: Stormseeker", 19, false,
+                new ArcherHomingBarrageSpell(plugin, 12, 2L, 3.7, 0.36, 5.8, 0.50), 5800L);
+        registerSpellWithCooldown(registry, "archer_homing_barrage_astral", "Seeker Barrage: Astral", 24, false,
+                new ArcherHomingBarrageSpell(plugin, 15, 1L, 4.1, 0.40, 6.8, 0.62), 5300L);
+        registerSpellWithCooldown(registry, "archer_homing_barrage_eclipse", "Seeker Barrage: Eclipse", 30, false,
+                new ArcherHomingBarrageSpell(plugin, 18, 1L, 4.5, 0.45, 8.0, 0.76), 4900L);
+
+        registerSpellWithCooldown(registry, "archer_arrow_rain_common", "Arrow Rain: Light", 15, false,
+                new ArcherArrowRainSpell(plugin, 5, 6, 8, 5.0, 12.0, 2.8, 0.24), 10400L);
+        registerSpellWithCooldown(registry, "archer_arrow_rain_uncommon", "Arrow Rain: Shower", 16, false,
+                new ArcherArrowRainSpell(plugin, 6, 8, 8, 6.0, 13.0, 3.4, 0.28), 10200L);
+        registerSpellWithCooldown(registry, "archer_arrow_rain_rare", "Arrow Rain: Volley", 17, false,
+                new ArcherArrowRainSpell(plugin, 7, 9, 7, 7.0, 14.0, 3.9, 0.32), 10000L);
+        registerSpellWithCooldown(registry, "archer_arrow_rain_legendary", "Arrow Rain: Tempest", 24, false,
+                new ArcherArrowRainSpell(plugin, 10, 13, 6, 9.5, 18.0, 5.6, 0.48), 9000L);
+        registerSpellWithCooldown(registry, "archer_arrow_rain_mythic", "Arrow Rain: Celestial", 30, false,
+                new ArcherArrowRainSpell(plugin, 12, 15, 5, 11.0, 20.0, 7.0, 0.62), 8400L);
+
+        registerSpellWithCooldown(registry, "archer_windguard_common", "Windguard: Ward", 14, false,
+                new ArcherWindguardSpell(plugin, 70, 1, 20.0), 9800L);
+        registerSpellWithCooldown(registry, "archer_windguard_uncommon", "Windguard: Steady", 16, false,
+                new ArcherWindguardSpell(plugin, 85, 1, 25.0), 9400L);
+        registerSpellWithCooldown(registry, "archer_windguard_epic", "Windguard: Gale Aegis", 22, false,
+                new ArcherWindguardSpell(plugin, 125, 2, 35.0), 8500L);
+        registerSpellWithCooldown(registry, "archer_windguard_legendary", "Windguard: Stormguard", 26, false,
+                new ArcherWindguardSpell(plugin, 155, 2, 40.0), 8000L);
+        registerSpellWithCooldown(registry, "archer_windguard_mythic", "Windguard: Tempest Sanctuary", 32, false,
+                new ArcherWindguardSpell(plugin, 190, 3, 45.0), 7400L);
+
+        registerSpellWithCooldown(registry, "rogue_sky_ripper_blitz", "Shadow Flurry: Blitz", 14, false,
+                new RogueShadowFlurrySpell(plugin, 5, 6.8, 1.0, 95, 3.1, 9.8), 5400L);
+        registerSpellWithCooldown(registry, "rogue_sky_ripper_nightstorm", "Shadow Flurry: Nightstorm", 22, false,
+                new RogueShadowFlurrySpell(plugin, 10, 10.0, 1.8, 175, 5.8, 22.0), 4300L);
+        registerSpellWithCooldown(registry, "rogue_sky_ripper_voidfall", "Shadow Flurry: Voidfall", 28, false,
+                new RogueShadowFlurrySpell(plugin, 12, 11.2, 2.2, 210, 6.8, 28.0), 3900L);
+
+        registerSpellWithCooldown(registry, "rogue_phantom_cross_duelist", "Nightfall Lunge: Duelist", 18, false,
+                new RogueNightfallLungeSpell(plugin, 5, 6.8, 0.70, 8.0, 0.78, 14.2), 6500L);
+        registerSpellWithCooldown(registry, "rogue_phantom_cross_nightfall", "Nightfall Lunge: Nightfall", 26, false,
+                new RogueNightfallLungeSpell(plugin, 10, 9.8, 1.48, 12.4, 1.55, 29.0), 5200L);
+        registerSpellWithCooldown(registry, "rogue_phantom_cross_eclipse", "Nightfall Lunge: Eclipse", 32, false,
+                new RogueNightfallLungeSpell(plugin, 12, 11.0, 1.8, 14.6, 1.9, 36.0), 4800L);
+
+        registerSpellWithCooldown(registry, "rogue_veil_counter_haze", "Smoke Bomb: Haze", 16, false,
+                new RogueSmokeBombSpell(plugin, 110, 32.0, 2.1, true, 19), 30000L);
+        registerSpellWithCooldown(registry, "rogue_veil_counter_nightveil", "Smoke Bomb: Nightveil", 24, false,
+                new RogueSmokeBombSpell(plugin, 165, 46.0, 3.2, true, 34), 30000L);
+        registerSpellWithCooldown(registry, "rogue_veil_counter_voidveil", "Smoke Bomb: Voidveil", 30, false,
+                new RogueSmokeBombSpell(plugin, 200, 52.0, 3.6, true, 40), 30000L);
+
+        registerSpellWithCooldown(registry, "warrior_earthquake_aftershock", "Earthquake: Aftershock", 16, false,
+                new WarriorEarthquakeSpell(plugin, 5.0, 8.4, 0.68), 5600L);
+        registerSpellWithCooldown(registry, "warrior_earthquake_worldbreaker", "Earthquake: Worldbreaker", 24, false,
+                new WarriorEarthquakeSpell(plugin, 10.2, 19.0, 1.28), 4300L);
+        registerSpellWithCooldown(registry, "warrior_earthquake_tectonic", "Earthquake: Tectonic", 30, false,
+                new WarriorEarthquakeSpell(plugin, 12.0, 25.0, 1.45), 3900L);
+
+        registerSpellWithCooldown(registry, "warrior_rupture_cyclone_common", "Rupture Cyclone: Lesser", 14, false,
+                new WarriorRuptureCycloneSpell(plugin, 6, 2L, 0.75, 0.75, 2.8, 0.75, 0.42), 8200L);
+        registerSpellWithCooldown(registry, "warrior_rupture_cyclone_uncommon", "Rupture Cyclone: Spiral", 16, false,
+                new WarriorRuptureCycloneSpell(plugin, 7, 2L, 0.82, 0.85, 3.2, 0.9, 0.50), 7900L);
+        registerSpellWithCooldown(registry, "warrior_rupture_cyclone_epic", "Rupture Cyclone: Rending", 22, false,
+                new WarriorRuptureCycloneSpell(plugin, 11, 2L, 1.05, 1.16, 4.5, 1.25, 0.72), 7000L);
+        registerSpellWithCooldown(registry, "warrior_rupture_cyclone_legendary", "Rupture Cyclone: Maelstrom", 26, false,
+                new WarriorRuptureCycloneSpell(plugin, 13, 1L, 1.18, 1.34, 5.2, 1.5, 0.88), 6600L);
+        registerSpellWithCooldown(registry, "warrior_rupture_cyclone_mythic", "Rupture Cyclone: Cataclysm", 32, false,
+                new WarriorRuptureCycloneSpell(plugin, 15, 1L, 1.35, 1.55, 6.0, 1.8, 1.05), 6100L);
+
+        registerSpellWithCooldown(registry, "warrior_guarded_resolve_common", "Aegis Bastion: Lesser", 14, false,
+                new WarriorGuardedResolveSpell(plugin, 80, 3, 24.0), 12000L);
+        registerSpellWithCooldown(registry, "warrior_guarded_resolve_uncommon", "Aegis Bastion: Steady", 15, false,
+                new WarriorGuardedResolveSpell(plugin, 105, 4, 28.0), 11500L);
+        registerSpellWithCooldown(registry, "warrior_guarded_resolve_epic", "Aegis Bastion: Iron", 22, false,
+                new WarriorGuardedResolveSpell(plugin, 160, 6, 38.0), 10400L);
+        registerSpellWithCooldown(registry, "warrior_guarded_resolve_legendary", "Aegis Bastion: Titan", 26, false,
+                new WarriorGuardedResolveSpell(plugin, 210, 7, 44.0), 9800L);
+        registerSpellWithCooldown(registry, "warrior_guarded_resolve_mythic", "Aegis Bastion: Mythic", 32, false,
+                new WarriorGuardedResolveSpell(plugin, 270, 8, 50.0), 9000L);
+
+        registerSpellWithCooldown(registry, "warrior_execution_arc_common", "Cyclone Brand: Lesser", 14, false,
+                new WarriorExecutionArcSpell(plugin, 80, 1.5, 4.8), 6400L);
+        registerSpellWithCooldown(registry, "warrior_execution_arc_uncommon", "Cyclone Brand: Sweeping", 15, false,
+                new WarriorExecutionArcSpell(plugin, 100, 1.75, 5.6), 6200L);
+        registerSpellWithCooldown(registry, "warrior_execution_arc_epic", "Cyclone Brand: Execution", 22, false,
+                new WarriorExecutionArcSpell(plugin, 155, 2.3, 7.4), 5500L);
+        registerSpellWithCooldown(registry, "warrior_execution_arc_legendary", "Cyclone Brand: Storm", 26, false,
+                new WarriorExecutionArcSpell(plugin, 205, 2.7, 8.8), 5000L);
+        registerSpellWithCooldown(registry, "warrior_execution_arc_mythic", "Cyclone Brand: Worldsplitter", 32, false,
+                new WarriorExecutionArcSpell(plugin, 270, 3.1, 10.0), 4500L);
+    }
+
+    private static void registerSpellWithCooldown(SpellRegistry registry, String id, String displayName,
+                                                  int manaCost, boolean movementSpell, SpellHandler handler,
+                                                  long cooldownMs) {
+        registry.registerSpell(new SpellDefinition(id, displayName, manaCost, movementSpell), handler);
+        SpellCastManager.setSpellCooldownMs(id, cooldownMs);
     }
 
     private static void registerDeckFireballs(SpellRegistry registry, Main plugin) {
