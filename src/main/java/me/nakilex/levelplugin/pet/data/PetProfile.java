@@ -20,6 +20,7 @@ public class PetProfile {
     private boolean autoSkipSummonAnimation;
     private PetVisibility petVisibility = PetVisibility.ALL;
     private int pityPullsSinceLegendary;
+    private int bannerPulls;
     private final Map<String, Integer> petXp = new HashMap<>();
     private final Map<String, Integer> petTiers = new HashMap<>();
     private final Map<String, Integer> petCopies = new HashMap<>();
@@ -74,6 +75,21 @@ public class PetProfile {
 
     public void setPityPullsSinceLegendary(int pityPullsSinceLegendary) {
         this.pityPullsSinceLegendary = Math.max(0, pityPullsSinceLegendary);
+    }
+
+    public int bannerPulls() {
+        return Math.max(0, bannerPulls);
+    }
+
+    public void setBannerPulls(int bannerPulls) {
+        this.bannerPulls = Math.max(0, bannerPulls);
+    }
+
+    public void addBannerPulls(int amount) {
+        if (amount <= 0) {
+            return;
+        }
+        setBannerPulls(bannerPulls() + amount);
     }
 
     public Location pendingSummonReturn() {

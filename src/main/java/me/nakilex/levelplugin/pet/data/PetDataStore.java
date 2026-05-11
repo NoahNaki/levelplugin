@@ -77,6 +77,7 @@ public class PetDataStore {
                 profile.setPetVisibility(PetVisibility.ALL);
             }
             profile.setPityPullsSinceLegendary(config.getInt(root + ".summon.pity-legendary", 0));
+            profile.setBannerPulls(config.getInt(root + ".summon.banner-total", 0));
             String petRoot = root + ".pets";
             var section = config.getConfigurationSection(petRoot);
             if (section != null) {
@@ -142,6 +143,7 @@ public class PetDataStore {
         config.set(root + ".summon.auto-skip-animation", profile.autoSkipSummonAnimation());
         config.set(root + ".pet-visibility", profile.petVisibility().name());
         config.set(root + ".summon.pity-legendary", profile.pityPullsSinceLegendary());
+        config.set(root + ".summon.banner-total", profile.bannerPulls());
     }
 
     private void saveConfig() {

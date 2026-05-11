@@ -120,6 +120,26 @@ public class PetSummonManager implements Listener {
         return petManager == null ? Map.of() : petManager.getGachaRates();
     }
 
+    public Map<ItemRarity, Double> getGachaRates(UUID playerId) {
+        return petManager == null ? Map.of() : petManager.getGachaRates(playerId);
+    }
+
+    public int getBannerLevel(UUID playerId) {
+        return petManager == null ? 1 : petManager.getBannerLevel(playerId);
+    }
+
+    public int getBannerLevelProgress(UUID playerId) {
+        return petManager == null ? 0 : petManager.getBannerLevelProgress(playerId);
+    }
+
+    public int getBannerLevelRequirement(UUID playerId) {
+        return petManager == null ? 0 : petManager.getBannerLevelRequirement(playerId);
+    }
+
+    public int getMaxBannerLevel() {
+        return petManager == null ? 10 : petManager.getMaxBannerLevel();
+    }
+
     public List<ItemRarity> getGachaRarities() {
         return petManager == null ? List.of() : petManager.getGachaRarities();
     }

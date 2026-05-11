@@ -129,18 +129,28 @@ public class SpellSummonGUI implements Listener {
     private ItemStack createRatesInfoItem(Player player) {
         List<String> lore = new ArrayList<>();
         lore.add(" ");
-        lore.add("§7Base pull rates:");
-        var rates = deckManager.getGachaRates();
+        lore.add("§7Current pull rates:");
+        var rates = deckManager.getGachaRates(player.getUniqueId());
         for (SpellDeckRarity rarity : deckManager.getGachaRarities()) {
             lore.add("§7• " + rarity.color() + rarity.displayName() + "§7: §f"
                     + String.format("%.1f", rates.getOrDefault(rarity, 0.0)) + "%");
         }
+        lore.add(" ");
+        lore.addAll(buildBannerLevelLore(player));
         lore.add(" ");
         lore.add("§7Pity: §f" + deckManager.getPityThreshold() + " pulls");
         lore.add("§7Legendary+ resets pity counter.");
         lore.add(" ");
         lore.addAll(buildPityLore(player));
         return GuiUtil.getNexoItem("info", "§eSpell Summon Rates", lore);
+    }
+
+    private List<String> buildBannerLevelLore(Player player) {
+        return TooltipUtil.pullLevelProgressLore("Banner Level",
+                deckManager.getBannerLevel(player.getUniqueId()),
+                deckManager.getMaxBannerLevel(),
+                deckManager.getBannerLevelProgress(player.getUniqueId()),
+                deckManager.getBannerLevelRequirement(player.getUniqueId()));
     }
 
     private void handleSummon(Player player, int amount) {

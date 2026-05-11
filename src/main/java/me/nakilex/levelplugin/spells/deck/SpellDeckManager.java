@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.PullLevelProgression;
 import me.nakilex.levelplugin.utils.RandomUtil;
 import org.bukkit.entity.Player;
 
@@ -410,7 +411,6 @@ public final class SpellDeckManager {
         }
         SpellDeckProfile profile = dataStore.getProfile(player.getUniqueId());
         Map<SpellDeckRarity, List<SpellCardDefinition>> pools = buildRarityPools();
-        Map<SpellDeckRarity, Double> weights = buildRarityWeights(pools);
         List<SpellPullEntry> entries = new ArrayList<>(amount);
         Map<SpellCardDefinition, Integer> summary = new HashMap<>();
         int duplicateInvestments = 0;
@@ -418,6 +418,7 @@ public final class SpellDeckManager {
         Random random = ThreadLocalRandom.current();
         for (int i = 0; i < amount; i++) {
             boolean pityGuaranteed = profile.pityPullsSinceLegendary() >= (PITY_THRESHOLD - 1);
+            Map<SpellDeckRarity, Double> weights = buildRarityWeights(pools, getBannerLevel(player.getUniqueId()));
             SpellCardDefinition card = rollCard(random, pools, weights, pityGuaranteed);
             if (card == null) {
                 continue;
@@ -443,6 +444,7 @@ public final class SpellDeckManager {
                 salvagedGems += gems;
                 entries.add(new SpellPullEntry(card, false, gems));
             }
+            profile.addBannerPulls(1);
             summary.merge(card, 1, Integer::sum);
         }
         dataStore.saveProfile(player.getUniqueId());
@@ -455,6 +457,34 @@ public final class SpellDeckManager {
 
     public Map<SpellDeckRarity, Double> getGachaRates() {
         return Collections.unmodifiableMap(GACHA_WEIGHTS);
+    }
+
+    public Map<SpellDeckRarity, Double> getGachaRates(UUID playerId) {
+        return Collections.unmodifiableMap(PullLevelProgression.ratesForLevel(
+                GACHA_RARITIES, GACHA_WEIGHTS, getBannerLevel(playerId)));
+    }
+
+    public int getBannerLevel(UUID playerId) {
+        return PullLevelProgression.levelForPulls(getBannerPulls(playerId));
+    }
+
+    public int getBannerLevelProgress(UUID playerId) {
+        return PullLevelProgression.progressIntoLevel(getBannerPulls(playerId));
+    }
+
+    public int getBannerLevelRequirement(UUID playerId) {
+        return PullLevelProgression.requiredForNextLevel(getBannerLevel(playerId));
+    }
+
+    public int getMaxBannerLevel() {
+        return PullLevelProgression.MAX_LEVEL;
+    }
+
+    private int getBannerPulls(UUID playerId) {
+        if (dataStore == null || playerId == null) {
+            return 0;
+        }
+        return dataStore.getProfile(playerId).bannerPulls();
     }
 
     public int getPityThreshold() {
@@ -655,13 +685,14 @@ public final class SpellDeckManager {
         return pools;
     }
 
-    private Map<SpellDeckRarity, Double> buildRarityWeights(Map<SpellDeckRarity, List<SpellCardDefinition>> pools) {
+    private Map<SpellDeckRarity, Double> buildRarityWeights(Map<SpellDeckRarity, List<SpellCardDefinition>> pools, int bannerLevel) {
+        Map<SpellDeckRarity, Double> levelRates = PullLevelProgression.ratesForLevel(GACHA_RARITIES, GACHA_WEIGHTS, bannerLevel);
         Map<SpellDeckRarity, Double> weights = new EnumMap<>(SpellDeckRarity.class);
         for (Map.Entry<SpellDeckRarity, List<SpellCardDefinition>> entry : pools.entrySet()) {
             if (entry.getValue() == null || entry.getValue().isEmpty()) {
                 continue;
             }
-            weights.put(entry.getKey(), GACHA_WEIGHTS.getOrDefault(entry.getKey(), 1.0));
+            weights.put(entry.getKey(), levelRates.getOrDefault(entry.getKey(), 0.0));
         }
         return weights;
     }

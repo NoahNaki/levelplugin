@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.pet.data.PetVisibility;
 import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetDisplayUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.utils.PullLevelProgression;
 import me.nakilex.levelplugin.utils.EntityTextDisplay;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
@@ -136,6 +137,34 @@ public class PetManager {
 
     public Map<ItemRarity, Double> getGachaRates() {
         return Collections.unmodifiableMap(GACHA_WEIGHTS);
+    }
+
+    public Map<ItemRarity, Double> getGachaRates(UUID playerId) {
+        return Collections.unmodifiableMap(PullLevelProgression.ratesForLevel(
+                GACHA_RARITIES, GACHA_WEIGHTS, getBannerLevel(playerId)));
+    }
+
+    public int getBannerLevel(UUID playerId) {
+        return PullLevelProgression.levelForPulls(getBannerPulls(playerId));
+    }
+
+    public int getBannerLevelProgress(UUID playerId) {
+        return PullLevelProgression.progressIntoLevel(getBannerPulls(playerId));
+    }
+
+    public int getBannerLevelRequirement(UUID playerId) {
+        return PullLevelProgression.requiredForNextLevel(getBannerLevel(playerId));
+    }
+
+    public int getMaxBannerLevel() {
+        return PullLevelProgression.MAX_LEVEL;
+    }
+
+    private int getBannerPulls(UUID playerId) {
+        if (playerId == null) {
+            return 0;
+        }
+        return dataStore.getProfile(playerId).bannerPulls();
     }
 
     public int getPityThreshold() {
@@ -897,10 +926,10 @@ public class PetManager {
         Map<PetDefinition, Integer> kept = new HashMap<>();
         Map<PetDefinition, Integer> discarded = new HashMap<>();
         Random random = ThreadLocalRandom.current();
-        Map<ItemRarity, Double> weights = buildRarityWeights(pools);
         for (int i = 0; i < amount; i++) {
             int effectivePity = getEffectivePityThreshold(player.getUniqueId());
             boolean pityGuaranteed = profile.pityPullsSinceLegendary() >= (effectivePity - 1);
+            Map<ItemRarity, Double> weights = buildRarityWeights(pools, getBannerLevel(player.getUniqueId()));
             PetDefinition def = rollPullDefinition(random, pools, weights, pityGuaranteed);
             if (def == null) {
                 continue;
@@ -912,6 +941,7 @@ public class PetManager {
                 profile.setPityPullsSinceLegendary(profile.pityPullsSinceLegendary() + 1);
             }
 
+            profile.addBannerPulls(1);
             if (shouldDiscard(def, profile.autoDiscardRarity())) {
                 discarded.merge(def, 1, Integer::sum);
                 pulls.add(new PetPullEntry(def, false));
@@ -1116,13 +1146,14 @@ public class PetManager {
         return pools;
     }
 
-    private Map<ItemRarity, Double> buildRarityWeights(Map<ItemRarity, List<PetDefinition>> pools) {
+    private Map<ItemRarity, Double> buildRarityWeights(Map<ItemRarity, List<PetDefinition>> pools, int bannerLevel) {
+        Map<ItemRarity, Double> levelRates = PullLevelProgression.ratesForLevel(GACHA_RARITIES, GACHA_WEIGHTS, bannerLevel);
         Map<ItemRarity, Double> weights = new EnumMap<>(ItemRarity.class);
         for (Map.Entry<ItemRarity, List<PetDefinition>> entry : pools.entrySet()) {
             if (entry.getValue() == null || entry.getValue().isEmpty()) {
                 continue;
             }
-            weights.put(entry.getKey(), GACHA_WEIGHTS.getOrDefault(entry.getKey(), 1.0));
+            weights.put(entry.getKey(), levelRates.getOrDefault(entry.getKey(), 0.0));
         }
         return weights;
     }
