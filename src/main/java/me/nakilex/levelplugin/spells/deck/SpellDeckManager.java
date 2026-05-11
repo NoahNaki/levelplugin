@@ -186,11 +186,31 @@ public final class SpellDeckManager {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You have not pulled " + definition.displayName() + " yet.");
             return false;
         }
+        SpellInputType existingSlot = profile.getEquippedSlot(definition.cardId());
+        if (existingSlot != null && existingSlot != inputType) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    definition.displayName() + " is already equipped in " + labelForInput(existingSlot) + ".");
+            return false;
+        }
         profile.equip(inputType, definition.cardId());
         dataStore.saveProfile(player.getUniqueId());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Equipped " + definition.rarity().color() + definition.displayName() + org.bukkit.ChatColor.GREEN + " to " + inputType.name().replace('_', ' ') + ".");
         return true;
+    }
+
+
+    private String labelForInput(SpellInputType inputType) {
+        if (inputType == null) {
+            return "another slot";
+        }
+        return switch (inputType) {
+            case SPELL_1 -> "Spell 1";
+            case SPELL_2 -> "Spell 2";
+            case SPELL_3 -> "Spell 3";
+            case SPELL_4 -> "Spell 4";
+            case BASIC_ATTACK -> "Basic Attack";
+        };
     }
 
     public SpellPullResult pull(Player player, int amount) {

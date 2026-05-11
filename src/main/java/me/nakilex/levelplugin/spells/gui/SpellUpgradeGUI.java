@@ -33,16 +33,22 @@ import java.util.Map;
 import java.util.UUID;
 
 public class SpellUpgradeGUI implements Listener {
-    private static final int GUI_SIZE = 54;
-    private static final int PAGE_SIZE = GuiUtil.PAGED_SLOTS.length;
-    private static final int PREV_SLOT = 45;
-    private static final int NEXT_SLOT = 53;
-    private static final int BACK_SLOT = 45;
-    private static final int INVEST_ALL_SLOT = 49;
-    private static final int SORT_SLOT = 51;
-    private static final int CATEGORY_FILTER_SLOT = 50;
-    private static final int RARITY_FILTER_SLOT = 52;
-    private static final int[] SPELL_SLOTS = {20, 21, 23, 24};
+    private static final int MAIN_GUI_SIZE = 27;
+    private static final int SELECT_GUI_SIZE = 45;
+    private static final int[] SELECT_SLOTS = {
+            10, 11, 12, 13, 14, 15, 16,
+            19, 20, 21, 22, 23, 24, 25,
+            28, 29, 30, 31, 32, 33, 34
+    };
+    private static final int PAGE_SIZE = SELECT_SLOTS.length;
+    private static final int PREV_SLOT = 36;
+    private static final int NEXT_SLOT = 44;
+    private static final int BACK_SLOT = 39;
+    private static final int INVEST_ALL_SLOT = 22;
+    private static final int SORT_SLOT = 40;
+    private static final int CATEGORY_FILTER_SLOT = 41;
+    private static final int RARITY_FILTER_SLOT = 42;
+    private static final int[] SPELL_SLOTS = {10, 12, 14, 16};
     private static final SpellInputType[] EQUIP_INPUTS = {
             SpellInputType.SPELL_1,
             SpellInputType.SPELL_2,
@@ -62,7 +68,7 @@ public class SpellUpgradeGUI implements Listener {
     private final Map<UUID, SpellInputType> selectingSlotByPlayer = new HashMap<>();
 
     public void open(Player player) {
-        Inventory gui = GuiBuilder.create(GUI_SIZE, titlePrefix)
+        Inventory gui = GuiBuilder.create(MAIN_GUI_SIZE, titlePrefix)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .build();
@@ -78,7 +84,7 @@ public class SpellUpgradeGUI implements Listener {
         int maxPage = Math.max(0, (cards.size() - 1) / PAGE_SIZE);
         int current = Math.max(0, Math.min(page, maxPage));
         pages.put(player.getUniqueId(), current);
-        Inventory gui = GuiBuilder.create(GUI_SIZE, selectTitlePrefix + " §8(" + ChatColor.WHITE + labelForInput(inputType) + "§8)")
+        Inventory gui = GuiBuilder.create(SELECT_GUI_SIZE, selectTitlePrefix + " §8(" + ChatColor.WHITE + labelForInput(inputType) + "§8)")
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .build();
@@ -118,11 +124,14 @@ public class SpellUpgradeGUI implements Listener {
         int end = Math.min(cards.size(), start + PAGE_SIZE);
         for (int i = start; i < end; i++) {
             SpellCardDefinition card = cards.get(i);
-            int slot = GuiUtil.PAGED_SLOTS[i - start];
+            int slot = SELECT_SLOTS[i - start];
             widgets.add(new ActionWidget(slot, ctx -> createBrowserCardItem(ctx.player(), card, inputType),
                     (click, context) -> {
-                        deckManager.equip(context.player(), inputType, card.cardId());
-                        open(context.player());
+                        if (deckManager.equip(context.player(), inputType, card.cardId())) {
+                            open(context.player());
+                        } else {
+                            openSelection(context.player(), inputType, pages.getOrDefault(context.player().getUniqueId(), 0));
+                        }
                     }));
         }
         if (page > 0) {
@@ -217,6 +226,12 @@ public class SpellUpgradeGUI implements Listener {
         List<String> lore = new ArrayList<>();
         lore.add(ChatColor.DARK_GRAY + "Target Slot: " + ChatColor.WHITE + labelForInput(targetSlot));
         addCardSummaryLore(player, lore, card, false);
+        SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
+        SpellInputType equippedSlot = profile == null ? null : profile.getEquippedSlot(card.cardId());
+        if (equippedSlot != null && equippedSlot != targetSlot) {
+            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED,
+                    "Unavailable", ChatColor.GRAY, "Already in " + labelForInput(equippedSlot)));
+        }
         lore.add(" ");
         lore.add(ChatColor.WHITE + "Effects");
         for (String line : card.effectLines()) {
@@ -373,7 +388,7 @@ public class SpellUpgradeGUI implements Listener {
             return;
         }
         String viewTitle = LEGACY.serialize(event.getView().title());
-        if (!GuiUtil.titleStartsWith(viewTitle, titlePrefix) && !GuiUtil.titleStartsWith(viewTitle, selectTitlePrefix)) {
+        if (!isDeckTitle(viewTitle)) {
             return;
         }
         event.setCancelled(true);
@@ -397,10 +412,18 @@ public class SpellUpgradeGUI implements Listener {
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
         String viewTitle = LEGACY.serialize(event.getView().title());
-        if (GuiUtil.titleStartsWith(viewTitle, titlePrefix) || GuiUtil.titleStartsWith(viewTitle, selectTitlePrefix)) {
+        if (isDeckTitle(viewTitle)) {
             UUID id = event.getPlayer().getUniqueId();
             widgetsByPlayer.remove(id);
+            selectingSlotByPlayer.remove(id);
         }
+    }
+
+
+    private boolean isDeckTitle(String viewTitle) {
+        String normalized = GuiUtil.normalizeTitle(viewTitle);
+        return normalized.equalsIgnoreCase("Spell Deck")
+                || normalized.startsWith("Select Spell");
     }
 
     private String labelForInput(SpellInputType inputType) {

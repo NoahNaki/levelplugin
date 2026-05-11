@@ -64,6 +64,20 @@ public final class SpellDeckProfile {
         return inputType == null ? null : equippedCards.get(inputType);
     }
 
+
+    public SpellInputType getEquippedSlot(String cardId) {
+        if (cardId == null || cardId.isBlank()) {
+            return null;
+        }
+        String normalized = cardId.toLowerCase(java.util.Locale.ROOT);
+        for (Map.Entry<SpellInputType, String> entry : equippedCards.entrySet()) {
+            if (entry.getValue() != null && entry.getValue().equalsIgnoreCase(normalized)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     public void equip(SpellInputType inputType, String cardId) {
         if (inputType == null) {
             return;
