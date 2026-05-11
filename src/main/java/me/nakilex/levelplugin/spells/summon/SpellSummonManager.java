@@ -42,7 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class SpellSummonManager implements Listener {
-    private static final String CUTSCENE_ID = "pet_pull";
+    private static final String CUTSCENE_ID = "spell_pull";
     private static final int SPAWN_DELAY_TICKS = 20;
     private static final int SPAWN_INTERVAL_TICKS = 10;
     private static final int SPIN_TICKS = 120;

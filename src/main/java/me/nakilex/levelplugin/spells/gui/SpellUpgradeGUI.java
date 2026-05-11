@@ -4,6 +4,9 @@ import me.nakilex.levelplugin.spells.deck.SpellCardCategory;
 import me.nakilex.levelplugin.spells.deck.SpellCardDefinition;
 import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
 import me.nakilex.levelplugin.spells.deck.SpellDeckProfile;
+import me.nakilex.levelplugin.spells.SpellCastManager;
+import me.nakilex.levelplugin.spells.SpellDefinition;
+import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.deck.SpellDeckRarity;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.utils.ChatUtil;
@@ -29,7 +32,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class SpellUpgradeGUI implements Listener {
     private static final int MAIN_GUI_SIZE = 27;
@@ -40,9 +46,9 @@ public class SpellUpgradeGUI implements Listener {
             28, 29, 30, 31, 32, 33, 34
     };
     private static final int PAGE_SIZE = SELECT_SLOTS.length;
-    private static final int PREV_SLOT = 36;
+    private static final int BACK_SLOT = 36;
+    private static final int PREV_SLOT = 37;
     private static final int NEXT_SLOT = 43;
-    private static final int BACK_SLOT = 44;
     private static final int INVEST_ALL_SLOT = 22;
     private static final int SORT_SLOT = 39;
     private static final int CATEGORY_FILTER_SLOT = 40;
@@ -54,6 +60,8 @@ public class SpellUpgradeGUI implements Listener {
             SpellInputType.SPELL_3,
             SpellInputType.SPELL_4
     };
+    private static final Pattern IMPORTANT_TOKEN_PATTERN = Pattern.compile(
+            "(?i)(\\b(?:damage|mana|cooldown|burn|burning|explosion|radius|charge|full charge|secondary|stuns?|chain|chains|deaths?|inferno|resistance|hp|movement|projectile|speed)\\b|\\d+(?:\\.\\d+)?%?(?:/sec|s|x)?)");
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private final SpellDeckManager deckManager = SpellDeckManager.getInstance();
@@ -228,20 +236,9 @@ public class SpellUpgradeGUI implements Listener {
         SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
         SpellInputType equippedSlot = profile == null ? null : profile.getEquippedSlot(card.cardId());
         if (equippedSlot != null && equippedSlot != targetSlot) {
+            lore.add(" ");
             lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED,
                     "Unavailable", ChatColor.GRAY, "Already in " + labelForInput(equippedSlot)));
-        }
-        lore.add(" ");
-        lore.add(ChatColor.WHITE + "Effects");
-        for (String line : card.effectLines()) {
-            lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + line));
-        }
-        if (!card.tradeoffLines().isEmpty()) {
-            lore.add(" ");
-            lore.add(ChatColor.WHITE + "Tradeoff");
-            for (String line : card.tradeoffLines()) {
-                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + line));
-            }
         }
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to equip to " + labelForInput(targetSlot), null));
@@ -249,20 +246,115 @@ public class SpellUpgradeGUI implements Listener {
     }
 
     private void addCardSummaryLore(Player player, List<String> lore, SpellCardDefinition card, boolean includeEquippedLine) {
-        SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
-        int copies = profile == null ? 0 : profile.getCopies(card.cardId());
-        int invested = profile == null ? 0 : profile.getInvestedCopies(card.cardId());
+        SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(card.spellId());
+        SpellDefinition definition = spellEntry == null ? null : spellEntry.definition();
+        int manaCost = definition == null
+                ? readStatFromLore(card, "mana cost", 0)
+                : SpellCastManager.getInstance().getManaCost(player, definition);
+        long cooldownMs = definition == null
+                ? readStatFromLore(card, "cooldown", 0) * 1000L
+                : SpellCastManager.getInstance().getCooldownMs(player, definition);
+
+        lore.add(TooltipUtil.iconLabelValueLine("✦", card.rarity().color(), card.rarity().color(),
+                "Spell", ChatColor.WHITE, card.displayName()));
         lore.add(TooltipUtil.iconLabelValueLine("◆", card.rarity().color(), card.rarity().color(),
                 "Rarity", ChatColor.WHITE, card.rarity().displayName()));
-        lore.add(TooltipUtil.iconLabelValueLine("✦", card.category().color(), card.category().color(),
-                "Category", ChatColor.WHITE, card.category().displayName()));
-        lore.add(TooltipUtil.iconLabelValueLine("✚", ChatColor.GREEN, ChatColor.GREEN,
-                "Copies", ChatColor.WHITE, String.valueOf(copies)));
-        lore.add(TooltipUtil.iconLabelValueLine("✧", ChatColor.LIGHT_PURPLE, ChatColor.LIGHT_PURPLE,
-                "Invested", ChatColor.WHITE, String.valueOf(invested)));
+        lore.add(TooltipUtil.iconLabelValueLine("✧", ChatColor.AQUA, ChatColor.AQUA,
+                "Mana Cost", ChatColor.WHITE, manaCost + " mana"));
+        lore.add(TooltipUtil.iconLabelValueLine("⌛", ChatColor.YELLOW, ChatColor.YELLOW,
+                "Cooldown", ChatColor.WHITE, formatCooldown(cooldownMs)));
+        lore.add(" ");
+        lore.add(ChatColor.WHITE + "Effects");
+        List<String> effectLines = visibleEffectLines(card);
+        if (effectLines.isEmpty()) {
+            lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "No extra effect details."));
+        } else {
+            for (String line : effectLines) {
+                lore.add(TooltipUtil.bulletLine(highlightImportant(line)));
+            }
+        }
         if (includeEquippedLine) {
+            lore.add(" ");
             lore.add(TooltipUtil.selectionLine(true, "Equipped"));
         }
+    }
+
+    private List<String> visibleEffectLines(SpellCardDefinition card) {
+        List<String> lines = new ArrayList<>();
+        for (String line : card.effectLines()) {
+            if (isManaOrCooldownLine(line)) {
+                continue;
+            }
+            lines.add(line);
+        }
+        for (String line : card.tradeoffLines()) {
+            if (isManaOrCooldownLine(line)) {
+                continue;
+            }
+            lines.add(line);
+        }
+        return lines;
+    }
+
+    private boolean isManaOrCooldownLine(String line) {
+        if (line == null) {
+            return false;
+        }
+        String normalized = line.toLowerCase(Locale.ROOT);
+        return normalized.contains("mana cost") || normalized.contains("cooldown");
+    }
+
+    private int readStatFromLore(SpellCardDefinition card, String label, int fallback) {
+        for (String line : card.effectLines()) {
+            Integer value = readFirstNumberAfterLabel(line, label);
+            if (value != null) {
+                return value;
+            }
+        }
+        for (String line : card.tradeoffLines()) {
+            Integer value = readFirstNumberAfterLabel(line, label);
+            if (value != null) {
+                return value;
+            }
+        }
+        return fallback;
+    }
+
+    private Integer readFirstNumberAfterLabel(String line, String label) {
+        if (line == null || label == null) {
+            return null;
+        }
+        String normalized = line.toLowerCase(Locale.ROOT);
+        int index = normalized.indexOf(label);
+        if (index < 0) {
+            return null;
+        }
+        Matcher matcher = Pattern.compile("\\d+").matcher(line.substring(index));
+        return matcher.find() ? Integer.parseInt(matcher.group()) : null;
+    }
+
+    private String formatCooldown(long cooldownMs) {
+        double seconds = Math.max(0L, cooldownMs) / 1000.0;
+        if (Math.abs(seconds - Math.rint(seconds)) < 0.001) {
+            return (int) Math.rint(seconds) + "s";
+        }
+        return String.format(Locale.ROOT, "%.1fs", seconds);
+    }
+
+    private String highlightImportant(String line) {
+        if (line == null || line.isBlank()) {
+            return ChatColor.GRAY.toString();
+        }
+        Matcher matcher = IMPORTANT_TOKEN_PATTERN.matcher(line);
+        StringBuilder highlighted = new StringBuilder(ChatColor.GRAY.toString());
+        int last = 0;
+        while (matcher.find()) {
+            highlighted.append(line, last, matcher.start());
+            highlighted.append(ChatColor.YELLOW).append(matcher.group()).append(ChatColor.GRAY);
+            last = matcher.end();
+        }
+        highlighted.append(line.substring(last));
+        return highlighted.toString();
     }
 
     private ItemStack createEmptySelectionItem() {
