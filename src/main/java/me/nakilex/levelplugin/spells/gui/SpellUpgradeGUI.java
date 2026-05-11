@@ -62,7 +62,7 @@ public class SpellUpgradeGUI implements Listener {
             SpellInputType.SPELL_4
     };
     private static final Pattern IMPORTANT_TOKEN_PATTERN = Pattern.compile(
-            "(?i)(\\b(?:stuns?|poisons?|burns?|burning|ignite[sd]?|inferno|chains?|charge|resistance|hp|movement|spread|explosions?)\\b|\\d+(?:\\.\\d+)?%?(?:/sec|s|x)?)");
+            "(?i)(\\b(?:damage|radius|stuns?|poisons?|burns?|burning|ignite[sd]?|inferno|chains?|charge|resistance|hp|movement|spread|explosions?|lose|projectile|speed)\\b|\\d+(?:\\.\\d+)?%?(?:/sec|s|x)?)");
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private final SpellDeckManager deckManager = SpellDeckManager.getInstance();
@@ -266,12 +266,11 @@ public class SpellUpgradeGUI implements Listener {
             lore.add(ChatColor.GRAY + "§o" + description);
         }
         lore.add(" ");
-        lore.add(rarityDivider(card));
-        lore.add(statLine("✦", ChatColor.GREEN, "Rarity", card.rarity().color() + card.rarity().displayName().toUpperCase(Locale.ROOT)));
-        lore.add(statLine("✧", ChatColor.AQUA, "Mana Cost", ChatColor.WHITE + String.valueOf(manaCost) + ChatColor.GRAY + " mana"));
-        lore.add(statLine("⌛", ChatColor.YELLOW, "Cooldown", ChatColor.WHITE + formatCooldown(cooldownMs)));
-        lore.add(rarityDivider(card));
-        lore.add(ChatColor.LIGHT_PURPLE + "Effects");
+        lore.add(statLine("✦", "Rarity", card.rarity().displayName().toUpperCase(Locale.ROOT)));
+        lore.add(statLine("✧", "Mana Cost", manaCost + " mana"));
+        lore.add(statLine("⌛", "Cooldown", formatCooldown(cooldownMs)));
+        lore.add(" ");
+        lore.add(ChatColor.WHITE + "Effects");
         List<String> effectLines = visibleEffectLines(card);
         if (effectLines.isEmpty()) {
             lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "No extra effect details."));
@@ -287,12 +286,10 @@ public class SpellUpgradeGUI implements Listener {
     }
 
 
-    private String rarityDivider(SpellCardDefinition card) {
-        return card.rarity().color() + "✦" + ChatColor.DARK_PURPLE + "────────────────" + card.rarity().color() + "✦";
-    }
-
-    private String statLine(String icon, ChatColor color, String label, String value) {
-        return color + icon + " " + label.toUpperCase(Locale.ROOT) + ": " + value;
+    private String statLine(String icon, String label, String value) {
+        return ChatColor.DARK_PURPLE + icon + " "
+                + ChatColor.GRAY + label.toUpperCase(Locale.ROOT) + ": "
+                + ChatColor.WHITE + value;
     }
 
     private String formatEffectLine(String line) {
@@ -300,12 +297,6 @@ public class SpellUpgradeGUI implements Listener {
             return ChatColor.DARK_GRAY + "- " + ChatColor.GRAY;
         }
         String trimmed = line.trim();
-        int colon = trimmed.indexOf(':');
-        if (colon > 0 && colon <= 28) {
-            String label = trimmed.substring(0, colon).trim();
-            String value = trimmed.substring(colon + 1).trim();
-            return ChatColor.DARK_PURPLE + "✦ " + ChatColor.YELLOW + label + ": " + highlightImportant(value);
-        }
         return ChatColor.DARK_PURPLE + "✦ " + highlightImportant(trimmed);
     }
 
@@ -391,7 +382,7 @@ public class SpellUpgradeGUI implements Listener {
         int last = 0;
         while (matcher.find()) {
             highlighted.append(line, last, matcher.start());
-            highlighted.append(ChatColor.YELLOW).append(matcher.group()).append(ChatColor.GRAY);
+            highlighted.append(ChatColor.WHITE).append(matcher.group()).append(ChatColor.GRAY);
             last = matcher.end();
         }
         highlighted.append(line.substring(last));
