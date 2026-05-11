@@ -234,20 +234,8 @@ public final class TooltipUtil {
      * @return formatted divider line
      */
     public static String sectionDivider(int chars) {
-        return sectionDivider(ChatColor.DARK_GRAY, chars);
-    }
-
-    /**
-     * Build a lightweight plain divider line for lore sections in a custom color.
-     *
-     * @param color divider color, falling back to dark gray
-     * @param chars number of divider characters to render
-     * @return formatted divider line
-     */
-    public static String sectionDivider(ChatColor color, int chars) {
         int width = Math.max(10, chars);
-        ChatColor resolved = color == null ? ChatColor.DARK_GRAY : color;
-        return resolved + "-".repeat(width);
+        return ChatColor.DARK_GRAY + "-".repeat(width);
     }
 
     /**
@@ -257,21 +245,10 @@ public final class TooltipUtil {
      * @return formatted divider line
      */
     public static String sectionDividerByPixels(int pixelWidth) {
-        return sectionDividerByPixels(ChatColor.DARK_GRAY, pixelWidth);
-    }
-
-    /**
-     * Build a divider in a custom color targeting a visual lore width in pixels.
-     *
-     * @param color divider color, falling back to dark gray
-     * @param pixelWidth target width in pixels
-     * @return formatted divider line
-     */
-    public static String sectionDividerByPixels(ChatColor color, int pixelWidth) {
         int target = Math.max(80, pixelWidth);
         int chars = (int) Math.ceil(target / (double) dividerUnitPixelWidth());
         chars = Math.max(16, Math.min(34, chars));
-        return sectionDivider(color, chars);
+        return sectionDivider(chars);
     }
 
     /**
