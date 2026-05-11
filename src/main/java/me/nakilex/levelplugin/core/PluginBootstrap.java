@@ -434,6 +434,7 @@ public class PluginBootstrap {
         playerPreferenceService = new PlayerPreferenceService();
         playerEnvironmentService = new PlayerEnvironmentService(playerPreferenceService);
         SpellCatalog.registerDefaults(plugin);
+        me.nakilex.levelplugin.spells.deck.SpellDeckManager.getInstance().init(plugin);
         questManager = new QuestManager(plugin, partyManager);
         battlePassManager = new BattlePassManager(plugin, questManager, itemManager);
         battlePassGUI = battlePassManager.getGui();
@@ -899,6 +900,7 @@ public class PluginBootstrap {
         if (dpsDummyManager != null) dpsDummyManager.shutdown();
         if (customMobManager != null) customMobManager.getSpawnerManager().shutdown();
         if (petManager != null) petManager.shutdown();
+        me.nakilex.levelplugin.spells.deck.SpellDeckManager.getInstance().shutdown();
         if (horseManager != null) horseManager.shutdown();
         if (dungeonManager != null) {
             dungeonManager.cleanupInstances();

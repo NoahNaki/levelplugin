@@ -19,6 +19,7 @@ import me.nakilex.levelplugin.spells.input.SpellKeybindLayout;
 import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 import me.nakilex.levelplugin.spells.input.SpellKeybindSlot;
 import me.nakilex.levelplugin.spells.impl.ArcherSkyboundSpell;
+import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
 import me.nakilex.levelplugin.spells.impl.RogueShadowFlurrySpell;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
@@ -298,7 +299,7 @@ public class SpellInputListener implements Listener {
     private void handleClick(Player player, boolean leftClick) {
         boolean validWeapon = isHoldingValidClassWeapon(player);
         if (!validWeapon) {
-            if (!isMageBasicFallbackAllowed(player, leftClick)) {
+            if (!isSpellDeckBasicAllowed(player, leftClick) && !isMageBasicFallbackAllowed(player, leftClick)) {
                 return;
             }
             dispatch(player, SpellInputType.BASIC_ATTACK, SpellInputMode.MOUSE_AND_KEYBOARD,
@@ -350,6 +351,17 @@ public class SpellInputListener implements Listener {
         if (bound != null) {
             dispatch(player, bound, mode, sequence);
         }
+    }
+
+
+    private boolean isSpellDeckBasicAllowed(Player player, boolean leftClick) {
+        if (player == null || !leftClick) {
+            return false;
+        }
+        if (!SpellAccessUtil.isHoldingWeapon(player)) {
+            return false;
+        }
+        return SpellDeckManager.getInstance().hasEquippedCard(player, SpellInputType.BASIC_ATTACK);
     }
 
     private boolean isMageBasicFallbackAllowed(Player player, boolean leftClick) {
