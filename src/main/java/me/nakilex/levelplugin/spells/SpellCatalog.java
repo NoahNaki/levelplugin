@@ -283,6 +283,7 @@ public final class SpellCatalog {
                                              int manaCost,
                                              DeckFireballSpell.Config config) {
         registry.registerSpell(new SpellDefinition(id, displayName, manaCost, false), new DeckFireballSpell(plugin, config));
+        SpellCastManager.setSpellCooldownMs(id, config.cooldownSeconds() * 1000L);
     }
 
 

@@ -30,6 +30,8 @@ public final class SpellDeckManager {
             SpellDeckRarity.LEGENDARY,
             SpellDeckRarity.MYTHIC
     );
+    private static final int MAX_MASTERY_RANK = 5;
+    private static final double MASTERY_MANA_COOLDOWN_REDUCTION_PER_RANK = 0.02;
     private static final Map<SpellDeckRarity, Double> GACHA_WEIGHTS = Map.of(
             SpellDeckRarity.COMMON, 55.0,
             SpellDeckRarity.UNCOMMON, 25.0,
@@ -38,12 +40,21 @@ public final class SpellDeckManager {
             SpellDeckRarity.LEGENDARY, 1.5,
             SpellDeckRarity.MYTHIC, 0.5
     );
+    private static final Map<SpellDeckRarity, Integer> MAXED_DUPLICATE_GEMS = Map.of(
+            SpellDeckRarity.COMMON, 2,
+            SpellDeckRarity.UNCOMMON, 5,
+            SpellDeckRarity.RARE, 10,
+            SpellDeckRarity.EPIC, 25,
+            SpellDeckRarity.LEGENDARY, 75,
+            SpellDeckRarity.MYTHIC, 150
+    );
 
     public static SpellDeckManager getInstance() {
         return INSTANCE;
     }
 
     private final Map<String, SpellCardDefinition> definitions = new HashMap<>();
+    private final Map<String, SpellCardDefinition> definitionsBySpellId = new HashMap<>();
     private final Map<String, List<SpellCardDefinition>> definitionsByFamily = new HashMap<>();
     private SpellDeckDataStore dataStore;
     private Main plugin;
@@ -65,6 +76,7 @@ public final class SpellDeckManager {
 
     public void registerDefaults() {
         definitions.clear();
+        definitionsBySpellId.clear();
         definitionsByFamily.clear();
         register(new SpellCardDefinition("fireball_common", "fireball", "deck_fireball_common", "Fireball",
                 SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
@@ -98,6 +110,7 @@ public final class SpellDeckManager {
         }
         String cardId = normalize(definition.cardId());
         definitions.put(cardId, definition);
+        definitionsBySpellId.put(normalize(definition.spellId()), definition);
         definitionsByFamily.computeIfAbsent(normalize(definition.familyId()), ignored -> new ArrayList<>()).add(definition);
         definitionsByFamily.values().forEach(list -> list.sort(java.util.Comparator.comparingInt(card -> card.rarity().ordinal())));
     }
@@ -135,6 +148,10 @@ public final class SpellDeckManager {
 
     public SpellCardDefinition getDefinition(String cardId) {
         return definitions.get(normalize(cardId));
+    }
+
+    public SpellCardDefinition getDefinitionBySpellId(String spellId) {
+        return definitionsBySpellId.get(normalize(spellId));
     }
 
     public SpellCardDefinition getEquippedCard(UUID playerId, SpellInputType inputType) {
@@ -248,13 +265,15 @@ public final class SpellDeckManager {
 
     public SpellPullResult pull(Player player, int amount) {
         if (player == null || amount <= 0 || dataStore == null || definitions.isEmpty()) {
-            return new SpellPullResult(List.of(), Map.of());
+            return new SpellPullResult(List.of(), Map.of(), 0, 0);
         }
         SpellDeckProfile profile = dataStore.getProfile(player.getUniqueId());
         Map<SpellDeckRarity, List<SpellCardDefinition>> pools = buildRarityPools();
         Map<SpellDeckRarity, Double> weights = buildRarityWeights(pools);
         List<SpellPullEntry> entries = new ArrayList<>(amount);
         Map<SpellCardDefinition, Integer> summary = new HashMap<>();
+        int duplicateInvestments = 0;
+        int salvagedGems = 0;
         Random random = ThreadLocalRandom.current();
         for (int i = 0; i < amount; i++) {
             boolean pityGuaranteed = profile.pityPullsSinceLegendary() >= (PITY_THRESHOLD - 1);
@@ -267,13 +286,26 @@ public final class SpellDeckManager {
             } else {
                 profile.setPityPullsSinceLegendary(profile.pityPullsSinceLegendary() + 1);
             }
-            profile.addCopies(card.cardId(), 1);
-            entries.add(new SpellPullEntry(card));
+            int existingCopies = profile.getCopies(card.cardId());
+            int invested = profile.getInvestedCopies(card.cardId());
+            if (existingCopies <= 0) {
+                profile.addCopies(card.cardId(), 1);
+                autoEquipFirstCopy(player, profile, card);
+                entries.add(new SpellPullEntry(card));
+            } else if (invested < maxMasteryInvestedCopies()) {
+                profile.addInvestedCopies(card.cardId(), 1);
+                duplicateInvestments++;
+                entries.add(new SpellPullEntry(card, true, 0));
+            } else {
+                int gems = maxedDuplicateGemValue(card.rarity());
+                addGems(player, gems);
+                salvagedGems += gems;
+                entries.add(new SpellPullEntry(card, false, gems));
+            }
             summary.merge(card, 1, Integer::sum);
-            autoEquipFirstCopy(player, profile, card);
         }
         dataStore.saveProfile(player.getUniqueId());
-        return new SpellPullResult(entries, summary);
+        return new SpellPullResult(entries, summary, duplicateInvestments, salvagedGems);
     }
 
     public List<SpellDeckRarity> getGachaRarities() {
@@ -297,31 +329,120 @@ public final class SpellDeckManager {
 
     public InvestAllResult investAllDuplicateCopies(Player player) {
         if (player == null || dataStore == null) {
-            return new InvestAllResult(0, 0);
+            return new InvestAllResult(0, 0, 0);
         }
         SpellDeckProfile profile = dataStore.getProfile(player.getUniqueId());
         int cardsTouched = 0;
         int copiesInvested = 0;
+        int gemsSalvaged = 0;
         for (SpellCardDefinition definition : definitions.values()) {
             int copies = profile.getCopies(definition.cardId());
             if (copies <= 1) {
                 continue;
             }
             int duplicateCopies = copies - 1;
+            int availableMastery = Math.max(0, maxMasteryInvestedCopies() - profile.getInvestedCopies(definition.cardId()));
+            int investableCopies = Math.min(duplicateCopies, availableMastery);
+            int salvageCopies = duplicateCopies - investableCopies;
             profile.setCopies(definition.cardId(), 1);
-            profile.addInvestedCopies(definition.cardId(), duplicateCopies);
-            copiesInvested += duplicateCopies;
+            if (investableCopies > 0) {
+                profile.addInvestedCopies(definition.cardId(), investableCopies);
+                copiesInvested += investableCopies;
+            }
+            if (salvageCopies > 0) {
+                gemsSalvaged += salvageCopies * maxedDuplicateGemValue(definition.rarity());
+            }
             cardsTouched++;
         }
-        if (copiesInvested > 0) {
+        if (gemsSalvaged > 0) {
+            addGems(player, gemsSalvaged);
+        }
+        if (copiesInvested > 0 || gemsSalvaged > 0) {
             dataStore.saveProfile(player.getUniqueId());
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                     "Invested " + org.bukkit.ChatColor.WHITE + copiesInvested + org.bukkit.ChatColor.GREEN
-                            + " duplicate spell card copies.");
+                            + " duplicate spell copies and salvaged " + org.bukkit.ChatColor.LIGHT_PURPLE
+                            + gemsSalvaged + " <glyph:purple_orb_icon>" + org.bukkit.ChatColor.GREEN + ".");
         } else {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You do not have duplicate spell cards to invest.");
         }
-        return new InvestAllResult(cardsTouched, copiesInvested);
+        return new InvestAllResult(cardsTouched, copiesInvested, gemsSalvaged);
+    }
+
+    public int getMaxMasteryRank() {
+        return MAX_MASTERY_RANK;
+    }
+
+    public int maxMasteryInvestedCopies() {
+        return investedCopiesForRank(MAX_MASTERY_RANK);
+    }
+
+    public int getMasteryRank(SpellDeckProfile profile, SpellCardDefinition card) {
+        if (profile == null || card == null) {
+            return 0;
+        }
+        return getMasteryRank(profile.getInvestedCopies(card.cardId()));
+    }
+
+    public int getMasteryRank(UUID playerId, String spellId) {
+        if (dataStore == null || playerId == null || spellId == null) {
+            return 0;
+        }
+        SpellCardDefinition card = getDefinitionBySpellId(spellId);
+        if (card == null) {
+            return 0;
+        }
+        return getMasteryRank(dataStore.getProfile(playerId), card);
+    }
+
+    public double getMasteryManaCooldownMultiplier(UUID playerId, String spellId) {
+        int rank = getMasteryRank(playerId, spellId);
+        double reduction = Math.min(0.25, rank * MASTERY_MANA_COOLDOWN_REDUCTION_PER_RANK);
+        return Math.max(0.0, 1.0 - reduction);
+    }
+
+    public int getMasteryProgress(SpellDeckProfile profile, SpellCardDefinition card) {
+        if (profile == null || card == null) {
+            return 0;
+        }
+        int invested = Math.min(profile.getInvestedCopies(card.cardId()), maxMasteryInvestedCopies());
+        int rank = getMasteryRank(invested);
+        if (rank >= MAX_MASTERY_RANK) {
+            return getMasteryRequiredForNextRank(rank);
+        }
+        return invested - investedCopiesForRank(rank);
+    }
+
+    public int getMasteryRequiredForNextRank(int rank) {
+        if (rank >= MAX_MASTERY_RANK) {
+            return 0;
+        }
+        return rank + 1;
+    }
+
+    public int maxedDuplicateGemValue(SpellDeckRarity rarity) {
+        return MAXED_DUPLICATE_GEMS.getOrDefault(rarity == null ? SpellDeckRarity.COMMON : rarity, 2);
+    }
+
+    private int getMasteryRank(int investedCopies) {
+        int rank = 0;
+        int safeInvested = Math.max(0, investedCopies);
+        while (rank < MAX_MASTERY_RANK && safeInvested >= investedCopiesForRank(rank + 1)) {
+            rank++;
+        }
+        return rank;
+    }
+
+    private int investedCopiesForRank(int rank) {
+        int safeRank = Math.max(0, Math.min(MAX_MASTERY_RANK, rank));
+        return safeRank * (safeRank + 1) / 2;
+    }
+
+    private void addGems(Player player, int gems) {
+        if (player == null || gems <= 0 || plugin == null || plugin.getGemsManager() == null) {
+            return;
+        }
+        plugin.getGemsManager().addUnits(player, gems);
     }
 
     private void autoEquipFirstCopy(Player player, SpellDeckProfile profile, SpellCardDefinition card) {
@@ -408,7 +529,14 @@ public final class SpellDeckManager {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 
-    public record SpellPullEntry(SpellCardDefinition card) {}
-    public record SpellPullResult(List<SpellPullEntry> pulls, Map<SpellCardDefinition, Integer> summary) {}
-    public record InvestAllResult(int cardsTouched, int copiesInvested) {}
+    public record SpellPullEntry(SpellCardDefinition card, boolean duplicateInvested, int gemsSalvaged) {
+        public SpellPullEntry(SpellCardDefinition card) {
+            this(card, false, 0);
+        }
+    }
+    public record SpellPullResult(List<SpellPullEntry> pulls,
+                                  Map<SpellCardDefinition, Integer> summary,
+                                  int duplicateInvestments,
+                                  int salvagedGems) {}
+    public record InvestAllResult(int cardsTouched, int copiesInvested, int gemsSalvaged) {}
 }

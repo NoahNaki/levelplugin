@@ -270,6 +270,8 @@ public class SpellUpgradeGUI implements Listener {
         lore.add(statLine("Mana Cost", ChatColor.AQUA, manaCost + " mana"));
         lore.add(statLine("Cooldown", ChatColor.GREEN, formatCooldown(cooldownMs)));
         lore.add(" ");
+        addMasteryLore(player, lore, card);
+        lore.add(" ");
         lore.add(SPELL_ACCENT + "EFFECTS");
         List<String> effectLines = visibleEffectLines(card);
         if (effectLines.isEmpty()) {
@@ -283,6 +285,33 @@ public class SpellUpgradeGUI implements Listener {
             lore.add(" ");
             lore.add(TooltipUtil.selectionLine(true, "Equipped"));
         }
+    }
+
+    private void addMasteryLore(Player player, List<String> lore, SpellCardDefinition card) {
+        SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
+        int rank = deckManager.getMasteryRank(profile, card);
+        int maxRank = deckManager.getMaxMasteryRank();
+        int progress = deckManager.getMasteryProgress(profile, card);
+        int required = deckManager.getMasteryRequiredForNextRank(rank);
+        lore.add(SPELL_ACCENT + "MASTERY");
+        lore.add(ChatColor.GRAY + "Rank: " + ChatColor.WHITE + rank + ChatColor.GRAY + "/" + ChatColor.WHITE + maxRank);
+        if (rank >= maxRank) {
+            lore.add(ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168) + ChatColor.GRAY + " Max");
+            lore.add(ChatColor.GRAY + "Duplicates auto-salvage: "
+                    + ChatColor.LIGHT_PURPLE + deckManager.maxedDuplicateGemValue(card.rarity())
+                    + " <glyph:purple_orb_icon>");
+            return;
+        }
+        lore.add(TooltipUtil.expProgressBarByPixels(progress, required, 168) + " "
+                + ChatColor.GRAY + progress + ChatColor.GOLD + "/" + ChatColor.GRAY + required
+                + ChatColor.GRAY + " duplicates");
+        int nextRank = Math.min(maxRank, rank + 1);
+        lore.add(ChatColor.GRAY + "Next: " + ChatColor.AQUA + masteryReductionPercent(nextRank)
+                + ChatColor.GRAY + " lower mana/cooldown");
+    }
+
+    private String masteryReductionPercent(int rank) {
+        return Math.max(0, rank * 2) + "%";
     }
 
 

@@ -448,6 +448,16 @@ public class SpellSummonManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                     "Spell summons complete. Spent §d" + session.summonCost + " <glyph:purple_orb_icon>§a.");
             SpellPullSummaryUtil.sendSummary(player, "Pulled", session.pulls.summary());
+            if (session.pulls.duplicateInvestments() > 0) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Invested " + org.bukkit.ChatColor.WHITE + session.pulls.duplicateInvestments()
+                                + org.bukkit.ChatColor.GREEN + " duplicate spell pulls into mastery.");
+            }
+            if (session.pulls.salvagedGems() > 0) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Auto-salvaged maxed duplicates for " + org.bukkit.ChatColor.LIGHT_PURPLE
+                                + session.pulls.salvagedGems() + " <glyph:purple_orb_icon>" + org.bukkit.ChatColor.GREEN + ".");
+            }
             if (summonGUI != null && player.isOnline()) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> summonGUI.open(player), 2L);
             }

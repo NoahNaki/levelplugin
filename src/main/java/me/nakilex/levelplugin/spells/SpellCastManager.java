@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
 import me.nakilex.levelplugin.player.attributes.managers.CooldownIndicatorManager;
 import org.bukkit.entity.Player;
 
@@ -48,6 +49,7 @@ public class SpellCastManager {
                 cost *= Math.max(0.0, 1.0 - reduction);
             }
         }
+        cost *= SpellDeckManager.getInstance().getMasteryManaCooldownMultiplier(playerId, spell.id());
         return (int) Math.ceil(cost);
     }
 
@@ -112,7 +114,8 @@ public class SpellCastManager {
         }
         StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         double reduction = Math.max(0.0, Math.min(0.75, stats.cooldownReduction));
-        return Math.max(0L, Math.round(baseCooldown * (1.0 - reduction)));
+        double masteryMultiplier = SpellDeckManager.getInstance().getMasteryManaCooldownMultiplier(player.getUniqueId(), spell.id());
+        return Math.max(0L, Math.round(baseCooldown * (1.0 - reduction) * masteryMultiplier));
     }
 
     public long getRemainingCooldownMs(Player player, SpellDefinition spell) {
