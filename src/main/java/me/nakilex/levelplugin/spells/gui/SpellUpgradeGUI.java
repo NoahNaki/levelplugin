@@ -234,11 +234,10 @@ public class SpellUpgradeGUI implements Listener {
         lore.add(ChatColor.DARK_GRAY + "Target Slot: " + ChatColor.WHITE + labelForInput(targetSlot));
         addCardSummaryLore(player, lore, card, false);
         SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
-        SpellInputType equippedSlot = profile == null ? null : profile.getEquippedSlot(card.cardId());
+        SpellInputType equippedSlot = profile == null ? null : deckManager.getEquippedSlotForFamily(profile, card.familyId());
         if (equippedSlot != null && equippedSlot != targetSlot) {
             lore.add(" ");
-            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED,
-                    "Unavailable", ChatColor.GRAY, "Already in " + labelForInput(equippedSlot)));
+            lore.add(TooltipUtil.labelValueLine("Unavailable", ChatColor.GRAY, "Already in " + labelForInput(equippedSlot)));
         }
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to equip to " + labelForInput(targetSlot), null));
@@ -249,6 +248,7 @@ public class SpellUpgradeGUI implements Listener {
         Material material = card.displayMaterial() == null ? card.rarity().displayMaterial() : card.displayMaterial();
         ItemStack item = GuiUtil.createGuiItem(material, name, lore);
         ItemUtil.applyRarityTooltipStyle(item, card.rarity().itemRarity());
+        TooltipUtil.centerItemName(item);
         return item;
     }
 
@@ -266,11 +266,11 @@ public class SpellUpgradeGUI implements Listener {
             lore.add(ChatColor.GRAY + "§o" + description);
         }
         lore.add(" ");
-        lore.add(statLine("✦", "Rarity", card.rarity().displayName().toUpperCase(Locale.ROOT)));
-        lore.add(statLine("✧", "Mana Cost", manaCost + " mana"));
-        lore.add(statLine("⌛", "Cooldown", formatCooldown(cooldownMs)));
+        lore.add(statLine("Rarity", card.rarity().displayName().toUpperCase(Locale.ROOT)));
+        lore.add(statLine("Mana Cost", manaCost + " mana"));
+        lore.add(statLine("Cooldown", formatCooldown(cooldownMs)));
         lore.add(" ");
-        lore.add(ChatColor.WHITE + "Effects");
+        lore.add(TooltipUtil.centeredLoreLine(ChatColor.WHITE + "Effects", 85));
         List<String> effectLines = visibleEffectLines(card);
         if (effectLines.isEmpty()) {
             lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "No extra effect details."));
@@ -286,10 +286,8 @@ public class SpellUpgradeGUI implements Listener {
     }
 
 
-    private String statLine(String icon, String label, String value) {
-        return ChatColor.DARK_PURPLE + icon + " "
-                + ChatColor.GRAY + label.toUpperCase(Locale.ROOT) + ": "
-                + ChatColor.WHITE + value;
+    private String statLine(String label, String value) {
+        return TooltipUtil.labelValueLine(label.toUpperCase(Locale.ROOT), ChatColor.WHITE, value);
     }
 
     private String formatEffectLine(String line) {
@@ -297,7 +295,7 @@ public class SpellUpgradeGUI implements Listener {
             return ChatColor.DARK_GRAY + "- " + ChatColor.GRAY;
         }
         String trimmed = line.trim();
-        return ChatColor.DARK_PURPLE + "✦ " + highlightImportant(trimmed);
+        return ChatColor.DARK_GRAY + "- " + highlightImportant(trimmed);
     }
 
     private List<String> descriptionLines(SpellCardDefinition card) {

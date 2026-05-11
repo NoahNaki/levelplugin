@@ -386,6 +386,23 @@ public final class TooltipUtil {
         return purchaseLimitLine("Account", limit);
     }
 
+
+    /**
+     * Center a single lore line around a fixed tooltip pixel midpoint.
+     * This lets GUIs center specific section labels without centering every
+     * lore line in the item tooltip.
+     *
+     * @param line line to center
+     * @param centerPixels target midpoint in Minecraft font pixels
+     * @return centered lore line
+     */
+    public static String centeredLoreLine(String line, int centerPixels) {
+        if (line == null || line.isBlank()) {
+            return "";
+        }
+        return ChatFormatter.getCenteredText(line, Math.max(1, centerPixels));
+    }
+
     /**
      * Format a section header for tooltips using the standard gold styling.
      *

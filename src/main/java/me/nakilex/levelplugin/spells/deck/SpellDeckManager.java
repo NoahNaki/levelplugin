@@ -186,12 +186,15 @@ public final class SpellDeckManager {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You have not pulled " + definition.displayName() + " yet.");
             return false;
         }
-        SpellInputType existingSlot = profile.getEquippedSlot(definition.cardId());
+        SpellInputType existingSlot = getEquippedSlotForFamily(profile, definition.familyId());
         if (existingSlot != null && existingSlot != inputType) {
+            SpellCardDefinition existingCard = getDefinition(profile.getEquippedCardId(existingSlot));
+            String spellName = existingCard == null ? definition.displayName() : existingCard.displayName();
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    definition.displayName() + " is already equipped in " + labelForInput(existingSlot) + ".");
+                    spellName + " is already equipped in " + labelForInput(existingSlot) + ".");
             return false;
         }
+        removeEquippedFamilyCopies(profile, definition.familyId(), inputType);
         profile.equip(inputType, definition.cardId());
         dataStore.saveProfile(player.getUniqueId());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
@@ -199,6 +202,36 @@ public final class SpellDeckManager {
         return true;
     }
 
+
+    public SpellInputType getEquippedSlotForFamily(SpellDeckProfile profile, String familyId) {
+        if (profile == null || familyId == null || familyId.isBlank()) {
+            return null;
+        }
+        String normalizedFamily = normalize(familyId);
+        for (Map.Entry<SpellInputType, String> entry : profile.equippedCards().entrySet()) {
+            SpellCardDefinition equipped = getDefinition(entry.getValue());
+            if (equipped != null && normalize(equipped.familyId()).equals(normalizedFamily)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    private void removeEquippedFamilyCopies(SpellDeckProfile profile, String familyId, SpellInputType exceptSlot) {
+        if (profile == null || familyId == null || familyId.isBlank()) {
+            return;
+        }
+        String normalizedFamily = normalize(familyId);
+        for (SpellInputType slot : List.copyOf(profile.equippedCards().keySet())) {
+            if (slot == exceptSlot) {
+                continue;
+            }
+            SpellCardDefinition equipped = getDefinition(profile.getEquippedCardId(slot));
+            if (equipped != null && normalize(equipped.familyId()).equals(normalizedFamily)) {
+                profile.equip(slot, null);
+            }
+        }
+    }
 
     private String labelForInput(SpellInputType inputType) {
         if (inputType == null) {
@@ -293,6 +326,9 @@ public final class SpellDeckManager {
 
     private void autoEquipFirstCopy(Player player, SpellDeckProfile profile, SpellCardDefinition card) {
         if (player == null || profile == null || card == null) {
+            return;
+        }
+        if (getEquippedSlotForFamily(profile, card.familyId()) != null) {
             return;
         }
         SpellInputType preferred = firstAvailableSpellSlot(profile, card.defaultInputType());
