@@ -184,7 +184,7 @@ public class SpellSummonManager implements Listener {
     }
 
     private Item spawnSummonItem(Location location, SpellCardDefinition card) {
-        ItemStack stack = createSummonStack(card);
+        ItemStack stack = createSummonPlaceholderStack();
         World world = location.getWorld();
         if (world == null) {
             world = Bukkit.getWorlds().get(0);
@@ -195,12 +195,22 @@ public class SpellSummonManager implements Listener {
         item.setPickupDelay(Integer.MAX_VALUE);
         item.setInvulnerable(true);
         item.setSilent(true);
-        item.setCustomName(formatDisplayName(card));
+        item.setCustomName("§dSealed Spell Card");
         item.setCustomNameVisible(true);
         return item;
     }
 
-    private ItemStack createSummonStack(SpellCardDefinition card) {
+    private ItemStack createSummonPlaceholderStack() {
+        ItemStack stack = new ItemStack(Material.NETHER_STAR);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName("§dSealed Spell Card");
+            stack.setItemMeta(meta);
+        }
+        return stack;
+    }
+
+    private ItemStack createRevealedSummonStack(SpellCardDefinition card) {
         ItemStack stack = new ItemStack(card.rarity().displayMaterial());
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
@@ -208,6 +218,14 @@ public class SpellSummonManager implements Listener {
             stack.setItemMeta(meta);
         }
         return stack;
+    }
+
+    private void revealSpellItem(SummonEntry entry) {
+        if (entry == null || entry.item().isDead()) {
+            return;
+        }
+        entry.item().setItemStack(createRevealedSummonStack(entry.card()));
+        entry.item().setCustomName(formatDisplayName(entry.card()));
     }
 
     private void startSpinTask(Player player, SummonSession session) {
@@ -270,6 +288,7 @@ public class SpellSummonManager implements Listener {
                 if (!player.isOnline() || entry.item().isDead()) {
                     return;
                 }
+                revealSpellItem(entry);
                 entry.item().setCustomNameVisible(true);
                 showRevealName(entry);
                 applyGlow(player, entry.item(), entry.card());
@@ -372,6 +391,7 @@ public class SpellSummonManager implements Listener {
             if (entry.item().isDead()) {
                 continue;
             }
+            revealSpellItem(entry);
             entry.item().setCustomNameVisible(true);
             showRevealName(entry);
             applyGlow(player, entry.item(), entry.card());
