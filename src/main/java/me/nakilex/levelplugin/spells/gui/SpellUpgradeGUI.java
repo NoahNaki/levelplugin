@@ -40,7 +40,7 @@ import java.util.regex.Pattern;
 
 public class SpellUpgradeGUI implements Listener {
     private static final String SPELL_TYPE_GLYPH = "<glyph:spell>";
-    private static final int DESCRIPTION_WORDS_PER_LINE = 6;
+    private static final int DESCRIPTION_TARGET_CHARACTERS_PER_LINE = 30;
     private static final int MAIN_GUI_SIZE = 27;
     private static final int SELECT_GUI_SIZE = 45;
     private static final int[] SELECT_SLOTS = {
@@ -395,7 +395,8 @@ public class SpellUpgradeGUI implements Listener {
             if (line == null || line.isBlank() || line.contains(":")) {
                 continue;
             }
-            lines.addAll(TooltipUtil.wrapWords(line.trim(), DESCRIPTION_WORDS_PER_LINE));
+            lines.addAll(TooltipUtil.wrapTextAfterCharacterLimit(
+                    line.trim(), DESCRIPTION_TARGET_CHARACTERS_PER_LINE));
         }
         return lines;
     }

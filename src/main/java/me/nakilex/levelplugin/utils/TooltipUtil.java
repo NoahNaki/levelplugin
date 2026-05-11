@@ -476,37 +476,34 @@ public final class TooltipUtil {
                 + ChatColor.GRAY + " " + ChatColor.WHITE + safeValue + ChatColor.GRAY + safeLabel;
     }
 
-
     /**
-     * Wrap text after a maximum number of words per line while preserving word order.
+     * Wrap text after a target character count while preserving whole words.
+     * Lines may exceed the target count when the word that crosses the threshold
+     * needs to be completed before wrapping.
      *
      * @param text text to wrap
-     * @param maxWordsPerLine maximum words allowed per returned line
+     * @param targetCharacters target character count before wrapping
      * @return wrapped lines; a blank input returns an empty list
      */
-    public static List<String> wrapWords(String text, int maxWordsPerLine) {
+    public static List<String> wrapTextAfterCharacterLimit(String text, int targetCharacters) {
         if (text == null || text.isBlank()) {
             return List.of();
         }
-        int limit = Math.max(1, maxWordsPerLine);
-        String[] words = text.trim().split("\\s+");
+        int limit = Math.max(1, targetCharacters);
         List<String> lines = new ArrayList<>();
         StringBuilder current = new StringBuilder();
-        int wordsInLine = 0;
-        for (String word : words) {
+        for (String word : text.trim().split("\\s+")) {
             if (word.isBlank()) {
                 continue;
-            }
-            if (wordsInLine >= limit) {
-                lines.add(current.toString());
-                current = new StringBuilder();
-                wordsInLine = 0;
             }
             if (!current.isEmpty()) {
                 current.append(' ');
             }
             current.append(word);
-            wordsInLine++;
+            if (current.length() >= limit) {
+                lines.add(current.toString());
+                current = new StringBuilder();
+            }
         }
         if (!current.isEmpty()) {
             lines.add(current.toString());
