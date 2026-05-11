@@ -297,7 +297,7 @@ public class SpellInputListener implements Listener {
     }
 
     private void handleClick(Player player, boolean leftClick) {
-        boolean validWeapon = isHoldingValidClassWeapon(player);
+        boolean validWeapon = isHoldingValidClassWeapon(player) || isSpellDeckWeaponAllowed(player);
         if (!validWeapon) {
             if (!isSpellDeckBasicAllowed(player, leftClick) && !isMageBasicFallbackAllowed(player, leftClick)) {
                 return;
@@ -353,6 +353,14 @@ public class SpellInputListener implements Listener {
         }
     }
 
+
+
+    private boolean isSpellDeckWeaponAllowed(Player player) {
+        if (player == null || !SpellAccessUtil.isHoldingWeapon(player)) {
+            return false;
+        }
+        return SpellDeckManager.getInstance().hasAnyEquippedCard(player);
+    }
 
     private boolean isSpellDeckBasicAllowed(Player player, boolean leftClick) {
         if (player == null || !leftClick) {

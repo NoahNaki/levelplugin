@@ -28,8 +28,11 @@ public class SpellKeybindManager {
 
     public SpellInputType getBinding(UUID playerId, PlayerClass playerClass, SpellInputMode mode,
                                      SpellKeybindSlot slot) {
-        if (playerId == null || playerClass == null || mode == null || slot == null) {
+        if (playerId == null || mode == null || slot == null) {
             return null;
+        }
+        if (playerClass == null) {
+            return defaultBindings().get(slot);
         }
         EnumMap<SpellKeybindSlot, SpellInputType> map = getOrCreateBindings(playerId, playerClass, mode);
         return map.getOrDefault(slot, defaultBindings().get(slot));

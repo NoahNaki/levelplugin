@@ -58,6 +58,13 @@ public final class SpellDeckDataStore {
             }
         }
 
+        var invested = config.getConfigurationSection(root + ".invested");
+        if (invested != null) {
+            for (String cardId : invested.getKeys(false)) {
+                profile.setInvestedCopies(cardId, invested.getInt(cardId, 0));
+            }
+        }
+
         var equipped = config.getConfigurationSection(root + ".equipped");
         if (equipped != null) {
             for (String key : equipped.getKeys(false)) {
@@ -77,6 +84,10 @@ public final class SpellDeckDataStore {
         config.set(root + ".owned", null);
         for (Map.Entry<String, Integer> entry : profile.ownedCopies().entrySet()) {
             config.set(root + ".owned." + entry.getKey(), Math.max(0, entry.getValue()));
+        }
+        config.set(root + ".invested", null);
+        for (Map.Entry<String, Integer> entry : profile.investedCopies().entrySet()) {
+            config.set(root + ".invested." + entry.getKey(), Math.max(0, entry.getValue()));
         }
         config.set(root + ".equipped", null);
         for (Map.Entry<SpellInputType, String> entry : profile.equippedCards().entrySet()) {

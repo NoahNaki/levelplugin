@@ -67,27 +67,27 @@ public final class SpellDeckManager {
         definitions.clear();
         definitionsByFamily.clear();
         register(new SpellCardDefinition("fireball_common", "fireball", "deck_fireball_common", "Fireball",
-                SpellDeckRarity.COMMON, SpellInputType.BASIC_ATTACK, null,
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
                 List.of("Shoots a fireball forward.", "Damage: 100", "Mana Cost: 20", "Cooldown: 6s", "Explosion Radius: 2.5 blocks", "Burn: 3s at 10/sec", "Projectile Speed: 1.2 blocks/tick"),
                 List.of()));
         register(new SpellCardDefinition("fireball_uncommon", "fireball", "deck_fireball_uncommon", "Enhanced Fireball",
-                SpellDeckRarity.UNCOMMON, SpellInputType.BASIC_ATTACK, null,
+                SpellDeckRarity.UNCOMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
                 List.of("Damage: 120", "Explosion Radius: 3.5 blocks", "Leaves burning ground for 4s", "Ground burn: 15/sec in 3 blocks"),
                 List.of("Cooldown increased to 7s")));
         register(new SpellCardDefinition("fireball_rare", "fireball", "deck_fireball_rare", "Infernal Fireball",
-                SpellDeckRarity.RARE, SpellInputType.BASIC_ATTACK, null,
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
                 List.of("Damage: 150", "Burn: 5s at 16/sec", "Burning enemies spread flames every second", "Spread: 2 blocks, 3s at 8/sec", "Max chain depth: 2"),
                 List.of("Explosion Radius reduced to 3 blocks")));
         register(new SpellCardDefinition("fireball_epic", "fireball", "deck_fireball_epic", "Cataclysm Fireball",
-                SpellDeckRarity.EPIC, SpellInputType.BASIC_ATTACK, null,
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
                 List.of("Initial Damage: 180", "Explosion Radius: 4 blocks", "Creates 3 delayed secondary explosions", "Secondary: 90 damage in 2.5 blocks", "Burn: 6s at 18/sec"),
                 List.of("Mana Cost increased to 35", "Cooldown increased to 9s")));
         register(new SpellCardDefinition("fireball_legendary", "fireball", "deck_fireball_legendary", "Dragonfire Orb",
-                SpellDeckRarity.LEGENDARY, SpellInputType.BASIC_ATTACK, null,
+                SpellDeckRarity.LEGENDARY, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
                 List.of("Charge by holding right-click up to 2.5s", "Base: 170 damage in 3.5 blocks", "Full charge: 350 damage in 7 blocks", "Full charge burn: 8s at 24/sec", "Full charge creates 5 secondary explosions", "Full charge briefly stuns enemies"),
                 List.of("Mana scales from 30 to 60", "Movement is reduced while charging")));
         register(new SpellCardDefinition("fireball_mythic", "fireball", "deck_fireball_mythic", "Worldfire",
-                SpellDeckRarity.MYTHIC, SpellInputType.BASIC_ATTACK, null,
+                SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
                 List.of("Initial Hit: 250 damage in 5 blocks", "Burn: 10s at 30/sec", "Burning deaths trigger Living Inferno", "Chain explosion: 140 damage in 4 blocks", "Chains up to 10 times at -15% damage", "Burning enemies reduce nearby fire resistance"),
                 List.of("Mana Cost: 75", "Cooldown: 14s", "Below 20% HP: lose 10% current HP")));
     }
@@ -108,6 +108,29 @@ public final class SpellDeckManager {
 
     public List<SpellCardDefinition> getDefinitionsForFamily(String familyId) {
         return List.copyOf(definitionsByFamily.getOrDefault(normalize(familyId), List.of()));
+    }
+
+    public List<SpellCardDefinition> getOwnedCards(UUID playerId) {
+        if (dataStore == null || playerId == null) {
+            return List.of();
+        }
+        SpellDeckProfile profile = dataStore.getProfile(playerId);
+        List<SpellCardDefinition> owned = new ArrayList<>();
+        for (SpellCardDefinition definition : definitions.values()) {
+            if (profile.getCopies(definition.cardId()) > 0) {
+                owned.add(definition);
+            }
+        }
+        owned.sort(java.util.Comparator.comparing((SpellCardDefinition card) -> card.familyId().toLowerCase(Locale.ROOT))
+                .thenComparingInt(card -> card.rarity().ordinal()));
+        return owned;
+    }
+
+    public SpellDeckProfile getProfile(UUID playerId) {
+        if (dataStore == null || playerId == null) {
+            return null;
+        }
+        return dataStore.getProfile(playerId);
     }
 
     public SpellCardDefinition getDefinition(String cardId) {
@@ -219,13 +242,56 @@ public final class SpellDeckManager {
         return dataStore.getProfile(playerId).pityPullsSinceLegendary();
     }
 
+    public InvestAllResult investAllDuplicateCopies(Player player) {
+        if (player == null || dataStore == null) {
+            return new InvestAllResult(0, 0);
+        }
+        SpellDeckProfile profile = dataStore.getProfile(player.getUniqueId());
+        int cardsTouched = 0;
+        int copiesInvested = 0;
+        for (SpellCardDefinition definition : definitions.values()) {
+            int copies = profile.getCopies(definition.cardId());
+            if (copies <= 1) {
+                continue;
+            }
+            int duplicateCopies = copies - 1;
+            profile.setCopies(definition.cardId(), 1);
+            profile.addInvestedCopies(definition.cardId(), duplicateCopies);
+            copiesInvested += duplicateCopies;
+            cardsTouched++;
+        }
+        if (copiesInvested > 0) {
+            dataStore.saveProfile(player.getUniqueId());
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "Invested " + org.bukkit.ChatColor.WHITE + copiesInvested + org.bukkit.ChatColor.GREEN
+                            + " duplicate spell card copies.");
+        } else {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You do not have duplicate spell cards to invest.");
+        }
+        return new InvestAllResult(cardsTouched, copiesInvested);
+    }
+
     private void autoEquipFirstCopy(Player player, SpellDeckProfile profile, SpellCardDefinition card) {
         if (player == null || profile == null || card == null) {
             return;
         }
-        if (profile.getEquippedCardId(card.defaultInputType()) == null) {
-            profile.equip(card.defaultInputType(), card.cardId());
+        SpellInputType preferred = firstAvailableSpellSlot(profile, card.defaultInputType());
+        if (preferred != null) {
+            profile.equip(preferred, card.cardId());
         }
+    }
+
+    private SpellInputType firstAvailableSpellSlot(SpellDeckProfile profile, SpellInputType preferred) {
+        List<SpellInputType> slots = List.of(SpellInputType.SPELL_1, SpellInputType.SPELL_2, SpellInputType.SPELL_3, SpellInputType.SPELL_4);
+        if (preferred != null && slots.contains(preferred) && profile.getEquippedCardId(preferred) == null) {
+            return preferred;
+        }
+        for (SpellInputType slot : slots) {
+            if (profile.getEquippedCardId(slot) == null) {
+                return slot;
+            }
+        }
+        return null;
     }
 
     private SpellCardDefinition rollCard(Random random,
@@ -288,4 +354,5 @@ public final class SpellDeckManager {
 
     public record SpellPullEntry(SpellCardDefinition card) {}
     public record SpellPullResult(List<SpellPullEntry> pulls, Map<SpellCardDefinition, Integer> summary) {}
+    public record InvestAllResult(int cardsTouched, int copiesInvested) {}
 }

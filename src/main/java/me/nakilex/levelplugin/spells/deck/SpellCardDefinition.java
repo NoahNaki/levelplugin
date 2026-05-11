@@ -10,6 +10,7 @@ public record SpellCardDefinition(String cardId,
                                   String spellId,
                                   String displayName,
                                   SpellDeckRarity rarity,
+                                  SpellCardCategory category,
                                   SpellInputType defaultInputType,
                                   Material displayMaterial,
                                   List<String> effectLines,
@@ -26,6 +27,9 @@ public record SpellCardDefinition(String cardId,
         }
         if (rarity == null) {
             throw new IllegalArgumentException("rarity cannot be null");
+        }
+        if (category == null) {
+            category = SpellCardCategory.UTILITY;
         }
         if (defaultInputType == null) {
             throw new IllegalArgumentException("defaultInputType cannot be null");

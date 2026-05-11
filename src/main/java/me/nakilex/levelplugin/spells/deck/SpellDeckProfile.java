@@ -11,6 +11,7 @@ public final class SpellDeckProfile {
     private final UUID ownerId;
     private final Map<String, Integer> ownedCopies = new HashMap<>();
     private final Map<SpellInputType, String> equippedCards = new EnumMap<>(SpellInputType.class);
+    private final Map<String, Integer> investedCopies = new HashMap<>();
     private int pityPullsSinceLegendary;
 
     public SpellDeckProfile(UUID ownerId) {
@@ -27,6 +28,10 @@ public final class SpellDeckProfile {
 
     public Map<SpellInputType, String> equippedCards() {
         return equippedCards;
+    }
+
+    public Map<String, Integer> investedCopies() {
+        return investedCopies;
     }
 
     public int getCopies(String cardId) {
@@ -68,6 +73,33 @@ public final class SpellDeckProfile {
             return;
         }
         equippedCards.put(inputType, cardId.toLowerCase(java.util.Locale.ROOT));
+    }
+
+
+    public int getInvestedCopies(String cardId) {
+        if (cardId == null) {
+            return 0;
+        }
+        return Math.max(0, investedCopies.getOrDefault(cardId.toLowerCase(java.util.Locale.ROOT), 0));
+    }
+
+    public void setInvestedCopies(String cardId, int copies) {
+        if (cardId == null || cardId.isBlank()) {
+            return;
+        }
+        String normalized = cardId.toLowerCase(java.util.Locale.ROOT);
+        if (copies <= 0) {
+            investedCopies.remove(normalized);
+            return;
+        }
+        investedCopies.put(normalized, copies);
+    }
+
+    public void addInvestedCopies(String cardId, int amount) {
+        if (cardId == null || cardId.isBlank() || amount <= 0) {
+            return;
+        }
+        setInvestedCopies(cardId, getInvestedCopies(cardId) + amount);
     }
 
     public int pityPullsSinceLegendary() {
