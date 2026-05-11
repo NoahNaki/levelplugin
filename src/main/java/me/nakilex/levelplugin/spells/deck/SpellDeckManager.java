@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.PullLevelProgression;
 import me.nakilex.levelplugin.utils.RandomUtil;
 import org.bukkit.entity.Player;
 
@@ -30,6 +31,8 @@ public final class SpellDeckManager {
             SpellDeckRarity.LEGENDARY,
             SpellDeckRarity.MYTHIC
     );
+    private static final int MAX_MASTERY_RANK = 5;
+    private static final double MASTERY_MANA_COOLDOWN_REDUCTION_PER_RANK = 0.02;
     private static final Map<SpellDeckRarity, Double> GACHA_WEIGHTS = Map.of(
             SpellDeckRarity.COMMON, 55.0,
             SpellDeckRarity.UNCOMMON, 25.0,
@@ -38,12 +41,21 @@ public final class SpellDeckManager {
             SpellDeckRarity.LEGENDARY, 1.5,
             SpellDeckRarity.MYTHIC, 0.5
     );
+    private static final Map<SpellDeckRarity, Integer> MAXED_DUPLICATE_GEMS = Map.of(
+            SpellDeckRarity.COMMON, 2,
+            SpellDeckRarity.UNCOMMON, 5,
+            SpellDeckRarity.RARE, 10,
+            SpellDeckRarity.EPIC, 25,
+            SpellDeckRarity.LEGENDARY, 75,
+            SpellDeckRarity.MYTHIC, 150
+    );
 
     public static SpellDeckManager getInstance() {
         return INSTANCE;
     }
 
     private final Map<String, SpellCardDefinition> definitions = new HashMap<>();
+    private final Map<String, SpellCardDefinition> definitionsBySpellId = new HashMap<>();
     private final Map<String, List<SpellCardDefinition>> definitionsByFamily = new HashMap<>();
     private SpellDeckDataStore dataStore;
     private Main plugin;
@@ -65,6 +77,7 @@ public final class SpellDeckManager {
 
     public void registerDefaults() {
         definitions.clear();
+        definitionsBySpellId.clear();
         definitionsByFamily.clear();
         register(new SpellCardDefinition("fireball_common", "fireball", "deck_fireball_common", "Fireball",
                 SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
@@ -90,6 +103,147 @@ public final class SpellDeckManager {
                 SpellDeckRarity.MYTHIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
                 List.of("Initial Hit: 250 damage in 5 blocks", "Burn: 10s at 30/sec", "Burning deaths trigger Living Inferno", "Chain explosion: 140 damage in 4 blocks", "Chains up to 10 times at -15% damage", "Burning enemies reduce nearby fire resistance"),
                 List.of("Mana Cost: 75", "Cooldown: 14s", "Below 20% HP: lose 10% current HP")));
+        registerClassSpellCards();
+    }
+
+    private void registerClassSpellCards() {
+        registerCard("meteor_common", "meteor", "meteor", "Meteor",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Calls a falling meteor onto your target area.",
+                List.of("Damage: 18", "Impact Radius: 3.8 blocks", "Burn: 6s"), List.of());
+        registerCard("meteor_rare", "meteor", "meteor_double", "Emberfall Meteor",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Drops a stronger meteor and follow-up embers.",
+                List.of("Damage: 22", "Impact Radius: 5.8 blocks", "Secondary Meteors: 3"), List.of());
+        registerCard("meteor_epic", "meteor", "meteor_big", "Cataclysm Meteor",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Crushes a wide area with a catastrophic impact.",
+                List.of("Damage: 27", "Impact Radius: 7.4 blocks", "Secondary Meteors: 5"), List.of());
+
+        registerCard("blackhole_common", "blackhole", "blackhole", "Blackhole",
+                SpellDeckRarity.COMMON, SpellCardCategory.UTILITY, SpellInputType.SPELL_1,
+                "Creates a gravity well that pulls enemies inward.",
+                List.of("Radius: 4.2 blocks", "Pull Strength: 1.7", "Duration: 60 ticks"), List.of());
+        registerCard("blackhole_rare", "blackhole", "blackhole_gravitywell", "Gravity Well",
+                SpellDeckRarity.RARE, SpellCardCategory.UTILITY, SpellInputType.SPELL_1,
+                "A stronger blackhole that damages clustered enemies.",
+                List.of("Radius: 6.8 blocks", "Pull Strength: 2.9", "Pulses: 2"), List.of());
+        registerCard("blackhole_epic", "blackhole", "blackhole_singularity", "Singularity",
+                SpellDeckRarity.EPIC, SpellCardCategory.UTILITY, SpellInputType.SPELL_1,
+                "Compresses enemies into a violent singularity.",
+                List.of("Radius: 9 blocks", "Pull Strength: 4", "Pulses: 4"), List.of());
+
+        registerCard("arcane_mend_common", "arcane_mend", "mage_heal", "Arcane Mend",
+                SpellDeckRarity.COMMON, SpellCardCategory.SUPPORT, SpellInputType.SPELL_4,
+                "Restores health with a quick arcane pulse.",
+                List.of("Healing: 8", "Bonus Health: 8"), List.of());
+        registerCard("arcane_mend_rare", "arcane_mend", "mage_heal_rejuvenation", "Rejuvenating Mend",
+                SpellDeckRarity.RARE, SpellCardCategory.SUPPORT, SpellInputType.SPELL_4,
+                "Restores health and applies a short regeneration effect.",
+                List.of("Healing: 14", "Regen Duration: 2s", "Bonus Health: 22"), List.of());
+        registerCard("arcane_mend_epic", "arcane_mend", "mage_heal_party", "Party Pulse Mend",
+                SpellDeckRarity.EPIC, SpellCardCategory.SUPPORT, SpellInputType.SPELL_4,
+                "Restores you and nearby allies with rejuvenating magic.",
+                List.of("Healing: 12", "Party Heal: enabled", "Regen Duration: 2s"), List.of());
+
+        registerCard("seeker_barrage_rare", "seeker_barrage", "archer_homing_barrage", "Seeker Barrage",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Fires a volley of arrows that seek enemies.",
+                List.of("Arrows: 9", "Delay: 2 ticks", "Search Radius: 4.8 blocks"), List.of());
+        registerCard("arrow_rain_epic", "arrow_rain", "archer_arrow_rain", "Arrow Rain",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Rains arrows over a large target area.",
+                List.of("Arrows: 8", "Waves: 11", "Radius: 8.2 blocks"), List.of());
+        registerCard("windguard_rare", "windguard", "archer_windguard", "Windguard",
+                SpellDeckRarity.RARE, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Summons wind to guard you from incoming damage.",
+                List.of("Shield: 100", "Charges: 1", "Duration: 30s"), List.of());
+
+        registerCard("shadow_flurry_common", "shadow_flurry", "rogue_sky_ripper", "Shadow Flurry",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Strikes enemies with rapid shadow slashes.",
+                List.of("Strikes: 4", "Radius: 6 blocks", "Damage: 7.4"), List.of());
+        registerCard("shadow_flurry_rare", "shadow_flurry", "rogue_sky_ripper_tempest", "Tempest Dive",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Dives through foes with a stronger shadow storm.",
+                List.of("Strikes: 6", "Radius: 7.6 blocks", "Damage: 13"), List.of());
+        registerCard("shadow_flurry_epic", "shadow_flurry", "rogue_sky_ripper_execution", "Execution Drop",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Finishes enemies with a heavy shadow execution.",
+                List.of("Strikes: 8", "Radius: 8.9 blocks", "Damage: 17.6"), List.of());
+
+        registerCard("nightfall_lunge_common", "nightfall_lunge", "rogue_phantom_cross", "Nightfall Lunge",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Lunges through enemies with phantom cuts.",
+                List.of("Slashes: 4", "Range: 6 blocks", "Damage: 11.8"), List.of());
+        registerCard("nightfall_lunge_rare", "nightfall_lunge", "rogue_phantom_cross_cyclone", "Cyclone Lunge",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Cuts through enemies with a wider cyclone pattern.",
+                List.of("Slashes: 6", "Range: 7.5 blocks", "Damage: 17"), List.of());
+        registerCard("nightfall_lunge_epic", "nightfall_lunge", "rogue_phantom_cross_judgement", "Judgement Lunge",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Delivers a judgement strike after a phantom lunge.",
+                List.of("Slashes: 8", "Range: 8.6 blocks", "Damage: 23"), List.of());
+
+        registerCard("smoke_bomb_common", "smoke_bomb", "rogue_veil_counter", "Smoke Bomb",
+                SpellDeckRarity.COMMON, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Drops smoke that protects you and weakens enemies.",
+                List.of("Duration: 16s", "Radius: 2 blocks", "Shield: 100"), List.of());
+        registerCard("smoke_bomb_rare", "smoke_bomb", "rogue_veil_counter_obscure", "Obscure Smoke Bomb",
+                SpellDeckRarity.RARE, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Creates a broader smoke field with stronger cover.",
+                List.of("Duration: 22s", "Radius: 2.3 blocks", "Shield: 120"), List.of());
+        registerCard("smoke_bomb_epic", "smoke_bomb", "rogue_veil_counter_dread", "Dread Smoke Bomb",
+                SpellDeckRarity.EPIC, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Creates a dread cloud that heavily disrupts enemies.",
+                List.of("Duration: 30s", "Radius: 2.8 blocks", "Shield: 140"), List.of());
+
+        registerCard("earthquake_common", "earthquake", "warrior_earthquake", "Earthquake",
+                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Shatters the ground around your target area.",
+                List.of("Radius: 3.8 blocks", "Damage: 6.2"), List.of());
+        registerCard("earthquake_rare", "earthquake", "warrior_earthquake_tremor", "Tremor Earthquake",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Creates a larger tremor with heavier impact.",
+                List.of("Radius: 6.3 blocks", "Damage: 10.8"), List.of());
+        registerCard("earthquake_epic", "earthquake", "warrior_earthquake_cataclysm", "Cataclysm Earthquake",
+                SpellDeckRarity.EPIC, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Breaks the battlefield with a cataclysmic shockwave.",
+                List.of("Radius: 8.8 blocks", "Damage: 14.2"), List.of());
+
+        registerCard("rupture_cyclone_rare", "rupture_cyclone", "warrior_rupture_cyclone", "Rupture Cyclone",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_2,
+                "Spins through enemies and applies rupturing pressure.",
+                List.of("Hits: 9", "Radius: 3.8 blocks", "Damage Multiplier: 1x"), List.of());
+        registerCard("aegis_bastion_rare", "aegis_bastion", "warrior_guarded_resolve", "Aegis Bastion",
+                SpellDeckRarity.RARE, SpellCardCategory.DEFENSIVE, SpellInputType.SPELL_4,
+                "Raises a bastion that absorbs incoming damage.",
+                List.of("Shield: 130", "Duration: 5s", "Guard Radius: 34 blocks"), List.of());
+        registerCard("cyclone_brand_rare", "cyclone_brand", "warrior_execution_arc", "Cyclone Brand",
+                SpellDeckRarity.RARE, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
+                "Brands enemies with a sweeping execution arc.",
+                List.of("Damage: 120", "Radius: 6.4 blocks"), List.of());
+    }
+
+    private void registerCard(String cardId,
+                              String familyId,
+                              String spellId,
+                              String displayName,
+                              SpellDeckRarity rarity,
+                              SpellCardCategory category,
+                              SpellInputType defaultInputType,
+                              String description,
+                              List<String> effectLines,
+                              List<String> tradeoffLines) {
+        List<String> lore = new ArrayList<>();
+        if (description != null && !description.isBlank()) {
+            lore.add(description);
+        }
+        if (effectLines != null) {
+            lore.addAll(effectLines);
+        }
+        register(new SpellCardDefinition(cardId, familyId, spellId, displayName, rarity, category,
+                defaultInputType, null, lore, tradeoffLines == null ? List.of() : tradeoffLines));
     }
 
     public void register(SpellCardDefinition definition) {
@@ -98,6 +252,7 @@ public final class SpellDeckManager {
         }
         String cardId = normalize(definition.cardId());
         definitions.put(cardId, definition);
+        definitionsBySpellId.put(normalize(definition.spellId()), definition);
         definitionsByFamily.computeIfAbsent(normalize(definition.familyId()), ignored -> new ArrayList<>()).add(definition);
         definitionsByFamily.values().forEach(list -> list.sort(java.util.Comparator.comparingInt(card -> card.rarity().ordinal())));
     }
@@ -135,6 +290,10 @@ public final class SpellDeckManager {
 
     public SpellCardDefinition getDefinition(String cardId) {
         return definitions.get(normalize(cardId));
+    }
+
+    public SpellCardDefinition getDefinitionBySpellId(String spellId) {
+        return definitionsBySpellId.get(normalize(spellId));
     }
 
     public SpellCardDefinition getEquippedCard(UUID playerId, SpellInputType inputType) {
@@ -186,12 +345,15 @@ public final class SpellDeckManager {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You have not pulled " + definition.displayName() + " yet.");
             return false;
         }
-        SpellInputType existingSlot = profile.getEquippedSlot(definition.cardId());
+        SpellInputType existingSlot = getEquippedSlotForFamily(profile, definition.familyId());
         if (existingSlot != null && existingSlot != inputType) {
+            SpellCardDefinition existingCard = getDefinition(profile.getEquippedCardId(existingSlot));
+            String spellName = existingCard == null ? definition.displayName() : existingCard.displayName();
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    definition.displayName() + " is already equipped in " + labelForInput(existingSlot) + ".");
+                    spellName + " is already equipped in " + labelForInput(existingSlot) + ".");
             return false;
         }
+        removeEquippedFamilyCopies(profile, definition.familyId(), inputType);
         profile.equip(inputType, definition.cardId());
         dataStore.saveProfile(player.getUniqueId());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
@@ -199,6 +361,36 @@ public final class SpellDeckManager {
         return true;
     }
 
+
+    public SpellInputType getEquippedSlotForFamily(SpellDeckProfile profile, String familyId) {
+        if (profile == null || familyId == null || familyId.isBlank()) {
+            return null;
+        }
+        String normalizedFamily = normalize(familyId);
+        for (Map.Entry<SpellInputType, String> entry : profile.equippedCards().entrySet()) {
+            SpellCardDefinition equipped = getDefinition(entry.getValue());
+            if (equipped != null && normalize(equipped.familyId()).equals(normalizedFamily)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
+    private void removeEquippedFamilyCopies(SpellDeckProfile profile, String familyId, SpellInputType exceptSlot) {
+        if (profile == null || familyId == null || familyId.isBlank()) {
+            return;
+        }
+        String normalizedFamily = normalize(familyId);
+        for (SpellInputType slot : List.copyOf(profile.equippedCards().keySet())) {
+            if (slot == exceptSlot) {
+                continue;
+            }
+            SpellCardDefinition equipped = getDefinition(profile.getEquippedCardId(slot));
+            if (equipped != null && normalize(equipped.familyId()).equals(normalizedFamily)) {
+                profile.equip(slot, null);
+            }
+        }
+    }
 
     private String labelForInput(SpellInputType inputType) {
         if (inputType == null) {
@@ -215,16 +407,18 @@ public final class SpellDeckManager {
 
     public SpellPullResult pull(Player player, int amount) {
         if (player == null || amount <= 0 || dataStore == null || definitions.isEmpty()) {
-            return new SpellPullResult(List.of(), Map.of());
+            return new SpellPullResult(List.of(), Map.of(), 0, 0);
         }
         SpellDeckProfile profile = dataStore.getProfile(player.getUniqueId());
         Map<SpellDeckRarity, List<SpellCardDefinition>> pools = buildRarityPools();
-        Map<SpellDeckRarity, Double> weights = buildRarityWeights(pools);
         List<SpellPullEntry> entries = new ArrayList<>(amount);
         Map<SpellCardDefinition, Integer> summary = new HashMap<>();
+        int duplicateInvestments = 0;
+        int salvagedGems = 0;
         Random random = ThreadLocalRandom.current();
         for (int i = 0; i < amount; i++) {
             boolean pityGuaranteed = profile.pityPullsSinceLegendary() >= (PITY_THRESHOLD - 1);
+            Map<SpellDeckRarity, Double> weights = buildRarityWeights(pools, getBannerLevel(player.getUniqueId()));
             SpellCardDefinition card = rollCard(random, pools, weights, pityGuaranteed);
             if (card == null) {
                 continue;
@@ -234,13 +428,27 @@ public final class SpellDeckManager {
             } else {
                 profile.setPityPullsSinceLegendary(profile.pityPullsSinceLegendary() + 1);
             }
-            profile.addCopies(card.cardId(), 1);
-            entries.add(new SpellPullEntry(card));
+            int existingCopies = profile.getCopies(card.cardId());
+            int invested = profile.getInvestedCopies(card.cardId());
+            if (existingCopies <= 0) {
+                profile.addCopies(card.cardId(), 1);
+                autoEquipFirstCopy(player, profile, card);
+                entries.add(new SpellPullEntry(card));
+            } else if (invested < maxMasteryInvestedCopies()) {
+                profile.addInvestedCopies(card.cardId(), 1);
+                duplicateInvestments++;
+                entries.add(new SpellPullEntry(card, true, 0));
+            } else {
+                int gems = maxedDuplicateGemValue(card.rarity());
+                addGems(player, gems);
+                salvagedGems += gems;
+                entries.add(new SpellPullEntry(card, false, gems));
+            }
+            profile.addBannerPulls(1);
             summary.merge(card, 1, Integer::sum);
-            autoEquipFirstCopy(player, profile, card);
         }
         dataStore.saveProfile(player.getUniqueId());
-        return new SpellPullResult(entries, summary);
+        return new SpellPullResult(entries, summary, duplicateInvestments, salvagedGems);
     }
 
     public List<SpellDeckRarity> getGachaRarities() {
@@ -249,6 +457,34 @@ public final class SpellDeckManager {
 
     public Map<SpellDeckRarity, Double> getGachaRates() {
         return Collections.unmodifiableMap(GACHA_WEIGHTS);
+    }
+
+    public Map<SpellDeckRarity, Double> getGachaRates(UUID playerId) {
+        return Collections.unmodifiableMap(PullLevelProgression.ratesForLevel(
+                GACHA_RARITIES, GACHA_WEIGHTS, getBannerLevel(playerId)));
+    }
+
+    public int getBannerLevel(UUID playerId) {
+        return PullLevelProgression.levelForPulls(getBannerPulls(playerId));
+    }
+
+    public int getBannerLevelProgress(UUID playerId) {
+        return PullLevelProgression.progressIntoLevel(getBannerPulls(playerId));
+    }
+
+    public int getBannerLevelRequirement(UUID playerId) {
+        return PullLevelProgression.requiredForNextLevel(getBannerLevel(playerId));
+    }
+
+    public int getMaxBannerLevel() {
+        return PullLevelProgression.MAX_LEVEL;
+    }
+
+    private int getBannerPulls(UUID playerId) {
+        if (dataStore == null || playerId == null) {
+            return 0;
+        }
+        return dataStore.getProfile(playerId).bannerPulls();
     }
 
     public int getPityThreshold() {
@@ -264,35 +500,127 @@ public final class SpellDeckManager {
 
     public InvestAllResult investAllDuplicateCopies(Player player) {
         if (player == null || dataStore == null) {
-            return new InvestAllResult(0, 0);
+            return new InvestAllResult(0, 0, 0);
         }
         SpellDeckProfile profile = dataStore.getProfile(player.getUniqueId());
         int cardsTouched = 0;
         int copiesInvested = 0;
+        int gemsSalvaged = 0;
         for (SpellCardDefinition definition : definitions.values()) {
             int copies = profile.getCopies(definition.cardId());
             if (copies <= 1) {
                 continue;
             }
             int duplicateCopies = copies - 1;
+            int availableMastery = Math.max(0, maxMasteryInvestedCopies() - profile.getInvestedCopies(definition.cardId()));
+            int investableCopies = Math.min(duplicateCopies, availableMastery);
+            int salvageCopies = duplicateCopies - investableCopies;
             profile.setCopies(definition.cardId(), 1);
-            profile.addInvestedCopies(definition.cardId(), duplicateCopies);
-            copiesInvested += duplicateCopies;
+            if (investableCopies > 0) {
+                profile.addInvestedCopies(definition.cardId(), investableCopies);
+                copiesInvested += investableCopies;
+            }
+            if (salvageCopies > 0) {
+                gemsSalvaged += salvageCopies * maxedDuplicateGemValue(definition.rarity());
+            }
             cardsTouched++;
         }
-        if (copiesInvested > 0) {
+        if (gemsSalvaged > 0) {
+            addGems(player, gemsSalvaged);
+        }
+        if (copiesInvested > 0 || gemsSalvaged > 0) {
             dataStore.saveProfile(player.getUniqueId());
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                     "Invested " + org.bukkit.ChatColor.WHITE + copiesInvested + org.bukkit.ChatColor.GREEN
-                            + " duplicate spell card copies.");
+                            + " duplicate spell copies and salvaged " + org.bukkit.ChatColor.LIGHT_PURPLE
+                            + gemsSalvaged + " <glyph:purple_orb_icon>" + org.bukkit.ChatColor.GREEN + ".");
         } else {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You do not have duplicate spell cards to invest.");
         }
-        return new InvestAllResult(cardsTouched, copiesInvested);
+        return new InvestAllResult(cardsTouched, copiesInvested, gemsSalvaged);
+    }
+
+    public int getMaxMasteryRank() {
+        return MAX_MASTERY_RANK;
+    }
+
+    public int maxMasteryInvestedCopies() {
+        return investedCopiesForRank(MAX_MASTERY_RANK);
+    }
+
+    public int getMasteryRank(SpellDeckProfile profile, SpellCardDefinition card) {
+        if (profile == null || card == null) {
+            return 0;
+        }
+        return getMasteryRank(profile.getInvestedCopies(card.cardId()));
+    }
+
+    public int getMasteryRank(UUID playerId, String spellId) {
+        if (dataStore == null || playerId == null || spellId == null) {
+            return 0;
+        }
+        SpellCardDefinition card = getDefinitionBySpellId(spellId);
+        if (card == null) {
+            return 0;
+        }
+        return getMasteryRank(dataStore.getProfile(playerId), card);
+    }
+
+    public double getMasteryManaCooldownMultiplier(UUID playerId, String spellId) {
+        int rank = getMasteryRank(playerId, spellId);
+        double reduction = Math.min(0.25, rank * MASTERY_MANA_COOLDOWN_REDUCTION_PER_RANK);
+        return Math.max(0.0, 1.0 - reduction);
+    }
+
+    public int getMasteryProgress(SpellDeckProfile profile, SpellCardDefinition card) {
+        if (profile == null || card == null) {
+            return 0;
+        }
+        int invested = Math.min(profile.getInvestedCopies(card.cardId()), maxMasteryInvestedCopies());
+        int rank = getMasteryRank(invested);
+        if (rank >= MAX_MASTERY_RANK) {
+            return getMasteryRequiredForNextRank(rank);
+        }
+        return invested - investedCopiesForRank(rank);
+    }
+
+    public int getMasteryRequiredForNextRank(int rank) {
+        if (rank >= MAX_MASTERY_RANK) {
+            return 0;
+        }
+        return rank + 1;
+    }
+
+    public int maxedDuplicateGemValue(SpellDeckRarity rarity) {
+        return MAXED_DUPLICATE_GEMS.getOrDefault(rarity == null ? SpellDeckRarity.COMMON : rarity, 2);
+    }
+
+    private int getMasteryRank(int investedCopies) {
+        int rank = 0;
+        int safeInvested = Math.max(0, investedCopies);
+        while (rank < MAX_MASTERY_RANK && safeInvested >= investedCopiesForRank(rank + 1)) {
+            rank++;
+        }
+        return rank;
+    }
+
+    private int investedCopiesForRank(int rank) {
+        int safeRank = Math.max(0, Math.min(MAX_MASTERY_RANK, rank));
+        return safeRank * (safeRank + 1) / 2;
+    }
+
+    private void addGems(Player player, int gems) {
+        if (player == null || gems <= 0 || plugin == null || plugin.getGemsManager() == null) {
+            return;
+        }
+        plugin.getGemsManager().addUnits(player, gems);
     }
 
     private void autoEquipFirstCopy(Player player, SpellDeckProfile profile, SpellCardDefinition card) {
         if (player == null || profile == null || card == null) {
+            return;
+        }
+        if (getEquippedSlotForFamily(profile, card.familyId()) != null) {
             return;
         }
         SpellInputType preferred = firstAvailableSpellSlot(profile, card.defaultInputType());
@@ -357,13 +685,14 @@ public final class SpellDeckManager {
         return pools;
     }
 
-    private Map<SpellDeckRarity, Double> buildRarityWeights(Map<SpellDeckRarity, List<SpellCardDefinition>> pools) {
+    private Map<SpellDeckRarity, Double> buildRarityWeights(Map<SpellDeckRarity, List<SpellCardDefinition>> pools, int bannerLevel) {
+        Map<SpellDeckRarity, Double> levelRates = PullLevelProgression.ratesForLevel(GACHA_RARITIES, GACHA_WEIGHTS, bannerLevel);
         Map<SpellDeckRarity, Double> weights = new EnumMap<>(SpellDeckRarity.class);
         for (Map.Entry<SpellDeckRarity, List<SpellCardDefinition>> entry : pools.entrySet()) {
             if (entry.getValue() == null || entry.getValue().isEmpty()) {
                 continue;
             }
-            weights.put(entry.getKey(), GACHA_WEIGHTS.getOrDefault(entry.getKey(), 1.0));
+            weights.put(entry.getKey(), levelRates.getOrDefault(entry.getKey(), 0.0));
         }
         return weights;
     }
@@ -372,7 +701,14 @@ public final class SpellDeckManager {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 
-    public record SpellPullEntry(SpellCardDefinition card) {}
-    public record SpellPullResult(List<SpellPullEntry> pulls, Map<SpellCardDefinition, Integer> summary) {}
-    public record InvestAllResult(int cardsTouched, int copiesInvested) {}
+    public record SpellPullEntry(SpellCardDefinition card, boolean duplicateInvested, int gemsSalvaged) {
+        public SpellPullEntry(SpellCardDefinition card) {
+            this(card, false, 0);
+        }
+    }
+    public record SpellPullResult(List<SpellPullEntry> pulls,
+                                  Map<SpellCardDefinition, Integer> summary,
+                                  int duplicateInvestments,
+                                  int salvagedGems) {}
+    public record InvestAllResult(int cardsTouched, int copiesInvested, int gemsSalvaged) {}
 }

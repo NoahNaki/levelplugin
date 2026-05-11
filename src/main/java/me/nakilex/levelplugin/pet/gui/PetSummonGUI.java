@@ -113,19 +113,29 @@ public class PetSummonGUI implements Listener {
     private ItemStack createRatesInfoItem(Player player) {
         List<String> lore = new ArrayList<>();
         lore.add(" ");
-        lore.add("§7Base pull rates:");
-        var rates = summonManager.getGachaRates();
+        lore.add("§7Current pull rates:");
+        var rates = summonManager.getGachaRates(player.getUniqueId());
         for (var rarity : summonManager.getGachaRarities()) {
             String name = rarity.name().toLowerCase(java.util.Locale.ROOT);
             String label = name.substring(0, 1).toUpperCase(java.util.Locale.ROOT) + name.substring(1);
             lore.add("§7• " + rarity.getColor() + label + "§7: §f" + String.format("%.1f", rates.getOrDefault(rarity, 0.0)) + "%");
         }
         lore.add(" ");
+        lore.addAll(buildBannerLevelLore(player));
+        lore.add(" ");
         lore.add("§7Pity: §f" + summonManager.getPityThreshold(player.getUniqueId()) + " pulls");
         lore.add("§7Legendary+ resets pity counter.");
         lore.add(" ");
         lore.addAll(buildPityLore(player));
         return GuiUtil.getNexoItem("info", "§eSummon Rates", lore);
+    }
+
+    private List<String> buildBannerLevelLore(Player player) {
+        return TooltipUtil.pullLevelProgressLore("Banner Level",
+                summonManager.getBannerLevel(player.getUniqueId()),
+                summonManager.getMaxBannerLevel(),
+                summonManager.getBannerLevelProgress(player.getUniqueId()),
+                summonManager.getBannerLevelRequirement(player.getUniqueId()));
     }
 
     private void handleSummon(Player player, int amount) {

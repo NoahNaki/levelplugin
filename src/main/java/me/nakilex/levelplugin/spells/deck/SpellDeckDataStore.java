@@ -50,6 +50,7 @@ public final class SpellDeckDataStore {
         SpellDeckProfile profile = new SpellDeckProfile(uuid);
         String root = "players." + uuid;
         profile.setPityPullsSinceLegendary(config.getInt(root + ".pulls.pity-legendary", 0));
+        profile.setBannerPulls(config.getInt(root + ".pulls.banner-total", 0));
 
         var owned = config.getConfigurationSection(root + ".owned");
         if (owned != null) {
@@ -81,6 +82,7 @@ public final class SpellDeckDataStore {
     private void saveProfile(SpellDeckProfile profile) {
         String root = "players." + profile.ownerId();
         config.set(root + ".pulls.pity-legendary", profile.pityPullsSinceLegendary());
+        config.set(root + ".pulls.banner-total", profile.bannerPulls());
         config.set(root + ".owned", null);
         for (Map.Entry<String, Integer> entry : profile.ownedCopies().entrySet()) {
             config.set(root + ".owned." + entry.getKey(), Math.max(0, entry.getValue()));

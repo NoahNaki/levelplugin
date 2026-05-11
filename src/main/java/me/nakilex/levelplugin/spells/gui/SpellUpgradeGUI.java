@@ -61,6 +61,7 @@ public class SpellUpgradeGUI implements Listener {
             SpellInputType.SPELL_3,
             SpellInputType.SPELL_4
     };
+    private static final ChatColor SPELL_ACCENT = ChatColor.LIGHT_PURPLE;
     private static final Pattern IMPORTANT_TOKEN_PATTERN = Pattern.compile(
             "(?i)(\\b(?:damage|radius|stuns?|poisons?|burns?|burning|ignite[sd]?|inferno|chains?|charge|resistance|hp|movement|spread|explosions?|lose|projectile|speed)\\b|\\d+(?:\\.\\d+)?%?(?:/sec|s|x)?)");
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
@@ -180,8 +181,8 @@ public class SpellUpgradeGUI implements Listener {
                 "Click a gray slot to choose an unlocked spell.",
                 "Use /debug spellpull <amount> to test pulls."));
         lore.add(" ");
-        lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.AQUA,
-                "Pity", ChatColor.WHITE, deckManager.getPityPullsSinceLegendary(player.getUniqueId())
+        lore.add(TooltipUtil.labelValueLine("Pity", ChatColor.WHITE,
+                deckManager.getPityPullsSinceLegendary(player.getUniqueId())
                         + "/" + deckManager.getPityThreshold() + " toward Legendary+"));
         return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.AQUA + "Spell Deck", lore);
     }
@@ -189,9 +190,9 @@ public class SpellUpgradeGUI implements Listener {
     private ItemStack createSpellSlotItem(Player player, SpellInputType inputType) {
         SpellCardDefinition equipped = deckManager.getEquippedCard(player.getUniqueId(), inputType);
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.DARK_GRAY + "Slot: " + ChatColor.WHITE + labelForInput(inputType));
-        lore.add(" ");
         if (equipped == null) {
+            lore.add(ChatColor.DARK_GRAY + "Slot: " + ChatColor.WHITE + labelForInput(inputType));
+            lore.add(" ");
             lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED,
                     "Equipped", ChatColor.GRAY, "Empty"));
             lore.addAll(TooltipUtil.bulletList("Choose one of your unlocked spell cards."));
@@ -199,9 +200,9 @@ public class SpellUpgradeGUI implements Listener {
             lore.addAll(TooltipUtil.clickInstructions("to choose a spell", null));
             return GuiUtil.createGuiItem(Material.GRAY_DYE, ChatColor.GRAY + labelForInput(inputType) + " Slot", lore);
         }
-        addCardSummaryLore(player, lore, equipped, true);
+        addCardSummaryLore(player, lore, equipped, inputType, true);
         lore.add(" ");
-        lore.addAll(TooltipUtil.clickInstructions("to change this spell", null));
+        lore.add(clickLine("to change", "this spell"));
         return createSpellCardGuiItem(equipped, equipped.rarity().color() + equipped.displayName().toUpperCase(Locale.ROOT), lore);
     }
 
@@ -217,10 +218,8 @@ public class SpellUpgradeGUI implements Listener {
         }
         List<String> lore = new ArrayList<>();
         lore.add(" ");
-        lore.add(TooltipUtil.iconLabelValueLine("✦", ChatColor.AQUA, ChatColor.AQUA,
-                "Owned Cards", ChatColor.WHITE, String.valueOf(owned)));
-        lore.add(TooltipUtil.iconLabelValueLine("◆", ChatColor.GOLD, ChatColor.GOLD,
-                "Duplicate Copies", ChatColor.WHITE, String.valueOf(duplicates)));
+        lore.add(TooltipUtil.labelValueLine("Owned Cards", ChatColor.WHITE, String.valueOf(owned)));
+        lore.add(TooltipUtil.labelValueLine("Duplicate Copies", ChatColor.WHITE, String.valueOf(duplicates)));
         lore.add(" ");
         lore.addAll(TooltipUtil.bulletList("Consumes every copy above the first.",
                 "Invested copies are saved for future spell upgrades."));
@@ -231,17 +230,15 @@ public class SpellUpgradeGUI implements Listener {
 
     private ItemStack createBrowserCardItem(Player player, SpellCardDefinition card, SpellInputType targetSlot) {
         List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.DARK_GRAY + "Target Slot: " + ChatColor.WHITE + labelForInput(targetSlot));
-        addCardSummaryLore(player, lore, card, false);
+        addCardSummaryLore(player, lore, card, targetSlot, false);
         SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
-        SpellInputType equippedSlot = profile == null ? null : profile.getEquippedSlot(card.cardId());
+        SpellInputType equippedSlot = profile == null ? null : deckManager.getEquippedSlotForFamily(profile, card.familyId());
         if (equippedSlot != null && equippedSlot != targetSlot) {
             lore.add(" ");
-            lore.add(TooltipUtil.iconLabelValueLine("✖", ChatColor.RED, ChatColor.RED,
-                    "Unavailable", ChatColor.GRAY, "Already in " + labelForInput(equippedSlot)));
+            lore.add(unavailableLine(equippedSlot));
         }
         lore.add(" ");
-        lore.addAll(TooltipUtil.clickInstructions("to equip to " + labelForInput(targetSlot), null));
+        lore.add(clickLine("to equip to", labelForInput(targetSlot)));
         return createSpellCardGuiItem(card, card.rarity().color() + card.displayName().toUpperCase(Locale.ROOT), lore);
     }
 
@@ -249,10 +246,11 @@ public class SpellUpgradeGUI implements Listener {
         Material material = card.displayMaterial() == null ? card.rarity().displayMaterial() : card.displayMaterial();
         ItemStack item = GuiUtil.createGuiItem(material, name, lore);
         ItemUtil.applyRarityTooltipStyle(item, card.rarity().itemRarity());
+        TooltipUtil.centerItemName(item);
         return item;
     }
 
-    private void addCardSummaryLore(Player player, List<String> lore, SpellCardDefinition card, boolean includeEquippedLine) {
+    private void addCardSummaryLore(Player player, List<String> lore, SpellCardDefinition card, SpellInputType inputType, boolean includeEquippedLine) {
         SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(card.spellId());
         SpellDefinition definition = spellEntry == null ? null : spellEntry.definition();
         int manaCost = definition == null
@@ -262,15 +260,19 @@ public class SpellUpgradeGUI implements Listener {
                 ? readStatFromLore(card, "cooldown", 0) * 1000L
                 : SpellCastManager.getInstance().getCooldownMs(player, definition);
 
+        lore.add(rarityGlyph(card.rarity()));
+        lore.add(" ");
+        lore.add(spellTypeLine(inputType));
         for (String description : descriptionLines(card)) {
-            lore.add(ChatColor.GRAY + "§o" + description);
+            lore.add(ChatColor.GRAY + description);
         }
         lore.add(" ");
-        lore.add(statLine("✦", "Rarity", card.rarity().displayName().toUpperCase(Locale.ROOT)));
-        lore.add(statLine("✧", "Mana Cost", manaCost + " mana"));
-        lore.add(statLine("⌛", "Cooldown", formatCooldown(cooldownMs)));
+        lore.add(statLine("Mana Cost", ChatColor.AQUA, manaCost + " mana"));
+        lore.add(statLine("Cooldown", ChatColor.GREEN, formatCooldown(cooldownMs)));
         lore.add(" ");
-        lore.add(ChatColor.WHITE + "Effects");
+        addMasteryLore(player, lore, card);
+        lore.add(" ");
+        lore.add(SPELL_ACCENT + "EFFECTS");
         List<String> effectLines = visibleEffectLines(card);
         if (effectLines.isEmpty()) {
             lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "No extra effect details."));
@@ -285,11 +287,57 @@ public class SpellUpgradeGUI implements Listener {
         }
     }
 
+    private void addMasteryLore(Player player, List<String> lore, SpellCardDefinition card) {
+        SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
+        int rank = deckManager.getMasteryRank(profile, card);
+        int maxRank = deckManager.getMaxMasteryRank();
+        int progress = deckManager.getMasteryProgress(profile, card);
+        int required = deckManager.getMasteryRequiredForNextRank(rank);
+        lore.add(SPELL_ACCENT + "MASTERY");
+        lore.add(ChatColor.GRAY + "Rank: " + ChatColor.WHITE + rank + ChatColor.GRAY + "/" + ChatColor.WHITE + maxRank);
+        if (rank >= maxRank) {
+            lore.add(ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168) + ChatColor.GRAY + " Max");
+            lore.add(ChatColor.GRAY + "Duplicates auto-salvage: "
+                    + ChatColor.LIGHT_PURPLE + deckManager.maxedDuplicateGemValue(card.rarity())
+                    + " <glyph:purple_orb_icon>");
+            return;
+        }
+        lore.add(TooltipUtil.expProgressBarByPixels(progress, required, 168) + " "
+                + ChatColor.GRAY + progress + ChatColor.GOLD + "/" + ChatColor.GRAY + required
+                + ChatColor.GRAY + " duplicates");
+        int nextRank = Math.min(maxRank, rank + 1);
+        lore.add(ChatColor.GRAY + "Next: " + ChatColor.AQUA + masteryReductionPercent(nextRank)
+                + ChatColor.GRAY + " lower mana/cooldown");
+    }
 
-    private String statLine(String icon, String label, String value) {
-        return ChatColor.DARK_PURPLE + icon + " "
-                + ChatColor.GRAY + label.toUpperCase(Locale.ROOT) + ": "
-                + ChatColor.WHITE + value;
+    private String masteryReductionPercent(int rank) {
+        return Math.max(0, rank * 2) + "%";
+    }
+
+
+    private String spellTypeLine(SpellInputType inputType) {
+        return SPELL_ACCENT + labelForInput(inputType).toUpperCase(Locale.ROOT);
+    }
+
+    private String rarityGlyph(SpellDeckRarity rarity) {
+        SpellDeckRarity resolved = rarity == null ? SpellDeckRarity.COMMON : rarity;
+        return "<glyph:" + resolved.name().toLowerCase(Locale.ROOT) + ">";
+    }
+
+    private String statLine(String label, ChatColor valueColor, String value) {
+        ChatColor resolvedValue = valueColor == null ? ChatColor.WHITE : valueColor;
+        return ChatColor.GRAY + label.toUpperCase(Locale.ROOT) + ": " + resolvedValue + value;
+    }
+
+    private String unavailableLine(SpellInputType equippedSlot) {
+        return ChatColor.RED + "UNAVAILABLE: "
+                + ChatColor.GRAY + "ALREADY IN "
+                + SPELL_ACCENT + labelForInput(equippedSlot).toUpperCase(Locale.ROOT);
+    }
+
+    private String clickLine(String action, String target) {
+        ChatColor targetColor = "this spell".equalsIgnoreCase(target) ? ChatColor.GRAY : SPELL_ACCENT;
+        return ChatColor.WHITE + "Left-click " + ChatColor.GRAY + action + " " + targetColor + target;
     }
 
     private String formatEffectLine(String line) {
@@ -297,7 +345,55 @@ public class SpellUpgradeGUI implements Listener {
             return ChatColor.DARK_GRAY + "- " + ChatColor.GRAY;
         }
         String trimmed = line.trim();
-        return ChatColor.DARK_PURPLE + "✦ " + highlightImportant(trimmed);
+        int separator = trimmed.indexOf(':');
+        if (separator > 0) {
+            String label = trimmed.substring(0, separator).trim();
+            String value = trimmed.substring(separator + 1).trim();
+            return ChatColor.DARK_GRAY + "- "
+                    + highlightEffectLabel(label) + ChatColor.GRAY + ": "
+                    + highlightEffectValue(label, value);
+        }
+        return ChatColor.DARK_GRAY + "- " + highlightImportant(trimmed);
+    }
+
+    private String highlightEffectLabel(String label) {
+        if (label == null || label.isBlank()) {
+            return ChatColor.GRAY.toString();
+        }
+        Matcher matcher = Pattern.compile("\\d+(?:\\.\\d+)?%").matcher(label);
+        StringBuilder highlighted = new StringBuilder(ChatColor.GRAY.toString());
+        int last = 0;
+        while (matcher.find()) {
+            highlighted.append(label, last, matcher.start());
+            highlighted.append(ChatColor.WHITE).append(matcher.group()).append(ChatColor.GRAY);
+            last = matcher.end();
+        }
+        highlighted.append(label.substring(last));
+        return highlighted.toString();
+    }
+
+    private String highlightEffectValue(String label, String value) {
+        if (value == null || value.isBlank()) {
+            return ChatColor.GRAY.toString();
+        }
+        String normalizedLabel = label == null ? "" : label.toLowerCase(Locale.ROOT);
+        ChatColor color = normalizedLabel.contains("damage") || normalizedLabel.contains("secondary") || normalizedLabel.contains("hit")
+                ? ChatColor.RED
+                : normalizedLabel.contains("radius") || normalizedLabel.contains("block") || normalizedLabel.contains("chain")
+                ? ChatColor.YELLOW
+                : normalizedLabel.contains("burn") || normalizedLabel.contains("cooldown") || normalizedLabel.contains("mana")
+                ? ChatColor.GOLD
+                : ChatColor.WHITE;
+        Matcher matcher = Pattern.compile("(\\d+(?:\\.\\d+)?%?(?:/sec|s|x)?|\\bblocks?\\b|\\bmana\\b)", Pattern.CASE_INSENSITIVE).matcher(value);
+        StringBuilder highlighted = new StringBuilder(ChatColor.GRAY.toString());
+        int last = 0;
+        while (matcher.find()) {
+            highlighted.append(value, last, matcher.start());
+            highlighted.append(color).append(matcher.group()).append(ChatColor.GRAY);
+            last = matcher.end();
+        }
+        highlighted.append(value.substring(last));
+        return highlighted.toString();
     }
 
     private List<String> descriptionLines(SpellCardDefinition card) {

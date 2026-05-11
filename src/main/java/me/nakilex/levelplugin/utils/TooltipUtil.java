@@ -385,6 +385,30 @@ public final class TooltipUtil {
     public static String accountLimitLine(int limit) {
         return purchaseLimitLine("Account", limit);
     }
+    /**
+     * Build a standard pull/banner level progress block using the same
+     * strikethrough progress bar style used by pet and spell tooltips.
+     */
+    public static List<String> pullLevelProgressLore(String label, int level, int maxLevel, int progress, int required) {
+        List<String> lore = new ArrayList<>();
+        String safeLabel = (label == null || label.isBlank()) ? "Banner Level" : label.trim();
+        int safeLevel = Math.max(1, level);
+        int safeMax = Math.max(safeLevel, maxLevel);
+        lore.add(ChatColor.YELLOW + safeLabel + " " + ChatColor.WHITE + safeLevel
+                + ChatColor.GRAY + "/" + ChatColor.WHITE + safeMax);
+        if (safeLevel >= safeMax || required <= 0) {
+            lore.add(expProgressBarByPixels(1, 1, 156) + " " + ChatColor.GRAY + "Max");
+            return lore;
+        }
+        int safeRequired = Math.max(1, required);
+        int safeProgress = Math.max(0, Math.min(progress, safeRequired));
+        lore.add(expProgressBarByPixels(safeProgress, safeRequired, 156) + " "
+                + ChatColor.GRAY + safeProgress + ChatColor.GOLD + "/"
+                + ChatColor.GRAY + safeRequired + ChatColor.GRAY + " pulls");
+        lore.add(ChatColor.GRAY + "Higher levels improve summon odds.");
+        return lore;
+    }
+
 
     /**
      * Format a section header for tooltips using the standard gold styling.
