@@ -653,48 +653,6 @@ public final class SpellDeckManager {
         return dataStore.getProfile(playerId).pityPullsSinceLegendary();
     }
 
-    public InvestAllResult investAllDuplicateCopies(Player player) {
-        if (player == null || dataStore == null) {
-            return new InvestAllResult(0, 0, 0);
-        }
-        SpellDeckProfile profile = dataStore.getProfile(player.getUniqueId());
-        int cardsTouched = 0;
-        int copiesInvested = 0;
-        int gemsSalvaged = 0;
-        for (SpellCardDefinition definition : definitions.values()) {
-            int copies = profile.getCopies(definition.cardId());
-            if (copies <= 1) {
-                continue;
-            }
-            int duplicateCopies = copies - 1;
-            int availableMastery = Math.max(0, maxMasteryInvestedCopies() - profile.getInvestedCopies(definition.familyId()));
-            int investableCopies = Math.min(duplicateCopies, availableMastery);
-            int salvageCopies = duplicateCopies - investableCopies;
-            profile.setCopies(definition.cardId(), 1);
-            if (investableCopies > 0) {
-                profile.addInvestedCopies(definition.familyId(), investableCopies);
-                copiesInvested += investableCopies;
-            }
-            if (salvageCopies > 0) {
-                gemsSalvaged += salvageCopies * maxedDuplicateGemValue(definition.rarity());
-            }
-            cardsTouched++;
-        }
-        if (gemsSalvaged > 0) {
-            addGems(player, gemsSalvaged);
-        }
-        if (copiesInvested > 0 || gemsSalvaged > 0) {
-            dataStore.saveProfile(player.getUniqueId());
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                    "Invested " + org.bukkit.ChatColor.WHITE + copiesInvested + org.bukkit.ChatColor.GREEN
-                            + " duplicate spell copies and salvaged " + org.bukkit.ChatColor.LIGHT_PURPLE
-                            + gemsSalvaged + " <glyph:purple_orb_icon>" + org.bukkit.ChatColor.GREEN + ".");
-        } else {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You do not have duplicate spell cards to invest.");
-        }
-        return new InvestAllResult(cardsTouched, copiesInvested, gemsSalvaged);
-    }
-
     public int getMaxMasteryProgress() {
         return MAX_MASTERY_PROGRESS;
     }
@@ -879,5 +837,4 @@ public final class SpellDeckManager {
         }
     }
 
-    public record InvestAllResult(int cardsTouched, int copiesInvested, int gemsSalvaged) {}
 }

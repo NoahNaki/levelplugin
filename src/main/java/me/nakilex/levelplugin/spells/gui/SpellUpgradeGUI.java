@@ -50,7 +50,6 @@ public class SpellUpgradeGUI implements Listener {
     private static final int BACK_SLOT = 36;
     private static final int PREV_SLOT = 37;
     private static final int NEXT_SLOT = 43;
-    private static final int INVEST_ALL_SLOT = 22;
     private static final int SORT_SLOT = 39;
     private static final int CATEGORY_FILTER_SLOT = 40;
     private static final int RARITY_FILTER_SLOT = 41;
@@ -112,11 +111,6 @@ public class SpellUpgradeGUI implements Listener {
             widgets.add(new ActionWidget(slot, ctx -> createSpellSlotItem(ctx.player(), input),
                     (click, context) -> openSelection(context.player(), input, 0)));
         }
-        widgets.add(new ActionWidget(INVEST_ALL_SLOT, ctx -> createInvestAllItem(ctx.player()),
-                (click, context) -> {
-                    deckManager.investAllDuplicateCopies(context.player());
-                    open(context.player());
-                }));
         return widgets;
     }
 
@@ -204,28 +198,6 @@ public class SpellUpgradeGUI implements Listener {
         lore.add(" ");
         lore.add(clickLine("to change", "this spell"));
         return createSpellCardGuiItem(equipped, equipped.rarity().color() + equipped.displayName().toUpperCase(Locale.ROOT), lore);
-    }
-
-    private ItemStack createInvestAllItem(Player player) {
-        int duplicates = 0;
-        int owned = 0;
-        for (SpellCardDefinition card : deckManager.getDefinitions()) {
-            int copies = deckManager.getCopies(player.getUniqueId(), card.cardId());
-            if (copies > 0) {
-                owned++;
-            }
-            duplicates += Math.max(0, copies - 1);
-        }
-        List<String> lore = new ArrayList<>();
-        lore.add(" ");
-        lore.add(TooltipUtil.labelValueLine("Owned Cards", ChatColor.WHITE, String.valueOf(owned)));
-        lore.add(TooltipUtil.labelValueLine("Duplicate Copies", ChatColor.WHITE, String.valueOf(duplicates)));
-        lore.add(" ");
-        lore.addAll(TooltipUtil.bulletList("Consumes every copy above the first.",
-                "Invested copies are saved for future spell upgrades."));
-        lore.add(" ");
-        lore.addAll(TooltipUtil.clickInstructions("to invest all duplicates", null));
-        return GuiUtil.createGuiItem(Material.AMETHYST_SHARD, ChatColor.LIGHT_PURPLE + "Invest Duplicate Spells", lore);
     }
 
     private ItemStack createBrowserCardItem(Player player, SpellCardDefinition card, SpellInputType targetSlot) {
