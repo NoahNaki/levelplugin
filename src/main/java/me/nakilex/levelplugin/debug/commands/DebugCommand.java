@@ -345,12 +345,15 @@ public class DebugCommand implements TabExecutor {
                     return true;
                 }
                 var spellPullResult = SpellDeckManager.getInstance().pull(spellPullPlayer, spellPullAmount);
-                if (spellPullResult.kept().isEmpty() && spellPullResult.discarded().isEmpty()) {
+                if (spellPullResult.isEmpty()) {
                     ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.WARNING, "No spell cards available to pull.");
                     return true;
                 }
                 ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.REWARD, ChatColor.YELLOW + "Spell pulls:");
-                SpellPullSummaryUtil.sendSummary(spellPullPlayer, "Pulled", spellPullResult.kept());
+                ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.INFO,
+                        "First copy unlocks the card, duplicate pulls add mastery, and maxed cards auto-discard.");
+                SpellPullSummaryUtil.sendSummary(spellPullPlayer, "Unlocked", spellPullResult.unlocked());
+                SpellPullSummaryUtil.sendSummary(spellPullPlayer, "Mastery gained", spellPullResult.invested());
                 SpellPullSummaryUtil.sendSummary(spellPullPlayer, "Auto-discarded", spellPullResult.discarded());
                 return true;
 

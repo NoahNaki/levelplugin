@@ -447,11 +447,12 @@ public class SpellSummonManager implements Listener {
             playSound(player, "minecraft:entity.player.levelup", 0.9f, 1.3f);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                     "Spell summons complete. Spent §d" + session.summonCost + " <glyph:purple_orb_icon>§a.");
-            SpellPullSummaryUtil.sendSummary(player, "Pulled", session.pulls.kept());
+            SpellPullSummaryUtil.sendSummary(player, "Unlocked", session.pulls.unlocked());
+            SpellPullSummaryUtil.sendSummary(player, "Mastery gained", session.pulls.invested());
             SpellPullSummaryUtil.sendSummary(player, "Auto-discarded", session.pulls.discarded());
-            if (session.pulls.duplicateInvestments() > 0) {
+            if (session.pulls.totalInvested() > 0) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Invested " + org.bukkit.ChatColor.WHITE + session.pulls.duplicateInvestments()
+                        "Invested " + org.bukkit.ChatColor.WHITE + session.pulls.totalInvested()
                                 + org.bukkit.ChatColor.GREEN + " duplicate spell pulls into mastery.");
             }
             if (summonGUI != null && player.isOnline()) {

@@ -404,14 +404,14 @@ public final class SpellDeckManager {
 
     public SpellPullResult pull(Player player, int amount) {
         if (player == null || amount <= 0 || dataStore == null || definitions.isEmpty()) {
-            return new SpellPullResult(List.of(), Map.of(), Map.of(), 0);
+            return new SpellPullResult(List.of(), Map.of(), Map.of(), Map.of());
         }
         SpellDeckProfile profile = dataStore.getProfile(player.getUniqueId());
         Map<SpellDeckRarity, List<SpellCardDefinition>> pools = buildRarityPools();
         List<SpellPullEntry> entries = new ArrayList<>(amount);
-        Map<SpellCardDefinition, Integer> kept = new HashMap<>();
+        Map<SpellCardDefinition, Integer> unlocked = new HashMap<>();
+        Map<SpellCardDefinition, Integer> invested = new HashMap<>();
         Map<SpellCardDefinition, Integer> discarded = new HashMap<>();
-        int duplicateInvestments = 0;
         Random random = ThreadLocalRandom.current();
         for (int i = 0; i < amount; i++) {
             boolean pityGuaranteed = profile.pityPullsSinceLegendary() >= (PITY_THRESHOLD - 1);
@@ -433,33 +433,33 @@ public final class SpellDeckManager {
                 profile.setPityPullsSinceLegendary(profile.pityPullsSinceLegendary() + 1);
             }
             int remainingMasteryValue = pullMasteryValue(pulledRarity);
-            boolean keptPull = false;
+            boolean unlockedPull = false;
             int existingCopies = getCopies(profile, card);
             if (existingCopies <= 0) {
                 profile.addCopies(card.cardId(), 1);
                 remainingMasteryValue--;
-                keptPull = true;
+                unlockedPull = true;
+                unlocked.merge(card, 1, Integer::sum);
                 autoEquipFirstCopy(player, profile, card);
             }
+            int investedNow = 0;
             if (remainingMasteryValue > 0) {
                 int availableMastery = Math.max(0, maxMasteryInvestedCopies() - getInvestedCopies(profile, card));
-                int investedNow = Math.min(remainingMasteryValue, availableMastery);
+                investedNow = Math.min(remainingMasteryValue, availableMastery);
                 if (investedNow > 0) {
                     profile.addInvestedCopies(card.cardId(), investedNow);
-                    duplicateInvestments += investedNow;
-                    keptPull = true;
+                    invested.merge(card, investedNow, Integer::sum);
                 }
             }
+            boolean keptPull = unlockedPull || investedNow > 0;
             entries.add(new SpellPullEntry(card, keptPull));
             profile.addBannerPulls(1);
-            if (keptPull) {
-                kept.merge(card, 1, Integer::sum);
-            } else {
+            if (!keptPull) {
                 discarded.merge(card, 1, Integer::sum);
             }
         }
         dataStore.saveProfile(player.getUniqueId());
-        return new SpellPullResult(entries, kept, discarded, duplicateInvestments);
+        return new SpellPullResult(entries, unlocked, invested, discarded);
     }
 
     public List<SpellDeckRarity> getGachaRarities() {
@@ -706,8 +706,16 @@ public final class SpellDeckManager {
     public record SpellPullEntry(SpellCardDefinition card, boolean kept) {
     }
     public record SpellPullResult(List<SpellPullEntry> pulls,
-                                  Map<SpellCardDefinition, Integer> kept,
-                                  Map<SpellCardDefinition, Integer> discarded,
-                                  int duplicateInvestments) {}
+                                  Map<SpellCardDefinition, Integer> unlocked,
+                                  Map<SpellCardDefinition, Integer> invested,
+                                  Map<SpellCardDefinition, Integer> discarded) {
+        public boolean isEmpty() {
+            return unlocked.isEmpty() && invested.isEmpty() && discarded.isEmpty();
+        }
+
+        public int totalInvested() {
+            return invested.values().stream().mapToInt(Integer::intValue).sum();
+        }
+    }
     public record InvestAllResult(int cardsTouched, int copiesInvested, int gemsSalvaged) {}
 }
