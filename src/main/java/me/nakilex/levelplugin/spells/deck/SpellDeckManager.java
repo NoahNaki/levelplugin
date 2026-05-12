@@ -32,8 +32,8 @@ public final class SpellDeckManager {
             SpellDeckRarity.LEGENDARY,
             SpellDeckRarity.MYTHIC
     );
-    private static final int MAX_MASTERY_RANK = 5;
-    private static final double MASTERY_MANA_COOLDOWN_REDUCTION_PER_RANK = 0.02;
+    private static final int MAX_MASTERY_LEVEL = 5;
+    private static final double MASTERY_MANA_COOLDOWN_REDUCTION_PER_LEVEL = 0.02;
     private static final Map<SpellDeckRarity, Double> GACHA_WEIGHTS = Map.of(
             SpellDeckRarity.COMMON, 55.0,
             SpellDeckRarity.UNCOMMON, 25.0,
@@ -298,12 +298,18 @@ public final class SpellDeckManager {
             return List.of();
         }
         SpellDeckProfile profile = dataStore.getProfile(playerId);
-        List<SpellCardDefinition> owned = new ArrayList<>();
+        Map<String, SpellCardDefinition> bestByFamily = new HashMap<>();
         for (SpellCardDefinition definition : definitions.values()) {
-            if (profile.getCopies(definition.cardId()) > 0) {
-                owned.add(definition);
+            if (profile.getCopies(definition.cardId()) <= 0) {
+                continue;
+            }
+            String family = normalize(definition.familyId());
+            SpellCardDefinition current = bestByFamily.get(family);
+            if (current == null || definition.rarity().ordinal() > current.rarity().ordinal()) {
+                bestByFamily.put(family, definition);
             }
         }
+        List<SpellCardDefinition> owned = new ArrayList<>(bestByFamily.values());
         owned.sort(java.util.Comparator.comparing((SpellCardDefinition card) -> card.familyId().toLowerCase(Locale.ROOT))
                 .thenComparingInt(card -> card.rarity().ordinal()));
         return owned;
@@ -346,10 +352,10 @@ public final class SpellDeckManager {
         if (card == null) {
             return null;
         }
-        int masteryRank = getMasteryRank(getProfile(playerId), card);
+        int masteryLevel = getMasteryLevel(getProfile(playerId), card);
         int rarityOffset = spellLevelOffset(card.rarity());
         return me.nakilex.levelplugin.spells.progression.SpellProgressionManager.getInstance()
-                .getSpellIdAtLevel(card.spellId(), masteryRank + rarityOffset);
+                .getSpellIdAtLevel(card.spellId(), masteryLevel + rarityOffset);
     }
 
     public String getEffectiveSpellId(UUID playerId, String spellId) {
@@ -446,6 +452,39 @@ public final class SpellDeckManager {
         }
     }
 
+    private SpellCardDefinition getOwnedCardForFamily(SpellDeckProfile profile, String familyId) {
+        if (profile == null || familyId == null || familyId.isBlank()) {
+            return null;
+        }
+        SpellCardDefinition best = null;
+        String normalizedFamily = normalize(familyId);
+        for (SpellCardDefinition definition : definitionsByFamily.getOrDefault(normalizedFamily, List.of())) {
+            if (profile.getCopies(definition.cardId()) <= 0) {
+                continue;
+            }
+            if (best == null || definition.rarity().ordinal() > best.rarity().ordinal()) {
+                best = definition;
+            }
+        }
+        return best;
+    }
+
+    private void replaceOwnedFamilyCard(SpellDeckProfile profile,
+                                        SpellCardDefinition previous,
+                                        SpellCardDefinition replacement) {
+        if (profile == null || replacement == null) {
+            return;
+        }
+        SpellInputType equippedSlot = getEquippedSlotForFamily(profile, replacement.familyId());
+        for (SpellCardDefinition definition : definitionsByFamily.getOrDefault(normalize(replacement.familyId()), List.of())) {
+            profile.setCopies(definition.cardId(), 0);
+        }
+        profile.setCopies(replacement.cardId(), 1);
+        if (equippedSlot != null) {
+            profile.equip(equippedSlot, replacement.cardId());
+        }
+    }
+
     private String labelForInput(SpellInputType inputType) {
         if (inputType == null) {
             return "another slot";
@@ -488,11 +527,15 @@ public final class SpellDeckManager {
                 profile.setPityPullsSinceLegendary(profile.pityPullsSinceLegendary() + 1);
             }
 
-            int existingCopies = profile.getCopies(card.cardId());
+            SpellCardDefinition ownedFamilyCard = getOwnedCardForFamily(profile, card.familyId());
             int invested = profile.getInvestedCopies(card.familyId());
-            if (existingCopies <= 0) {
+            if (ownedFamilyCard == null) {
                 profile.addCopies(card.cardId(), 1);
                 autoEquipFirstCopy(player, profile, card);
+                unlocked.merge(card, 1, Integer::sum);
+                entries.add(new SpellPullEntry(card, SpellPullOutcome.UNLOCKED, 0, 0));
+            } else if (card.rarity().ordinal() > ownedFamilyCard.rarity().ordinal()) {
+                replaceOwnedFamilyCard(profile, ownedFamilyCard, card);
                 unlocked.merge(card, 1, Integer::sum);
                 entries.add(new SpellPullEntry(card, SpellPullOutcome.UNLOCKED, 0, 0));
             } else if (invested < maxMasteryInvestedCopies()) {
@@ -604,22 +647,22 @@ public final class SpellDeckManager {
         return new InvestAllResult(cardsTouched, copiesInvested, gemsSalvaged);
     }
 
-    public int getMaxMasteryRank() {
-        return MAX_MASTERY_RANK;
+    public int getMaxMasteryLevel() {
+        return MAX_MASTERY_LEVEL;
     }
 
     public int maxMasteryInvestedCopies() {
-        return investedCopiesForRank(MAX_MASTERY_RANK);
+        return investedCopiesForLevel(MAX_MASTERY_LEVEL);
     }
 
-    public int getMasteryRank(SpellDeckProfile profile, SpellCardDefinition card) {
+    public int getMasteryLevel(SpellDeckProfile profile, SpellCardDefinition card) {
         if (profile == null || card == null) {
             return 0;
         }
-        return getMasteryRank(profile.getInvestedCopies(card.familyId()));
+        return getMasteryLevelForInvested(profile.getInvestedCopies(card.familyId()));
     }
 
-    public int getMasteryRank(UUID playerId, String spellId) {
+    public int getMasteryLevel(UUID playerId, String spellId) {
         if (dataStore == null || playerId == null || spellId == null) {
             return 0;
         }
@@ -627,12 +670,12 @@ public final class SpellDeckManager {
         if (card == null) {
             return 0;
         }
-        return getMasteryRank(dataStore.getProfile(playerId), card);
+        return getMasteryLevel(dataStore.getProfile(playerId), card);
     }
 
     public double getMasteryManaCooldownMultiplier(UUID playerId, String spellId) {
-        int rank = getMasteryRank(playerId, spellId);
-        double reduction = Math.min(0.25, rank * MASTERY_MANA_COOLDOWN_REDUCTION_PER_RANK);
+        int masteryLevel = getMasteryLevel(playerId, spellId);
+        double reduction = Math.min(0.25, masteryLevel * MASTERY_MANA_COOLDOWN_REDUCTION_PER_LEVEL);
         return Math.max(0.0, 1.0 - reduction);
     }
 
@@ -641,18 +684,18 @@ public final class SpellDeckManager {
             return 0;
         }
         int invested = Math.min(profile.getInvestedCopies(card.familyId()), maxMasteryInvestedCopies());
-        int rank = getMasteryRank(invested);
-        if (rank >= MAX_MASTERY_RANK) {
-            return getMasteryRequiredForNextRank(rank);
+        int masteryLevel = getMasteryLevelForInvested(invested);
+        if (masteryLevel >= MAX_MASTERY_LEVEL) {
+            return getMasteryRequiredForNextLevel(masteryLevel);
         }
-        return invested - investedCopiesForRank(rank);
+        return invested - investedCopiesForLevel(masteryLevel);
     }
 
-    public int getMasteryRequiredForNextRank(int rank) {
-        if (rank >= MAX_MASTERY_RANK) {
+    public int getMasteryRequiredForNextLevel(int masteryLevel) {
+        if (masteryLevel >= MAX_MASTERY_LEVEL) {
             return 0;
         }
-        return rank + 1;
+        return masteryLevel + 1;
     }
 
     public int maxedDuplicateGemValue(SpellDeckRarity rarity) {
@@ -663,18 +706,18 @@ public final class SpellDeckManager {
         return MASTERY_VALUE_BY_RARITY.getOrDefault(rarity == null ? SpellDeckRarity.COMMON : rarity, 1);
     }
 
-    private int getMasteryRank(int investedCopies) {
-        int rank = 0;
+    private int getMasteryLevelForInvested(int investedCopies) {
+        int level = 0;
         int safeInvested = Math.max(0, investedCopies);
-        while (rank < MAX_MASTERY_RANK && safeInvested >= investedCopiesForRank(rank + 1)) {
-            rank++;
+        while (level < MAX_MASTERY_LEVEL && safeInvested >= investedCopiesForLevel(level + 1)) {
+            level++;
         }
-        return rank;
+        return level;
     }
 
-    private int investedCopiesForRank(int rank) {
-        int safeRank = Math.max(0, Math.min(MAX_MASTERY_RANK, rank));
-        return safeRank * (safeRank + 1) / 2;
+    private int investedCopiesForLevel(int level) {
+        int safeLevel = Math.max(0, Math.min(MAX_MASTERY_LEVEL, level));
+        return safeLevel * (safeLevel + 1) / 2;
     }
 
     private void addGems(Player player, int gems) {

@@ -262,7 +262,7 @@ public class SpellUpgradeGUI implements Listener {
                 ? readStatFromLore(card, "cooldown", 0) * 1000L
                 : SpellCastManager.getInstance().getCooldownMs(player, definition);
 
-        lore.add(TooltipUtil.rarityGlyphLine(card.rarity().itemRarity(), spellTypeGlyph(card.category())));
+        lore.add(TooltipUtil.rarityGlyphLine(card.rarity().itemRarity(), "spell"));
         lore.add(" ");
         lore.add(spellTypeLine(inputType));
         addActiveTierLore(lore, card, effectiveSpellId);
@@ -294,14 +294,14 @@ public class SpellUpgradeGUI implements Listener {
 
     private void addMasteryLore(Player player, List<String> lore, SpellCardDefinition card) {
         SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
-        int rank = deckManager.getMasteryRank(profile, card);
-        int maxRank = deckManager.getMaxMasteryRank();
+        int masteryLevel = deckManager.getMasteryLevel(profile, card);
+        int maxLevel = deckManager.getMaxMasteryLevel();
         int progress = deckManager.getMasteryProgress(profile, card);
-        int required = deckManager.getMasteryRequiredForNextRank(rank);
+        int required = deckManager.getMasteryRequiredForNextLevel(masteryLevel);
         lore.add(SPELL_ACCENT + "MASTERY");
-        lore.add(ChatColor.GRAY + "Rank: " + ChatColor.WHITE + rank + ChatColor.GRAY + "/" + ChatColor.WHITE + maxRank
-                + ChatColor.GOLD + " " + GuiUtil.glyphStars(rank));
-        if (rank >= maxRank) {
+        lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + masteryLevel + ChatColor.GRAY + "/" + ChatColor.WHITE + maxLevel
+                + ChatColor.GOLD + " " + GuiUtil.glyphStars(masteryLevel));
+        if (masteryLevel >= maxLevel) {
             lore.add(ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168) + ChatColor.GRAY + " Max");
             lore.add(ChatColor.GRAY + "Duplicates auto-salvage: "
                     + ChatColor.LIGHT_PURPLE + deckManager.maxedDuplicateGemValue(card.rarity())
@@ -311,13 +311,13 @@ public class SpellUpgradeGUI implements Listener {
         lore.add(TooltipUtil.expProgressBarByPixels(progress, required, 168) + " "
                 + ChatColor.GRAY + progress + ChatColor.GOLD + "/" + ChatColor.GRAY + required
                 + ChatColor.GRAY + " duplicates");
-        int nextRank = Math.min(maxRank, rank + 1);
-        lore.add(ChatColor.GRAY + "Next: " + ChatColor.AQUA + masteryReductionPercent(nextRank)
+        int nextLevel = Math.min(maxLevel, masteryLevel + 1);
+        lore.add(ChatColor.GRAY + "Next: " + ChatColor.AQUA + masteryReductionPercent(nextLevel)
                 + ChatColor.GRAY + " lower mana/cooldown");
     }
 
-    private String masteryReductionPercent(int rank) {
-        return Math.max(0, rank * 2) + "%";
+    private String masteryReductionPercent(int masteryLevel) {
+        return Math.max(0, masteryLevel * 2) + "%";
     }
 
 
@@ -334,8 +334,8 @@ public class SpellUpgradeGUI implements Listener {
                 ? effectiveSpellId
                 : active.definition().displayName();
         int level = activeMasteryLevel(card, effectiveSpellId);
-        lore.add(ChatColor.GRAY + "Active Tier: " + ChatColor.AQUA + activeName
-                + (level > 0 ? ChatColor.DARK_GRAY + " (Mastery " + level + ")" : ""));
+        lore.add(ChatColor.GRAY + "Active Upgrade: " + ChatColor.AQUA + activeName
+                + (level > 0 ? ChatColor.DARK_GRAY + " (Mastery Level " + level + ")" : ""));
     }
 
     private int activeMasteryLevel(SpellCardDefinition card, String effectiveSpellId) {
@@ -348,17 +348,6 @@ public class SpellUpgradeGUI implements Listener {
             }
         }
         return 0;
-    }
-
-    private String spellTypeGlyph(SpellCardCategory category) {
-        SpellCardCategory resolved = category == null ? SpellCardCategory.UTILITY : category;
-        return switch (resolved) {
-            case OFFENSIVE -> "weapon";
-            case DEFENSIVE -> "armor";
-            case MOBILITY -> "speed";
-            case SUPPORT -> "health";
-            case UTILITY -> "tool";
-        };
     }
 
     private String statLine(String label, ChatColor valueColor, String value) {
