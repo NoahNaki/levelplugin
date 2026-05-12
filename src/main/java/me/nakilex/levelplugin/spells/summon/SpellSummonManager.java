@@ -67,8 +67,8 @@ public class SpellSummonManager implements Listener {
     private static final float ORBIT_VOLUME = 0.4f;
     private static final float ORBIT_PITCH = 1.6f;
     private static final double REVEAL_NAME_VERTICAL_OFFSET = 1.0;
-    private static final int SINGLE_PULL_COST = 100;
-    private static final int TEN_PULL_COST = 900;
+    private static final int SINGLE_PULL_COST = 500;
+    private static final int TEN_PULL_COST = 4500;
 
     private final Main plugin;
     private final SpellDeckManager deckManager;

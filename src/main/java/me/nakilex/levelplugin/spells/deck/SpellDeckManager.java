@@ -116,6 +116,14 @@ public final class SpellDeckManager {
                 List.of("Healing: 12", "Party Heal: enabled", "Regen Duration: 2s", "Added effect: nearby ally pulse"),
                 List.of("Healing: 16", "Party Heal: stronger", "Regen Duration: 3s", "Added effect: mana restore pulse"),
                 List.of("Healing: 20", "Party Heal: strongest", "Regen Duration: 4s", "Added effect: emergency shield"));
+        registerRarityTrack("blink", "mage_blink", "Blink", SpellCardCategory.MOBILITY, SpellInputType.SPELL_3,
+                "Teleports to a safe location in your line of sight.",
+                List.of("Range: 8 blocks", "Momentum: light", "Mana Cost: 12"),
+                List.of("Range: 9 blocks", "Cooldown: -0.2s", "Mana Cost: -1"),
+                List.of("Range: 11 blocks", "Momentum: stronger", "Mana Cost: 11"),
+                List.of("Range: 14 blocks", "Added effect: rift fire nova", "Mana Cost: 10"),
+                List.of("Range: 15 blocks", "Added effect: bigger arrival burst"),
+                List.of("Range: 16 blocks", "Added effect: lingering rift flare"));
 
         registerRarityTrack("seeker_barrage", "archer_homing_barrage", "Seeker Barrage", SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
                 "Fires a volley of arrows that seek enemies.",
@@ -141,6 +149,14 @@ public final class SpellDeckManager {
                 List.of("Shield: 145", "Charges: 2", "Added effect: speed burst on block"),
                 List.of("Shield: 165", "Charges: 3", "Added effect: nearby allies gain windguard"),
                 List.of("Shield: 190", "Charges: 3", "Added effect: reflects a projectile"));
+        registerRarityTrack("skybound_vault", "archer_skybound", "Skybound Vault", SpellCardCategory.MOBILITY, SpellInputType.SPELL_3,
+                "Vaults upward and primes an aerial slam burst.",
+                List.of("Lift: 0.82", "Slow Fall: 4s", "Slam Radius: 3.2 blocks"),
+                List.of("Lift: 0.88", "Slow Fall: 4.3s", "Cooldown: -0.2s"),
+                List.of("Lift: 0.92", "Slow Fall: 4.5s", "Slam Radius: 3.8 blocks"),
+                List.of("Lift: 1.04", "Slow Fall: 5.25s", "Slam Radius: 4.4 blocks"),
+                List.of("Lift: 1.10", "Added effect: stronger dive shockwave"),
+                List.of("Lift: 1.18", "Added effect: storm finisher on landing"));
 
         registerRarityTrack("shadow_flurry", "rogue_sky_ripper", "Shadow Flurry", SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
                 "Strikes enemies with rapid shadow slashes.",
@@ -166,6 +182,14 @@ public final class SpellDeckManager {
                 List.of("Duration: 30s", "Radius: 2.8 blocks", "Shield: 140", "Added effect: dread cloud"),
                 List.of("Duration: 34s", "Radius: 3.1 blocks", "Added effect: enemies are silenced briefly"),
                 List.of("Duration: 38s", "Radius: 3.4 blocks", "Added effect: vanish burst on cast"));
+        registerRarityTrack("razor_dash", "rogue_razor_dash", "Razor Dash", SpellCardCategory.MOBILITY, SpellInputType.SPELL_3,
+                "Dashes forward and carves enemies in a narrow lane.",
+                List.of("Dash Speed: 1.28", "Lane Strike: 4.2 blocks", "Mana Cost: 12"),
+                List.of("Dash Speed: 1.34", "Cooldown: -0.2s"),
+                List.of("Dash Speed: 1.40", "Added effect: rift cut pressure"),
+                List.of("Dash Speed: 1.52", "Added effect: shade surge pressure"),
+                List.of("Dash Speed: 1.60", "Added effect: wider lane cuts"),
+                List.of("Dash Speed: 1.70", "Added effect: afterimage repeats"));
 
         registerRarityTrack("earthquake", "warrior_earthquake", "Earthquake", SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1,
                 "Shatters the ground around your target area.",
@@ -199,6 +223,14 @@ public final class SpellDeckManager {
                 List.of("Damage: 180", "Radius: 8.2 blocks", "Added effect: execute low health enemies"),
                 List.of("Damage: 215", "Radius: 9 blocks", "Added effect: brands spread once"),
                 List.of("Damage: 260", "Radius: 10 blocks", "Added effect: cyclone repeats"));
+        registerRarityTrack("titan_vault", "warrior_titan_vault", "Titan Vault", SpellCardCategory.MOBILITY, SpellInputType.SPELL_3,
+                "Leaps forward and crashes down with a heavy impact.",
+                List.of("Forward Speed: 1.18", "Impact Radius: 3 blocks", "Impact Damage: 7.2"),
+                List.of("Forward Speed: 1.23", "Cooldown: -0.2s", "Mana Cost: -1"),
+                List.of("Forward Speed: 1.28", "Impact Radius: 3.6 blocks", "Impact Damage: 9.4"),
+                List.of("Forward Speed: 1.40", "Impact Radius: 4.2 blocks", "Impact Damage: 12.2"),
+                List.of("Forward Speed: 1.48", "Added effect: stronger lane displacement"),
+                List.of("Forward Speed: 1.58", "Added effect: warlord shockwave repeat"));
     }
 
     private void registerRarityTrack(String familyId,
@@ -621,48 +653,6 @@ public final class SpellDeckManager {
         return dataStore.getProfile(playerId).pityPullsSinceLegendary();
     }
 
-    public InvestAllResult investAllDuplicateCopies(Player player) {
-        if (player == null || dataStore == null) {
-            return new InvestAllResult(0, 0, 0);
-        }
-        SpellDeckProfile profile = dataStore.getProfile(player.getUniqueId());
-        int cardsTouched = 0;
-        int copiesInvested = 0;
-        int gemsSalvaged = 0;
-        for (SpellCardDefinition definition : definitions.values()) {
-            int copies = profile.getCopies(definition.cardId());
-            if (copies <= 1) {
-                continue;
-            }
-            int duplicateCopies = copies - 1;
-            int availableMastery = Math.max(0, maxMasteryInvestedCopies() - profile.getInvestedCopies(definition.familyId()));
-            int investableCopies = Math.min(duplicateCopies, availableMastery);
-            int salvageCopies = duplicateCopies - investableCopies;
-            profile.setCopies(definition.cardId(), 1);
-            if (investableCopies > 0) {
-                profile.addInvestedCopies(definition.familyId(), investableCopies);
-                copiesInvested += investableCopies;
-            }
-            if (salvageCopies > 0) {
-                gemsSalvaged += salvageCopies * maxedDuplicateGemValue(definition.rarity());
-            }
-            cardsTouched++;
-        }
-        if (gemsSalvaged > 0) {
-            addGems(player, gemsSalvaged);
-        }
-        if (copiesInvested > 0 || gemsSalvaged > 0) {
-            dataStore.saveProfile(player.getUniqueId());
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                    "Invested " + org.bukkit.ChatColor.WHITE + copiesInvested + org.bukkit.ChatColor.GREEN
-                            + " duplicate spell copies and salvaged " + org.bukkit.ChatColor.LIGHT_PURPLE
-                            + gemsSalvaged + " <glyph:purple_orb_icon>" + org.bukkit.ChatColor.GREEN + ".");
-        } else {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You do not have duplicate spell cards to invest.");
-        }
-        return new InvestAllResult(cardsTouched, copiesInvested, gemsSalvaged);
-    }
-
     public int getMaxMasteryProgress() {
         return MAX_MASTERY_PROGRESS;
     }
@@ -847,5 +837,4 @@ public final class SpellDeckManager {
         }
     }
 
-    public record InvestAllResult(int cardsTouched, int copiesInvested, int gemsSalvaged) {}
 }

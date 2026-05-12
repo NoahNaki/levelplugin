@@ -90,6 +90,7 @@ public class SpellCastListener implements Listener {
             return;
         }
         entry.handler().cast(new SpellContext(plugin, player, entry.definition(), event));
+        castManager.recordCast(player, entry.definition());
         SpellInputDisplayManager.getInstance().markSpellCast(player);
     }
 }
