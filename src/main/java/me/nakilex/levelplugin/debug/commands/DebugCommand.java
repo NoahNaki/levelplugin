@@ -343,7 +343,7 @@ public class DebugCommand implements TabExecutor {
                     ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.WARNING, "Amount must be at least 1.");
                     return true;
                 }
-                var spellPullResult = SpellDeckManager.getInstance().pull(spellPullPlayer, spellPullAmount);
+                var spellPullResult = SpellDeckManager.getInstance().pull(spellPullPlayer, spellPullAmount, false);
                 if (spellPullResult.isEmpty()) {
                     ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.WARNING, "No spell cards available to pull.");
                     return true;

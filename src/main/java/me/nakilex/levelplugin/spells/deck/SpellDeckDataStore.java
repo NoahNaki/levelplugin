@@ -63,7 +63,7 @@ public final class SpellDeckDataStore {
         var invested = config.getConfigurationSection(root + ".invested");
         if (invested != null) {
             for (String cardId : invested.getKeys(false)) {
-                String canonical = canonicalCardId(cardId);
+                String canonical = canonicalFamilyId(cardId);
                 profile.setInvestedCopies(canonical, profile.getInvestedCopies(canonical) + invested.getInt(cardId, 0));
             }
         }
@@ -82,6 +82,18 @@ public final class SpellDeckDataStore {
     }
 
     private String canonicalCardId(String cardId) {
+        if (cardId == null || cardId.isBlank()) {
+            return cardId;
+        }
+        String normalized = cardId.toLowerCase(Locale.ROOT);
+        String commonSuffix = "_" + SpellDeckRarity.COMMON.name().toLowerCase(Locale.ROOT);
+        if (normalized.endsWith(commonSuffix) && normalized.length() > commonSuffix.length()) {
+            return normalized.substring(0, normalized.length() - commonSuffix.length());
+        }
+        return normalized;
+    }
+
+    private String canonicalFamilyId(String cardId) {
         if (cardId == null || cardId.isBlank()) {
             return cardId;
         }
