@@ -294,36 +294,23 @@ public class SpellUpgradeGUI implements Listener {
 
     private void addMasteryLore(Player player, List<String> lore, SpellCardDefinition card) {
         SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
-        int masteryLevel = deckManager.getMasteryLevel(profile, card);
-        int maxLevel = deckManager.getMaxMasteryLevel();
         int progress = deckManager.getMasteryProgress(profile, card);
-        int required = deckManager.getMasteryRequiredForNextLevel(masteryLevel);
+        int maxProgress = deckManager.getMaxMasteryProgress();
+        int percent = maxProgress <= 0 ? 0 : (int) Math.round(progress * 100.0 / maxProgress);
         lore.add(SPELL_ACCENT + "MASTERY");
-        lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + masteryLevel + ChatColor.GRAY + "/" + ChatColor.WHITE + maxLevel
-                + ChatColor.GOLD + " " + GuiUtil.glyphStars(masteryLevel));
-        lore.addAll(TooltipUtil.bulletList(
-                "Duplicate pulls for this spell add mastery.",
-                "Each mastery level lowers mana and cooldown by 2%.",
-                "Higher rarity still replaces the previous card version."));
-        if (masteryLevel >= maxLevel) {
-            lore.add(ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168) + ChatColor.GRAY + " Max");
-            lore.add(ChatColor.GRAY + "Duplicates auto-salvage: "
+        if (progress >= maxProgress) {
+            lore.add(ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168)
+                    + ChatColor.GRAY + " " + ChatColor.WHITE + "100%" + ChatColor.GRAY + " Max");
+            lore.add(ChatColor.GRAY + "Duplicate pulls auto-salvage: "
                     + ChatColor.LIGHT_PURPLE + deckManager.maxedDuplicateGemValue(card.rarity())
                     + " <glyph:purple_orb_icon>");
             return;
         }
-        lore.add(TooltipUtil.expProgressBarByPixels(progress, required, 168) + " "
-                + ChatColor.GRAY + progress + ChatColor.GOLD + "/" + ChatColor.GRAY + required
-                + ChatColor.GRAY + " duplicates");
-        int nextLevel = Math.min(maxLevel, masteryLevel + 1);
-        lore.add(ChatColor.GRAY + "Next: " + ChatColor.AQUA + masteryReductionPercent(nextLevel)
-                + ChatColor.GRAY + " lower mana/cooldown");
+        lore.add(TooltipUtil.expProgressBarByPixels(progress, maxProgress, 168) + " "
+                + ChatColor.WHITE + percent + "%" + ChatColor.GRAY + " mastery");
+        lore.add(ChatColor.GRAY + "Progress: " + ChatColor.WHITE + progress + ChatColor.GOLD + "/"
+                + ChatColor.WHITE + maxProgress + ChatColor.GRAY + " duplicate value");
     }
-
-    private String masteryReductionPercent(int masteryLevel) {
-        return Math.max(0, masteryLevel * 2) + "%";
-    }
-
 
     private String spellTypeLine(SpellInputType inputType) {
         return SPELL_ACCENT + labelForInput(inputType).toUpperCase(Locale.ROOT);
@@ -337,12 +324,12 @@ public class SpellUpgradeGUI implements Listener {
         String activeName = active == null || active.definition() == null
                 ? effectiveSpellId
                 : active.definition().displayName();
-        int level = activeMasteryLevel(card, effectiveSpellId);
-        lore.add(ChatColor.GRAY + "Active Spell: " + ChatColor.AQUA + activeName
-                + (level > 0 ? ChatColor.DARK_GRAY + " (rarity + mastery tier " + level + ")" : ""));
+        int tier = activeRarityTier(card, effectiveSpellId);
+        lore.add(ChatColor.GRAY + "Active Upgrade: " + ChatColor.AQUA + activeName
+                + (tier > 0 ? ChatColor.DARK_GRAY + " (Rarity Tier " + tier + ")" : ""));
     }
 
-    private int activeMasteryLevel(SpellCardDefinition card, String effectiveSpellId) {
+    private int activeRarityTier(SpellCardDefinition card, String effectiveSpellId) {
         SpellProgressionManager progression = SpellProgressionManager.getInstance();
         int max = progression.getMaxLevel(card.spellId());
         for (int level = 1; level <= max; level++) {

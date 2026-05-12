@@ -32,8 +32,8 @@ public final class SpellDeckManager {
             SpellDeckRarity.LEGENDARY,
             SpellDeckRarity.MYTHIC
     );
-    private static final int MAX_MASTERY_LEVEL = 5;
-    private static final double MASTERY_MANA_COOLDOWN_REDUCTION_PER_LEVEL = 0.02;
+    private static final int MAX_MASTERY_PROGRESS = 100;
+    private static final double MAX_MASTERY_MANA_COOLDOWN_REDUCTION = 0.10;
     private static final Map<SpellDeckRarity, Double> GACHA_WEIGHTS = Map.of(
             SpellDeckRarity.COMMON, 55.0,
             SpellDeckRarity.UNCOMMON, 25.0,
@@ -368,10 +368,9 @@ public final class SpellDeckManager {
         if (card == null) {
             return null;
         }
-        int masteryLevel = getMasteryLevel(getProfile(playerId), card);
         int rarityOffset = spellLevelOffset(card.rarity());
         return me.nakilex.levelplugin.spells.progression.SpellProgressionManager.getInstance()
-                .getSpellIdAtLevel(card.spellId(), masteryLevel + rarityOffset);
+                .getSpellIdAtLevel(card.spellId(), rarityOffset);
     }
 
     public String getEffectiveSpellId(UUID playerId, String spellId) {
@@ -552,6 +551,7 @@ public final class SpellDeckManager {
                 entries.add(new SpellPullEntry(card, SpellPullOutcome.UNLOCKED, 0, 0));
             } else if (card.rarity().ordinal() > ownedFamilyCard.rarity().ordinal()) {
                 replaceOwnedFamilyCard(profile, ownedFamilyCard, card);
+                profile.setInvestedCopies(card.familyId(), 0);
                 unlocked.merge(card, 1, Integer::sum);
                 entries.add(new SpellPullEntry(card, SpellPullOutcome.UNLOCKED, 0, 0));
             } else if (invested < maxMasteryInvestedCopies()) {
@@ -663,55 +663,47 @@ public final class SpellDeckManager {
         return new InvestAllResult(cardsTouched, copiesInvested, gemsSalvaged);
     }
 
-    public int getMaxMasteryLevel() {
-        return MAX_MASTERY_LEVEL;
+    public int getMaxMasteryProgress() {
+        return MAX_MASTERY_PROGRESS;
     }
 
     public int maxMasteryInvestedCopies() {
-        return investedCopiesForLevel(MAX_MASTERY_LEVEL);
-    }
-
-    public int getMasteryLevel(SpellDeckProfile profile, SpellCardDefinition card) {
-        if (profile == null || card == null) {
-            return 0;
-        }
-        return getMasteryLevelForInvested(profile.getInvestedCopies(card.familyId()));
-    }
-
-    public int getMasteryLevel(UUID playerId, String spellId) {
-        if (dataStore == null || playerId == null || spellId == null) {
-            return 0;
-        }
-        SpellCardDefinition card = getDefinitionBySpellId(spellId);
-        if (card == null) {
-            return 0;
-        }
-        return getMasteryLevel(dataStore.getProfile(playerId), card);
-    }
-
-    public double getMasteryManaCooldownMultiplier(UUID playerId, String spellId) {
-        int masteryLevel = getMasteryLevel(playerId, spellId);
-        double reduction = Math.min(0.25, masteryLevel * MASTERY_MANA_COOLDOWN_REDUCTION_PER_LEVEL);
-        return Math.max(0.0, 1.0 - reduction);
+        return MAX_MASTERY_PROGRESS;
     }
 
     public int getMasteryProgress(SpellDeckProfile profile, SpellCardDefinition card) {
         if (profile == null || card == null) {
             return 0;
         }
-        int invested = Math.min(profile.getInvestedCopies(card.familyId()), maxMasteryInvestedCopies());
-        int masteryLevel = getMasteryLevelForInvested(invested);
-        if (masteryLevel >= MAX_MASTERY_LEVEL) {
-            return getMasteryRequiredForNextLevel(masteryLevel);
-        }
-        return invested - investedCopiesForLevel(masteryLevel);
+        return Math.min(profile.getInvestedCopies(card.familyId()), maxMasteryInvestedCopies());
     }
 
-    public int getMasteryRequiredForNextLevel(int masteryLevel) {
-        if (masteryLevel >= MAX_MASTERY_LEVEL) {
-            return 0;
+    public double getMasteryPercent(SpellDeckProfile profile, SpellCardDefinition card) {
+        if (profile == null || card == null) {
+            return 0.0;
         }
-        return masteryLevel + 1;
+        return getMasteryProgress(profile, card) / (double) maxMasteryInvestedCopies();
+    }
+
+    public double getMasteryPercent(UUID playerId, String spellId) {
+        if (dataStore == null || playerId == null || spellId == null) {
+            return 0.0;
+        }
+        SpellCardDefinition card = getDefinitionBySpellId(spellId);
+        if (card == null) {
+            return 0.0;
+        }
+        return getMasteryPercent(dataStore.getProfile(playerId), card);
+    }
+
+    public double getMasteryManaCooldownMultiplier(UUID playerId, String spellId) {
+        double masteryPercent = Math.max(0.0, Math.min(1.0, getMasteryPercent(playerId, spellId)));
+        double reduction = masteryPercent * MAX_MASTERY_MANA_COOLDOWN_REDUCTION;
+        return Math.max(0.0, 1.0 - reduction);
+    }
+
+    public int getMasteryRemaining(SpellDeckProfile profile, SpellCardDefinition card) {
+        return Math.max(0, maxMasteryInvestedCopies() - getMasteryProgress(profile, card));
     }
 
     public int maxedDuplicateGemValue(SpellDeckRarity rarity) {
@@ -720,20 +712,6 @@ public final class SpellDeckManager {
 
     public int masteryValue(SpellDeckRarity rarity) {
         return MASTERY_VALUE_BY_RARITY.getOrDefault(rarity == null ? SpellDeckRarity.COMMON : rarity, 1);
-    }
-
-    private int getMasteryLevelForInvested(int investedCopies) {
-        int level = 0;
-        int safeInvested = Math.max(0, investedCopies);
-        while (level < MAX_MASTERY_LEVEL && safeInvested >= investedCopiesForLevel(level + 1)) {
-            level++;
-        }
-        return level;
-    }
-
-    private int investedCopiesForLevel(int level) {
-        int safeLevel = Math.max(0, Math.min(MAX_MASTERY_LEVEL, level));
-        return safeLevel * (safeLevel + 1) / 2;
     }
 
     private void addGems(Player player, int gems) {
