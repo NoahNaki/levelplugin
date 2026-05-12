@@ -89,10 +89,6 @@ public final class SpellDeckManager {
         definitions.clear();
         definitionsBySpellId.clear();
         definitionsByFamily.clear();
-        register(new SpellCardDefinition("fireball", "fireball", "deck_fireball_common", "Fireball",
-                SpellDeckRarity.COMMON, SpellCardCategory.OFFENSIVE, SpellInputType.SPELL_1, null,
-                List.of("Shoots a fireball forward.", "Duplicate pulls raise mastery and unlock Enhanced, Infernal, Cataclysm, Dragonfire, and Worldfire tiers.", "Upgrades reuse one card asset and spell family."),
-                List.of()));
         registerClassSpellCards();
     }
 
