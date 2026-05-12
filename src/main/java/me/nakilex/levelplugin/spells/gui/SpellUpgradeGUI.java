@@ -301,6 +301,10 @@ public class SpellUpgradeGUI implements Listener {
         lore.add(SPELL_ACCENT + "MASTERY");
         lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + masteryLevel + ChatColor.GRAY + "/" + ChatColor.WHITE + maxLevel
                 + ChatColor.GOLD + " " + GuiUtil.glyphStars(masteryLevel));
+        lore.addAll(TooltipUtil.bulletList(
+                "Duplicate pulls for this spell add mastery.",
+                "Each mastery level lowers mana and cooldown by 2%.",
+                "Higher rarity still replaces the previous card version."));
         if (masteryLevel >= maxLevel) {
             lore.add(ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168) + ChatColor.GRAY + " Max");
             lore.add(ChatColor.GRAY + "Duplicates auto-salvage: "
@@ -334,8 +338,8 @@ public class SpellUpgradeGUI implements Listener {
                 ? effectiveSpellId
                 : active.definition().displayName();
         int level = activeMasteryLevel(card, effectiveSpellId);
-        lore.add(ChatColor.GRAY + "Active Upgrade: " + ChatColor.AQUA + activeName
-                + (level > 0 ? ChatColor.DARK_GRAY + " (Mastery Level " + level + ")" : ""));
+        lore.add(ChatColor.GRAY + "Active Spell: " + ChatColor.AQUA + activeName
+                + (level > 0 ? ChatColor.DARK_GRAY + " (rarity + mastery tier " + level + ")" : ""));
     }
 
     private int activeMasteryLevel(SpellCardDefinition card, String effectiveSpellId) {

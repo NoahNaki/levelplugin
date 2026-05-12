@@ -327,7 +327,23 @@ public final class SpellDeckManager {
     }
 
     public SpellCardDefinition getDefinitionBySpellId(String spellId) {
-        return definitionsBySpellId.get(normalize(spellId));
+        String normalized = normalize(spellId);
+        SpellCardDefinition direct = definitionsBySpellId.get(normalized);
+        if (direct != null) {
+            return direct;
+        }
+        me.nakilex.levelplugin.spells.progression.SpellProgressionManager progressionManager =
+                me.nakilex.levelplugin.spells.progression.SpellProgressionManager.getInstance();
+        for (SpellCardDefinition definition : definitions.values()) {
+            int maxLevel = progressionManager.getMaxLevel(definition.spellId());
+            for (int level = 1; level <= maxLevel; level++) {
+                String candidate = progressionManager.getSpellIdAtLevel(definition.spellId(), level);
+                if (candidate != null && candidate.equalsIgnoreCase(normalized)) {
+                    return definition;
+                }
+            }
+        }
+        return null;
     }
 
     public SpellCardDefinition getEquippedCard(UUID playerId, SpellInputType inputType) {
