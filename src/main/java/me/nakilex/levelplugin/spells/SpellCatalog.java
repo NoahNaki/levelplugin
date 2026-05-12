@@ -86,18 +86,17 @@ public final class SpellCatalog {
         registry.registerProgression(new SpellProgression(heal.id(), java.util.List.of(healRegen.id(), healParty.id())));
         registry.registerBinding(SpellBinding.forInputType(heal.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_4));
 
-        SpellDefinition blink = new SpellDefinition("mage_blink", "Blink", 0, true);
-        SpellDefinition blinkPhase = new SpellDefinition("mage_blink_phase", "Blink: Phase Step", 0, true);
-        SpellDefinition blinkRift = new SpellDefinition("mage_blink_rift", "Blink: Riftstride", 0, true);
+        SpellDefinition blink = new SpellDefinition("mage_blink", "Blink", 12, true);
+        SpellDefinition blinkPhase = new SpellDefinition("mage_blink_phase", "Blink: Phase Step", 11, true);
+        SpellDefinition blinkRift = new SpellDefinition("mage_blink_rift", "Blink: Riftstride", 10, true);
         registry.registerSpell(blink, new MageBlinkSpell(plugin, 8.0, 0.52, 0.45));
         registry.registerSpell(blinkPhase, new MageBlinkSpell(plugin, 11.0, 0.58, 0.55));
         registry.registerSpell(blinkRift, new MageBlinkSpell(plugin, 14.0, 0.66, 0.65, true));
         registry.registerProgression(new SpellProgression(blink.id(), java.util.List.of(blinkPhase.id(), blinkRift.id())));
-        // Mobility spell archived for rework.
-        // registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
+        registry.registerBinding(SpellBinding.forInputType(blink.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_3));
 
         registry.registerBinding(SpellBinding.forInputType(meteor.id(), ClassUtil::isMageFamily, SpellInputType.SPELL_2));
-        registerStandardSequenceBindings(registry, blackhole.id(), meteor.id(), null, heal.id(), ClassUtil::isMageFamily);
+        registerStandardSequenceBindings(registry, blackhole.id(), meteor.id(), blink.id(), heal.id(), ClassUtil::isMageFamily);
 
         SpellDefinition archerBasic = new SpellDefinition("archer_quickshot_basic", "Quickshot", 0, false);
         SpellDefinition archerBasicSeeker = new SpellDefinition("archer_quickshot_seeker", "Quickshot: Seeker Tip", 0, false);
@@ -105,6 +104,8 @@ public final class SpellCatalog {
         SpellDefinition archerBarrage = new SpellDefinition("archer_homing_barrage", "Seeker Barrage", 16, false);
         SpellDefinition archerWindguard = new SpellDefinition("archer_windguard", "Windguard", 18, false);
         SpellDefinition archerSkybound = new SpellDefinition("archer_skybound", "Skybound Vault", 14, true);
+        SpellDefinition archerSkyboundGale = new SpellDefinition("archer_skybound_gale", "Skybound Vault: Gale Step", 13, true);
+        SpellDefinition archerSkyboundStorm = new SpellDefinition("archer_skybound_storm", "Skybound Vault: Storm Dive", 12, true);
         SpellDefinition archerArrowRain = new SpellDefinition("archer_arrow_rain", "Arrow Rain", 18, false);
 
         registry.registerSpell(archerBasic, new ArcherBasicAttackSpell(plugin, 0.0, 0.0, 0.0));
@@ -112,18 +113,21 @@ public final class SpellCatalog {
         registry.registerSpell(archerBasicPayload, new ArcherBasicAttackSpell(plugin, 0.38, 3.8, 0.72));
         registry.registerSpell(archerBarrage, new ArcherHomingBarrageSpell(plugin, 9, 2L, 3.3, 0.31, 4.8, 0.42));
         registry.registerSpell(archerSkybound, new ArcherSkyboundSpell(plugin, 0.82, 80, 3.2, 5.4, 0.62));
+        registry.registerSpell(archerSkyboundGale, new ArcherSkyboundSpell(plugin, 0.92, 90, 3.8, 7.0, 0.78));
+        registry.registerSpell(archerSkyboundStorm, new ArcherSkyboundSpell(plugin, 1.04, 105, 4.4, 9.0, 0.95));
         registry.registerSpell(archerWindguard, new ArcherWindguardSpell(plugin, 100, 1, 30.0));
         registry.registerSpell(archerArrowRain, new ArcherArrowRainSpell(plugin, 8, 11, 7, 8.2, 15.5, 4.4, 0.36));
 
         registry.registerBinding(SpellBinding.forInputType(archerBasic.id(), ClassUtil::isArcherFamily, SpellInputType.BASIC_ATTACK));
         registry.registerProgression(new SpellProgression(archerBasic.id(), java.util.List.of(
                 archerBasicSeeker.id(), archerBasicPayload.id())));
+        registry.registerProgression(new SpellProgression(archerSkybound.id(), java.util.List.of(
+                archerSkyboundGale.id(), archerSkyboundStorm.id())));
         registry.registerBinding(SpellBinding.forInputType(archerBarrage.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(archerArrowRain.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_2));
-        // Mobility spell archived for rework.
-        // registry.registerBinding(SpellBinding.forInputType(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_3));
+        registry.registerBinding(SpellBinding.forInputType(archerSkybound.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(archerWindguard.id(), ClassUtil::isArcherFamily, SpellInputType.SPELL_4));
-        registerReversedSequenceBindings(registry, archerBarrage.id(), archerArrowRain.id(), null, archerWindguard.id(), ClassUtil::isArcherFamily);
+        registerReversedSequenceBindings(registry, archerBarrage.id(), archerArrowRain.id(), archerSkybound.id(), archerWindguard.id(), ClassUtil::isArcherFamily);
 
         SpellDefinition rogueShadowFlurry = new SpellDefinition("rogue_sky_ripper", "Shadow Flurry", 14, false);
         SpellDefinition rogueShadowFlurryTempest = new SpellDefinition("rogue_sky_ripper_tempest", "Shadow Flurry: Tempest Dive", 14, false);
@@ -182,10 +186,9 @@ public final class SpellCatalog {
         registry.registerBinding(SpellBinding.forInputType(rogueArcBasic.id(), ClassUtil::isRogueFamily, SpellInputType.BASIC_ATTACK));
         registry.registerBinding(SpellBinding.forInputType(rogueShadowFlurry.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(rogueNightfallLunge.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
-        // Mobility spell archived for rework.
-        // registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
+        registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(rogueSmokeBomb.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_4));
-        registerStandardSequenceBindings(registry, rogueShadowFlurry.id(), rogueNightfallLunge.id(), null, rogueSmokeBomb.id(), ClassUtil::isRogueFamily);
+        registerStandardSequenceBindings(registry, rogueShadowFlurry.id(), rogueNightfallLunge.id(), rogueRazorDash.id(), rogueSmokeBomb.id(), ClassUtil::isRogueFamily);
 
         SpellDefinition warriorExecutionArc = new SpellDefinition("warrior_execution_arc", "Cyclone Brand", 16, false);
         SpellDefinition warriorEarthquake = new SpellDefinition("warrior_earthquake", "Earthquake", 16, false);
@@ -193,6 +196,8 @@ public final class SpellCatalog {
         SpellDefinition warriorEarthquakeCataclysm = new SpellDefinition("warrior_earthquake_cataclysm", "Earthquake: Cataclysm", 16, false);
         SpellDefinition warriorRuptureCyclone = new SpellDefinition("warrior_rupture_cyclone", "Rupture Cyclone", 18, false);
         SpellDefinition warriorTitanVault = new SpellDefinition("warrior_titan_vault", "Titan Vault", 14, true);
+        SpellDefinition warriorTitanVaultRampart = new SpellDefinition("warrior_titan_vault_rampart", "Titan Vault: Rampart Rush", 13, true);
+        SpellDefinition warriorTitanVaultWarlord = new SpellDefinition("warrior_titan_vault_warlord", "Titan Vault: Warlord Rush", 12, true);
         SpellDefinition warriorGuardedResolve = new SpellDefinition("warrior_guarded_resolve", "Aegis Bastion", 16, false);
 
         registry.registerSpell(warriorExecutionArc, new WarriorExecutionArcSpell(plugin, 120, 2.0, 6.4));
@@ -201,16 +206,19 @@ public final class SpellCatalog {
         registry.registerSpell(warriorEarthquakeCataclysm, new WarriorEarthquakeSpell(plugin, 8.8, 14.2, 1.08));
         registry.registerSpell(warriorRuptureCyclone, new WarriorRuptureCycloneSpell(plugin, 9, 2L, 0.9, 1.0, 3.8, 1.0, 0.58));
         registry.registerSpell(warriorTitanVault, new WarriorTitanVaultSpell(plugin, 1.18, 0.72, 3.0, 7.2));
+        registry.registerSpell(warriorTitanVaultRampart, new WarriorTitanVaultSpell(plugin, 1.28, 0.80, 3.6, 9.4));
+        registry.registerSpell(warriorTitanVaultWarlord, new WarriorTitanVaultSpell(plugin, 1.40, 0.88, 4.2, 12.2));
         registry.registerSpell(warriorGuardedResolve, new WarriorGuardedResolveSpell(plugin, 130, 5, 34.0));
         registry.registerProgression(new SpellProgression(warriorEarthquake.id(), java.util.List.of(
                 warriorEarthquakeTremor.id(), warriorEarthquakeCataclysm.id())));
+        registry.registerProgression(new SpellProgression(warriorTitanVault.id(), java.util.List.of(
+                warriorTitanVaultRampart.id(), warriorTitanVaultWarlord.id())));
 
         registry.registerBinding(SpellBinding.forInputType(warriorEarthquake.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(warriorRuptureCyclone.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_2));
-        // Mobility spell archived for rework.
-        // registry.registerBinding(SpellBinding.forInputType(warriorTitanVault.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_3));
+        registry.registerBinding(SpellBinding.forInputType(warriorTitanVault.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_3));
         registry.registerBinding(SpellBinding.forInputType(warriorGuardedResolve.id(), ClassUtil::isWarriorFamily, SpellInputType.SPELL_4));
-        registerStandardSequenceBindings(registry, warriorEarthquake.id(), warriorRuptureCyclone.id(), null, warriorGuardedResolve.id(), ClassUtil::isWarriorFamily);
+        registerStandardSequenceBindings(registry, warriorEarthquake.id(), warriorRuptureCyclone.id(), warriorTitanVault.id(), warriorGuardedResolve.id(), ClassUtil::isWarriorFamily);
 
 
         configureCooldowns();
@@ -289,18 +297,18 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("mage_heal", 6200L);
         SpellCastManager.setSpellCooldownMs("mage_heal_rejuvenation", 5600L);
         SpellCastManager.setSpellCooldownMs("mage_heal_party", 5200L);
-        // Mobility spell archived for rework.
-        // SpellCastManager.setSpellCooldownMs("mage_blink", 0L);
-        // SpellCastManager.setSpellCooldownMs("mage_blink_phase", 0L);
-        // SpellCastManager.setSpellCooldownMs("mage_blink_rift", 0L);
+        SpellCastManager.setSpellCooldownMs("mage_blink", 4800L);
+        SpellCastManager.setSpellCooldownMs("mage_blink_phase", 4400L);
+        SpellCastManager.setSpellCooldownMs("mage_blink_rift", 4000L);
 
         SpellCastManager.setSpellCooldownMs("archer_quickshot_basic", 0L);
         SpellCastManager.setSpellCooldownMs("archer_quickshot_seeker", 0L);
         SpellCastManager.setSpellCooldownMs("archer_quickshot_payload", 0L);
         SpellCastManager.setSpellCooldownMs("archer_homing_barrage", 6200L);
         SpellCastManager.setSpellCooldownMs("archer_windguard", 9000L);
-        // Mobility spell archived for rework.
-        // SpellCastManager.setSpellCooldownMs("archer_skybound", 0L);
+        SpellCastManager.setSpellCooldownMs("archer_skybound", 6400L);
+        SpellCastManager.setSpellCooldownMs("archer_skybound_gale", 6000L);
+        SpellCastManager.setSpellCooldownMs("archer_skybound_storm", 5600L);
         SpellCastManager.setSpellCooldownMs("archer_arrow_rain", 9800L);
 
         SpellCastManager.setSpellCooldownMs("rogue_arc_basic", 450L);
@@ -312,10 +320,9 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("rogue_veil_counter", 30000L);
         SpellCastManager.setSpellCooldownMs("rogue_veil_counter_obscure", 30000L);
         SpellCastManager.setSpellCooldownMs("rogue_veil_counter_dread", 30000L);
-        // Mobility spell archived for rework.
-        // SpellCastManager.setSpellCooldownMs("rogue_razor_dash", 0L);
-        // SpellCastManager.setSpellCooldownMs("rogue_razor_dash_rift", 0L);
-        // SpellCastManager.setSpellCooldownMs("rogue_razor_dash_shade", 0L);
+        SpellCastManager.setSpellCooldownMs("rogue_razor_dash", 3600L);
+        SpellCastManager.setSpellCooldownMs("rogue_razor_dash_rift", 3300L);
+        SpellCastManager.setSpellCooldownMs("rogue_razor_dash_shade", 3000L);
         SpellCastManager.setSpellCooldownMs("rogue_phantom_cross", 6900L);
         SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_cyclone", 6200L);
         SpellCastManager.setSpellCooldownMs("rogue_phantom_cross_judgement", 5700L);
@@ -325,8 +332,9 @@ public final class SpellCatalog {
         SpellCastManager.setSpellCooldownMs("warrior_earthquake_tremor", 5200L);
         SpellCastManager.setSpellCooldownMs("warrior_earthquake_cataclysm", 4700L);
         SpellCastManager.setSpellCooldownMs("warrior_rupture_cyclone", 7600L);
-        // Mobility spell archived for rework.
-        // SpellCastManager.setSpellCooldownMs("warrior_titan_vault", 0L);
+        SpellCastManager.setSpellCooldownMs("warrior_titan_vault", 6200L);
+        SpellCastManager.setSpellCooldownMs("warrior_titan_vault_rampart", 5800L);
+        SpellCastManager.setSpellCooldownMs("warrior_titan_vault_warlord", 5400L);
         SpellCastManager.setSpellCooldownMs("warrior_guarded_resolve", 11000L);
     }
 }

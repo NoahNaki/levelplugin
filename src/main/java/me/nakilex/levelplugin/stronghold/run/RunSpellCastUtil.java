@@ -115,6 +115,7 @@ public final class RunSpellCastUtil {
                 return false;
             }
             spellEntry.handler().cast(new SpellContext(plugin, player, spellEntry.definition(), inputEvent));
+            SpellCastManager.getInstance().recordCast(player, spellEntry.definition());
             return true;
         } catch (Exception ignored) {
             return false;
