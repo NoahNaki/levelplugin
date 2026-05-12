@@ -9,7 +9,6 @@ import me.nakilex.levelplugin.spells.SpellDefinition;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.deck.SpellDeckRarity;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
-import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.ChatUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -308,8 +307,6 @@ public class SpellUpgradeGUI implements Listener {
         }
         lore.add(TooltipUtil.expProgressBarByPixels(progress, maxProgress, 168) + " "
                 + ChatColor.WHITE + percent + "%" + ChatColor.GRAY + " mastery");
-        lore.add(ChatColor.GRAY + "Progress: " + ChatColor.WHITE + progress + ChatColor.GOLD + "/"
-                + ChatColor.WHITE + maxProgress + ChatColor.GRAY + " duplicate value");
     }
 
     private String spellTypeLine(SpellInputType inputType) {
@@ -324,21 +321,7 @@ public class SpellUpgradeGUI implements Listener {
         String activeName = active == null || active.definition() == null
                 ? effectiveSpellId
                 : active.definition().displayName();
-        int tier = activeRarityTier(card, effectiveSpellId);
-        lore.add(ChatColor.GRAY + "Active Upgrade: " + ChatColor.AQUA + activeName
-                + (tier > 0 ? ChatColor.DARK_GRAY + " (Rarity Tier " + tier + ")" : ""));
-    }
-
-    private int activeRarityTier(SpellCardDefinition card, String effectiveSpellId) {
-        SpellProgressionManager progression = SpellProgressionManager.getInstance();
-        int max = progression.getMaxLevel(card.spellId());
-        for (int level = 1; level <= max; level++) {
-            String candidate = progression.getSpellIdAtLevel(card.spellId(), level);
-            if (candidate != null && candidate.equalsIgnoreCase(effectiveSpellId)) {
-                return level;
-            }
-        }
-        return 0;
+        lore.add(ChatColor.GRAY + "Active Upgrade: " + ChatColor.AQUA + activeName);
     }
 
     private String statLine(String label, ChatColor valueColor, String value) {

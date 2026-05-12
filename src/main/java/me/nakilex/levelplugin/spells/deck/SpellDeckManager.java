@@ -554,7 +554,7 @@ public final class SpellDeckManager {
                 profile.setInvestedCopies(card.familyId(), 0);
                 unlocked.merge(card, 1, Integer::sum);
                 entries.add(new SpellPullEntry(card, SpellPullOutcome.UNLOCKED, 0, 0));
-            } else if (invested < maxMasteryInvestedCopies()) {
+            } else if (card.rarity() == ownedFamilyCard.rarity() && invested < maxMasteryInvestedCopies()) {
                 int masteryValue = Math.min(masteryValue(card.rarity()), maxMasteryInvestedCopies() - invested);
                 profile.addInvestedCopies(card.familyId(), masteryValue);
                 masteryGained.merge(card, masteryValue, Integer::sum);
