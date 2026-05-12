@@ -40,7 +40,7 @@ import java.util.regex.Pattern;
 
 public class SpellUpgradeGUI implements Listener {
     private static final String SPELL_TYPE_GLYPH = "<glyph:spell>";
-    private static final int DESCRIPTION_TARGET_CHARACTERS_PER_LINE = 30;
+    private static final int DESCRIPTION_MAX_PIXELS = 170;
     private static final int MAIN_GUI_SIZE = 27;
     private static final int SELECT_GUI_SIZE = 45;
     private static final int[] SELECT_SLOTS = {
@@ -266,9 +266,7 @@ public class SpellUpgradeGUI implements Listener {
         lore.add(TooltipUtil.rarityGlyphLine(card.rarity().itemRarity(), SPELL_TYPE_GLYPH));
         lore.add(" ");
         lore.add(spellTypeLine(inputType));
-        for (String description : descriptionLines(card)) {
-            lore.add(ChatColor.GRAY + description);
-        }
+        lore.addAll(descriptionLines(card));
         if (definition != null && !definition.id().equalsIgnoreCase(card.spellId())) {
             lore.add(statLine("Active Tier", ChatColor.LIGHT_PURPLE, definition.displayName()));
         }
@@ -296,7 +294,7 @@ public class SpellUpgradeGUI implements Listener {
         int progress = deckManager.getMasteryProgress(profile, card);
         int required = deckManager.getMasteryRequiredForNextRank(rank);
         lore.add(SPELL_ACCENT + "MASTERY");
-        lore.add(ChatColor.GRAY + "Rank: " + ChatColor.WHITE + rank + ChatColor.GRAY + "/" + ChatColor.WHITE + maxRank);
+        lore.add(masteryRankLine(rank, maxRank));
         if (rank >= maxRank) {
             lore.add(ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168) + ChatColor.GRAY + " Max");
             lore.add(ChatColor.GRAY + "Duplicate pulls auto-discard at max mastery.");
@@ -314,6 +312,12 @@ public class SpellUpgradeGUI implements Listener {
         return Math.max(0, rank * 2) + "%";
     }
 
+    private String masteryRankLine(int rank, int maxRank) {
+        String stars = GuiUtil.glyphStars(rank);
+        String starSuffix = stars.isEmpty() ? "" : " " + ChatColor.YELLOW + stars;
+        return ChatColor.GRAY + "Rank: " + ChatColor.WHITE + rank + ChatColor.GRAY + "/"
+                + ChatColor.WHITE + maxRank + starSuffix;
+    }
 
     private String spellTypeLine(SpellInputType inputType) {
         return SPELL_ACCENT + labelForInput(inputType).toUpperCase(Locale.ROOT);
@@ -397,8 +401,8 @@ public class SpellUpgradeGUI implements Listener {
             if (line == null || line.isBlank() || line.contains(":")) {
                 continue;
             }
-            lines.addAll(TooltipUtil.wrapTextAfterCharacterLimit(
-                    line.trim(), DESCRIPTION_TARGET_CHARACTERS_PER_LINE));
+            lines.addAll(TooltipUtil.wrapLoreLine(
+                    ChatColor.GRAY + line.trim(), DESCRIPTION_MAX_PIXELS, ChatColor.GRAY.toString()));
         }
         return lines;
     }

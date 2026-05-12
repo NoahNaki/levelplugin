@@ -477,41 +477,6 @@ public final class TooltipUtil {
     }
 
     /**
-     * Wrap text after a target character count while preserving whole words.
-     * Lines may exceed the target count when the word that crosses the threshold
-     * needs to be completed before wrapping.
-     *
-     * @param text text to wrap
-     * @param targetCharacters target character count before wrapping
-     * @return wrapped lines; a blank input returns an empty list
-     */
-    public static List<String> wrapTextAfterCharacterLimit(String text, int targetCharacters) {
-        if (text == null || text.isBlank()) {
-            return List.of();
-        }
-        int limit = Math.max(1, targetCharacters);
-        List<String> lines = new ArrayList<>();
-        StringBuilder current = new StringBuilder();
-        for (String word : text.trim().split("\\s+")) {
-            if (word.isBlank()) {
-                continue;
-            }
-            if (!current.isEmpty()) {
-                current.append(' ');
-            }
-            current.append(word);
-            if (current.length() >= limit) {
-                lines.add(current.toString());
-                current = new StringBuilder();
-            }
-        }
-        if (!current.isEmpty()) {
-            lines.add(current.toString());
-        }
-        return lines;
-    }
-
-    /**
      * Format a rarity glyph line using the standard rarity color and symbol.
      *
      * @param rarity item rarity to format
