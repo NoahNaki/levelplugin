@@ -490,6 +490,23 @@ public final class TooltipUtil {
         return rarity.getColor() + rarity.getSymbol() + ChatColor.GRAY + " " + rarity.getColor() + name;
     }
 
+
+    /**
+     * Format a compact glyph row for item/tool/spell cards.
+     *
+     * @param rarity item rarity glyph to show first
+     * @param typeGlyph glyph token or glyph name for the item type
+     * @return concatenated rarity/type glyph row
+     */
+    public static String rarityGlyphLine(ItemRarity rarity, String typeGlyph) {
+        ItemRarity resolved = rarity == null ? ItemRarity.COMMON : rarity;
+        String type = typeGlyph == null || typeGlyph.isBlank() ? "" : typeGlyph.trim();
+        if (!type.isEmpty() && !type.startsWith("<glyph:")) {
+            type = "<glyph:" + type + ">";
+        }
+        return resolved.getSymbol() + type;
+    }
+
     /**
      * Build a standard requirements block to keep requirement lines consistent
      * across action GUIs and item tooltips.

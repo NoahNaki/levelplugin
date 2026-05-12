@@ -55,14 +55,16 @@ public final class SpellDeckDataStore {
         var owned = config.getConfigurationSection(root + ".owned");
         if (owned != null) {
             for (String cardId : owned.getKeys(false)) {
-                profile.setCopies(cardId, owned.getInt(cardId, 0));
+                String canonical = canonicalCardId(cardId);
+                profile.setCopies(canonical, profile.getCopies(canonical) + owned.getInt(cardId, 0));
             }
         }
 
         var invested = config.getConfigurationSection(root + ".invested");
         if (invested != null) {
             for (String cardId : invested.getKeys(false)) {
-                profile.setInvestedCopies(cardId, invested.getInt(cardId, 0));
+                String canonical = canonicalCardId(cardId);
+                profile.setInvestedCopies(canonical, profile.getInvestedCopies(canonical) + invested.getInt(cardId, 0));
             }
         }
 
@@ -71,12 +73,26 @@ public final class SpellDeckDataStore {
             for (String key : equipped.getKeys(false)) {
                 try {
                     SpellInputType inputType = SpellInputType.valueOf(key.toUpperCase(Locale.ROOT));
-                    profile.equip(inputType, equipped.getString(key));
+                    profile.equip(inputType, canonicalCardId(equipped.getString(key)));
                 } catch (IllegalArgumentException ignored) {
                 }
             }
         }
         return profile;
+    }
+
+    private String canonicalCardId(String cardId) {
+        if (cardId == null || cardId.isBlank()) {
+            return cardId;
+        }
+        String normalized = cardId.toLowerCase(Locale.ROOT);
+        for (SpellDeckRarity rarity : SpellDeckRarity.values()) {
+            String suffix = "_" + rarity.name().toLowerCase(Locale.ROOT);
+            if (normalized.endsWith(suffix) && normalized.length() > suffix.length()) {
+                return normalized.substring(0, normalized.length() - suffix.length());
+            }
+        }
+        return normalized;
     }
 
     private void saveProfile(SpellDeckProfile profile) {

@@ -291,6 +291,7 @@ public class SpellKeybindGUI implements Listener {
         }
 
         Main.getInstance().getPlayerConfig().saveConfigFile();
+        me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Spell keybinds and input mode saved.");
     }

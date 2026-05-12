@@ -234,6 +234,7 @@ public class ListenerRegistry {
         if (spellSummonManager != null) {
             pm.registerEvents(spellSummonManager, plugin);
         }
+        pm.registerEvents(me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance(), plugin);
         pm.registerEvents(new StatsMenuListener(codexGUI), plugin);
         pm.registerEvents(new StatsEffectListener(), plugin);
         boolean boosterSystemEnabled = FeatureFlagUtil.isEnabled("features.booster-system", false);

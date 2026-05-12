@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.config.PlayerConfig;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 
 import java.util.EnumMap;
 import java.util.Map;
@@ -78,6 +79,10 @@ public class SpellKeybindManager {
         }
         Bukkit.getLogger().info("[LevelPlugin][SpellKeybindManager] Saved spell keybinds for player="
                 + playerId + " slot=" + slot);
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            SpellInputHudManager.getInstance().sync(player);
+        }
     }
 
     public void loadProfileBindings(UUID playerId, int slot) {
@@ -92,6 +97,10 @@ public class SpellKeybindManager {
         }
         Bukkit.getLogger().info("[LevelPlugin][SpellKeybindManager] Loaded spell keybinds for player="
                 + playerId + " slot=" + slot);
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            SpellInputHudManager.getInstance().sync(player);
+        }
     }
 
     private EnumMap<SpellKeybindSlot, SpellInputType> getOrCreateBindings(UUID playerId, PlayerClass playerClass,

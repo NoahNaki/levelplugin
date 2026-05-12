@@ -198,6 +198,10 @@ public final class SpellProgressionManager {
     }
 
     public String getEffectiveSpellId(UUID playerId, String baseSpellId) {
+        return getSpellIdAtLevel(baseSpellId, getSpellLevel(playerId, baseSpellId));
+    }
+
+    public String getSpellIdAtLevel(String baseSpellId, int level) {
         if (baseSpellId == null) {
             return null;
         }
@@ -205,11 +209,11 @@ public final class SpellProgressionManager {
         if (progression == null || progression.upgradeSpellIds().isEmpty()) {
             return normalize(baseSpellId);
         }
-        int level = Math.max(0, Math.min(getSpellLevel(playerId, baseSpellId), progression.upgradeSpellIds().size()));
-        if (level == 0) {
+        int safeLevel = Math.max(0, Math.min(level, progression.upgradeSpellIds().size()));
+        if (safeLevel == 0) {
             return normalize(baseSpellId);
         }
-        return normalize(progression.upgradeSpellIds().get(level - 1));
+        return normalize(progression.upgradeSpellIds().get(safeLevel - 1));
     }
 
     public List<String> getClassBaseSpells(Player player) {
