@@ -299,9 +299,7 @@ public class SpellUpgradeGUI implements Listener {
         lore.add(ChatColor.GRAY + "Rank: " + ChatColor.WHITE + rank + ChatColor.GRAY + "/" + ChatColor.WHITE + maxRank);
         if (rank >= maxRank) {
             lore.add(ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168) + ChatColor.GRAY + " Max");
-            lore.add(ChatColor.GRAY + "Duplicates auto-salvage: "
-                    + ChatColor.LIGHT_PURPLE + deckManager.maxedDuplicateGemValue(card.rarity())
-                    + " <glyph:purple_orb_icon>");
+            lore.add(ChatColor.GRAY + "Duplicate pulls auto-discard at max mastery.");
             return;
         }
         lore.add(TooltipUtil.expProgressBarByPixels(progress, required, 168) + " "

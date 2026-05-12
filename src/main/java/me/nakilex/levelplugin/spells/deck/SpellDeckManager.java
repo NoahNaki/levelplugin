@@ -404,14 +404,14 @@ public final class SpellDeckManager {
 
     public SpellPullResult pull(Player player, int amount) {
         if (player == null || amount <= 0 || dataStore == null || definitions.isEmpty()) {
-            return new SpellPullResult(List.of(), Map.of(), 0, 0);
+            return new SpellPullResult(List.of(), Map.of(), Map.of(), 0);
         }
         SpellDeckProfile profile = dataStore.getProfile(player.getUniqueId());
         Map<SpellDeckRarity, List<SpellCardDefinition>> pools = buildRarityPools();
         List<SpellPullEntry> entries = new ArrayList<>(amount);
-        Map<SpellCardDefinition, Integer> summary = new HashMap<>();
+        Map<SpellCardDefinition, Integer> kept = new HashMap<>();
+        Map<SpellCardDefinition, Integer> discarded = new HashMap<>();
         int duplicateInvestments = 0;
-        int salvagedGems = 0;
         Random random = ThreadLocalRandom.current();
         for (int i = 0; i < amount; i++) {
             boolean pityGuaranteed = profile.pityPullsSinceLegendary() >= (PITY_THRESHOLD - 1);
@@ -433,35 +433,33 @@ public final class SpellDeckManager {
                 profile.setPityPullsSinceLegendary(profile.pityPullsSinceLegendary() + 1);
             }
             int remainingMasteryValue = pullMasteryValue(pulledRarity);
+            boolean keptPull = false;
             int existingCopies = getCopies(profile, card);
             if (existingCopies <= 0) {
                 profile.addCopies(card.cardId(), 1);
                 remainingMasteryValue--;
+                keptPull = true;
                 autoEquipFirstCopy(player, profile, card);
-                entries.add(new SpellPullEntry(card));
             }
             if (remainingMasteryValue > 0) {
                 int availableMastery = Math.max(0, maxMasteryInvestedCopies() - getInvestedCopies(profile, card));
                 int investedNow = Math.min(remainingMasteryValue, availableMastery);
-                int salvageValue = remainingMasteryValue - investedNow;
                 if (investedNow > 0) {
                     profile.addInvestedCopies(card.cardId(), investedNow);
                     duplicateInvestments += investedNow;
-                }
-                if (salvageValue > 0) {
-                    int gems = salvageValue * maxedDuplicateGemValue(pulledRarity);
-                    addGems(player, gems);
-                    salvagedGems += gems;
-                    entries.add(new SpellPullEntry(card, investedNow > 0, gems));
-                } else if (existingCopies > 0) {
-                    entries.add(new SpellPullEntry(card, investedNow > 0, 0));
+                    keptPull = true;
                 }
             }
+            entries.add(new SpellPullEntry(card, keptPull));
             profile.addBannerPulls(1);
-            summary.merge(card, 1, Integer::sum);
+            if (keptPull) {
+                kept.merge(card, 1, Integer::sum);
+            } else {
+                discarded.merge(card, 1, Integer::sum);
+            }
         }
         dataStore.saveProfile(player.getUniqueId());
-        return new SpellPullResult(entries, summary, duplicateInvestments, salvagedGems);
+        return new SpellPullResult(entries, kept, discarded, duplicateInvestments);
     }
 
     public List<SpellDeckRarity> getGachaRarities() {
@@ -705,14 +703,11 @@ public final class SpellDeckManager {
         return value == null ? "" : value.toLowerCase(Locale.ROOT);
     }
 
-    public record SpellPullEntry(SpellCardDefinition card, boolean duplicateInvested, int gemsSalvaged) {
-        public SpellPullEntry(SpellCardDefinition card) {
-            this(card, false, 0);
-        }
+    public record SpellPullEntry(SpellCardDefinition card, boolean kept) {
     }
     public record SpellPullResult(List<SpellPullEntry> pulls,
-                                  Map<SpellCardDefinition, Integer> summary,
-                                  int duplicateInvestments,
-                                  int salvagedGems) {}
+                                  Map<SpellCardDefinition, Integer> kept,
+                                  Map<SpellCardDefinition, Integer> discarded,
+                                  int duplicateInvestments) {}
     public record InvestAllResult(int cardsTouched, int copiesInvested, int gemsSalvaged) {}
 }
