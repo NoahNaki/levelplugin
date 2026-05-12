@@ -14,7 +14,6 @@ import me.nakilex.levelplugin.spells.impl.ArcherBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.ArcherHomingBarrageSpell;
 import me.nakilex.levelplugin.spells.impl.ArcherSkyboundSpell;
 import me.nakilex.levelplugin.spells.impl.ArcherWindguardSpell;
-import me.nakilex.levelplugin.spells.impl.DeckFireballSpell;
 import me.nakilex.levelplugin.spells.impl.RogueArcBasicAttackSpell;
 import me.nakilex.levelplugin.spells.impl.RogueRazorDashSpell;
 import me.nakilex.levelplugin.spells.impl.RogueNightfallLungeSpell;
@@ -214,78 +213,8 @@ public final class SpellCatalog {
         registerStandardSequenceBindings(registry, warriorEarthquake.id(), warriorRuptureCyclone.id(), null, warriorGuardedResolve.id(), ClassUtil::isWarriorFamily);
 
 
-        registerDeckFireballs(registry, plugin);
-
         configureCooldowns();
     }
-
-    private static void registerDeckFireballs(SpellRegistry registry, Main plugin) {
-        registerDeckFireball(registry, plugin, "deck_fireball_common", "Fireball", 20,
-                new DeckFireballSpell.Config(0, 100, 20, 6, 2.5, 3, 10, 1.2,
-                        0, 0, 0,
-                        false, 0, 0, 0, 0,
-                        0, 0, 0, 0,
-                        false, 0, 0, 0, 0, 0,
-                        0, 0,
-                        false, 0, 0, 0,
-                        0, 0, 1.15f));
-        registerDeckFireball(registry, plugin, "deck_fireball_uncommon", "Enhanced Fireball", 20,
-                new DeckFireballSpell.Config(1, 120, 20, 7, 3.5, 3, 10, 1.2,
-                        4, 15, 3,
-                        false, 0, 0, 0, 0,
-                        0, 0, 0, 0,
-                        false, 0, 0, 0, 0, 0,
-                        0, 0,
-                        false, 0, 0, 0,
-                        0, 0, 1.05f));
-        registerDeckFireball(registry, plugin, "deck_fireball_rare", "Infernal Fireball", 20,
-                new DeckFireballSpell.Config(2, 150, 20, 6, 3.0, 5, 16, 1.2,
-                        0, 0, 0,
-                        true, 2, 3, 8, 2,
-                        0, 0, 0, 0,
-                        false, 0, 0, 0, 0, 0,
-                        0, 0,
-                        false, 0, 0, 0,
-                        0, 0, 0.95f));
-        registerDeckFireball(registry, plugin, "deck_fireball_epic", "Cataclysm Fireball", 35,
-                new DeckFireballSpell.Config(3, 180, 35, 9, 4.0, 6, 18, 1.2,
-                        0, 0, 0,
-                        false, 0, 0, 0, 0,
-                        3, 14, 2.5, 90,
-                        false, 0, 0, 0, 0, 0,
-                        0, 0,
-                        false, 0, 0, 0,
-                        0, 0, 0.85f));
-        registerDeckFireball(registry, plugin, "deck_fireball_legendary", "Dragonfire Orb", 30,
-                new DeckFireballSpell.Config(4, 170, 30, 9, 3.5, 6, 18, 1.0,
-                        0, 0, 0,
-                        false, 0, 0, 0, 0,
-                        0, 14, 2.5, 120,
-                        true, 350, 7, 8, 24, 5,
-                        0.85, 20,
-                        false, 0, 0, 0,
-                        0, 0, 0.7f));
-        registerDeckFireball(registry, plugin, "deck_fireball_mythic", "Worldfire", 75,
-                new DeckFireballSpell.Config(5, 250, 75, 14, 5.0, 10, 30, 0.95,
-                        0, 0, 0,
-                        false, 0, 0, 0, 0,
-                        0, 0, 0, 0,
-                        false, 0, 0, 0, 0, 0,
-                        0.45, 0,
-                        true, 4, 140, 10,
-                        0.20, 0.10, 0.55f));
-    }
-
-    private static void registerDeckFireball(SpellRegistry registry,
-                                             Main plugin,
-                                             String id,
-                                             String displayName,
-                                             int manaCost,
-                                             DeckFireballSpell.Config config) {
-        registry.registerSpell(new SpellDefinition(id, displayName, manaCost, false), new DeckFireballSpell(plugin, config));
-        SpellCastManager.setSpellCooldownMs(id, config.cooldownSeconds() * 1000L);
-    }
-
 
     private static void registerStandardSequenceBindings(SpellRegistry registry,
                                                          String offensivePrimarySpellId,
@@ -347,12 +276,6 @@ public final class SpellCatalog {
 
     private static void configureCooldowns() {
 
-        SpellCastManager.setSpellCooldownMs("deck_fireball_common", 6000L);
-        SpellCastManager.setSpellCooldownMs("deck_fireball_uncommon", 7000L);
-        SpellCastManager.setSpellCooldownMs("deck_fireball_rare", 6000L);
-        SpellCastManager.setSpellCooldownMs("deck_fireball_epic", 9000L);
-        SpellCastManager.setSpellCooldownMs("deck_fireball_legendary", 9000L);
-        SpellCastManager.setSpellCooldownMs("deck_fireball_mythic", 14000L);
         SpellCastManager.setSpellCooldownMs("mage_fireball_basic", 0L);
         SpellCastManager.setSpellCooldownMs("mage_fireball_barrage", 0L);
         SpellCastManager.setSpellCooldownMs("mage_fireball_inferno", 0L);

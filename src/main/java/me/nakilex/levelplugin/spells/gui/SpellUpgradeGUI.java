@@ -251,7 +251,8 @@ public class SpellUpgradeGUI implements Listener {
     }
 
     private void addCardSummaryLore(Player player, List<String> lore, SpellCardDefinition card, SpellInputType inputType, boolean includeEquippedLine) {
-        SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(card.spellId());
+        String effectiveSpellId = deckManager.getEffectiveSpellId(player.getUniqueId(), card);
+        SpellRegistry.SpellEntry spellEntry = SpellRegistry.getInstance().getSpell(effectiveSpellId);
         SpellDefinition definition = spellEntry == null ? null : spellEntry.definition();
         int manaCost = definition == null
                 ? readStatFromLore(card, "mana cost", 0)
@@ -260,11 +261,14 @@ public class SpellUpgradeGUI implements Listener {
                 ? readStatFromLore(card, "cooldown", 0) * 1000L
                 : SpellCastManager.getInstance().getCooldownMs(player, definition);
 
-        lore.add(rarityGlyph(card.rarity()));
+        lore.add(TooltipUtil.rarityGlyphLine(card.rarity().itemRarity(), "spell"));
         lore.add(" ");
         lore.add(spellTypeLine(inputType));
+        addActiveTierLore(lore, card, effectiveSpellId);
         for (String description : descriptionLines(card)) {
-            lore.add(ChatColor.GRAY + description);
+            for (String wrapped : TooltipUtil.wrapLoreLine(ChatColor.GRAY + description, 168)) {
+                lore.add(wrapped);
+            }
         }
         lore.add(" ");
         lore.add(statLine("Mana Cost", ChatColor.AQUA, manaCost + " mana"));
@@ -289,39 +293,35 @@ public class SpellUpgradeGUI implements Listener {
 
     private void addMasteryLore(Player player, List<String> lore, SpellCardDefinition card) {
         SpellDeckProfile profile = deckManager.getProfile(player.getUniqueId());
-        int rank = deckManager.getMasteryRank(profile, card);
-        int maxRank = deckManager.getMaxMasteryRank();
         int progress = deckManager.getMasteryProgress(profile, card);
-        int required = deckManager.getMasteryRequiredForNextRank(rank);
+        int maxProgress = deckManager.getMaxMasteryProgress();
+        int percent = maxProgress <= 0 ? 0 : (int) Math.round(progress * 100.0 / maxProgress);
         lore.add(SPELL_ACCENT + "MASTERY");
-        lore.add(ChatColor.GRAY + "Rank: " + ChatColor.WHITE + rank + ChatColor.GRAY + "/" + ChatColor.WHITE + maxRank);
-        if (rank >= maxRank) {
-            lore.add(ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168) + ChatColor.GRAY + " Max");
-            lore.add(ChatColor.GRAY + "Duplicates auto-salvage: "
+        if (progress >= maxProgress) {
+            lore.add(ChatColor.GRAY + TooltipUtil.expProgressBarByPixels(1, 1, 168)
+                    + ChatColor.GRAY + " " + ChatColor.WHITE + "100%" + ChatColor.GRAY + " Max");
+            lore.add(ChatColor.GRAY + "Duplicate pulls auto-salvage: "
                     + ChatColor.LIGHT_PURPLE + deckManager.maxedDuplicateGemValue(card.rarity())
                     + " <glyph:purple_orb_icon>");
             return;
         }
-        lore.add(TooltipUtil.expProgressBarByPixels(progress, required, 168) + " "
-                + ChatColor.GRAY + progress + ChatColor.GOLD + "/" + ChatColor.GRAY + required
-                + ChatColor.GRAY + " duplicates");
-        int nextRank = Math.min(maxRank, rank + 1);
-        lore.add(ChatColor.GRAY + "Next: " + ChatColor.AQUA + masteryReductionPercent(nextRank)
-                + ChatColor.GRAY + " lower mana/cooldown");
+        lore.add(TooltipUtil.expProgressBarByPixels(progress, maxProgress, 168) + " "
+                + ChatColor.WHITE + percent + "%" + ChatColor.GRAY + " mastery");
     }
-
-    private String masteryReductionPercent(int rank) {
-        return Math.max(0, rank * 2) + "%";
-    }
-
 
     private String spellTypeLine(SpellInputType inputType) {
         return SPELL_ACCENT + labelForInput(inputType).toUpperCase(Locale.ROOT);
     }
 
-    private String rarityGlyph(SpellDeckRarity rarity) {
-        SpellDeckRarity resolved = rarity == null ? SpellDeckRarity.COMMON : rarity;
-        return "<glyph:" + resolved.name().toLowerCase(Locale.ROOT) + ">";
+    private void addActiveTierLore(List<String> lore, SpellCardDefinition card, String effectiveSpellId) {
+        if (effectiveSpellId == null || effectiveSpellId.equalsIgnoreCase(card.spellId())) {
+            return;
+        }
+        SpellRegistry.SpellEntry active = SpellRegistry.getInstance().getSpell(effectiveSpellId);
+        String activeName = active == null || active.definition() == null
+                ? effectiveSpellId
+                : active.definition().displayName();
+        lore.add(ChatColor.GRAY + "Active Upgrade: " + ChatColor.AQUA + activeName);
     }
 
     private String statLine(String label, ChatColor valueColor, String value) {

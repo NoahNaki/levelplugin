@@ -121,7 +121,7 @@ public class SpellSummonManager implements Listener {
         }
 
         SpellPullResult pulls = deckManager.pull(player, amount);
-        if (pulls.pulls().isEmpty()) {
+        if (pulls.isEmpty()) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "No spell cards available to pull.");
             refundSummonCost(player, summonCost);
             return;
@@ -440,6 +440,7 @@ public class SpellSummonManager implements Listener {
         showOtherPlayersAfterCutscene(player, session);
         restoreCutsceneScoreboard(player, session);
         BetterHudUtil.addHud(player);
+        me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
         if (teleport) {
             if (session.returnLocation != null) {
                 player.teleport(session.returnLocation);
@@ -447,17 +448,7 @@ public class SpellSummonManager implements Listener {
             playSound(player, "minecraft:entity.player.levelup", 0.9f, 1.3f);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                     "Spell summons complete. Spent §d" + session.summonCost + " <glyph:purple_orb_icon>§a.");
-            SpellPullSummaryUtil.sendSummary(player, "Pulled", session.pulls.summary());
-            if (session.pulls.duplicateInvestments() > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Invested " + org.bukkit.ChatColor.WHITE + session.pulls.duplicateInvestments()
-                                + org.bukkit.ChatColor.GREEN + " duplicate spell pulls into mastery.");
-            }
-            if (session.pulls.salvagedGems() > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Auto-salvaged maxed duplicates for " + org.bukkit.ChatColor.LIGHT_PURPLE
-                                + session.pulls.salvagedGems() + " <glyph:purple_orb_icon>" + org.bukkit.ChatColor.GREEN + ".");
-            }
+            SpellPullSummaryUtil.sendPullResult(player, session.pulls);
             if (summonGUI != null && player.isOnline()) {
                 Bukkit.getScheduler().runTaskLater(plugin, () -> summonGUI.open(player), 2L);
             }

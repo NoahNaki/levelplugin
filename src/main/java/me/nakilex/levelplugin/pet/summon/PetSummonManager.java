@@ -668,6 +668,7 @@ public class PetSummonManager implements Listener {
         showOtherPlayersAfterCutscene(player, session);
         restoreCutsceneScoreboard(player, session);
         BetterHudUtil.addHud(player);
+        me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
         if (teleport) {
             Location returnLocation = session.returnLocation;
             if (returnLocation != null) {

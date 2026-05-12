@@ -370,6 +370,7 @@ public class ProfileSelectionGUI implements Listener {
         stopSelection(player);
         player.closeInventory();
         BetterHudUtil.addHud(player);
+        me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
         resyncScoreboardAfterHud(player);
         Main.getInstance().getPetManager().handleProfileActivated(player);
 
@@ -497,6 +498,7 @@ public class ProfileSelectionGUI implements Listener {
             restoreActiveProfileAfterCancelledSelection(player, activeSlot);
             stopSelection(player);
             BetterHudUtil.addHud(player);
+            me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
         }
     }
 
@@ -514,6 +516,7 @@ public class ProfileSelectionGUI implements Listener {
                 cfg.getProfileSpellLevels(player.getUniqueId(), slot));
         Main.getInstance().getSettingsManager().loadProfileSettings(player.getUniqueId(), slot);
         SpellKeybindManager.getInstance().loadProfileBindings(player.getUniqueId(), slot);
+        me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
         loadProfileInventory(player, cfg, slot);
         me.nakilex.levelplugin.player.attributes.managers.StatsManager.getInstance().recalcDerivedStats(player);
     }

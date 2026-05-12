@@ -43,7 +43,6 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
-import me.nakilex.levelplugin.spells.deck.SpellCardDefinition;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager;
@@ -344,18 +343,13 @@ public class DebugCommand implements TabExecutor {
                     ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.WARNING, "Amount must be at least 1.");
                     return true;
                 }
-                var spellPullResult = SpellDeckManager.getInstance().pull(spellPullPlayer, spellPullAmount);
-                if (spellPullResult.summary().isEmpty()) {
+                var spellPullResult = SpellDeckManager.getInstance().pull(spellPullPlayer, spellPullAmount, false);
+                if (spellPullResult.isEmpty()) {
                     ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.WARNING, "No spell cards available to pull.");
                     return true;
                 }
                 ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.REWARD, ChatColor.YELLOW + "Spell pulls:");
-                for (Map.Entry<SpellCardDefinition, Integer> entry : spellPullResult.summary().entrySet()) {
-                    SpellCardDefinition card = entry.getKey();
-                    ChatMessageUtil.send(spellPullPlayer, ChatMessageUtil.MessageType.INFO,
-                            ChatColor.DARK_GRAY + "- " + card.rarity().color() + card.displayName()
-                                    + ChatColor.GRAY + " x" + entry.getValue());
-                }
+                me.nakilex.levelplugin.spells.summon.SpellPullSummaryUtil.sendPullResult(spellPullPlayer, spellPullResult);
                 return true;
 
             case "spellinput":

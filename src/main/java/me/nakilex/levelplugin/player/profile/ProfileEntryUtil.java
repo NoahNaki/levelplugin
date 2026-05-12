@@ -80,9 +80,12 @@ public final class ProfileEntryUtil {
             if (armor.length > 0) {
                 player.getInventory().setArmorContents(armor);
             }
+            Main.getInstance().getSettingsManager().loadProfileSettings(pid, 0);
+            me.nakilex.levelplugin.spells.input.SpellKeybindManager.getInstance().loadProfileBindings(pid, 0);
             if (!WorldExclusionUtil.isExcluded(player)) {
                 BetterHudUtil.addHud(player);
             }
+            me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
         } else {
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
                 if (!player.isOnline()) {

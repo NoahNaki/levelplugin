@@ -41,6 +41,10 @@ public class SettingsManager {
         config.setProfileSpellInputMode(playerId, slot, mode);
         Bukkit.getLogger().info("[LevelPlugin][SettingsManager] Saved spell input mode for player="
                 + playerId + " slot=" + slot + " mode=" + mode);
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
+        }
     }
 
     public void loadProfileSettings(UUID playerId, int slot) {
@@ -53,5 +57,9 @@ public class SettingsManager {
         settings.setSpellInputMode(mode);
         Bukkit.getLogger().info("[LevelPlugin][SettingsManager] Loaded spell input mode for player="
                 + playerId + " slot=" + slot + " mode=" + mode);
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
+        }
     }
 }
