@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.mob.utils;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.guild.quests.GuildQuestManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
@@ -177,7 +178,7 @@ public class MobRewardService {
                     : PartySynergyProfile.neutral();
             int awardedExp = ExperienceUtil.applyPartyBonus(scaledExp, partySize, synergyProfile.multiplier());
             levelManager.addXP(player, awardedExp);
-            economyManager.addCoins(player, coins);
+            int droppedCoins = CoinDropManager.dropCoins(plugin, economyManager, player, deathLoc, coins, true);
             var settings = plugin.getSettingsManager().getSettings(player);
             itemDropper.dropCustomItems(player, node, modelSet, combatPower, mobLevel, forceDrops);
             // Essence system temporarily disabled.
@@ -204,17 +205,17 @@ public class MobRewardService {
             }
             itemDropper.maybeDropRerollScroll(player);
             if (settings.isDropDetailsEnabled()) {
-                RewardHologramUtil.showRewardHologram(deathLoc, awardedExp, coins);
+                RewardHologramUtil.showRewardHologram(deathLoc, awardedExp, droppedCoins);
             }
             if (settings.isDropDetailsChatEnabled()) {
                 String expLabel = ChatFormatter.experienceLabel();
                 String expColor = ChatFormatter.experienceColor();
                 player.sendMessage(ChatColor.GOLD + "You received "
                         + expColor + "+" + awardedExp + " <glyph:experience_orb_icon> " + expLabel
-                        + ChatColor.GOLD + " and "
+                        + ChatColor.GOLD + ", and "
                         + me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
-                        me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coins)
-                        + ChatColor.GOLD + "!");
+                        me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, droppedCoins)
+                        + ChatColor.GOLD + " dropped nearby!");
                 if (party != null && synergyProfile.multiplier() > 1.0) {
                     player.sendMessage(ChatColor.GRAY + "Party " + ChatColor.GREEN + synergyProfile.summary()
                             + ChatColor.GRAY + " boosted your XP.");
@@ -232,7 +233,7 @@ public class MobRewardService {
                 sendDebugInfo(player, context);
                 String expColor = ChatFormatter.experienceColor();
                 player.sendMessage(ChatColor.YELLOW + "[MobDebug] Exp: " + expColor + awardedExp
-                        + ChatColor.GRAY + ", Coins: " + coins);
+                        + ChatColor.GRAY + ", Coins Dropped: " + droppedCoins);
             }
         }
     }
