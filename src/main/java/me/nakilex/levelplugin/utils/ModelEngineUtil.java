@@ -499,7 +499,7 @@ public final class ModelEngineUtil {
             }
         } catch (RuntimeException e) {
             if (plugin != null) {
-                plugin.getLogger().warning("Failed to create ModelEngine model '" + modelId + "': " + e.getMessage());
+                plugin.getLogger().fine("ModelEngine runtime model lookup skipped for '" + modelId + "': " + e.getMessage());
             }
         }
         ActiveModel fromBlueprint = createActiveModelFromBlueprint(modelId, plugin);
@@ -937,7 +937,7 @@ public final class ModelEngineUtil {
             }
         } catch (ReflectiveOperationException e) {
             if (plugin != null) {
-                plugin.getLogger().warning("Failed to create ModelEngine model '" + modelId + "': " + e.getMessage());
+                plugin.getLogger().fine("ModelEngine reflective model lookup skipped for '" + modelId + "': " + e.getMessage());
             }
         }
         return null;

@@ -242,9 +242,9 @@ public class CoinDropManager implements Listener {
     }
 
     private enum CoinDenomination {
-        GOLD(100, Material.GOLD_NUGGET, "gold_coin.bbmodel", ChatColor.GOLD, "Gold Coin"),
-        SILVER(10, Material.IRON_NUGGET, "silver_coin.bbmodel", ChatColor.WHITE, "Silver Coin"),
-        COPPER(1, Material.COPPER_INGOT, "copper_coin.bbmodel", ChatColor.YELLOW, "Copper Coin");
+        GOLD(100, Material.GOLD_NUGGET, "gold_coin", ChatColor.GOLD, "Gold Coin"),
+        IRON(10, Material.IRON_NUGGET, "iron_coin", ChatColor.WHITE, "Iron Coin"),
+        COPPER(1, Material.COPPER_INGOT, "copper_coin", ChatColor.YELLOW, "Copper Coin");
 
         private final int value;
         private final Material material;
@@ -261,7 +261,7 @@ public class CoinDropManager implements Listener {
         }
 
         private static CoinDenomination[] valuesDescending() {
-            return new CoinDenomination[]{GOLD, SILVER, COPPER};
+            return new CoinDenomination[]{GOLD, IRON, COPPER};
         }
 
         private String displayName(int amount) {
