@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.spells.input.SpellInputEvent;
+import me.nakilex.levelplugin.spells.input.SpellInputType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -33,6 +34,7 @@ public class SpellCastListener implements Listener {
         var playerClass = PlayerClassManager.getInstance().getPlayerClass(player);
         if (entry == null) {
             entry = SpellRegistry.getInstance().resolveSpell(playerClass,
+                    player.getInventory().getItemInMainHand(),
                     event.getInputMode(), event.getInputSequence(), event.getInputType());
         }
         if (entry == null) {
@@ -40,7 +42,8 @@ public class SpellCastListener implements Listener {
         }
         if (!deckSpell) {
             String resolvedBaseSpellId = entry.definition().id();
-            if (playerClass == null || !SpellRegistry.getInstance().isSpellBoundForClass(resolvedBaseSpellId, playerClass)) {
+            if (event.getInputType() != SpellInputType.BASIC_ATTACK
+                    && (playerClass == null || !SpellRegistry.getInstance().isSpellBoundForClass(resolvedBaseSpellId, playerClass))) {
                 return;
             }
             String effectiveSpellId = SpellProgressionManager.getInstance()
@@ -56,6 +59,10 @@ public class SpellCastListener implements Listener {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                             "You must hold a weapon to cast spell cards.");
                 }
+                return;
+            }
+        } else if (event.getInputType() == SpellInputType.BASIC_ATTACK) {
+            if (!SpellAccessUtil.isHoldingBasicAttackWeapon(player)) {
                 return;
             }
         } else if (!SpellAccessUtil.isHoldingValidClassWeapon(player)) {

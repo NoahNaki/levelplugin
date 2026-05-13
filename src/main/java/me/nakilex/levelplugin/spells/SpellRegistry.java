@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.spells;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -53,19 +54,27 @@ public final class SpellRegistry {
                                    SpellInputMode mode,
                                    String sequence,
                                    SpellInputType inputType) {
-        SpellEntry inputTypeEntry = resolveByInputType(playerClass, inputType);
+        return resolveSpell(playerClass, null, mode, sequence, inputType);
+    }
+
+    public SpellEntry resolveSpell(PlayerClass playerClass,
+                                   ItemStack weapon,
+                                   SpellInputMode mode,
+                                   String sequence,
+                                   SpellInputType inputType) {
+        SpellEntry inputTypeEntry = resolveByInputType(playerClass, weapon, inputType);
         if (inputTypeEntry != null) {
             return inputTypeEntry;
         }
-        return resolveBySequence(playerClass, mode, sequence);
+        return resolveBySequence(playerClass, weapon, mode, sequence);
     }
 
-    private SpellEntry resolveByInputType(PlayerClass playerClass, SpellInputType inputType) {
+    private SpellEntry resolveByInputType(PlayerClass playerClass, ItemStack weapon, SpellInputType inputType) {
         if (inputType == null) {
             return null;
         }
         for (SpellBinding binding : bindings) {
-            if (binding.inputType() == null || !binding.matches(playerClass, null, null, inputType)) {
+            if (binding.inputType() == null || !binding.matches(playerClass, weapon, null, null, inputType)) {
                 continue;
             }
             SpellEntry entry = spells.get(binding.spellId().toLowerCase(Locale.ROOT));
@@ -76,12 +85,12 @@ public final class SpellRegistry {
         return null;
     }
 
-    private SpellEntry resolveBySequence(PlayerClass playerClass, SpellInputMode mode, String sequence) {
+    private SpellEntry resolveBySequence(PlayerClass playerClass, ItemStack weapon, SpellInputMode mode, String sequence) {
         if (mode == null || sequence == null) {
             return null;
         }
         for (SpellBinding binding : bindings) {
-            if (binding.inputType() != null || !binding.matches(playerClass, mode, sequence, null)) {
+            if (binding.inputType() != null || !binding.matches(playerClass, weapon, mode, sequence, null)) {
                 continue;
             }
             SpellEntry entry = spells.get(binding.spellId().toLowerCase(Locale.ROOT));
