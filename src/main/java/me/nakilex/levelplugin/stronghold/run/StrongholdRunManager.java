@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.stronghold.run;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.debug.StrongholdDebugGenerator;
+import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.dungeon.modifiers.RunModifierSet;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
@@ -779,6 +780,9 @@ public class StrongholdRunManager implements Listener {
         }
         ActiveRun run = activeRuns.get(player.getWorld().getUID());
         if (run == null) {
+            return;
+        }
+        if (CoinDropManager.isCoinDrop(event.getItem())) {
             return;
         }
         if (run.captureLootToStash(player, event.getItem().getItemStack())) {
