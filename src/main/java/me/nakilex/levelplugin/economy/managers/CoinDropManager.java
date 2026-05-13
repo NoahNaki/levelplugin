@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.economy.managers;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import org.bukkit.ChatColor;
@@ -32,12 +33,17 @@ public class CoinDropManager implements Listener {
     private static final NamespacedKey COIN_VALUE_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_value");
     private static final NamespacedKey COIN_OWNER_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_owner");
     private static final NamespacedKey COIN_STACK_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_stack_id");
+    private static final NamespacedKey COIN_DENOMINATION_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_denomination");
+    private static final NamespacedKey COIN_UNIT_VALUE_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_unit_value");
+    private static final NamespacedKey COIN_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_model");
     private static final int MAX_STACK_AMOUNT = 64;
 
     private final EconomyManager economyManager;
+    private final DropDebugManager dropDebugManager;
 
-    public CoinDropManager(EconomyManager economyManager) {
+    public CoinDropManager(EconomyManager economyManager, DropDebugManager dropDebugManager) {
         this.economyManager = economyManager;
+        this.dropDebugManager = dropDebugManager;
     }
 
     public static int dropCoins(Main plugin,
@@ -67,7 +73,7 @@ public class CoinDropManager implements Listener {
             while (count > 0) {
                 int stackAmount = Math.min(MAX_STACK_AMOUNT, count);
                 count -= stackAmount;
-                spawnCoinStack(plugin, world, dropLocation, denomination, stackAmount, ownerId, spawnIndex++);
+                spawnCoinStack(plugin, world, dropLocation, denomination, stackAmount, owner, ownerId, spawnIndex++);
             }
         }
         return droppedTotal;
@@ -78,6 +84,7 @@ public class CoinDropManager implements Listener {
                                        Location location,
                                        CoinDenomination denomination,
                                        int stackAmount,
+                                       Player owner,
                                        UUID ownerId,
                                        int spawnIndex) {
         if (stackAmount <= 0) {
@@ -90,11 +97,17 @@ public class CoinDropManager implements Listener {
         item.setCustomNameVisible(true);
         item.setVelocity(item.getVelocity().add(new Vector(0.0, 0.08, 0.0)));
         PersistentDataContainer pdc = item.getPersistentDataContainer();
-        pdc.set(COIN_VALUE_KEY, PersistentDataType.INTEGER, denomination.value * stackAmount);
+        int value = denomination.value * stackAmount;
+        pdc.set(COIN_VALUE_KEY, PersistentDataType.INTEGER, value);
+        pdc.set(COIN_DENOMINATION_KEY, PersistentDataType.STRING, denomination.name());
+        pdc.set(COIN_UNIT_VALUE_KEY, PersistentDataType.INTEGER, denomination.value);
         if (ownerId != null) {
             pdc.set(COIN_OWNER_KEY, PersistentDataType.STRING, ownerId.toString());
         }
-        ModelEngineUtil.applyFirstAvailableModel(item, ModelEngineUtil.buildModelCandidates(denomination.modelId), plugin);
+        ModelEngineUtil.ModelApplyResult modelResult = ModelEngineUtil.applyFirstAvailableModel(item, ModelEngineUtil.buildModelCandidates(denomination.modelId), plugin);
+        String appliedModel = modelResult.applied().isEmpty() ? "none" : String.join(",", modelResult.applied());
+        pdc.set(COIN_MODEL_KEY, PersistentDataType.STRING, appliedModel);
+        sendDropDebug(owner, item, denomination, stackAmount, value, appliedModel, modelResult);
     }
 
     private static ItemStack createCoinStack(CoinDenomination denomination, int stackAmount) {
@@ -144,10 +157,75 @@ public class CoinDropManager implements Listener {
             return;
         }
         event.setCancelled(true);
+        sendPickupDebug(player, item, value);
         item.remove();
         economyManager.addCoins(player, value, false);
         CurrencyMessageUtil.sendReceive(player, CurrencyMessageUtil.Currency.COINS, value);
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.45f, 1.65f);
+    }
+
+    private static void sendDropDebug(Player owner,
+                                      Item item,
+                                      CoinDenomination denomination,
+                                      int stackAmount,
+                                      int value,
+                                      String appliedModel,
+                                      ModelEngineUtil.ModelApplyResult modelResult) {
+        Main main = Main.getInstance();
+        DropDebugManager debugManager = main == null ? null : main.getDropDebugManager();
+        if (owner == null || debugManager == null || !debugManager.isCoinPickupDebugEnabled(owner.getUniqueId())) {
+            return;
+        }
+        owner.sendMessage(ChatColor.DARK_GRAY + "[CoinDebug] " + ChatColor.GRAY + "Spawned "
+                + ChatColor.GOLD + value + ChatColor.GRAY + " coins as "
+                + denomination.color + stackAmount + "x " + denomination.displayName
+                + ChatColor.GRAY + " entity=" + ChatColor.WHITE + shortId(item.getUniqueId())
+                + ChatColor.GRAY + " material=" + ChatColor.WHITE + item.getItemStack().getType()
+                + ChatColor.GRAY + " model=" + ChatColor.WHITE + appliedModel
+                + formatModelFailures(modelResult));
+    }
+
+    private void sendPickupDebug(Player player, Item item, int value) {
+        if (dropDebugManager == null || !dropDebugManager.isCoinPickupDebugEnabled(player.getUniqueId())) {
+            return;
+        }
+        PersistentDataContainer pdc = item.getPersistentDataContainer();
+        String denomination = pdc.getOrDefault(COIN_DENOMINATION_KEY, PersistentDataType.STRING, "unknown");
+        Integer unitValue = pdc.get(COIN_UNIT_VALUE_KEY, PersistentDataType.INTEGER);
+        String model = pdc.getOrDefault(COIN_MODEL_KEY, PersistentDataType.STRING, "unknown");
+        String owner = pdc.getOrDefault(COIN_OWNER_KEY, PersistentDataType.STRING, "none");
+        ItemStack stack = item.getItemStack();
+        player.sendMessage(ChatColor.DARK_GRAY + "[CoinDebug] " + ChatColor.GRAY + "Picked up "
+                + ChatColor.GOLD + value + ChatColor.GRAY + " coins from "
+                + ChatColor.WHITE + denomination
+                + ChatColor.GRAY + " stackAmount=" + ChatColor.WHITE + stack.getAmount()
+                + ChatColor.GRAY + " unit=" + ChatColor.WHITE + (unitValue == null ? "unknown" : unitValue)
+                + ChatColor.GRAY + " material=" + ChatColor.WHITE + stack.getType()
+                + ChatColor.GRAY + " model=" + ChatColor.WHITE + model
+                + ChatColor.GRAY + " entity=" + ChatColor.WHITE + shortId(item.getUniqueId())
+                + ChatColor.GRAY + " owner=" + ChatColor.WHITE + shortOwner(owner));
+    }
+
+    private static String formatModelFailures(ModelEngineUtil.ModelApplyResult modelResult) {
+        if (modelResult == null || modelResult.failed().isEmpty()) {
+            return "";
+        }
+        return ChatColor.GRAY + " failedModels=" + ChatColor.RED + String.join(",", modelResult.failed());
+    }
+
+    private static String shortId(UUID uuid) {
+        if (uuid == null) {
+            return "unknown";
+        }
+        String value = uuid.toString();
+        return value.substring(0, Math.min(8, value.length()));
+    }
+
+    private static String shortOwner(String owner) {
+        if (owner == null || owner.isBlank() || owner.equalsIgnoreCase("none")) {
+            return "none";
+        }
+        return owner.substring(0, Math.min(8, owner.length()));
     }
 
     private boolean isCoinDrop(Entity entity) {

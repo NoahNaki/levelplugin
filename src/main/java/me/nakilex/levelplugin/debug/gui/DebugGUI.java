@@ -49,6 +49,7 @@ public class DebugGUI implements Listener {
     private static final int DROP_RATE_SLOT = 27;
     private static final int CHEST_RESPAWN_SLOT = 25;
     private static final int FORCE_DROP_SLOT = 29;
+    private static final int COIN_PICKUP_DEBUG_SLOT = 31;
     private static final int REWARD_BOMB_SLOT = 33;
     private static final int[] CHAT_GAME_SLOTS = {28, 30, 32, 34, 22, 24};
 
@@ -141,6 +142,12 @@ public class DebugGUI implements Listener {
                     context.inventory().setItem(FORCE_DROP_SLOT, createForceDropItem());
                     ToggleFeedbackUtil.sendToggle(context.player(), "Guaranteed mob drops", enabled);
                 }));
+        widgetList.add(new ActionWidget(COIN_PICKUP_DEBUG_SLOT, context -> createCoinPickupDebugItem(context.player()),
+                (click, context) -> {
+                    boolean enabled = dropDebugManager.toggleCoinPickupDebug(context.player().getUniqueId());
+                    context.inventory().setItem(COIN_PICKUP_DEBUG_SLOT, createCoinPickupDebugItem(context.player()));
+                    ToggleFeedbackUtil.sendToggle(context.player(), "Coin drop pickup debug", enabled);
+                }));
         widgetList.add(new ActionWidget(REWARD_BOMB_SLOT, context -> createRewardBombItem(),
                 (click, context) -> triggerRewardBomb(context.player(), context.inventory())));
         return widgetList;
@@ -202,6 +209,14 @@ public class DebugGUI implements Listener {
                 "§bGuaranteed Mob Drops",
                 "§7Force MythicMob loot and chests",
                 "§7to drop every time.");
+    }
+
+    private ItemStack createCoinPickupDebugItem(Player player) {
+        return GuiUtil.createToggleItem(
+                dropDebugManager.isCoinPickupDebugEnabled(player.getUniqueId()),
+                "§bCoin Pickup Debug",
+                "§7Show coin entity, amount, model,",
+                "§7and denomination when picked up.");
     }
 
     private ItemStack createRewardBombItem() {

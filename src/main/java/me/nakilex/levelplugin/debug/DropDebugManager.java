@@ -3,6 +3,10 @@ package me.nakilex.levelplugin.debug;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.configuration.file.FileConfiguration;
 
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
 /**
  * Stores transient debug flags related to loot drops and persists them in the
  * custom config so they survive reloads.
@@ -11,6 +15,7 @@ public class DropDebugManager {
     private final Main main;
     private boolean forceMobDrops;
     private double globalGearDropRate;
+    private final Set<UUID> coinPickupDebugPlayers = ConcurrentHashMap.newKeySet();
 
     public DropDebugManager(Main main) {
         this.main = main;
@@ -40,6 +45,21 @@ public class DropDebugManager {
 
     public double getGlobalGearDropRate() {
         return globalGearDropRate;
+    }
+
+    public boolean isCoinPickupDebugEnabled(UUID playerId) {
+        return playerId != null && coinPickupDebugPlayers.contains(playerId);
+    }
+
+    public boolean toggleCoinPickupDebug(UUID playerId) {
+        if (playerId == null) {
+            return false;
+        }
+        if (!coinPickupDebugPlayers.add(playerId)) {
+            coinPickupDebugPlayers.remove(playerId);
+            return false;
+        }
+        return true;
     }
 
     public void setGlobalGearDropRate(double chancePercent) {

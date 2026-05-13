@@ -279,7 +279,7 @@ public class ListenerRegistry {
         }
         pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager,
                 plugin.getDungeonManager()), plugin);
-        pm.registerEvents(new CoinDropManager(economyManager), plugin);
+        pm.registerEvents(new CoinDropManager(economyManager, plugin.getDropDebugManager()), plugin);
         pm.registerEvents(new LootChestChunkListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestWandListener(lootChestManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);
