@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.entity.ItemMergeEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -30,6 +31,7 @@ import java.util.UUID;
 public class CoinDropManager implements Listener {
     private static final NamespacedKey COIN_VALUE_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_value");
     private static final NamespacedKey COIN_OWNER_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_owner");
+    private static final NamespacedKey COIN_STACK_ID_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_stack_id");
     private static final int MAX_STACK_AMOUNT = 64;
 
     private final EconomyManager economyManager;
@@ -58,13 +60,14 @@ public class CoinDropManager implements Listener {
         int droppedTotal = total;
         UUID ownerId = owner == null ? null : owner.getUniqueId();
         Location dropLocation = location.clone().add(0.0, 0.35, 0.0);
+        int spawnIndex = 0;
         for (CoinDenomination denomination : CoinDenomination.valuesDescending()) {
             int count = total / denomination.value;
             total %= denomination.value;
             while (count > 0) {
                 int stackAmount = Math.min(MAX_STACK_AMOUNT, count);
                 count -= stackAmount;
-                spawnCoinStack(plugin, world, dropLocation, denomination, stackAmount, ownerId);
+                spawnCoinStack(plugin, world, dropLocation, denomination, stackAmount, ownerId, spawnIndex++);
             }
         }
         return droppedTotal;
@@ -75,12 +78,13 @@ public class CoinDropManager implements Listener {
                                        Location location,
                                        CoinDenomination denomination,
                                        int stackAmount,
-                                       UUID ownerId) {
+                                       UUID ownerId,
+                                       int spawnIndex) {
         if (stackAmount <= 0) {
             return;
         }
         ItemStack stack = createCoinStack(denomination, stackAmount);
-        Item item = world.dropItemNaturally(location, stack);
+        Item item = world.dropItemNaturally(scatterLocation(location, spawnIndex), stack);
         item.setPickupDelay(10);
         item.setCustomName(denomination.displayName(stackAmount));
         item.setCustomNameVisible(true);
@@ -102,10 +106,27 @@ public class CoinDropManager implements Listener {
                     ChatColor.GRAY + "Pick up to receive " + ChatColor.GOLD + (denomination.value * stackAmount)
                             + ChatColor.GRAY + " <glyph:coins_icon> coins."
             ));
+            meta.getPersistentDataContainer().set(COIN_STACK_ID_KEY, PersistentDataType.STRING, UUID.randomUUID().toString());
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             stack.setItemMeta(meta);
         }
         return stack;
+    }
+
+    private static Location scatterLocation(Location origin, int spawnIndex) {
+        if (origin == null || spawnIndex <= 0) {
+            return origin;
+        }
+        double angle = spawnIndex * 2.399963229728653; // golden angle keeps nearby drops visually separated.
+        double radius = 0.22 + (spawnIndex % 4) * 0.09;
+        return origin.clone().add(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onCoinMerge(ItemMergeEvent event) {
+        if (isCoinDrop(event.getEntity()) || isCoinDrop(event.getTarget())) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -127,6 +148,11 @@ public class CoinDropManager implements Listener {
         economyManager.addCoins(player, value, false);
         CurrencyMessageUtil.sendReceive(player, CurrencyMessageUtil.Currency.COINS, value);
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.45f, 1.65f);
+    }
+
+    private boolean isCoinDrop(Entity entity) {
+        return entity instanceof Item item
+                && item.getPersistentDataContainer().has(COIN_VALUE_KEY, PersistentDataType.INTEGER);
     }
 
     private boolean canPickupCoin(Player player, Entity item) {
