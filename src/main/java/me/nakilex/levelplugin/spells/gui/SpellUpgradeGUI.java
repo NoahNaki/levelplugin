@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
 import me.nakilex.levelplugin.spells.deck.SpellDeckProfile;
 import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.SpellDefinition;
+import me.nakilex.levelplugin.spells.SpellIconUtil;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.spells.deck.SpellDeckRarity;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
@@ -215,8 +216,14 @@ public class SpellUpgradeGUI implements Listener {
     }
 
     private ItemStack createSpellCardGuiItem(SpellCardDefinition card, String name, List<String> lore) {
-        Material material = card.displayMaterial() == null ? card.rarity().displayMaterial() : card.displayMaterial();
-        ItemStack item = GuiUtil.createGuiItem(material, name, lore);
+        ItemStack item = SpellIconUtil.createSpellIcon(card.spellId(), name, card.rarity().ordinal() + 1);
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            meta.setLore(lore);
+            meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
         ItemUtil.applyRarityTooltipStyle(item, card.rarity().itemRarity());
         TooltipUtil.centerItemName(item);
         return item;

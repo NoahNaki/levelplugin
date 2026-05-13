@@ -338,14 +338,7 @@ public class StrongholdRunManager implements Listener {
     }
 
     public boolean addDebugXp(Player player, int amount) {
-        if (player == null || amount <= 0) {
-            return false;
-        }
-        ActiveRun run = activeRuns.get(player.getWorld().getUID());
-        if (run == null) {
-            return false;
-        }
-        return run.grantDebugXp(player, amount);
+        return false;
     }
 
     public boolean forceEndSession(Player target) {
@@ -423,14 +416,7 @@ public class StrongholdRunManager implements Listener {
     }
 
     public List<String> getSpellPossibilities(Player player) {
-        if (player == null || !player.isOnline()) {
-            return List.of();
-        }
-        ActiveRun run = activeRuns.get(player.getWorld().getUID());
-        if (run == null) {
-            return List.of();
-        }
-        return run.getSpellPossibilities(player.getUniqueId());
+        return List.of();
     }
 
     private void stopRun(UUID worldId) {
@@ -1760,7 +1746,6 @@ public class StrongholdRunManager implements Listener {
                 meta.setDisplayName(ChatColor.GOLD + "Run Summary");
                 meta.setLore(List.of(
                         ChatColor.GRAY + "Reached Wave: " + ChatColor.WHITE + wave,
-                        ChatColor.GRAY + "Run Rank: " + ChatColor.WHITE + state.level,
                         ChatColor.GRAY + "Stage Rating: " + ChatColor.WHITE + (state.lastStageRating == null ? "N/A" : state.lastStageRating),
                         ChatColor.GRAY + "Heat: " + ChatColor.WHITE + heat.displayName(),
                         ChatColor.GRAY + "Elite Hunts: " + ChatColor.WHITE + state.eliteObjectivesCompleted,
@@ -1961,56 +1946,13 @@ public class StrongholdRunManager implements Listener {
             state.progressBar = Bukkit.createBossBar("", BarColor.PURPLE, BarStyle.SOLID);
             state.progressBar.addPlayer(player);
             state.progressBar.setVisible(true);
-            state.pendingUpgradeSelections = 1;
-            state.pendingUpgrades = rollUpgradeChoices(state, 3);
             updateProgressBar(player, state);
-            openUpgradeGui(player, state);
         }
 
         private void handleMobKillXp(Player killer, LivingEntity entity) {
-            SurvivorState state = playerStates.get(killer.getUniqueId());
-            if (state == null) {
-                return;
-            }
-            int xpGain = 12 + Math.min(28, wave * 2);
-            if (entity instanceof Mob) {
-                xpGain += 3;
-            }
-            grantXp(killer, state, xpGain);
+            // Stronghold run-rank XP upgrades were removed in favor of player spell progression.
         }
 
-        private void grantXp(Player player, SurvivorState state, int amount) {
-            if (amount <= 0) {
-                return;
-            }
-            state.xp += amount;
-            int activeStage = Math.max(stageAnchor, toStageProgress(Math.max(1, wave)).stage());
-            int required = xpRequiredForLevelAtStage(state.level, activeStage);
-            int levelsGained = 0;
-            while (state.xp >= required) {
-                state.xp -= required;
-                state.level++;
-                levelsGained++;
-                required = xpRequiredForLevelAtStage(state.level, activeStage);
-            }
-            updateProgressBar(player, state);
-            if (levelsGained > 0) {
-                send(player, MessageType.SUCCESS,
-                        "Rank up! " + ChatColor.WHITE + "Run Rank " + state.level + ChatColor.GRAY + " reached.");
-                state.pendingUpgradeSelections += levelsGained;
-                state.pendingUpgrades = rollUpgradeChoices(state, 3);
-                openUpgradeGui(player, state);
-            }
-        }
-
-        private boolean grantDebugXp(Player player, int amount) {
-            SurvivorState state = playerStates.get(player.getUniqueId());
-            if (state == null) {
-                return false;
-            }
-            grantXp(player, state, amount);
-            return true;
-        }
 
         private StageStatus getStageStatus(UUID playerId) {
             if (playerId == null || !playerStates.containsKey(playerId)) {
@@ -2026,12 +1968,13 @@ public class StrongholdRunManager implements Listener {
             if (player == null || state == null || state.progressBar == null) {
                 return;
             }
-            int activeStage = Math.max(stageAnchor, toStageProgress(Math.max(1, wave)).stage());
-            int required = xpRequiredForLevelAtStage(state.level, activeStage);
-            double progress = required <= 0 ? 1.0 : Math.min(1.0, Math.max(0.0, state.xp / (double) required));
-            state.progressBar.setTitle(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Stronghold Rank " + state.level
-                    + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + state.xp + ChatColor.GRAY + "/" + ChatColor.WHITE + required + " XP");
-            state.progressBar.setProgress(progress);
+            StageProgress progress = toStageProgress(Math.max(1, wave));
+            state.progressBar.setTitle(ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "Stronghold"
+                    + ChatColor.DARK_GRAY + " | " + ChatColor.WHITE + "Stage " + progress.stage()
+                    + ChatColor.GRAY + " Wave " + ChatColor.WHITE + progress.wave());
+            int alive = countAliveAllSpawned();
+            int total = Math.max(1, currentWaveSpawned.size());
+            state.progressBar.setProgress(Math.max(0.0, Math.min(1.0, 1.0 - (alive / (double) total))));
             state.progressBar.setVisible(true);
         }
 

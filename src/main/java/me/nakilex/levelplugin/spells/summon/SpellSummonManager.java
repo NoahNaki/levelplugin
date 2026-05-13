@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.spells.summon;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.cutscene.CutsceneManager;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.spells.SpellIconUtil;
 import me.nakilex.levelplugin.spells.deck.SpellCardDefinition;
 import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
 import me.nakilex.levelplugin.spells.deck.SpellDeckManager.SpellPullEntry;
@@ -212,7 +213,7 @@ public class SpellSummonManager implements Listener {
     }
 
     private ItemStack createRevealedSummonStack(SpellCardDefinition card) {
-        ItemStack stack = new ItemStack(card.rarity().displayMaterial());
+        ItemStack stack = SpellIconUtil.createSpellIcon(card.spellId(), formatDisplayName(card), card.rarity().ordinal() + 1);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(formatDisplayName(card));
