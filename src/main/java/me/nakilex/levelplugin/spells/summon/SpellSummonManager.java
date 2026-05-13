@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.spells.summon;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.cutscene.CutsceneManager;
 import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.spells.SpellIconUtil;
 import me.nakilex.levelplugin.spells.deck.SpellCardDefinition;
 import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
@@ -159,6 +160,7 @@ public class SpellSummonManager implements Listener {
         active.setFrozenLocation(player.getLocation());
         hideCutsceneScoreboard(player, active);
         hideOtherPlayersForCutscene(player, active);
+        hidePetsForCutscene(player);
         BetterHudUtil.removeHud(player);
         startVisibilityEnforcementTask(player, active);
     }
@@ -198,7 +200,7 @@ public class SpellSummonManager implements Listener {
         item.setInvulnerable(true);
         item.setSilent(true);
         item.setCustomName("§dSealed Spell Card");
-        item.setCustomNameVisible(true);
+        item.setCustomNameVisible(false);
         return item;
     }
 
@@ -292,7 +294,7 @@ public class SpellSummonManager implements Listener {
                     return;
                 }
                 revealSpellItem(entry);
-                entry.item().setCustomNameVisible(true);
+                entry.item().setCustomNameVisible(false);
                 showRevealName(entry);
                 applyGlow(player, entry.item(), entry.card());
                 spawnRevealParticles(player, entry.item().getLocation(), entry.card().rarity().itemRarity());
@@ -395,7 +397,7 @@ public class SpellSummonManager implements Listener {
                 continue;
             }
             revealSpellItem(entry);
-            entry.item().setCustomNameVisible(true);
+            entry.item().setCustomNameVisible(false);
             showRevealName(entry);
             applyGlow(player, entry.item(), entry.card());
             spawnRevealParticles(player, entry.item().getLocation(), entry.card().rarity().itemRarity());
@@ -439,6 +441,7 @@ public class SpellSummonManager implements Listener {
             }
         }
         showOtherPlayersAfterCutscene(player, session);
+        restorePetsAfterCutscene(player);
         restoreCutsceneScoreboard(player, session);
         BetterHudUtil.addHud(player);
         me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
@@ -515,6 +518,20 @@ public class SpellSummonManager implements Listener {
         }
     }
 
+    private void hidePetsForCutscene(Player viewer) {
+        PetManager petManager = plugin.getPetManager();
+        if (petManager != null) {
+            petManager.hidePetsForCutsceneViewer(viewer);
+        }
+    }
+
+    private void restorePetsAfterCutscene(Player viewer) {
+        PetManager petManager = plugin.getPetManager();
+        if (petManager != null) {
+            petManager.restorePetsForCutsceneViewer(viewer);
+        }
+    }
+
     private void startVisibilityEnforcementTask(Player viewer, SummonSession session) {
         BukkitTask task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             SummonSession active = sessions.get(viewer.getUniqueId());
@@ -522,6 +539,7 @@ public class SpellSummonManager implements Listener {
                 return;
             }
             hideOtherPlayersForCutscene(viewer, session);
+            hidePetsForCutscene(viewer);
         }, 10L, 10L);
         session.tasks.add(task);
     }
