@@ -42,6 +42,11 @@ public class CoinDropManager implements Listener {
     private static final int SCATTER_RING_SIZE = 8;
     private static final double SCATTER_HORIZONTAL_SPEED = 0.18;
     private static final double SCATTER_VERTICAL_SPEED = 0.18;
+    private static final double PULL_MIN_SPEED = 0.85;
+    private static final double PULL_MAX_SPEED = 3.0;
+    private static final double PULL_DISTANCE_SPEED_FACTOR = 0.22;
+    private static final double PULL_VERTICAL_SPEED = 0.22;
+    private static final double PULL_TARGET_Y_OFFSET = 0.85;
 
     private final EconomyManager economyManager;
     private final DropDebugManager dropDebugManager;
@@ -146,6 +151,33 @@ public class CoinDropManager implements Listener {
         return horizontal.normalize().multiply(SCATTER_HORIZONTAL_SPEED).setY(SCATTER_VERTICAL_SPEED);
     }
 
+    public static CoinPullResult pullNearbyCoins(Player player, double radius) {
+        if (player == null || radius <= 0.0 || player.getWorld() == null) {
+            return CoinPullResult.empty();
+        }
+        double effectiveRadius = Math.max(0.1, radius);
+        Location target = player.getLocation().clone().add(0.0, PULL_TARGET_Y_OFFSET, 0.0);
+        double radiusSquared = effectiveRadius * effectiveRadius;
+        int pulled = 0;
+        for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), effectiveRadius, effectiveRadius, effectiveRadius)) {
+            if (!(entity instanceof Item item) || !isCoinDrop(item)
+                    || item.getLocation().distanceSquared(player.getLocation()) > radiusSquared) {
+                continue;
+            }
+            Vector pull = target.toVector().subtract(item.getLocation().toVector());
+            if (pull.lengthSquared() < 0.04) {
+                item.setPickupDelay(0);
+                item.setVelocity(new Vector(0.0, 0.0, 0.0));
+            } else {
+                item.setPickupDelay(0);
+                double speed = Math.min(PULL_MAX_SPEED, Math.max(PULL_MIN_SPEED, pull.length() * PULL_DISTANCE_SPEED_FACTOR));
+                item.setVelocity(pull.normalize().multiply(speed).setY(PULL_VERTICAL_SPEED));
+            }
+            pulled++;
+        }
+        return new CoinPullResult(pulled);
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onCoinMerge(ItemMergeEvent event) {
         if (isCoinDrop(event.getEntity()) || isCoinDrop(event.getTarget())) {
@@ -239,17 +271,30 @@ public class CoinDropManager implements Listener {
         return owner.substring(0, Math.min(8, owner.length()));
     }
 
-    private boolean isCoinDrop(Entity entity) {
+    public static boolean isCoinDrop(Entity entity) {
         return entity instanceof Item item
                 && item.getPersistentDataContainer().has(COIN_VALUE_KEY, PersistentDataType.INTEGER);
     }
 
     private boolean canPickupCoin(Player player, Entity item) {
+        return canPlayerPickupCoin(player, item);
+    }
+
+    private static boolean canPlayerPickupCoin(Player player, Entity item) {
+        if (player == null || item == null) {
+            return false;
+        }
         String owner = item.getPersistentDataContainer().get(COIN_OWNER_KEY, PersistentDataType.STRING);
         if (owner == null || owner.isBlank()) {
             return true;
         }
         return owner.equalsIgnoreCase(player.getUniqueId().toString());
+    }
+
+    public record CoinPullResult(int pulled) {
+        private static CoinPullResult empty() {
+            return new CoinPullResult(0);
+        }
     }
 
     private enum CoinDenomination {
