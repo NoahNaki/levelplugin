@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -23,10 +24,13 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Handles physical coin drops that convert to balance only after pickup. */
 public class CoinDropManager implements Listener {
@@ -36,6 +40,7 @@ public class CoinDropManager implements Listener {
     private static final NamespacedKey COIN_DENOMINATION_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_denomination");
     private static final NamespacedKey COIN_UNIT_VALUE_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_unit_value");
     private static final NamespacedKey COIN_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_model");
+    private static final NamespacedKey COIN_PULL_BATCH_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_pull_batch");
     private static final int MAX_STACK_AMOUNT = 64;
     private static final double SCATTER_BASE_RADIUS = 0.85;
     private static final double SCATTER_RING_RADIUS_STEP = 0.35;
@@ -47,6 +52,9 @@ public class CoinDropManager implements Listener {
     private static final double PULL_DISTANCE_SPEED_FACTOR = 0.22;
     private static final double PULL_VERTICAL_SPEED = 0.22;
     private static final double PULL_TARGET_Y_OFFSET = 0.85;
+    private static final long PULL_SUMMARY_DELAY_TICKS = 8L;
+
+    private static final Map<UUID, PendingCoinPullBatch> PENDING_COIN_PULLS = new ConcurrentHashMap<>();
 
     private final EconomyManager economyManager;
     private final DropDebugManager dropDebugManager;
@@ -159,11 +167,19 @@ public class CoinDropManager implements Listener {
         Location target = player.getLocation().clone().add(0.0, PULL_TARGET_Y_OFFSET, 0.0);
         double radiusSquared = effectiveRadius * effectiveRadius;
         int pulled = 0;
+        int totalValue = 0;
+        String batchId = UUID.randomUUID().toString();
         for (Entity entity : player.getWorld().getNearbyEntities(player.getLocation(), effectiveRadius, effectiveRadius, effectiveRadius)) {
             if (!(entity instanceof Item item) || !isCoinDrop(item)
-                    || item.getLocation().distanceSquared(player.getLocation()) > radiusSquared) {
+                    || item.getLocation().distanceSquared(player.getLocation()) > radiusSquared
+                    || !canPlayerPickupCoin(player, item)) {
                 continue;
             }
+            Integer value = item.getPersistentDataContainer().get(COIN_VALUE_KEY, PersistentDataType.INTEGER);
+            if (value == null || value <= 0) {
+                continue;
+            }
+            item.getPersistentDataContainer().set(COIN_PULL_BATCH_KEY, PersistentDataType.STRING, batchId);
             Vector pull = target.toVector().subtract(item.getLocation().toVector());
             if (pull.lengthSquared() < 0.04) {
                 item.setPickupDelay(0);
@@ -174,8 +190,12 @@ public class CoinDropManager implements Listener {
                 item.setVelocity(pull.normalize().multiply(speed).setY(PULL_VERTICAL_SPEED));
             }
             pulled++;
+            totalValue += value;
         }
-        return new CoinPullResult(pulled);
+        if (pulled > 0 && totalValue > 0) {
+            PENDING_COIN_PULLS.put(player.getUniqueId(), new PendingCoinPullBatch(batchId, pulled));
+        }
+        return new CoinPullResult(pulled, totalValue);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -203,7 +223,9 @@ public class CoinDropManager implements Listener {
         sendPickupDebug(player, item, value);
         item.remove();
         economyManager.addCoins(player, value, false);
-        CurrencyMessageUtil.sendReceive(player, CurrencyMessageUtil.Currency.COINS, value);
+        if (!recordPulledCoinPickup(player, item, value)) {
+            CurrencyMessageUtil.sendReceive(player, CurrencyMessageUtil.Currency.COINS, value);
+        }
         player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.45f, 1.65f);
     }
 
@@ -249,6 +271,48 @@ public class CoinDropManager implements Listener {
                 + ChatColor.GRAY + " owner=" + ChatColor.WHITE + shortOwner(owner));
     }
 
+    private static boolean recordPulledCoinPickup(Player player, Item item, int value) {
+        String batchId = item.getPersistentDataContainer().get(COIN_PULL_BATCH_KEY, PersistentDataType.STRING);
+        if (batchId == null || batchId.isBlank()) {
+            return false;
+        }
+        PendingCoinPullBatch batch = PENDING_COIN_PULLS.get(player.getUniqueId());
+        if (batch == null || !batch.batchId().equals(batchId)) {
+            return false;
+        }
+        batch.recordPickup(value);
+        scheduleCoinPullSummary(player, batch);
+        if (batch.isComplete()) {
+            flushCoinPullSummary(player.getUniqueId(), batch);
+        }
+        return true;
+    }
+
+    private static void scheduleCoinPullSummary(Player player, PendingCoinPullBatch batch) {
+        if (player == null || batch == null) {
+            return;
+        }
+        batch.cancelSummaryTask();
+        JavaPlugin plugin = JavaPlugin.getProvidingPlugin(CoinDropManager.class);
+        BukkitTask task = Bukkit.getScheduler().runTaskLater(plugin,
+                () -> flushCoinPullSummary(player.getUniqueId(), batch), PULL_SUMMARY_DELAY_TICKS);
+        batch.setSummaryTask(task);
+    }
+
+    private static void flushCoinPullSummary(UUID playerId, PendingCoinPullBatch batch) {
+        if (playerId == null || batch == null || !PENDING_COIN_PULLS.remove(playerId, batch)) {
+            return;
+        }
+        batch.cancelSummaryTask();
+        if (batch.pickedValue() <= 0) {
+            return;
+        }
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null && player.isOnline()) {
+            CurrencyMessageUtil.sendReceive(player, CurrencyMessageUtil.Currency.COINS, batch.pickedValue());
+        }
+    }
+
     private static String formatModelFailures(ModelEngineUtil.ModelApplyResult modelResult) {
         if (modelResult == null || modelResult.failed().isEmpty()) {
             return "";
@@ -291,9 +355,50 @@ public class CoinDropManager implements Listener {
         return owner.equalsIgnoreCase(player.getUniqueId().toString());
     }
 
-    public record CoinPullResult(int pulled) {
+    public record CoinPullResult(int pulled, int totalValue) {
         private static CoinPullResult empty() {
-            return new CoinPullResult(0);
+            return new CoinPullResult(0, 0);
+        }
+    }
+
+    private static final class PendingCoinPullBatch {
+        private final String batchId;
+        private final int expectedStacks;
+        private int pickedStacks;
+        private int pickedValue;
+        private BukkitTask summaryTask;
+
+        private PendingCoinPullBatch(String batchId, int expectedStacks) {
+            this.batchId = batchId;
+            this.expectedStacks = Math.max(1, expectedStacks);
+        }
+
+        private String batchId() {
+            return batchId;
+        }
+
+        private void recordPickup(int value) {
+            pickedStacks++;
+            pickedValue += Math.max(0, value);
+        }
+
+        private boolean isComplete() {
+            return pickedStacks >= expectedStacks;
+        }
+
+        private int pickedValue() {
+            return pickedValue;
+        }
+
+        private void setSummaryTask(BukkitTask summaryTask) {
+            this.summaryTask = summaryTask;
+        }
+
+        private void cancelSummaryTask() {
+            if (summaryTask != null) {
+                summaryTask.cancel();
+                summaryTask = null;
+            }
         }
     }
 

@@ -272,7 +272,9 @@ public class DebugCommand implements TabExecutor {
                 CoinDropManager.CoinPullResult coinPullResult = CoinDropManager.pullNearbyCoins(coinPullPlayer, coinPullRadius);
                 ChatMessageUtil.send(coinPullPlayer, ChatMessageUtil.MessageType.SUCCESS,
                         ChatColor.YELLOW + "Pulled " + ChatColor.WHITE + coinPullResult.pulled()
-                                + ChatColor.YELLOW + " coin drop(s) within " + ChatColor.WHITE + coinPullRadius
+                                + ChatColor.YELLOW + " coin drop(s) worth " + ChatColor.WHITE
+                                + coinPullResult.totalValue() + " <glyph:coins_icon>"
+                                + ChatColor.YELLOW + " within " + ChatColor.WHITE + coinPullRadius
                                 + ChatColor.YELLOW + " blocks.");
                 return true;
             case "spellcooldown":

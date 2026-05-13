@@ -207,6 +207,7 @@ public class PetSummonManager implements Listener {
                 active.setFrozenLocation(player.getLocation());
                 hideCutsceneScoreboard(player, active);
                 hideOtherPlayersForCutscene(player, active);
+                hidePetsForCutscene(player);
                 BetterHudUtil.removeHud(player);
                 startVisibilityEnforcementTask(player, active);
             }
@@ -666,6 +667,7 @@ public class PetSummonManager implements Listener {
             }
         }
         showOtherPlayersAfterCutscene(player, session);
+        restorePetsAfterCutscene(player);
         restoreCutsceneScoreboard(player, session);
         BetterHudUtil.addHud(player);
         me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
@@ -736,6 +738,18 @@ public class PetSummonManager implements Listener {
     }
 
 
+    private void hidePetsForCutscene(Player viewer) {
+        if (petManager != null) {
+            petManager.hidePetsForCutsceneViewer(viewer);
+        }
+    }
+
+    private void restorePetsAfterCutscene(Player viewer) {
+        if (petManager != null) {
+            petManager.restorePetsForCutsceneViewer(viewer);
+        }
+    }
+
     private void startVisibilityEnforcementTask(Player viewer, SummonSession session) {
         if (viewer == null || session == null) {
             return;
@@ -746,6 +760,7 @@ public class PetSummonManager implements Listener {
                 return;
             }
             hideOtherPlayersForCutscene(viewer, session);
+            hidePetsForCutscene(viewer);
         }, 10L, 10L);
         session.tasks.add(task);
     }

@@ -520,13 +520,7 @@ public class PetManager {
                 case OWN -> viewer.getUniqueId().equals(instance.ownerId());
                 case NONE -> false;
             };
-            if (pet != null) {
-                if (visible) {
-                    viewer.showEntity(plugin, pet);
-                } else {
-                    viewer.hideEntity(plugin, pet);
-                }
-            }
+            setEntityVisible(viewer, pet, visible);
         }
         applyDisplayVisibility(viewer, mode);
     }
@@ -534,6 +528,38 @@ public class PetManager {
     public void refreshPetVisibilityForAllViewers() {
         for (Player viewer : Bukkit.getOnlinePlayers()) {
             applyPetVisibilityForViewer(viewer);
+        }
+    }
+
+    public void hidePetsForCutsceneViewer(Player viewer) {
+        setPetsVisibleForViewer(viewer, false);
+    }
+
+    public void restorePetsForCutsceneViewer(Player viewer) {
+        applyPetVisibilityForViewer(viewer);
+    }
+
+    private void setPetsVisibleForViewer(Player viewer, boolean visible) {
+        if (viewer == null || !viewer.isOnline()) {
+            return;
+        }
+        for (PetInstance instance : activePets.values()) {
+            Entity pet = Bukkit.getEntity(instance.entityId());
+            setEntityVisible(viewer, pet, visible);
+            EntityTextDisplay nameDisplay = instance.nameDisplay();
+            Entity display = nameDisplay == null ? null : nameDisplay.displayEntity();
+            setEntityVisible(viewer, display, visible);
+        }
+    }
+
+    private void setEntityVisible(Player viewer, Entity entity, boolean visible) {
+        if (viewer == null || entity == null || entity.isDead()) {
+            return;
+        }
+        if (visible) {
+            viewer.showEntity(plugin, entity);
+        } else {
+            viewer.hideEntity(plugin, entity);
         }
     }
 
@@ -559,11 +585,7 @@ public class PetManager {
                     case OWN -> own;
                     case NONE -> false;
                 };
-                if (visible) {
-                    viewer.showEntity(plugin, entity);
-                } else {
-                    viewer.hideEntity(plugin, entity);
-                }
+                setEntityVisible(viewer, entity, visible);
             }
         }
     }
