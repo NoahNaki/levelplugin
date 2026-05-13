@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.lootchests.listeners;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.dungeon.DungeonManager;
@@ -41,12 +43,11 @@ public class LootChestCloseListener implements Listener {
             return;
         }
 
-        // 3) Pay out coins scaled to the player's gear score for this session
+        // 3) Drop coins scaled to the player's gear score for this session.
+        // Coins are added to the balance only after the player physically picks them up.
         int coinAmount = Math.max(0, session.coinReward());
         if (coinAmount > 0) {
-            economyManager.addCoins(player, coinAmount);
-            me.nakilex.levelplugin.utils.CurrencyMessageUtil.sendReceive(player,
-                    me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, coinAmount);
+            CoinDropManager.dropCoins(Main.getInstance(), economyManager, player, loc, coinAmount, true);
             if (session.bonusCoinReward() > 0) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
                         ChatColor.GOLD + "Loot streak x" + session.streak()

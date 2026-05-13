@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.boss;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
@@ -147,7 +148,7 @@ public class FieldBossListener implements Listener {
             int gemsAward   = (int)Math.round(totalGems * share);
 
             plugin.getLevelManager().addXP(p, xpAward);
-            plugin.getEconomyManager().addCoins(p, coinsAward);
+            CoinDropManager.dropCoins(plugin, plugin.getEconomyManager(), p, entity.getLocation(), coinsAward, true);
             gemsManager.addUnits(p, gemsAward);
         }
 
@@ -161,7 +162,7 @@ public class FieldBossListener implements Listener {
             int coinsAward = ThreadLocalRandom.current()
                 .nextInt(minCoins, maxCoins + 1);
             plugin.getLevelManager().addXP(p, xpAward);
-            plugin.getEconomyManager().addCoins(p, coinsAward);
+            CoinDropManager.dropCoins(plugin, plugin.getEconomyManager(), p, entity.getLocation(), coinsAward, true);
 
             if (!items.isEmpty()) {
                 for (Map<String,Object> m : items) {

@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.boss.FieldBossListener;
 import me.nakilex.levelplugin.doublejump.listeners.DoubleJumpListener;
 import me.nakilex.levelplugin.duels.listeners.DuelListener;
+import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.economy.managers.GemsManager;
 import me.nakilex.levelplugin.arena.gui.ArenaQueueGUI;
@@ -278,6 +279,7 @@ public class ListenerRegistry {
         }
         pm.registerEvents(new LootChestCloseListener(lootChestManager, economyManager,
                 plugin.getDungeonManager()), plugin);
+        pm.registerEvents(new CoinDropManager(economyManager, plugin.getDropDebugManager()), plugin);
         pm.registerEvents(new LootChestChunkListener(lootChestManager), plugin);
         pm.registerEvents(new LootChestWandListener(lootChestManager), plugin);
         pm.registerEvents(new PotionUseListener(potionManager, plugin), plugin);

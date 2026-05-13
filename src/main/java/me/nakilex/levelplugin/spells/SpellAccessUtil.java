@@ -18,10 +18,42 @@ public final class SpellAccessUtil {
 
 
     public static boolean isHoldingWeapon(Player player) {
+        return getHeldWeaponType(player) != null;
+    }
+
+    public static WeaponType getHeldWeaponType(Player player) {
         if (player == null) {
-            return false;
+            return null;
         }
-        return WeaponType.matchType(player.getInventory().getItemInMainHand()) != null;
+        return WeaponType.matchType(player.getInventory().getItemInMainHand());
+    }
+
+    public static boolean isHoldingBasicAttackWeapon(Player player) {
+        return isBasicAttackWeaponType(getHeldWeaponType(player));
+    }
+
+    public static boolean isBasicAttackWeaponType(WeaponType type) {
+        return type == WeaponType.BOW
+                || type == WeaponType.WAND
+                || type == WeaponType.SWORD
+                || type == WeaponType.AXE;
+    }
+
+    public static boolean isBasicAttackWeapon(ItemStack item) {
+        return isBasicAttackWeaponType(WeaponType.matchType(item));
+    }
+
+    public static boolean isBowWeapon(ItemStack item) {
+        return WeaponType.matchType(item) == WeaponType.BOW;
+    }
+
+    public static boolean isWandWeapon(ItemStack item) {
+        return WeaponType.matchType(item) == WeaponType.WAND;
+    }
+
+    public static boolean isBladeOrAxeWeapon(ItemStack item) {
+        WeaponType type = WeaponType.matchType(item);
+        return type == WeaponType.SWORD || type == WeaponType.AXE;
     }
 
     public static boolean isHoldingLifeSkillTool(Player player) {

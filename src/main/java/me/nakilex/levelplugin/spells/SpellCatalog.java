@@ -50,8 +50,8 @@ public final class SpellCatalog {
         registry.registerSpell(mageBasicChain, new MageFireballBasicAttackSpell(plugin, 3, 0.0, 7.4, 1.05, 4.0, 0.90, 140, 4));
         registry.registerProgression(new SpellProgression(mageBasicAttack.id(), java.util.List.of(
                 mageBasicBarrage.id(), mageBasicInferno.id(), mageBasicChain.id())));
-        registry.registerBinding(SpellBinding.forInputType(mageBasicAttack.id(), ClassUtil::isMageFamily,
-                SpellInputType.BASIC_ATTACK));
+        registry.registerBinding(SpellBinding.forInputTypeWithWeapon(mageBasicAttack.id(), playerClass -> true,
+                SpellAccessUtil::isWandWeapon, SpellInputType.BASIC_ATTACK));
 
         SpellDefinition meteor = new SpellDefinition("meteor", "Meteor", 18, false);
         SpellDefinition meteorDouble = new SpellDefinition("meteor_double", "Meteor: Emberfall", 18, false);
@@ -118,7 +118,8 @@ public final class SpellCatalog {
         registry.registerSpell(archerWindguard, new ArcherWindguardSpell(plugin, 100, 1, 30.0));
         registry.registerSpell(archerArrowRain, new ArcherArrowRainSpell(plugin, 8, 11, 7, 8.2, 15.5, 4.4, 0.36));
 
-        registry.registerBinding(SpellBinding.forInputType(archerBasic.id(), ClassUtil::isArcherFamily, SpellInputType.BASIC_ATTACK));
+        registry.registerBinding(SpellBinding.forInputTypeWithWeapon(archerBasic.id(), playerClass -> true,
+                SpellAccessUtil::isBowWeapon, SpellInputType.BASIC_ATTACK));
         registry.registerProgression(new SpellProgression(archerBasic.id(), java.util.List.of(
                 archerBasicSeeker.id(), archerBasicPayload.id())));
         registry.registerProgression(new SpellProgression(archerSkybound.id(), java.util.List.of(
@@ -183,7 +184,8 @@ public final class SpellCatalog {
         registry.registerProgression(new SpellProgression(rogueNightfallLunge.id(), java.util.List.of(
                 rogueNightfallLungeCyclone.id(), rogueNightfallLungeJudgement.id())));
 
-        registry.registerBinding(SpellBinding.forInputType(rogueArcBasic.id(), ClassUtil::isRogueFamily, SpellInputType.BASIC_ATTACK));
+        registry.registerBinding(SpellBinding.forInputTypeWithWeapon(rogueArcBasic.id(), playerClass -> true,
+                SpellAccessUtil::isBladeOrAxeWeapon, SpellInputType.BASIC_ATTACK));
         registry.registerBinding(SpellBinding.forInputType(rogueShadowFlurry.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(rogueNightfallLunge.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));

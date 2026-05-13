@@ -15,6 +15,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
+import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
@@ -86,6 +87,7 @@ import com.ticxo.modelengine.api.model.ModeledEntity;
  */
 public class DebugCommand implements TabExecutor {
     private static final Set<UUID> INVENTORY_DEBUG_ENABLED = ConcurrentHashMap.newKeySet();
+    private static final double MAX_COIN_PULL_RADIUS = 128.0;
     private static final List<String> LOOT_CHEST_ANIMATION_OPTIONS = List.of("idle", "idle_mouve", "idle_move", "opening", "opening_rare", "closing");
     private final Map<UUID, UUID> lootChestAnimationPreviewEntities = new ConcurrentHashMap<>();
     private final Map<UUID, EntityTextDisplay> npcModelNameDisplays = new ConcurrentHashMap<>();
@@ -144,7 +146,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage + ">");
             }
             return true;
         }
@@ -233,6 +235,45 @@ public class DebugCommand implements TabExecutor {
                 sender.sendMessage(ChatColor.YELLOW + "Mob loot drops are now "
                         + (forced ? ChatColor.GREEN + "100%" : ChatColor.RED + "respecting configured chances")
                         + ChatColor.YELLOW + ".");
+                return true;
+            case "coindrops":
+                if (!(sender instanceof Player coinDebugPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                boolean coinDebug = dropDebugManager.toggleCoinPickupDebug(coinDebugPlayer.getUniqueId());
+                ToggleFeedbackUtil.sendToggle(coinDebugPlayer, "Coin drop pickup debug", coinDebug);
+                return true;
+            case "coinpull":
+                if (!(sender instanceof Player coinPullPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                if (args.length < 2) {
+                    ChatMessageUtil.send(coinPullPlayer, ChatMessageUtil.MessageType.WARNING, "Usage: /debug coinpull <radius>");
+                    return true;
+                }
+                double coinPullRadius;
+                try {
+                    coinPullRadius = Double.parseDouble(args[1]);
+                } catch (NumberFormatException e) {
+                    ChatMessageUtil.send(coinPullPlayer, ChatMessageUtil.MessageType.WARNING, "Radius must be a number.");
+                    return true;
+                }
+                if (coinPullRadius <= 0.0) {
+                    ChatMessageUtil.send(coinPullPlayer, ChatMessageUtil.MessageType.WARNING, "Radius must be greater than 0.");
+                    return true;
+                }
+                if (coinPullRadius > MAX_COIN_PULL_RADIUS) {
+                    ChatMessageUtil.send(coinPullPlayer, ChatMessageUtil.MessageType.WARNING,
+                            "Radius cannot exceed " + MAX_COIN_PULL_RADIUS + " blocks.");
+                    return true;
+                }
+                CoinDropManager.CoinPullResult coinPullResult = CoinDropManager.pullNearbyCoins(coinPullPlayer, coinPullRadius);
+                ChatMessageUtil.send(coinPullPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        ChatColor.YELLOW + "Pulled " + ChatColor.WHITE + coinPullResult.pulled()
+                                + ChatColor.YELLOW + " coin drop(s) within " + ChatColor.WHITE + coinPullRadius
+                                + ChatColor.YELLOW + " blocks.");
                 return true;
             case "spellcooldown":
                 SpellCastManager.setCooldownsEnabled(!SpellCastManager.areCooldownsEnabled());
@@ -829,7 +870,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -1126,7 +1167,7 @@ public class DebugCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
-                    "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "beaconentity",
+                    "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
                     "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
@@ -1135,6 +1176,10 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("spellpull")) {
             return List.of("1", "10", "25", "50", "100").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("coinpull")) {
+            return List.of("5", "10", "20", "32", "64").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("gemdungeonsweep")) {

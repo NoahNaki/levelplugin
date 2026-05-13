@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.stronghold.run;
 
+import me.nakilex.levelplugin.spells.SpellIconUtil;
 import me.nakilex.levelplugin.spells.SpellRegistry;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
@@ -12,7 +13,6 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.Function;
 
 /** Shared renderer for Stronghold-style run spell upgrade choice menus. */
@@ -130,14 +130,7 @@ public final class RunSpellUpgradeGuiUtil {
     }
 
     private static ItemStack createSpellUpgradeIcon(String displayName, String spellId, int nextRank) {
-        String iconBaseId = resolveSpellUpgradeBaseIconId(spellId);
-        for (String iconId : resolveTieredIconCandidates(iconBaseId, nextRank)) {
-            ItemStack candidate = GuiUtil.getNexoItem(iconId, ChatColor.GOLD + displayName);
-            if (candidate.getType() != Material.BARRIER) {
-                return candidate;
-            }
-        }
-        return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.GOLD + displayName, List.of());
+        return SpellIconUtil.createSpellIcon(spellId, displayName, nextRank);
     }
 
     private static void appendWrappedBulletBlock(List<String> lore, String description) {
@@ -155,35 +148,5 @@ public final class RunSpellUpgradeGuiUtil {
         }
     }
 
-    private static List<String> resolveTieredIconCandidates(String baseIconId, int rank) {
-        if (baseIconId == null || baseIconId.isBlank()) {
-            return List.of("efficiency");
-        }
-        int safeRank = Math.max(1, rank);
-        if (safeRank <= 1) {
-            return List.of(baseIconId, "efficiency");
-        }
-        return List.of(baseIconId + "_" + safeRank, baseIconId, "efficiency");
-    }
 
-    private static String resolveSpellUpgradeBaseIconId(String spellId) {
-        String normalized = spellId == null ? "" : spellId.toLowerCase(Locale.ROOT);
-        if (normalized.startsWith("mage_fireball")) return "flame";
-        if (normalized.startsWith("meteor")) return "fire_aspect";
-        if (normalized.startsWith("blackhole")) return "curse_of_binding";
-        if (normalized.startsWith("mage_heal")) return "mending";
-        if (normalized.startsWith("archer_quickshot")) return "power";
-        if (normalized.startsWith("archer_homing_barrage")) return "multishot";
-        if (normalized.startsWith("archer_arrow_rain")) return "piercing";
-        if (normalized.startsWith("archer_windguard")) return "feather_falling";
-        if (normalized.startsWith("rogue_arc_basic")) return "sweeping_edge";
-        if (normalized.startsWith("rogue_sky_ripper")) return "sharpness";
-        if (normalized.startsWith("rogue_phantom_cross")) return "knockback";
-        if (normalized.startsWith("rogue_veil_counter")) return "curse_of_vanishing";
-        if (normalized.startsWith("warrior_earthquake")) return "density";
-        if (normalized.startsWith("warrior_rupture_cyclone")) return "breach";
-        if (normalized.startsWith("warrior_execution_arc")) return "smite";
-        if (normalized.startsWith("warrior_guarded_resolve")) return "protection";
-        return "efficiency";
-    }
 }

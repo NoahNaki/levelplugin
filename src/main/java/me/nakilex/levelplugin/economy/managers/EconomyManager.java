@@ -72,7 +72,7 @@ public class EconomyManager {
     }
 
     public void addCoins(Player player, int amount, boolean applyBoost) {
-        int boosted = applyBoost ? applyCoinBoost(amount) : amount;
+        int boosted = calculateCoinReward(amount, applyBoost);
         int current = getBalance(player);
         setBalance(player, current + boosted);
     }
@@ -82,7 +82,7 @@ public class EconomyManager {
     }
 
     public void addCoins(UUID playerId, int amount, boolean applyBoost) {
-        int boosted = applyBoost ? applyCoinBoost(amount) : amount;
+        int boosted = calculateCoinReward(amount, applyBoost);
         int current = getBalance(playerId);
         setBalance(playerId, current + boosted);
     }
@@ -114,6 +114,10 @@ public class EconomyManager {
     /** Access to the underlying balance configuration. */
     public FileConfiguration getBalanceConfig() {
         return balanceConfig;
+    }
+
+    public int calculateCoinReward(int amount, boolean applyBoost) {
+        return applyBoost ? applyCoinBoost(amount) : amount;
     }
 
     private int applyCoinBoost(int amount) {
