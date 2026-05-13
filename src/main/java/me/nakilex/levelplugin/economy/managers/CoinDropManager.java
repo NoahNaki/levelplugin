@@ -37,6 +37,11 @@ public class CoinDropManager implements Listener {
     private static final NamespacedKey COIN_UNIT_VALUE_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_unit_value");
     private static final NamespacedKey COIN_MODEL_KEY = new NamespacedKey(JavaPlugin.getProvidingPlugin(CoinDropManager.class), "coin_drop_model");
     private static final int MAX_STACK_AMOUNT = 64;
+    private static final double SCATTER_BASE_RADIUS = 0.85;
+    private static final double SCATTER_RING_RADIUS_STEP = 0.35;
+    private static final int SCATTER_RING_SIZE = 8;
+    private static final double SCATTER_HORIZONTAL_SPEED = 0.18;
+    private static final double SCATTER_VERTICAL_SPEED = 0.18;
 
     private final EconomyManager economyManager;
     private final DropDebugManager dropDebugManager;
@@ -65,7 +70,7 @@ public class CoinDropManager implements Listener {
         }
         int droppedTotal = total;
         UUID ownerId = owner == null ? null : owner.getUniqueId();
-        Location dropLocation = location.clone().add(0.0, 0.35, 0.0);
+        Location dropLocation = location.clone().add(0.0, 0.45, 0.0);
         int spawnIndex = 0;
         for (CoinDenomination denomination : CoinDenomination.valuesDescending()) {
             int count = total / denomination.value;
@@ -91,11 +96,12 @@ public class CoinDropManager implements Listener {
             return;
         }
         ItemStack stack = createCoinStack(denomination, stackAmount);
-        Item item = world.dropItemNaturally(scatterLocation(location, spawnIndex), stack);
+        Vector scatter = scatterVector(spawnIndex);
+        Item item = world.dropItem(location.clone().add(scatter), stack);
         item.setPickupDelay(10);
         item.setCustomName(denomination.displayName(stackAmount));
         item.setCustomNameVisible(true);
-        item.setVelocity(item.getVelocity().add(new Vector(0.0, 0.08, 0.0)));
+        item.setVelocity(scatterVelocity(scatter));
         PersistentDataContainer pdc = item.getPersistentDataContainer();
         int value = denomination.value * stackAmount;
         pdc.set(COIN_VALUE_KEY, PersistentDataType.INTEGER, value);
@@ -126,13 +132,18 @@ public class CoinDropManager implements Listener {
         return stack;
     }
 
-    private static Location scatterLocation(Location origin, int spawnIndex) {
-        if (origin == null || spawnIndex <= 0) {
-            return origin;
+    private static Vector scatterVector(int spawnIndex) {
+        double angle = spawnIndex * 2.399963229728653; // Golden angle keeps nearby drops visually separated.
+        double radius = SCATTER_BASE_RADIUS + (spawnIndex / SCATTER_RING_SIZE) * SCATTER_RING_RADIUS_STEP;
+        return new Vector(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
+    }
+
+    private static Vector scatterVelocity(Vector scatter) {
+        Vector horizontal = scatter == null ? new Vector(1.0, 0.0, 0.0) : scatter.clone().setY(0.0);
+        if (horizontal.lengthSquared() < 0.0001) {
+            horizontal = new Vector(1.0, 0.0, 0.0);
         }
-        double angle = spawnIndex * 2.399963229728653; // golden angle keeps nearby drops visually separated.
-        double radius = 0.22 + (spawnIndex % 4) * 0.09;
-        return origin.clone().add(Math.cos(angle) * radius, 0.0, Math.sin(angle) * radius);
+        return horizontal.normalize().multiply(SCATTER_HORIZONTAL_SPEED).setY(SCATTER_VERTICAL_SPEED);
     }
 
     @EventHandler(ignoreCancelled = true)
