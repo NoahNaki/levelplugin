@@ -128,6 +128,59 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return true;
     }
 
+
+    public List<String> scanBlocks(String templateName) {
+        if (templateName == null || templateName.isBlank()) {
+            return List.of();
+        }
+        World source = Bukkit.getWorld(SOURCE_WORLD);
+        if (source == null) {
+            return List.of("Source world not loaded: " + SOURCE_WORLD);
+        }
+
+        BuildingTemplate building = BUILDINGS.stream()
+                .filter(candidate -> candidate.id().equalsIgnoreCase(templateName)
+                        || candidate.displayName().equalsIgnoreCase(templateName))
+                .findFirst()
+                .orElse(null);
+        if (building == null) {
+            return List.of("Unknown template: " + templateName);
+        }
+
+        CuboidTemplate template = capture(source, building.source());
+        Map<Material, Integer> counts = new HashMap<>();
+        for (CuboidTemplate.BlockCopy copy : template.blocks()) {
+            counts.merge(copy.data().getMaterial(), 1, Integer::sum);
+        }
+
+        List<Map.Entry<Material, Integer>> sorted = new ArrayList<>(counts.entrySet());
+        sorted.sort((left, right) -> {
+            int byCount = Integer.compare(right.getValue(), left.getValue());
+            if (byCount != 0) {
+                return byCount;
+            }
+            return left.getKey().name().compareTo(right.getKey().name());
+        });
+
+        List<String> lines = new ArrayList<>();
+        lines.add("Template " + building.id() + " block totals:");
+        boolean hasMarker = counts.containsKey(ALIGNMENT_MARKER);
+        lines.add("Alignment marker " + ALIGNMENT_MARKER + ": " + (hasMarker ? "FOUND" : "MISSING"));
+        for (Map.Entry<Material, Integer> entry : sorted) {
+            String pretty = entry.getKey().name().toLowerCase(Locale.ROOT).replace('_', ' ');
+            lines.add(entry.getValue() + "x " + pretty);
+        }
+        return lines;
+    }
+
+    public List<String> templateNames() {
+        List<String> names = new ArrayList<>();
+        for (BuildingTemplate building : BUILDINGS) {
+            names.add(building.id());
+        }
+        return names;
+    }
+
     private CuboidTemplate capture(World source, Cuboid cuboid) {
         return CuboidTemplate.capture(
                 new Location(source, cuboid.x1(), cuboid.y1(), cuboid.z1()),

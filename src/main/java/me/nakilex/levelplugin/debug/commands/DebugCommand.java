@@ -320,21 +320,51 @@ public class DebugCommand implements TabExecutor {
                 return true;
 
             case "area":
-                if (args.length < 3 || !args[1].equalsIgnoreCase("initialize")) {
+                if (args.length < 2) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
-                            "Usage: /debug area initialize <playername>");
+                            "Usage: /debug area <initialize|scanblocks> <playername|templatename>");
                     return true;
                 }
-                Player areaTarget = Bukkit.getPlayerExact(args[2]);
-                if (areaTarget == null || !areaTarget.isOnline()) {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
-                            "Player not found or offline: " + args[2]);
+                if (args[1].equalsIgnoreCase("initialize")) {
+                    if (args.length < 3) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug area initialize <playername>");
+                        return true;
+                    }
+                    Player areaTarget = Bukkit.getPlayerExact(args[2]);
+                    if (areaTarget == null || !areaTarget.isOnline()) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                                "Player not found or offline: " + args[2]);
+                        return true;
+                    }
+                    if (environmentAreaInstanceManager.initialize(areaTarget)) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
+                                "Initialized environment area for " + ChatColor.WHITE + areaTarget.getName() + ChatColor.GREEN + ".");
+                    }
                     return true;
                 }
-                if (environmentAreaInstanceManager.initialize(areaTarget)) {
-                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
-                            "Initialized environment area for " + ChatColor.WHITE + areaTarget.getName() + ChatColor.GREEN + ".");
+                if (args[1].equalsIgnoreCase("scanblocks")) {
+                    if (args.length < 3) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug area scanblocks <templatename>");
+                        return true;
+                    }
+                    List<String> lines = environmentAreaInstanceManager.scanBlocks(args[2]);
+                    if (lines.isEmpty()) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                                "No block data found for template: " + args[2]);
+                        return true;
+                    }
+                    for (int i = 0; i < lines.size(); i++) {
+                        ChatMessageUtil.MessageType type = i <= 1
+                                ? ChatMessageUtil.MessageType.INFO
+                                : ChatMessageUtil.MessageType.SUCCESS;
+                        ChatMessageUtil.send(sender, type, ChatColor.GRAY + lines.get(i));
+                    }
+                    return true;
                 }
+                ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                        "Usage: /debug area <initialize|scanblocks> <playername|templatename>");
                 return true;
 
             case "rewardbomb":
@@ -1198,12 +1228,16 @@ public class DebugCommand implements TabExecutor {
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("area")) {
-            return List.of("initialize").stream()
+            return List.of("initialize", "scanblocks").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("area") && args[1].equalsIgnoreCase("initialize")) {
             return Bukkit.getOnlinePlayers().stream()
                     .map(Player::getName)
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("area") && args[1].equalsIgnoreCase("scanblocks")) {
+            return environmentAreaInstanceManager.templateNames().stream()
                     .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("spellpull")) {
