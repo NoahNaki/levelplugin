@@ -248,8 +248,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private void spawnBuildHolograms(EnvironmentAreaSession session) {
         session.removeHolograms();
+        session.alignmentAnchors().clear();
         for (BuildingTemplate building : BUILDINGS) {
             Location marker = findMarker(session.world(), building);
+            Location alignmentAnchor = findAlignmentMarker(session.world(), building);
+            if (alignmentAnchor != null) {
+                session.alignmentAnchors().put(building.slot(), alignmentAnchor.clone());
+            }
             String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
             session.holograms().addAll(spawnClickableHologram(marker, tag, List.of(
                     ChatColor.GREEN + "Build " + ChatColor.WHITE + building.displayName(),
@@ -336,7 +341,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         CuboidTemplate.BlockCopy sourceMarker = alignedTemplate.alignmentMarker();
-        Location destinationMarker = findAlignmentMarker(session.world(), building);
+        Location destinationMarker = resolveAlignmentMarker(session, building);
         if (sourceMarker == null || destinationMarker == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Missing " + ALIGNMENT_MARKER + " alignment marker for " + building.displayName() + ".");
@@ -378,6 +383,21 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                     Material marker,
                                     Cuboid source,
                                     Cuboid placement) { }
+
+    private Location resolveAlignmentMarker(EnvironmentAreaSession session, BuildingTemplate building) {
+        if (session == null || building == null) {
+            return null;
+        }
+        Location cached = session.alignmentAnchors().get(building.slot());
+        if (cached != null) {
+            return cached.clone();
+        }
+        Location discovered = findAlignmentMarker(session.world(), building);
+        if (discovered != null) {
+            session.alignmentAnchors().put(building.slot(), discovered.clone());
+        }
+        return discovered;
+    }
 
     private Location findAlignmentMarker(World world, BuildingTemplate building) {
         Block marker = findFirstBlock(world, toPastedCuboid(building.placement()), ALIGNMENT_MARKER, true);
@@ -442,9 +462,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private record EnvironmentAreaSession(UUID ownerId,
                                           World world,
                                           Map<Integer, AlignedTemplate> buildingTemplates,
-                                          List<Entity> holograms) {
+                                          List<Entity> holograms,
+                                          Map<Integer, Location> alignmentAnchors) {
         private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, AlignedTemplate> buildingTemplates) {
-            this(ownerId, world, buildingTemplates, new ArrayList<>());
+            this(ownerId, world, buildingTemplates, new ArrayList<>(), new HashMap<>());
         }
 
         private void removeHolograms() {
