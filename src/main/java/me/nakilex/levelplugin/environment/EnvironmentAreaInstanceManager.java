@@ -66,6 +66,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     new Cuboid(-43, -60, 720, -53, -51, 730), new Cuboid(-10, -61, 712, -22, -61, 700))
     );
 
+    private static final Map<Integer, BuildingTemplate> BUILDINGS_BY_SLOT = BUILDINGS.stream()
+            .collect(java.util.stream.Collectors.toUnmodifiableMap(BuildingTemplate::slot, building -> building));
+
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
 
@@ -204,23 +207,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private Location findMarker(World world, BuildingTemplate building) {
-        int minX = PASTE_X + (building.placement().minX() - AREA.minX());
-        int maxX = PASTE_X + (building.placement().maxX() - AREA.minX());
-        int y = PASTE_Y + (building.placement().minY() - AREA.minY());
-        int minZ = PASTE_Z + (building.placement().minZ() - AREA.minZ());
-        int maxZ = PASTE_Z + (building.placement().maxZ() - AREA.minZ());
-        for (int x = Math.min(minX, maxX); x <= Math.max(minX, maxX); x++) {
-            for (int z = Math.min(minZ, maxZ); z <= Math.max(minZ, maxZ); z++) {
-                Block block = world.getBlockAt(x, y, z);
-                if (block.getType() == building.marker()) {
-                    return block.getLocation().add(0.5, 2.0, 0.5);
-                }
-            }
+        WorldCuboid placementBounds = toPastedCuboid(building.placement());
+        Block marker = findFirstBlock(world, placementBounds, building.marker(), false);
+        if (marker != null) {
+            return marker.getLocation().add(0.5, 2.0, 0.5);
         }
-        return new Location(world,
-                (Math.min(minX, maxX) + Math.max(minX, maxX)) / 2.0 + 0.5,
-                y + 2.0,
-                (Math.min(minZ, maxZ) + Math.max(minZ, maxZ)) / 2.0 + 0.5);
+        return placementBounds.centerTop(world, 2.0);
     }
 
     private List<Entity> spawnClickableHologram(Location base, String tag, List<String> lines) {
@@ -280,7 +272,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         EnvironmentAreaSession session = sessions.get(ownerId);
-        BuildingTemplate building = BUILDINGS.stream().filter(candidate -> candidate.slot() == slot).findFirst().orElse(null);
+        BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
         if (session == null || building == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Environment build session is no longer active.");
             return;
@@ -335,26 +327,61 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                     Cuboid placement) { }
 
     private Location findAlignmentMarker(World world, BuildingTemplate building) {
-        if (world == null || building == null) {
+        Block marker = findFirstBlock(world, toPastedCuboid(building.placement()), ALIGNMENT_MARKER, true);
+        return marker == null ? null : marker.getLocation();
+    }
+
+    private WorldCuboid toPastedCuboid(Cuboid source) {
+        return new WorldCuboid(
+                PASTE_X + (source.minX() - AREA.minX()),
+                PASTE_Y + (source.minY() - AREA.minY()),
+                PASTE_Z + (source.minZ() - AREA.minZ()),
+                PASTE_X + (source.maxX() - AREA.minX()),
+                PASTE_Y + (source.maxY() - AREA.minY()),
+                PASTE_Z + (source.maxZ() - AREA.minZ()));
+    }
+
+    private Block findFirstBlock(World world, WorldCuboid cuboid, Material material, boolean includeY) {
+        if (world == null || cuboid == null || material == null) {
             return null;
         }
-        int minX = PASTE_X + (building.placement().minX() - AREA.minX());
-        int maxX = PASTE_X + (building.placement().maxX() - AREA.minX());
-        int minY = PASTE_Y + (building.placement().minY() - AREA.minY());
-        int maxY = PASTE_Y + (building.placement().maxY() - AREA.minY());
-        int minZ = PASTE_Z + (building.placement().minZ() - AREA.minZ());
-        int maxZ = PASTE_Z + (building.placement().maxZ() - AREA.minZ());
-        for (int x = Math.min(minX, maxX); x <= Math.max(minX, maxX); x++) {
-            for (int y = Math.min(minY, maxY); y <= Math.max(minY, maxY); y++) {
-                for (int z = Math.min(minZ, maxZ); z <= Math.max(minZ, maxZ); z++) {
-                    Block block = world.getBlockAt(x, y, z);
-                    if (block.getType() == ALIGNMENT_MARKER) {
-                        return block.getLocation();
+        for (int x = cuboid.minX(); x <= cuboid.maxX(); x++) {
+            if (includeY) {
+                for (int y = cuboid.minY(); y <= cuboid.maxY(); y++) {
+                    for (int z = cuboid.minZ(); z <= cuboid.maxZ(); z++) {
+                        Block block = world.getBlockAt(x, y, z);
+                        if (block.getType() == material) {
+                            return block;
+                        }
                     }
+                }
+                continue;
+            }
+            int y = cuboid.minY();
+            for (int z = cuboid.minZ(); z <= cuboid.maxZ(); z++) {
+                Block block = world.getBlockAt(x, y, z);
+                if (block.getType() == material) {
+                    return block;
                 }
             }
         }
         return null;
+    }
+
+    private record WorldCuboid(int x1, int y1, int z1, int x2, int y2, int z2) {
+        int minX() { return Math.min(x1, x2); }
+        int minY() { return Math.min(y1, y2); }
+        int minZ() { return Math.min(z1, z2); }
+        int maxX() { return Math.max(x1, x2); }
+        int maxY() { return Math.max(y1, y2); }
+        int maxZ() { return Math.max(z1, z2); }
+
+        Location centerTop(World world, double yOffset) {
+            return new Location(world,
+                    (minX() + maxX()) / 2.0 + 0.5,
+                    minY() + yOffset,
+                    (minZ() + maxZ()) / 2.0 + 0.5);
+        }
     }
 
     private record AlignedTemplate(CuboidTemplate template, CuboidTemplate.BlockCopy alignmentMarker) { }
