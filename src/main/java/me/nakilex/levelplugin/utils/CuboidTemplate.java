@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Reusable in-memory block template captured from a cuboid selection.
@@ -50,6 +52,10 @@ public final class CuboidTemplate {
     }
 
     public static CuboidTemplate capture(Location pos1, Location pos2, boolean skipAir) {
+        return capture(pos1, pos2, skipAir, Set.of());
+    }
+
+    public static CuboidTemplate capture(Location pos1, Location pos2, boolean skipAir, Set<Material> excludedMaterials) {
         Objects.requireNonNull(pos1, "pos1");
         Objects.requireNonNull(pos2, "pos2");
         World world = pos1.getWorld();
@@ -64,12 +70,14 @@ public final class CuboidTemplate {
         int minZ = Math.min(pos1.getBlockZ(), pos2.getBlockZ());
         int maxZ = Math.max(pos1.getBlockZ(), pos2.getBlockZ());
 
+        Set<Material> excluded = excludedMaterials == null ? Set.of() : excludedMaterials;
         List<BlockCopy> blocks = new ArrayList<>();
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
                     Block block = world.getBlockAt(x, y, z);
-                    if (skipAir && block.getType() == Material.AIR) {
+                    Material material = block.getType();
+                    if ((skipAir && material == Material.AIR) || excluded.contains(material)) {
                         continue;
                     }
                     blocks.add(new BlockCopy(x - minX, y - minY, z - minZ, block.getBlockData()));
@@ -96,6 +104,31 @@ public final class CuboidTemplate {
             world.getBlockAt(baseX + block.x(), baseY + block.y(), baseZ + block.z())
                     .setBlockData(block.data(), false);
         }
+    }
+
+    public Optional<BlockCopy> firstBlock(Material material) {
+        if (material == null) {
+            return Optional.empty();
+        }
+        for (BlockCopy block : blocks) {
+            if (block.data().getMaterial() == material) {
+                return Optional.of(block);
+            }
+        }
+        return Optional.empty();
+    }
+
+    public CuboidTemplate without(Material material) {
+        if (material == null) {
+            return this;
+        }
+        List<BlockCopy> filtered = new ArrayList<>();
+        for (BlockCopy block : blocks) {
+            if (block.data().getMaterial() != material) {
+                filtered.add(block);
+            }
+        }
+        return new CuboidTemplate(sourceWorldName, minX, minY, minZ, width, height, depth, filtered);
     }
 
     public String sourceWorldName() {

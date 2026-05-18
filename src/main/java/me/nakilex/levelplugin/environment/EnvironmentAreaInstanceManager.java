@@ -51,6 +51,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int PASTE_Y = 64;
     private static final int PASTE_Z = 0;
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
+    private static final Material ALIGNMENT_MARKER = Material.GOLD_BLOCK;
 
     private static final Cuboid AREA = new Cuboid(-29, -61, 718, 19, -61, 670);
 
@@ -92,9 +93,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
 
         CuboidTemplate areaTemplate = capture(source, AREA);
-        Map<Integer, CuboidTemplate> buildingTemplates = new HashMap<>();
+        Map<Integer, AlignedTemplate> buildingTemplates = new HashMap<>();
         for (BuildingTemplate building : BUILDINGS) {
-            buildingTemplates.put(building.slot(), capture(source, building.source()));
+            buildingTemplates.put(building.slot(), captureAlignedTemplate(source, building));
         }
 
         World world = recreateWorld(target.getUniqueId());
@@ -128,6 +129,16 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return CuboidTemplate.capture(
                 new Location(source, cuboid.x1(), cuboid.y1(), cuboid.z1()),
                 new Location(source, cuboid.x2(), cuboid.y2(), cuboid.z2()));
+    }
+
+    private AlignedTemplate captureAlignedTemplate(World source, BuildingTemplate building) {
+        CuboidTemplate template = capture(source, building.source());
+        CuboidTemplate.BlockCopy marker = template.firstBlock(ALIGNMENT_MARKER).orElse(null);
+        if (marker == null) {
+            plugin.getLogger().warning("[EnvironmentArea] Building template '" + building.id()
+                    + "' has no " + ALIGNMENT_MARKER + " alignment marker.");
+        }
+        return new AlignedTemplate(template, marker);
     }
 
     private World recreateWorld(UUID ownerId) {
@@ -187,7 +198,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             session.holograms().addAll(spawnClickableHologram(marker, tag, List.of(
                     ChatColor.GREEN + "Build " + ChatColor.WHITE + building.displayName(),
                     ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------",
-                    TooltipUtil.bulletLine(ChatColor.GRAY + "Paste this cuboid template here."),
+                    TooltipUtil.bulletLine(ChatColor.GRAY + "Aligns template and foundation gold blocks."),
                     ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + "to build")));
         }
     }
@@ -274,15 +285,22 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Environment build session is no longer active.");
             return;
         }
-        CuboidTemplate template = session.buildingTemplates().get(slot);
-        if (template == null) {
+        AlignedTemplate alignedTemplate = session.buildingTemplates().get(slot);
+        if (alignedTemplate == null || alignedTemplate.template() == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Template is missing for this build slot.");
             return;
         }
-        int baseX = PASTE_X + (building.placement().minX() - AREA.minX());
-        int baseY = PASTE_Y + (building.placement().minY() - AREA.minY()) + 1;
-        int baseZ = PASTE_Z + (building.placement().minZ() - AREA.minZ());
-        template.paste(session.world(), baseX, baseY, baseZ);
+        CuboidTemplate.BlockCopy sourceMarker = alignedTemplate.alignmentMarker();
+        Location destinationMarker = findAlignmentMarker(session.world(), building);
+        if (sourceMarker == null || destinationMarker == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Missing " + ALIGNMENT_MARKER + " alignment marker for " + building.displayName() + ".");
+            return;
+        }
+        int baseX = destinationMarker.getBlockX() - sourceMarker.x();
+        int baseY = destinationMarker.getBlockY() - sourceMarker.y();
+        int baseZ = destinationMarker.getBlockZ() - sourceMarker.z();
+        alignedTemplate.template().paste(session.world(), baseX, baseY, baseZ);
         player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
@@ -303,6 +321,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         int minY() { return Math.min(y1, y2); }
         int minZ() { return Math.min(z1, z2); }
         int maxX() { return Math.max(x1, x2); }
+        int maxY() { return Math.max(y1, y2); }
         int maxZ() { return Math.max(z1, z2); }
         int width() { return Math.abs(x1 - x2) + 1; }
         int depth() { return Math.abs(z1 - z2) + 1; }
@@ -315,11 +334,36 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                     Cuboid source,
                                     Cuboid placement) { }
 
+    private Location findAlignmentMarker(World world, BuildingTemplate building) {
+        if (world == null || building == null) {
+            return null;
+        }
+        int minX = PASTE_X + (building.placement().minX() - AREA.minX());
+        int maxX = PASTE_X + (building.placement().maxX() - AREA.minX());
+        int minY = PASTE_Y + (building.placement().minY() - AREA.minY());
+        int maxY = PASTE_Y + (building.placement().maxY() - AREA.minY());
+        int minZ = PASTE_Z + (building.placement().minZ() - AREA.minZ());
+        int maxZ = PASTE_Z + (building.placement().maxZ() - AREA.minZ());
+        for (int x = Math.min(minX, maxX); x <= Math.max(minX, maxX); x++) {
+            for (int y = Math.min(minY, maxY); y <= Math.max(minY, maxY); y++) {
+                for (int z = Math.min(minZ, maxZ); z <= Math.max(minZ, maxZ); z++) {
+                    Block block = world.getBlockAt(x, y, z);
+                    if (block.getType() == ALIGNMENT_MARKER) {
+                        return block.getLocation();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private record AlignedTemplate(CuboidTemplate template, CuboidTemplate.BlockCopy alignmentMarker) { }
+
     private record EnvironmentAreaSession(UUID ownerId,
                                           World world,
-                                          Map<Integer, CuboidTemplate> buildingTemplates,
+                                          Map<Integer, AlignedTemplate> buildingTemplates,
                                           List<Entity> holograms) {
-        private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, CuboidTemplate> buildingTemplates) {
+        private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, AlignedTemplate> buildingTemplates) {
             this(ownerId, world, buildingTemplates, new ArrayList<>());
         }
 
