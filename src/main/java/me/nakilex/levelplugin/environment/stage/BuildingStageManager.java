@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 
 import com.sk89q.worldedit.math.BlockVector3;
 
+import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.SchematicUtil;
 
 import java.io.File;
@@ -82,10 +83,11 @@ public class BuildingStageManager {
         List<NPCSpawn> npcs = captureNPCs(pos1, pos2);
         List<BlockDef> blocks = captureBlocks(pos1, pos2);
 
-        // Save a schematic of the selected area using FAWE
+        // Keep the original cuboid coordinates as the source template instead of
+        // writing a schematic file. A schematic path is still retained for legacy
+        // fallback if an older config provides one.
         String fileName = building.toLowerCase() + "_" + stage + ".schem";
         File schematic = new File(schemFolder, fileName);
-        SchematicUtil.saveSchematic(pos1, pos2, schematic, plugin.getLogger());
 
         int minX = Math.min(pos1.getBlockX(), pos2.getBlockX());
         int minY = Math.min(pos1.getBlockY(), pos2.getBlockY());
@@ -291,22 +293,16 @@ public class BuildingStageManager {
     }
 
     private List<BlockDef> captureBlocks(Location p1, Location p2) {
+        return toBlockDefs(CuboidTemplate.capture(p1, p2).blocks());
+    }
+
+    private List<BlockDef> toBlockDefs(List<CuboidTemplate.BlockCopy> copies) {
         List<BlockDef> blocks = new ArrayList<>();
-        int minX = Math.min(p1.getBlockX(), p2.getBlockX());
-        int maxX = Math.max(p1.getBlockX(), p2.getBlockX());
-        int minY = Math.min(p1.getBlockY(), p2.getBlockY());
-        int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
-        int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
-        int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
-        World world = p1.getWorld();
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    var block = world.getBlockAt(x, y, z);
-                    if (block.getType() == Material.AIR) continue;
-                    blocks.add(new BlockDef(x - minX, y - minY, z - minZ, block.getBlockData()));
-                }
-            }
+        if (copies == null) {
+            return blocks;
+        }
+        for (CuboidTemplate.BlockCopy copy : copies) {
+            blocks.add(new BlockDef(copy.x(), copy.y(), copy.z(), copy.data()));
         }
         return blocks;
     }
@@ -435,12 +431,7 @@ public class BuildingStageManager {
         }
         String fileName = config.getString(base + "schematic", building.toLowerCase() + "_" + stage + ".schem");
         File schematic = new File(schemFolder, fileName);
-        Map<BlockVector3, BlockData> relMap = SchematicUtil.loadSchematic(schematic, plugin.getLogger());
-        List<BlockDef> blockList = new ArrayList<>();
-        for (var entry : relMap.entrySet()) {
-            BlockVector3 vec = entry.getKey();
-            blockList.add(new BlockDef(vec.getBlockX(), vec.getBlockY(), vec.getBlockZ(), entry.getValue()));
-        }
+        List<BlockDef> blockList = loadTemplateBlocks(pos1, pos2, schematic);
         int hx = config.getInt(base + "holo.x", 0);
         int hy = config.getInt(base + "holo.y", 0);
         int hz = config.getInt(base + "holo.z", 0);
@@ -480,6 +471,22 @@ public class BuildingStageManager {
                     hx, hy, hz, ox, oy, oz, matCost, coinCost, furnitureList));
     }
 
+    private List<BlockDef> loadTemplateBlocks(Location pos1, Location pos2, File schematic) {
+        if (pos1 != null && pos2 != null && pos1.getWorld() != null && pos1.getWorld().equals(pos2.getWorld())) {
+            return captureBlocks(pos1, pos2);
+        }
+        if (schematic == null) {
+            return List.of();
+        }
+        Map<BlockVector3, BlockData> relMap = SchematicUtil.loadSchematic(schematic, plugin.getLogger());
+        List<BlockDef> blockList = new ArrayList<>();
+        for (var entry : relMap.entrySet()) {
+            BlockVector3 vec = entry.getKey();
+            blockList.add(new BlockDef(vec.getBlockX(), vec.getBlockY(), vec.getBlockZ(), entry.getValue()));
+        }
+        return blockList;
+    }
+
     private void saveConfig() {
         config.set("stages", null);
         for (var buildEntry : stages.entrySet()) {
@@ -507,8 +514,8 @@ public class BuildingStageManager {
                             furnitureLines.add(spawn.id + ";" + spawn.x + ";" + spawn.y + ";" + spawn.z + ";" + spawn.facing.name());
                         }
                         config.set(base + "furniture", furnitureLines);
-                        config.set(base + "blocks", null); // blocks stored as schematic
-                        config.set(base + "schematic", st.fileName);
+                        config.set(base + "blocks", null); // blocks are captured from source cuboid at load time
+                        config.set(base + "schematic", null);
                         config.set(base + "holo.x", st.hx);
                         config.set(base + "holo.y", st.hy);
                         config.set(base + "holo.z", st.hz);

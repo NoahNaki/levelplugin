@@ -7,13 +7,13 @@ import org.bukkit.World;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.npc.system.trait.CurrentLocationTrait;
-import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import com.sk89q.worldedit.math.BlockVector3;
 
+import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.SchematicUtil;
 
 import java.io.File;
@@ -110,21 +110,13 @@ public class TownStageManager {
         int oy = origin.getBlockY() - boxMinY;
         int oz = origin.getBlockZ() - boxMinZ;
 
-        var world = p1.getWorld();
-        for (int x = boxMinX; x <= boxMaxX; x++) {
-            for (int y = boxMinY; y <= boxMaxY; y++) {
-                for (int z = boxMinZ; z <= boxMaxZ; z++) {
-                    var block = world.getBlockAt(x, y, z);
-                    if (block.getType() == Material.AIR) continue;
-                    BlockData data = block.getBlockData();
-                    blocks.add(new BlockDef(x - boxMinX, y - boxMinY, z - boxMinZ, data));
-                }
-            }
-        }
+        blocks.addAll(toBlockDefs(CuboidTemplate.capture(p1, p2).blocks()));
 
+        // Keep the original cuboid coordinates as the source template instead of
+        // writing a schematic file. A schematic path is still retained for legacy
+        // fallback if an older config provides one.
         String fileName = name.toLowerCase() + "_" + level + "_" + stage + ".schem";
         File schematic = new File(schemFolder, fileName);
-        SchematicUtil.saveSchematic(p1, p2, schematic, plugin.getLogger());
         stages
             .computeIfAbsent(name.toLowerCase(), k -> new java.util.HashMap<>())
             .computeIfAbsent(level, k -> new java.util.HashMap<>())
@@ -284,12 +276,7 @@ public class TownStageManager {
                     }
                     String fileName = config.getString(base + "schematic", town.toLowerCase() + "_" + level + "_" + stage + ".schem");
                     File schematic = new File(schemFolder, fileName);
-                    Map<BlockVector3, BlockData> rel = SchematicUtil.loadSchematic(schematic, plugin.getLogger());
-                    blocks = new java.util.ArrayList<>();
-                    for (var entry : rel.entrySet()) {
-                        BlockVector3 vec = entry.getKey();
-                        blocks.add(new BlockDef(vec.getBlockX(), vec.getBlockY(), vec.getBlockZ(), entry.getValue()));
-                    }
+                    blocks = loadTemplateBlocks(p1, p2, schematic);
                     int priority = config.getInt(base + "priority", 0);
                     int ox = config.getInt(base + "origin.x", 0);
                     int oy = config.getInt(base + "origin.y", 0);
@@ -301,6 +288,33 @@ public class TownStageManager {
                 }
             }
         }
+    }
+
+    private java.util.List<BlockDef> loadTemplateBlocks(Location pos1, Location pos2, File schematic) {
+        if (pos1 != null && pos2 != null && pos1.getWorld() != null && pos1.getWorld().equals(pos2.getWorld())) {
+            return toBlockDefs(CuboidTemplate.capture(pos1, pos2).blocks());
+        }
+        if (schematic == null) {
+            return java.util.List.of();
+        }
+        Map<BlockVector3, BlockData> rel = SchematicUtil.loadSchematic(schematic, plugin.getLogger());
+        java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
+        for (var entry : rel.entrySet()) {
+            BlockVector3 vec = entry.getKey();
+            blocks.add(new BlockDef(vec.getBlockX(), vec.getBlockY(), vec.getBlockZ(), entry.getValue()));
+        }
+        return blocks;
+    }
+
+    private java.util.List<BlockDef> toBlockDefs(java.util.List<CuboidTemplate.BlockCopy> copies) {
+        java.util.List<BlockDef> blocks = new java.util.ArrayList<>();
+        if (copies == null) {
+            return blocks;
+        }
+        for (CuboidTemplate.BlockCopy copy : copies) {
+            blocks.add(new BlockDef(copy.x(), copy.y(), copy.z(), copy.data()));
+        }
+        return blocks;
     }
 
     private Location readLocation(World world, String path) {
@@ -336,8 +350,8 @@ public class TownStageManager {
                                 + ";" + npc.yaw + ";" + npc.pitch);
                     }
                     config.set(base + "npcs", list);
-                    config.set(base + "blocks", null); // blocks stored as schematic
-                    config.set(base + "schematic", st.fileName);
+                    config.set(base + "blocks", null); // blocks are captured from source cuboid at load time
+                    config.set(base + "schematic", null);
                     config.set(base + "priority", st.priority);
                     config.set(base + "origin.x", st.ox);
                     config.set(base + "origin.y", st.oy);

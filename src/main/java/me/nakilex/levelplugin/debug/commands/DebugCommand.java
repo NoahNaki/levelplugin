@@ -33,6 +33,7 @@ import me.nakilex.levelplugin.pet.utils.PetChatUtil;
 import me.nakilex.levelplugin.pet.utils.PetPullSummaryUtil;
 import me.nakilex.levelplugin.mob.custom.CustomMobStatus;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
@@ -91,6 +92,7 @@ public class DebugCommand implements TabExecutor {
     private static final List<String> LOOT_CHEST_ANIMATION_OPTIONS = List.of("idle", "idle_mouve", "idle_move", "opening", "opening_rare", "closing");
     private final Map<UUID, UUID> lootChestAnimationPreviewEntities = new ConcurrentHashMap<>();
     private final Map<UUID, EntityTextDisplay> npcModelNameDisplays = new ConcurrentHashMap<>();
+    private final EnvironmentAreaInstanceManager environmentAreaInstanceManager;
 
     public static boolean isInventoryDebugEnabled(UUID playerId) {
         return playerId != null && INVENTORY_DEBUG_ENABLED.contains(playerId);
@@ -135,6 +137,7 @@ public class DebugCommand implements TabExecutor {
         this.arcSlashDebugManager = arcSlashDebugManager;
         this.arcSlashDebugGUI = arcSlashDebugGUI;
         this.petManager = petManager;
+        this.environmentAreaInstanceManager = EnvironmentAreaInstanceManager.getInstance(Main.getInstance());
     }
 
     @Override
@@ -146,7 +149,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage + ">");
             }
             return true;
         }
@@ -314,6 +317,54 @@ public class DebugCommand implements TabExecutor {
                 }
                 EnvironmentManager.TownMaxResult result = environmentManager.maxTownProgress(cityPlayer);
                 cityPlayer.sendMessage(result.message());
+                return true;
+
+            case "area":
+                if (args.length < 2) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug area <initialize|scanblocks> <playername|templatename>");
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("initialize")) {
+                    if (args.length < 3) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug area initialize <playername>");
+                        return true;
+                    }
+                    Player areaTarget = Bukkit.getPlayerExact(args[2]);
+                    if (areaTarget == null || !areaTarget.isOnline()) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                                "Player not found or offline: " + args[2]);
+                        return true;
+                    }
+                    if (environmentAreaInstanceManager.initialize(areaTarget)) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
+                                "Initialized environment area for " + ChatColor.WHITE + areaTarget.getName() + ChatColor.GREEN + ".");
+                    }
+                    return true;
+                }
+                if (args[1].equalsIgnoreCase("scanblocks")) {
+                    if (args.length < 3) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                                "Usage: /debug area scanblocks <templatename>");
+                        return true;
+                    }
+                    List<String> lines = environmentAreaInstanceManager.scanBlocks(args[2]);
+                    if (lines.isEmpty()) {
+                        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                                "No block data found for template: " + args[2]);
+                        return true;
+                    }
+                    for (int i = 0; i < lines.size(); i++) {
+                        ChatMessageUtil.MessageType type = i <= 1
+                                ? ChatMessageUtil.MessageType.INFO
+                                : ChatMessageUtil.MessageType.SUCCESS;
+                        ChatMessageUtil.send(sender, type, ChatColor.GRAY + lines.get(i));
+                    }
+                    return true;
+                }
+                ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
+                        "Usage: /debug area <initialize|scanblocks> <playername|templatename>");
                 return true;
 
             case "rewardbomb":
@@ -872,7 +923,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -1168,13 +1219,26 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "autocast",
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "area", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
                     "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("area")) {
+            return List.of("initialize", "scanblocks").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("area") && args[1].equalsIgnoreCase("initialize")) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("area") && args[1].equalsIgnoreCase("scanblocks")) {
+            return environmentAreaInstanceManager.templateNames().stream()
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("spellpull")) {
             return List.of("1", "10", "25", "50", "100").stream()
