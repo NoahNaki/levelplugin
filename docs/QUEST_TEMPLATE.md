@@ -20,7 +20,7 @@ Use this template to provide everything we need to build a quest in the current 
 - **Primary quest-giver NPC:**
   - Name (exact in-game name):
   - NPC ID (if known):
-  - Location / spawn coordinates:
+  - **Location / spawn coordinates (world + x/y/z):**
   - Should be highlighted on the map / waypoint?: Yes / No
 - **Additional NPCs involved:**
   - Name + role + NPC ID (if known) + location:
@@ -84,7 +84,7 @@ Use this template to provide everything we need to build a quest in the current 
 
 ## 8) World & Location Details
 - **Quest areas / zones involved:**
-- **Exact coordinates for travel points, triggers, or exploration zones:**
+- **Exact coordinates for travel points, triggers, or exploration zones (world + x/y/z):**
 - **Any restricted areas or phasing notes:**
 
 ## 9) Custom Behavior & Scripts (If Needed)
