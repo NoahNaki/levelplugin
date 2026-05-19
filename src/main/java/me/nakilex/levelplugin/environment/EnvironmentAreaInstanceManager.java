@@ -67,11 +67,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     );
 
     private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 230, -3145);
+    private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 230, -3143);
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
                     new Cuboid(3822, -6, -2853, 3777, 52, -2803),
-                    new Cuboid(3822, -6, -2853, 3777, 52, -2803),
+                    projectFinishedToEmpty(new Cuboid(3822, -6, -2853, 3777, 52, -2803)),
                     new WorldPoint(3799, 0, -3312))
     );
 
@@ -513,6 +514,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         int maxZ() { return Math.max(z1, z2); }
         int width() { return Math.abs(x1 - x2) + 1; }
         int depth() { return Math.abs(z1 - z2) + 1; }
+        Cuboid translate(int dx, int dy, int dz) {
+            return new Cuboid(x1 + dx, y1 + dy, z1 + dz, x2 + dx, y2 + dy, z2 + dz);
+        }
     }
 
     private record BuildingTemplate(int slot,
@@ -534,6 +538,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 PASTE_X + (source.maxX() - AREA.minX()),
                 PASTE_Y + (source.maxY() - AREA.minY()),
                 PASTE_Z + (source.maxZ() - AREA.minZ()));
+    }
+
+    private static Cuboid projectFinishedToEmpty(Cuboid finishedSelection) {
+        int dx = AREA.minX() - FINISHED_WORLD_AREA.minX();
+        int dy = AREA.minY() - FINISHED_WORLD_AREA.minY();
+        int dz = AREA.minZ() - FINISHED_WORLD_AREA.minZ();
+        return finishedSelection.translate(dx, dy, dz);
     }
 
     private Location toPastedLocation(World world, WorldPoint source) {
