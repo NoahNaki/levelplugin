@@ -73,8 +73,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
-                    new Cuboid(3822, -6, -2853, 3777, 52, -2803),
-                    projectFinishedToEmpty(new Cuboid(3822, -6, -2853, 3777, 52, -2803)),
+                    new Cuboid(3821, -5, -2852, 3780, 60, -2805),
+                    projectFinishedToEmpty(new Cuboid(3821, -5, -2852, 3780, 60, -2805)),
                     new WorldPoint(3799, 0, -3312))
     );
 
