@@ -27,6 +27,8 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -55,6 +57,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final Material ALIGNMENT_MARKER = Material.GOLD_BLOCK;
     private static final int BUILD_COST_COINS = 100;
+    private static final long PAYMENT_ANIMATION_TICKS = 14L;
+    private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
 
     private static final Cuboid AREA = new Cuboid(-29, -61, 718, 19, -61, 670);
 
@@ -74,6 +78,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
+    private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -361,13 +366,23 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         plugin.getEconomyManager().deductCoins(player, BUILD_COST_COINS);
         playCoinPaymentVisual(player, destinationMarker, BUILD_COST_COINS);
-        int baseX = destinationMarker.getBlockX() - sourceMarker.x();
-        int baseY = destinationMarker.getBlockY() - sourceMarker.y();
-        int baseZ = destinationMarker.getBlockZ() - sourceMarker.z();
-        alignedTemplate.template().paste(session.world(), baseX, baseY, baseZ);
-        player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
+        BukkitTask existing = activeBuildTasks.remove(ownerId);
+        if (existing != null) {
+            existing.cancel();
+        }
+        BukkitTask task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                if (!player.isOnline()) {
+                    activeBuildTasks.remove(ownerId);
+                    cancel();
+                    return;
+                }
+                buildTemplateLayered(player, session, building, alignedTemplate, destinationMarker, sourceMarker);
+                activeBuildTasks.remove(ownerId);
+            }
+        }.runTaskLater(plugin, PAYMENT_ANIMATION_TICKS);
+        activeBuildTasks.put(ownerId, task);
     }
 
     private void playCoinPaymentVisual(Player player, Location destinationMarker, int amount) {
@@ -379,7 +394,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (dropped <= 0) {
             return;
         }
-        int tickDelay = 4 + ThreadLocalRandom.current().nextInt(4);
+        int tickDelay = 3 + ThreadLocalRandom.current().nextInt(3);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline()) {
                 return;
@@ -391,6 +406,51 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 world.playSound(fx, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7f, 1.75f);
             }
         }, tickDelay);
+    }
+
+    private void buildTemplateLayered(Player player,
+                                      EnvironmentAreaSession session,
+                                      BuildingTemplate building,
+                                      AlignedTemplate alignedTemplate,
+                                      Location destinationMarker,
+                                      CuboidTemplate.BlockCopy sourceMarker) {
+        if (player == null || session == null || building == null || alignedTemplate == null
+                || alignedTemplate.template() == null || destinationMarker == null || sourceMarker == null) {
+            return;
+        }
+        int baseX = destinationMarker.getBlockX() - sourceMarker.x();
+        int baseY = destinationMarker.getBlockY() - sourceMarker.y();
+        int baseZ = destinationMarker.getBlockZ() - sourceMarker.z();
+        List<CuboidTemplate.BlockCopy> copies = new ArrayList<>(alignedTemplate.template().blocks());
+        copies.sort(Comparator.comparingInt(CuboidTemplate.BlockCopy::y));
+        int blocksPerTick = Math.max(1, copies.size() / Math.max(1, BUILD_ANIMATION_TOTAL_TICKS));
+        new BukkitRunnable() {
+            int index = 0;
+
+            @Override
+            public void run() {
+                if (!player.isOnline()) {
+                    cancel();
+                    return;
+                }
+                World world = session.world();
+                if (world == null) {
+                    cancel();
+                    return;
+                }
+                for (int i = 0; i < blocksPerTick && index < copies.size(); i++, index++) {
+                    CuboidTemplate.BlockCopy copy = copies.get(index);
+                    world.getBlockAt(baseX + copy.x(), baseY + copy.y(), baseZ + copy.z())
+                            .setBlockData(copy.data(), false);
+                }
+                if (index >= copies.size()) {
+                    player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                            "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
