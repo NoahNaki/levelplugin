@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.environment;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.VoidWorldGenerator;
+import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -37,6 +38,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Debug/test harness for the new environment-area flow. It captures configured
@@ -52,6 +54,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int PASTE_Z = 0;
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final Material ALIGNMENT_MARKER = Material.GOLD_BLOCK;
+    private static final int BUILD_COST_COINS = 100;
 
     private static final Cuboid AREA = new Cuboid(-29, -61, 718, 19, -61, 670);
 
@@ -258,6 +261,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
             session.holograms().addAll(spawnClickableHologram(marker, tag, List.of(
                     ChatColor.GREEN + "Build " + ChatColor.WHITE + building.displayName(),
+                    ChatColor.GRAY + "Cost: " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>",
                     ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------",
                     TooltipUtil.bulletLine(ChatColor.GRAY + "Aligns template and foundation gold blocks."),
                     ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + "to build")));
@@ -347,6 +351,16 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     "Missing " + ALIGNMENT_MARKER + " alignment marker for " + building.displayName() + ".");
             return;
         }
+        int coins = plugin.getEconomyManager().getBalance(player);
+        if (coins < BUILD_COST_COINS) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "You need " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>"
+                            + ChatColor.RED + " to build this.");
+            player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.8f, 0.7f);
+            return;
+        }
+        plugin.getEconomyManager().deductCoins(player, BUILD_COST_COINS);
+        playCoinPaymentVisual(player, destinationMarker, BUILD_COST_COINS);
         int baseX = destinationMarker.getBlockX() - sourceMarker.x();
         int baseY = destinationMarker.getBlockY() - sourceMarker.y();
         int baseZ = destinationMarker.getBlockZ() - sourceMarker.z();
@@ -354,6 +368,29 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
+    }
+
+    private void playCoinPaymentVisual(Player player, Location destinationMarker, int amount) {
+        if (player == null || destinationMarker == null || amount <= 0) {
+            return;
+        }
+        Location source = player.getLocation().clone().add(0, 1.1, 0);
+        int dropped = CoinDropManager.dropCoins(plugin, plugin.getEconomyManager(), player, source, amount, false);
+        if (dropped <= 0) {
+            return;
+        }
+        int tickDelay = 4 + ThreadLocalRandom.current().nextInt(4);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            CoinDropManager.pullNearbyCoins(player, 24.0);
+            Location fx = destinationMarker.clone().add(0.5, 1.0, 0.5);
+            World world = fx.getWorld();
+            if (world != null) {
+                world.playSound(fx, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7f, 1.75f);
+            }
+        }, tickDelay);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
