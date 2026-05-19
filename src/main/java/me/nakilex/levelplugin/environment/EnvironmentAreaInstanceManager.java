@@ -462,11 +462,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         int baseX = destinationArea.minX();
         int baseY = destinationArea.minY();
         int baseZ = destinationArea.minZ();
-        int srcMinX = building.source().minX();
-        int srcMinY = building.source().minY();
-        int srcMinZ = building.source().minZ();
         List<CuboidTemplate.BlockCopy> copies = new ArrayList<>(template.blocks());
         copies.sort(Comparator.comparingInt(CuboidTemplate.BlockCopy::y));
+        plugin.getLogger().info("[EnvironmentArea] Building '" + building.id() + "' for " + player.getName()
+                + " -> sourceDims=" + template.width() + "x" + template.height() + "x" + template.depth()
+                + ", destMin=" + baseX + "," + baseY + "," + baseZ
+                + ", destMax=" + destinationArea.maxX() + "," + destinationArea.maxY() + "," + destinationArea.maxZ()
+                + ", blockCount=" + copies.size());
         int blocksPerTick = Math.max(1, copies.size() / Math.max(1, BUILD_ANIMATION_TOTAL_TICKS));
         new BukkitRunnable() {
             int index = 0;
@@ -484,7 +486,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 }
                 for (int i = 0; i < blocksPerTick && index < copies.size(); i++, index++) {
                     CuboidTemplate.BlockCopy copy = copies.get(index);
-                    world.getBlockAt(baseX + (copy.x() - srcMinX), baseY + (copy.y() - srcMinY), baseZ + (copy.z() - srcMinZ))
+                    world.getBlockAt(baseX + copy.x(), baseY + copy.y(), baseZ + copy.z())
                             .setBlockData(copy.data(), false);
                 }
                 if (index >= copies.size()) {
