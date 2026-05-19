@@ -2,7 +2,6 @@ package me.nakilex.levelplugin.environment;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.VoidWorldGenerator;
-import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -20,6 +19,7 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Interaction;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Debug/test harness for the new environment-area flow. It captures configured
@@ -60,6 +59,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
     private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
+    private static final long COIN_SEND_INTERVAL_TICKS = 2L;
 
     private static final Cuboid AREA = new Cuboid(-29, -61, 718, 19, -61, 670);
 
@@ -395,23 +395,38 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (player == null || destinationMarker == null || amount <= 0) {
             return;
         }
-        Location source = player.getLocation().clone().add(0, 1.1, 0);
-        int dropped = CoinDropManager.dropCoins(plugin, plugin.getEconomyManager(), player, source, amount, false);
-        if (dropped <= 0) {
+        World world = destinationMarker.getWorld();
+        if (world == null || player.getWorld() == null || !player.getWorld().equals(world)) {
             return;
         }
-        int tickDelay = 12 + ThreadLocalRandom.current().nextInt(5);
-        Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (!player.isOnline()) {
-                return;
+        Location source = player.getLocation().clone().add(0, 1.1, 0);
+        Location target = destinationMarker.clone().add(0.5, 1.0, 0.5);
+        int maxCoins = Math.min(amount, 24);
+        new BukkitRunnable() {
+            int sent = 0;
+            @Override
+            public void run() {
+                if (!player.isOnline() || !player.getWorld().equals(world) || sent >= maxCoins) {
+                    cancel();
+                    return;
+                }
+                Item coin = world.dropItem(source, new org.bukkit.inventory.ItemStack(Material.GOLD_NUGGET, 1));
+                coin.setPickupDelay(Integer.MAX_VALUE);
+                coin.setCanMobPickup(false);
+                coin.setUnlimitedLifetime(false);
+                var vec = target.toVector().subtract(coin.getLocation().toVector());
+                if (vec.lengthSquared() > 0.001) {
+                    coin.setVelocity(vec.normalize().multiply(0.42));
+                }
+                Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                    if (coin.isValid()) {
+                        coin.remove();
+                    }
+                }, 12L);
+                world.playSound(target, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.45f, 1.5f + (sent * 0.01f));
+                sent++;
             }
-            CoinDropManager.pullNearbyCoins(player, 24.0);
-            Location fx = destinationMarker.clone().add(0.5, 1.0, 0.5);
-            World world = fx.getWorld();
-            if (world != null) {
-                world.playSound(fx, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7f, 1.75f);
-            }
-        }, tickDelay);
+        }.runTaskTimer(plugin, 0L, COIN_SEND_INTERVAL_TICKS);
     }
 
     private void removeBuildHologram(EnvironmentAreaSession session, String tag) {
@@ -475,12 +490,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInteract(PlayerInteractEntityEvent event) {
         handleInteract(event.getPlayer(), event.getRightClicked(), () -> event.setCancelled(true));
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInteractAt(PlayerInteractAtEntityEvent event) {
         handleInteract(event.getPlayer(), event.getRightClicked(), () -> event.setCancelled(true));
     }
