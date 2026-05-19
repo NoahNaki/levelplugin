@@ -75,7 +75,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
                     new Cuboid(3821, -5, -2852, 3780, 60, -2805),
                     projectFinishedToEmpty(new Cuboid(3821, -5, -2852, 3780, 60, -2805)),
-                    new WorldPoint(3799, 0, -3312))
+                    new WorldPoint(3799, 0, -3312)),
+            new BuildingTemplate(2, "blacksmith", "Blacksmith", Material.ANVIL,
+                    new Cuboid(3875, -20, -2976, 3922, 51, -3035),
+                    projectFinishedToEmpty(new Cuboid(3875, -20, -2976, 3922, 51, -3035)),
+                    new WorldPoint(3883, -10, -2982)),
+            new BuildingTemplate(3, "fishing", "Fishing", Material.WATER_BUCKET,
+                    new Cuboid(3860, -15, -2807, 3921, 61, -2880),
+                    projectFinishedToEmpty(new Cuboid(3860, -15, -2807, 3921, 61, -2880)),
+                    new WorldPoint(3877, -8, -2836)),
+            new BuildingTemplate(4, "castle", "Castle", Material.STONE_BRICKS,
+                    new Cuboid(3717, 13, -2849, 3583, 213, -3027),
+                    projectFinishedToEmpty(new Cuboid(3717, 13, -2849, 3583, 213, -3027)),
+                    new WorldPoint(3693, 25, -2934))
     );
 
     private static final Map<Integer, BuildingTemplate> BUILDINGS_BY_SLOT = BUILDINGS.stream()
