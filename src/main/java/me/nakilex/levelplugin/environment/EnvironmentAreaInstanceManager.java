@@ -56,8 +56,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int PASTE_Z = 0;
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final Material ALIGNMENT_MARKER = Material.GOLD_BLOCK;
+    private static final Material HOLOGRAM_PLACEHOLDER_MARKER = Material.LIGHT_BLUE_CONCRETE;
     private static final int BUILD_COST_COINS = 100;
-    private static final long PAYMENT_ANIMATION_TICKS = 14L;
+    private static final long PAYMENT_ANIMATION_TICKS = 28L;
     private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
 
     private static final Cuboid AREA = new Cuboid(-29, -61, 718, 19, -61, 670);
@@ -275,9 +276,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private Location findMarker(World world, BuildingTemplate building) {
         WorldCuboid placementBounds = toPastedCuboid(building.placement());
-        Block marker = findFirstBlock(world, placementBounds, building.marker(), false);
-        if (marker != null) {
-            return marker.getLocation().add(0.5, 2.0, 0.5);
+        Block hologramMarker = findFirstBlock(world, placementBounds, HOLOGRAM_PLACEHOLDER_MARKER, true);
+        if (hologramMarker != null) {
+            return hologramMarker.getLocation().add(0.5, 1.0, 0.5);
+        }
+        Block fallback = findFirstBlock(world, placementBounds, building.marker(), false);
+        if (fallback != null) {
+            return fallback.getLocation().add(0.5, 2.0, 0.5);
         }
         return placementBounds.centerTop(world, 2.0);
     }
@@ -379,6 +384,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     return;
                 }
                 buildTemplateLayered(player, session, building, alignedTemplate, destinationMarker, sourceMarker);
+                removeBuildHologram(session, tag);
                 activeBuildTasks.remove(ownerId);
             }
         }.runTaskLater(plugin, PAYMENT_ANIMATION_TICKS);
@@ -394,7 +400,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (dropped <= 0) {
             return;
         }
-        int tickDelay = 3 + ThreadLocalRandom.current().nextInt(3);
+        int tickDelay = 12 + ThreadLocalRandom.current().nextInt(5);
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline()) {
                 return;
@@ -406,6 +412,22 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 world.playSound(fx, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.7f, 1.75f);
             }
         }, tickDelay);
+    }
+
+    private void removeBuildHologram(EnvironmentAreaSession session, String tag) {
+        if (session == null || tag == null || tag.isBlank()) {
+            return;
+        }
+        session.holograms().removeIf(entity -> {
+            if (entity == null || entity.isDead()) {
+                return true;
+            }
+            if (!entity.getScoreboardTags().contains(tag)) {
+                return false;
+            }
+            entity.remove();
+            return true;
+        });
     }
 
     private void buildTemplateLayered(Player player,
