@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.environment;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.dungeon.VoidWorldGenerator;
+import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -60,6 +61,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
     private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
     private static final long COIN_SEND_INTERVAL_TICKS = 2L;
+    private static final String[] PAYMENT_COIN_MODELS = {"gold_coin", "iron_coin", "copper_coin"};
 
     private static final Cuboid AREA = new Cuboid(-29, -61, 718, 19, -61, 670);
 
@@ -399,7 +401,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (world == null || player.getWorld() == null || !player.getWorld().equals(world)) {
             return;
         }
-        Location source = player.getLocation().clone().add(0, 1.1, 0);
         Location target = destinationMarker.clone().add(0.5, 1.0, 0.5);
         int maxCoins = Math.min(amount, 24);
         new BukkitRunnable() {
@@ -410,10 +411,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     cancel();
                     return;
                 }
+                Location source = player.getLocation().clone().add(0.0, 1.1, 0.0);
                 Item coin = world.dropItem(source, new org.bukkit.inventory.ItemStack(Material.GOLD_NUGGET, 1));
                 coin.setPickupDelay(Integer.MAX_VALUE);
                 coin.setCanMobPickup(false);
                 coin.setUnlimitedLifetime(false);
+                ModelEngineUtil.applyFirstAvailableModel(coin, java.util.List.of(PAYMENT_COIN_MODELS), plugin);
                 var vec = target.toVector().subtract(coin.getLocation().toVector());
                 if (vec.lengthSquared() > 0.001) {
                     coin.setVelocity(vec.normalize().multiply(0.42));
