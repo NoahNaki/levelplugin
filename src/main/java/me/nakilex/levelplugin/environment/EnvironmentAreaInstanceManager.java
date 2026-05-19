@@ -56,8 +56,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int PASTE_Y = 64;
     private static final int PASTE_Z = 0;
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
-    private static final Material ALIGNMENT_MARKER = Material.GOLD_BLOCK;
-    private static final Material HOLOGRAM_PLACEHOLDER_MARKER = Material.LIGHT_BLUE_CONCRETE;
+    private static final Material HOLOGRAM_PLACEHOLDER_MARKER = Material.PINK_WOOL;
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
     private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
@@ -68,17 +67,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new CoinVisual(1, Material.COPPER_INGOT, "copper_coin")
     );
 
-    private static final Cuboid AREA = new Cuboid(-29, -61, 718, 19, -61, 670);
+    private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 230, -3145);
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
-            new BuildingTemplate(1, "diamond_template", "Diamond Template", Material.DIAMOND_BLOCK,
-                    new Cuboid(-31, -60, 720, -41, -51, 730), new Cuboid(-22, -61, 681, -10, -61, 693)),
-            new BuildingTemplate(2, "lapis_template", "Lapis Template", Material.LAPIS_BLOCK,
-                    new Cuboid(-31, -60, 732, -41, -51, 742), new Cuboid(-2, -61, 690, 10, -61, 678)),
-            new BuildingTemplate(3, "emerald_template", "Emerald Template", Material.EMERALD_BLOCK,
-                    new Cuboid(-43, -60, 732, -53, -51, 742), new Cuboid(4, -61, 694, 16, -61, 706)),
-            new BuildingTemplate(4, "redstone_template", "Redstone Template", Material.REDSTONE_BLOCK,
-                    new Cuboid(-43, -60, 720, -53, -51, 730), new Cuboid(-10, -61, 712, -22, -61, 700))
+            new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
+                    new Cuboid(3822, -6, -2853, 3777, 52, -2803), new Cuboid(3822, -6, -2853, 3777, 52, -2803))
     );
 
     private static final Map<Integer, BuildingTemplate> BUILDINGS_BY_SLOT = BUILDINGS.stream()
@@ -112,9 +105,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
 
         CuboidTemplate areaTemplate = capture(source, AREA);
-        Map<Integer, AlignedTemplate> buildingTemplates = new HashMap<>();
+        Map<Integer, CuboidTemplate> buildingTemplates = new HashMap<>();
         for (BuildingTemplate building : BUILDINGS) {
-            buildingTemplates.put(building.slot(), captureAlignedTemplate(source, building));
+            buildingTemplates.put(building.slot(), capture(source, building.source()));
         }
 
         World world = recreateWorld(target.getUniqueId());
@@ -180,8 +173,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
         List<String> lines = new ArrayList<>();
         lines.add("Template " + building.id() + " block totals:");
-        boolean hasMarker = counts.containsKey(ALIGNMENT_MARKER);
-        lines.add("Alignment marker " + ALIGNMENT_MARKER + ": " + (hasMarker ? "FOUND" : "MISSING"));
         for (Map.Entry<Material, Integer> entry : sorted) {
             String pretty = entry.getKey().name().toLowerCase(Locale.ROOT).replace('_', ' ');
             lines.add(entry.getValue() + "x " + pretty);
@@ -203,15 +194,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 new Location(source, cuboid.x2(), cuboid.y2(), cuboid.z2()));
     }
 
-    private AlignedTemplate captureAlignedTemplate(World source, BuildingTemplate building) {
-        CuboidTemplate template = capture(source, building.source());
-        CuboidTemplate.BlockCopy marker = template.firstBlock(ALIGNMENT_MARKER).orElse(null);
-        if (marker == null) {
-            plugin.getLogger().warning("[EnvironmentArea] Building template '" + building.id()
-                    + "' has no " + ALIGNMENT_MARKER + " alignment marker.");
-        }
-        return new AlignedTemplate(template, marker);
-    }
 
     private World recreateWorld(UUID ownerId) {
         String worldName = "environment_" + ownerId.toString().substring(0, 8).toLowerCase(Locale.ROOT);
@@ -264,19 +246,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private void spawnBuildHolograms(EnvironmentAreaSession session) {
         session.removeHolograms();
-        session.alignmentAnchors().clear();
         for (BuildingTemplate building : BUILDINGS) {
             Location marker = findMarker(session.world(), building);
-            Location alignmentAnchor = findAlignmentMarker(session.world(), building);
-            if (alignmentAnchor != null) {
-                session.alignmentAnchors().put(building.slot(), alignmentAnchor.clone());
-            }
             String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
             session.holograms().addAll(spawnClickableHologram(marker, tag, List.of(
                     ChatColor.GREEN + "Build " + ChatColor.WHITE + building.displayName(),
                     ChatColor.GRAY + "Cost: " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>",
                     ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------",
-                    TooltipUtil.bulletLine(ChatColor.GRAY + "Aligns template and foundation gold blocks."),
+                    TooltipUtil.bulletLine(ChatColor.GRAY + "Replaces the matching empty-world area."),
                     ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + "to build")));
         }
     }
@@ -356,18 +333,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Environment build session is no longer active.");
             return;
         }
-        AlignedTemplate alignedTemplate = session.buildingTemplates().get(slot);
-        if (alignedTemplate == null || alignedTemplate.template() == null) {
+        CuboidTemplate template = session.buildingTemplates().get(slot);
+        if (template == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Template is missing for this build slot.");
             return;
         }
-        CuboidTemplate.BlockCopy sourceMarker = alignedTemplate.alignmentMarker();
-        Location destinationMarker = resolveAlignmentMarker(session, building);
-        if (sourceMarker == null || destinationMarker == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Missing " + ALIGNMENT_MARKER + " alignment marker for " + building.displayName() + ".");
-            return;
-        }
+        WorldCuboid destinationArea = toPastedCuboid(building.placement());
+        Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
         int coins = plugin.getEconomyManager().getBalance(player);
         if (coins < BUILD_COST_COINS) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
@@ -390,7 +362,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     cancel();
                     return;
                 }
-                buildTemplateLayered(player, session, building, alignedTemplate, destinationMarker, sourceMarker);
+                buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
                 removeBuildHologram(session, tag);
                 activeBuildTasks.remove(ownerId);
             }
@@ -476,17 +448,20 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private void buildTemplateLayered(Player player,
                                       EnvironmentAreaSession session,
                                       BuildingTemplate building,
-                                      AlignedTemplate alignedTemplate,
-                                      Location destinationMarker,
-                                      CuboidTemplate.BlockCopy sourceMarker) {
-        if (player == null || session == null || building == null || alignedTemplate == null
-                || alignedTemplate.template() == null || destinationMarker == null || sourceMarker == null) {
+                                      CuboidTemplate template,
+                                      WorldCuboid destinationArea,
+                                      Location destinationMarker) {
+        if (player == null || session == null || building == null || template == null
+                || destinationArea == null || destinationMarker == null) {
             return;
         }
-        int baseX = destinationMarker.getBlockX() - sourceMarker.x();
-        int baseY = destinationMarker.getBlockY() - sourceMarker.y();
-        int baseZ = destinationMarker.getBlockZ() - sourceMarker.z();
-        List<CuboidTemplate.BlockCopy> copies = new ArrayList<>(alignedTemplate.template().blocks());
+        int baseX = destinationArea.minX();
+        int baseY = destinationArea.minY();
+        int baseZ = destinationArea.minZ();
+        int srcMinX = building.source().minX();
+        int srcMinY = building.source().minY();
+        int srcMinZ = building.source().minZ();
+        List<CuboidTemplate.BlockCopy> copies = new ArrayList<>(template.blocks());
         copies.sort(Comparator.comparingInt(CuboidTemplate.BlockCopy::y));
         int blocksPerTick = Math.max(1, copies.size() / Math.max(1, BUILD_ANIMATION_TOTAL_TICKS));
         new BukkitRunnable() {
@@ -505,7 +480,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 }
                 for (int i = 0; i < blocksPerTick && index < copies.size(); i++, index++) {
                     CuboidTemplate.BlockCopy copy = copies.get(index);
-                    world.getBlockAt(baseX + copy.x(), baseY + copy.y(), baseZ + copy.z())
+                    world.getBlockAt(baseX + (copy.x() - srcMinX), baseY + (copy.y() - srcMinY), baseZ + (copy.z() - srcMinZ))
                             .setBlockData(copy.data(), false);
                 }
                 if (index >= copies.size()) {
@@ -546,25 +521,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                     Cuboid source,
                                     Cuboid placement) { }
 
-    private Location resolveAlignmentMarker(EnvironmentAreaSession session, BuildingTemplate building) {
-        if (session == null || building == null) {
-            return null;
-        }
-        Location cached = session.alignmentAnchors().get(building.slot());
-        if (cached != null) {
-            return cached.clone();
-        }
-        Location discovered = findAlignmentMarker(session.world(), building);
-        if (discovered != null) {
-            session.alignmentAnchors().put(building.slot(), discovered.clone());
-        }
-        return discovered;
-    }
-
-    private Location findAlignmentMarker(World world, BuildingTemplate building) {
-        Block marker = findFirstBlock(world, toPastedCuboid(building.placement()), ALIGNMENT_MARKER, true);
-        return marker == null ? null : marker.getLocation();
-    }
 
     private WorldCuboid toPastedCuboid(Cuboid source) {
         return new WorldCuboid(
@@ -619,16 +575,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
     }
 
-    private record AlignedTemplate(CuboidTemplate template, CuboidTemplate.BlockCopy alignmentMarker) { }
     private record CoinVisual(int value, Material material, String modelId) { }
 
     private record EnvironmentAreaSession(UUID ownerId,
                                           World world,
-                                          Map<Integer, AlignedTemplate> buildingTemplates,
-                                          List<Entity> holograms,
-                                          Map<Integer, Location> alignmentAnchors) {
-        private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, AlignedTemplate> buildingTemplates) {
-            this(ownerId, world, buildingTemplates, new ArrayList<>(), new HashMap<>());
+                                          Map<Integer, CuboidTemplate> buildingTemplates,
+                                          List<Entity> holograms) {
+        private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, CuboidTemplate> buildingTemplates) {
+            this(ownerId, world, buildingTemplates, new ArrayList<>());
         }
 
         private void removeHolograms() {
@@ -659,8 +613,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         for (EnvironmentAreaSession session : new ArrayList<>(sessions.values())) {
             if (session != null) {
                 session.removeHolograms();
-                session.alignmentAnchors().clear();
-            }
+                    }
         }
         sessions.clear();
     }
