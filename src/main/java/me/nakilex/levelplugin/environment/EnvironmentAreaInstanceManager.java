@@ -68,6 +68,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 230, -3145);
     private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 230, -3143);
+    private static final WorldPoint FINISHED_WORLD_ANCHOR = new WorldPoint(3489, -23, -3143);
+    private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, -23, -3603);
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
@@ -541,9 +543,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private static Cuboid projectFinishedToEmpty(Cuboid finishedSelection) {
-        int dx = AREA.minX() - FINISHED_WORLD_AREA.minX();
-        int dy = AREA.minY() - FINISHED_WORLD_AREA.minY();
-        int dz = AREA.minZ() - FINISHED_WORLD_AREA.minZ();
+        int dx = EMPTY_WORLD_ANCHOR.x() - FINISHED_WORLD_ANCHOR.x();
+        int dy = EMPTY_WORLD_ANCHOR.y() - FINISHED_WORLD_ANCHOR.y();
+        int dz = EMPTY_WORLD_ANCHOR.z() - FINISHED_WORLD_ANCHOR.z();
         return finishedSelection.translate(dx, dy, dz);
     }
 
