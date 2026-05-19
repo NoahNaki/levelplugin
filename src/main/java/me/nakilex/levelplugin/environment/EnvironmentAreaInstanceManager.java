@@ -26,6 +26,7 @@ import org.bukkit.entity.TextDisplay;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -638,5 +639,29 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
             holograms.clear();
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPluginDisable(PluginDisableEvent event) {
+        if (event.getPlugin() != plugin) {
+            return;
+        }
+        shutdown();
+    }
+
+    public void shutdown() {
+        for (BukkitTask task : new ArrayList<>(activeBuildTasks.values())) {
+            if (task != null) {
+                task.cancel();
+            }
+        }
+        activeBuildTasks.clear();
+        for (EnvironmentAreaSession session : new ArrayList<>(sessions.values())) {
+            if (session != null) {
+                session.removeHolograms();
+                session.alignmentAnchors().clear();
+            }
+        }
+        sessions.clear();
     }
 }
