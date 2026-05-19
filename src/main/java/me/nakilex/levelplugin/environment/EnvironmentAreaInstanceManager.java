@@ -56,7 +56,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int PASTE_Y = 64;
     private static final int PASTE_Z = 0;
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
-    private static final Material HOLOGRAM_PLACEHOLDER_MARKER = Material.PINK_WOOL;
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
     private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
@@ -71,7 +70,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
-                    new Cuboid(3822, -6, -2853, 3777, 52, -2803), new Cuboid(3822, -6, -2853, 3777, 52, -2803))
+                    new Cuboid(3822, -6, -2853, 3777, 52, -2803),
+                    new Cuboid(3822, -6, -2853, 3777, 52, -2803),
+                    new WorldPoint(3799, 0, -3312))
     );
 
     private static final Map<Integer, BuildingTemplate> BUILDINGS_BY_SLOT = BUILDINGS.stream()
@@ -260,9 +261,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private Location findMarker(World world, BuildingTemplate building) {
         WorldCuboid placementBounds = toPastedCuboid(building.placement());
-        Block hologramMarker = findFirstBlock(world, placementBounds, HOLOGRAM_PLACEHOLDER_MARKER, true);
-        if (hologramMarker != null) {
-            return hologramMarker.getLocation().add(0.5, 1.0, 0.5);
+        Location configured = toPastedLocation(world, building.hologramPoint());
+        if (configured != null) {
+            return configured.add(0.5, 1.0, 0.5);
         }
         Block fallback = findFirstBlock(world, placementBounds, building.marker(), false);
         if (fallback != null) {
@@ -519,7 +520,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                     String displayName,
                                     Material marker,
                                     Cuboid source,
-                                    Cuboid placement) { }
+                                    Cuboid placement,
+                                    WorldPoint hologramPoint) { }
+
+    private record WorldPoint(int x, int y, int z) { }
 
 
     private WorldCuboid toPastedCuboid(Cuboid source) {
@@ -530,6 +534,17 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 PASTE_X + (source.maxX() - AREA.minX()),
                 PASTE_Y + (source.maxY() - AREA.minY()),
                 PASTE_Z + (source.maxZ() - AREA.minZ()));
+    }
+
+    private Location toPastedLocation(World world, WorldPoint source) {
+        if (world == null || source == null) {
+            return null;
+        }
+        return new Location(
+                world,
+                PASTE_X + (source.x() - AREA.minX()),
+                PASTE_Y + (source.y() - AREA.minY()),
+                PASTE_Z + (source.z() - AREA.minZ()));
     }
 
     private Block findFirstBlock(World world, WorldCuboid cuboid, Material material, boolean includeY) {
