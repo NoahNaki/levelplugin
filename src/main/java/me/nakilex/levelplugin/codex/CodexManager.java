@@ -381,6 +381,39 @@ public class CodexManager {
         return getDiscoveredNpcs(id).size();
     }
 
+    public PruneNpcDiscoveriesResult pruneUnknownNpcDiscoveries(UUID playerId) {
+        if (playerId == null) {
+            return new PruneNpcDiscoveriesResult(0, 0);
+        }
+        String base = "players." + playerId + ".codex.npcs";
+        if (!playerConfig.getConfig().isConfigurationSection(base)) {
+            return new PruneNpcDiscoveriesResult(0, 0);
+        }
+
+        java.util.Set<String> knownNpcNames = getAllNpcs().stream()
+                .map(NPC::getName)
+                .map(this::normalizeNpcName)
+                .filter(name -> !name.isEmpty())
+                .collect(java.util.stream.Collectors.toSet());
+
+        int removed = 0;
+        int total = 0;
+        for (String key : playerConfig.getConfig().getConfigurationSection(base).getKeys(false)) {
+            total++;
+            String normalized = normalizeNpcName(key);
+            if (normalized.isEmpty() || !knownNpcNames.contains(normalized)) {
+                playerConfig.getConfig().set(base + "." + key, null);
+                removed++;
+            }
+        }
+        if (removed > 0) {
+            playerConfig.saveConfigFile();
+        }
+        return new PruneNpcDiscoveriesResult(total, removed);
+    }
+
+    public record PruneNpcDiscoveriesResult(int totalEntries, int removedEntries) {}
+
     public int getTotalNpcCount() {
         return getAllNpcs().size();
     }
