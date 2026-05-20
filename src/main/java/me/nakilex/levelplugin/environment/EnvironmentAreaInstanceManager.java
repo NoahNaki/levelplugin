@@ -30,6 +30,7 @@ import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
@@ -57,6 +58,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int PASTE_X = 0;
     private static final int PASTE_Y = 64;
     private static final int PASTE_Z = 0;
+    private static final int AREA_SPACING_BLOCKS = 1500;
+    private static final Cuboid FINISHED_WORLD_BORDER = new Cuboid(3489, -44, -3143, 4058, 271, -2685);
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
@@ -138,21 +141,26 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return false;
         }
 
-        areaTemplate.paste(world, PASTE_X, PASTE_Y, PASTE_Z);
+        SlotOffset offset = slotOffsetFor(target.getUniqueId());
+        int originX = PASTE_X + offset.dx();
+        int originY = PASTE_Y;
+        int originZ = PASTE_Z + offset.dz();
+        areaTemplate.paste(world, originX, originY, originZ);
         EnvironmentAreaSession old = sessions.remove(target.getUniqueId());
         if (old != null) {
             old.removeHolograms();
         }
 
-        EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates);
+        WorldCuboid border = toPastedCuboid(FINISHED_WORLD_BORDER, originX, originY, originZ);
+        EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates, originX, originY, originZ, border);
         sessions.put(target.getUniqueId(), session);
         spawnBuildHolograms(session);
         applySavedBuilds(target, session);
 
         Location spawn = new Location(world,
-                PASTE_X + (AREA.width() / 2.0),
-                PASTE_Y + 1.0,
-                PASTE_Z + (AREA.depth() / 2.0));
+                originX + (AREA.width() / 2.0),
+                originY + 1.0,
+                originZ + (AREA.depth() / 2.0));
         target.teleport(spawn);
         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.SUCCESS,
                 "Initialized environment area in " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
@@ -275,7 +283,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private void spawnBuildHolograms(EnvironmentAreaSession session) {
         session.removeHolograms();
         for (BuildingTemplate building : BUILDINGS) {
-            Location marker = findMarker(session.world(), building);
+            Location marker = findMarker(session, building);
             String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
             session.holograms().addAll(spawnClickableHologram(marker, tag, List.of(
                     ChatColor.GREEN + "Build " + ChatColor.WHITE + building.displayName(),
@@ -286,9 +294,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
     }
 
-    private Location findMarker(World world, BuildingTemplate building) {
-        WorldCuboid placementBounds = toPastedCuboid(building.placement());
-        Location configured = toPastedLocation(world, building.hologramPoint());
+    private Location findMarker(EnvironmentAreaSession session, BuildingTemplate building) {
+        World world = session.world();
+        WorldCuboid placementBounds = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
+        Location configured = toPastedLocation(world, building.hologramPoint(), session.originX(), session.originY(), session.originZ());
         if (configured != null) {
             return configured.add(0.5, 1.0, 0.5);
         }
@@ -367,7 +376,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Template is missing for this build slot.");
             return;
         }
-        WorldCuboid destinationArea = toPastedCuboid(building.placement());
+        WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
         int coins = plugin.getEconomyManager().getBalance(player);
         if (coins < BUILD_COST_COINS) {
@@ -424,7 +433,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
             CuboidTemplate template = session.buildingTemplates().get(slot);
             if (building == null || template == null) continue;
-            WorldCuboid area = toPastedCuboid(building.placement());
+            WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
             template.paste(session.world(), area.minX(), area.minY(), area.minZ());
             removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
         }
@@ -580,6 +589,21 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         handleInteract(event.getPlayer(), event.getRightClicked(), () -> event.setCancelled(true));
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onMove(PlayerMoveEvent event) {
+        if (event.getTo() == null) return;
+        EnvironmentAreaSession session = sessions.get(event.getPlayer().getUniqueId());
+        if (session == null) return;
+        if (!event.getPlayer().getWorld().equals(session.world())) return;
+        if (session.border().contains(event.getTo())) return;
+        Location fallback = new Location(session.world(),
+                session.originX() + (AREA.width() / 2.0),
+                session.originY() + 1.0,
+                session.originZ() + (AREA.depth() / 2.0));
+        event.getPlayer().teleport(fallback);
+        ChatMessageUtil.send(event.getPlayer(), ChatMessageUtil.MessageType.WARNING, "You cannot leave your area border.");
+    }
+
     private record Cuboid(int x1, int y1, int z1, int x2, int y2, int z2) {
         int minX() { return Math.min(x1, x2); }
         int minY() { return Math.min(y1, y2); }
@@ -605,14 +629,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private record WorldPoint(int x, int y, int z) { }
 
 
-    private WorldCuboid toPastedCuboid(Cuboid source) {
+    private WorldCuboid toPastedCuboid(Cuboid source, int originX, int originY, int originZ) {
         return new WorldCuboid(
-                PASTE_X + (source.minX() - AREA.minX()),
-                PASTE_Y + (source.minY() - AREA.minY()),
-                PASTE_Z + (source.minZ() - AREA.minZ()),
-                PASTE_X + (source.maxX() - AREA.minX()),
-                PASTE_Y + (source.maxY() - AREA.minY()),
-                PASTE_Z + (source.maxZ() - AREA.minZ()));
+                originX + (source.minX() - AREA.minX()),
+                originY + (source.minY() - AREA.minY()),
+                originZ + (source.minZ() - AREA.minZ()),
+                originX + (source.maxX() - AREA.minX()),
+                originY + (source.maxY() - AREA.minY()),
+                originZ + (source.maxZ() - AREA.minZ()));
     }
 
     private static Cuboid projectFinishedToEmpty(Cuboid finishedSelection) {
@@ -629,15 +653,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return new WorldPoint(finishedPoint.x() + dx, finishedPoint.y() + dy, finishedPoint.z() + dz);
     }
 
-    private Location toPastedLocation(World world, WorldPoint source) {
+    private Location toPastedLocation(World world, WorldPoint source, int originX, int originY, int originZ) {
         if (world == null || source == null) {
             return null;
         }
         return new Location(
                 world,
-                PASTE_X + (source.x() - AREA.minX()),
-                PASTE_Y + (source.y() - AREA.minY()),
-                PASTE_Z + (source.z() - AREA.minZ()));
+                originX + (source.x() - AREA.minX()),
+                originY + (source.y() - AREA.minY()),
+                originZ + (source.z() - AREA.minZ()));
     }
 
     private Block findFirstBlock(World world, WorldCuboid cuboid, Material material, boolean includeY) {
@@ -681,6 +705,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     minY() + yOffset,
                     (minZ() + maxZ()) / 2.0 + 0.5);
         }
+
+        boolean contains(Location location) {
+            if (location == null) return false;
+            double x = location.getX(), y = location.getY(), z = location.getZ();
+            return x >= minX() && x <= maxX() + 1
+                    && y >= minY() && y <= maxY() + 1
+                    && z >= minZ() && z <= maxZ() + 1;
+        }
     }
 
     private record CoinVisual(int value, Material material, String modelId) { }
@@ -688,9 +720,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private record EnvironmentAreaSession(UUID ownerId,
                                           World world,
                                           Map<Integer, CuboidTemplate> buildingTemplates,
-                                          List<Entity> holograms) {
-        private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, CuboidTemplate> buildingTemplates) {
-            this(ownerId, world, buildingTemplates, new ArrayList<>());
+                                          List<Entity> holograms,
+                                          int originX,
+                                          int originY,
+                                          int originZ,
+                                          WorldCuboid border) {
+        private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, CuboidTemplate> buildingTemplates,
+                                       int originX, int originY, int originZ, WorldCuboid border) {
+            this(ownerId, world, buildingTemplates, new ArrayList<>(), originX, originY, originZ, border);
         }
 
         private void removeHolograms() {
@@ -702,6 +739,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             holograms.clear();
         }
     }
+
+    private SlotOffset slotOffsetFor(UUID ownerId) {
+        int hash = Math.abs(ownerId.hashCode());
+        int col = hash % 8;
+        int row = (hash / 8) % 8;
+        return new SlotOffset(col * AREA_SPACING_BLOCKS, row * AREA_SPACING_BLOCKS);
+    }
+
+    private record SlotOffset(int dx, int dz) {}
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPluginDisable(PluginDisableEvent event) {
