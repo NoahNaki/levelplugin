@@ -81,7 +81,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 230, -3143);
     private static final WorldPoint FINISHED_WORLD_ANCHOR = new WorldPoint(3489, -23, -3143);
     private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, -23, -3603);
-    private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 8, -2933);
+    private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 8, -2934);
     private static final WorldPoint EMPTY_WORLD_SPAWN = projectFinishedToEmpty(FINISHED_WORLD_SPAWN);
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
@@ -237,7 +237,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private CuboidTemplate capture(World source, Cuboid cuboid) {
         return CuboidTemplate.capture(
                 new Location(source, cuboid.x1(), cuboid.y1(), cuboid.z1()),
-                new Location(source, cuboid.x2(), cuboid.y2(), cuboid.z2()));
+                new Location(source, cuboid.x2(), cuboid.y2(), cuboid.z2()),
+                false);
     }
 
     private CuboidTemplate getOrCaptureTemplate(World source, String templateKey, Cuboid cuboid) {
