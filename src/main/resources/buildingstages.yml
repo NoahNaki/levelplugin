@@ -446,6 +446,204 @@ stages:
         materials:
           raw_iron: 500
           coal: 500
+  farm:
+    '1':
+      world: finished
+      pos1:
+        x: 3796
+        y: -18
+        z: -3059
+      pos2:
+        x: 3753
+        y: 79
+        z: -2996
+      npcs: []
+      schematic: farm_1.schem
+      holo:
+        x: 3795
+        y: -3
+        z: -3032
+      priority: 10
+      origin:
+        x: 3794
+        y: -4
+        z: -3033
+  house:
+    '1':
+      world: finished
+      pos1:
+        x: 3810
+        y: -11
+        z: -3003
+      pos2:
+        x: 3838
+        y: 31
+        z: -3035
+      npcs: []
+      schematic: house_1.schem
+      holo:
+        x: 3822
+        y: -3
+        z: -3004
+      priority: 10
+      origin:
+        x: 3821
+        y: -4
+        z: -3005
+  house_2:
+    '1':
+      world: finished
+      pos1:
+        x: 3856
+        y: -10
+        z: -2961
+      pos2:
+        x: 3819
+        y: 29
+        z: -3000
+      npcs: []
+      schematic: house_2_1.schem
+      holo:
+        x: 3825
+        y: -2
+        z: -2986
+      priority: 10
+      origin:
+        x: 3824
+        y: -3
+        z: -2987
+  house_3:
+    '1':
+      world: finished
+      pos1:
+        x: 3755
+        y: -8
+        z: -2842
+      pos2:
+        x: 3717
+        y: 67
+        z: -2884
+      npcs: []
+      schematic: house_3_1.schem
+      holo:
+        x: 3757
+        y: 2
+        z: -2875
+      priority: 10
+      origin:
+        x: 3756
+        y: 1
+        z: -2876
+  house_4:
+    '1':
+      world: finished
+      pos1:
+        x: 3782
+        y: -2
+        z: -2862
+      pos2:
+        x: 3812
+        y: 33
+        z: -2900
+      npcs: []
+      schematic: house_4_1.schem
+      holo:
+        x: 3799
+        y: 1
+        z: -2897
+      priority: 10
+      origin:
+        x: 3798
+        y: 0
+        z: -2898
+  house_5:
+    '1':
+      world: finished
+      pos1:
+        x: 3813
+        y: 31
+        z: -2909
+      pos2:
+        x: 3849
+        y: -3
+        z: -2872
+      npcs: []
+      schematic: house_5_1.schem
+      holo:
+        x: 3832
+        y: -1
+        z: -2887
+      priority: 10
+      origin:
+        x: 3831
+        y: -2
+        z: -2888
+  house_6:
+    '1':
+      world: finished
+      pos1:
+        x: 3790
+        y: 21
+        z: -2797
+      pos2:
+        x: 3745
+        y: -41
+        z: -2757
+      npcs: []
+      schematic: house_6_1.schem
+      holo:
+        x: 3759
+        y: -8
+        z: -2817
+      priority: 10
+      origin:
+        x: 3758
+        y: -9
+        z: -2818
+  house_7:
+    '1':
+      world: finished
+      pos1:
+        x: 3765
+        y: 20
+        z: -2841
+      pos2:
+        x: 3729
+        y: -16
+        z: -2812
+      npcs: []
+      schematic: house_7_1.schem
+      holo:
+        x: 3753
+        y: -2
+        z: -2842
+      priority: 10
+      origin:
+        x: 3752
+        y: -3
+        z: -2843
+  house_8:
+    '1':
+      world: finished
+      pos1:
+        x: 3742
+        y: -13
+        z: -2996
+      pos2:
+        x: 3775
+        y: 38
+        z: -2937
+      npcs: []
+      schematic: house_8_1.schem
+      holo:
+        x: 3780
+        y: 0
+        z: -2975
+      priority: 10
+      origin:
+        x: 3779
+        y: -1
+        z: -2976
 links:
   town:
     blacksmith:
@@ -480,3 +678,39 @@ links:
       x: -8
       y: 0
       z: -10
+    farm:
+      x: 0
+      y: 0
+      z: 0
+    house:
+      x: 0
+      y: 0
+      z: 0
+    house_2:
+      x: 0
+      y: 0
+      z: 0
+    house_3:
+      x: 0
+      y: 0
+      z: 0
+    house_4:
+      x: 0
+      y: 0
+      z: 0
+    house_5:
+      x: 0
+      y: 0
+      z: 0
+    house_6:
+      x: 0
+      y: 0
+      z: 0
+    house_7:
+      x: 0
+      y: 0
+      z: 0
+    house_8:
+      x: 0
+      y: 0
+      z: 0
