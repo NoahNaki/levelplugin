@@ -1410,7 +1410,6 @@ public class EnvironmentManager {
 
         class Change { Location loc; org.bukkit.block.data.BlockData data; Change(Location l, org.bukkit.block.data.BlockData d){this.loc=l;this.data=d;} }
         java.util.List<Change> changes = new java.util.ArrayList<>();
-        java.util.List<Location> changeLocations = new java.util.ArrayList<>();
         java.util.Set<String> newKeys = new java.util.HashSet<>();
 
         for (var b : newData.blocks) {
@@ -1418,7 +1417,6 @@ public class EnvironmentManager {
             String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
             newKeys.add(locKey);
             changes.add(new Change(loc, b.data));
-            changeLocations.add(loc);
         }
 
         if (oldData != null) {
@@ -1428,7 +1426,6 @@ public class EnvironmentManager {
                 String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
                 if (!newKeys.contains(locKey)) {
                     changes.add(new Change(loc, air));
-                    changeLocations.add(loc);
                 }
             }
         }
@@ -1498,7 +1495,6 @@ public class EnvironmentManager {
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
         final int adjustedTotalTime = Math.max(20, (int) Math.round(totalTime / Math.max(0.01D, buildSpeedMultiplier)));
-        final int blocksPerTick = Math.max(1, blocks.size() / adjustedTotalTime);
         final Location orbitCenter = computeCenter(baseOrigin, stageData.blocks, stageData.ox, stageData.oy, stageData.oz);
         final double orbitRadius = Math.max(4.0D, Math.sqrt(Math.max(1, stageData.blocks.size())) * 0.22D);
 
@@ -1510,10 +1506,13 @@ public class EnvironmentManager {
 
         BukkitTask task = new BukkitRunnable() {
             int index = 0;
+            int ticksElapsed = 0;
             @Override public void run() {
                 if (!player.isOnline()) { cancel(); return; }
+                ticksElapsed++;
                 Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
-                for (int i = 0; i < blocksPerTick && index < blocks.size(); i++, index++) {
+                int stepsThisTick = consumeAnimatedSteps(blocks.size(), ticksElapsed, adjustedTotalTime, index);
+                for (int i = 0; i < stepsThisTick && index < blocks.size(); i++, index++) {
                     BuildingStageManager.BlockDef b = blocks.get(index);
                     Location loc = baseOrigin.clone().add(
                         b.x - stageData.ox,
@@ -1669,7 +1668,6 @@ public class EnvironmentManager {
 
         class Change { Location loc; org.bukkit.block.data.BlockData data; Change(Location l, org.bukkit.block.data.BlockData d){this.loc=l;this.data=d;} }
         java.util.List<Change> changes = new java.util.ArrayList<>();
-        java.util.List<Location> changeLocations = new java.util.ArrayList<>();
         java.util.Set<String> newKeys = new java.util.HashSet<>();
 
         for (var b : newData.blocks) {
@@ -1677,7 +1675,6 @@ public class EnvironmentManager {
             String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
             newKeys.add(locKey);
             changes.add(new Change(loc, b.data));
-            changeLocations.add(loc);
         }
 
         if (oldData != null) {
@@ -1687,7 +1684,6 @@ public class EnvironmentManager {
                 String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
                 if (!newKeys.contains(locKey)) {
                     changes.add(new Change(loc, air));
-                    changeLocations.add(loc);
                 }
             }
         }
@@ -1697,8 +1693,7 @@ public class EnvironmentManager {
 
         // build upgrade animation runs for ~6 seconds
         final int totalTime = Math.max(20, (int) Math.round((6 * 20) / Math.max(0.01D, buildSpeedMultiplier)));
-        final int blocksPerTick = Math.max(1, changes.size() / totalTime);
-        final Location orbitCenter = averageCenter(newOrigin, changeLocations);
+        final Location orbitCenter = computeCenter(newOrigin, newData.blocks, newData.ox, newData.oy, newData.oz);
         final double orbitRadius = Math.max(5.0D, Math.sqrt(Math.max(1, changes.size())) * 0.20D);
 
         java.util.Random rand = new java.util.Random();
@@ -1709,10 +1704,13 @@ public class EnvironmentManager {
 
         BukkitTask task = new BukkitRunnable() {
             int index = 0;
+            int ticksElapsed = 0;
             @Override public void run() {
                 if (!player.isOnline()) { cancel(); return; }
+                ticksElapsed++;
                 Map<Location, org.bukkit.block.data.BlockData> batch = new java.util.HashMap<>();
-                for (int i = 0; i < blocksPerTick && index < changes.size(); i++, index++) {
+                int stepsThisTick = consumeAnimatedSteps(changes.size(), ticksElapsed, totalTime, index);
+                for (int i = 0; i < stepsThisTick && index < changes.size(); i++, index++) {
                     Change c = changes.get(index);
                     String k = key(c.loc);
                     int exist = priMap.getOrDefault(k, Integer.MIN_VALUE);
@@ -1801,18 +1799,6 @@ public class EnvironmentManager {
         return new Location(baseOrigin.getWorld(), sx / count + 0.5, sy / count + 1.5, sz / count + 0.5);
     }
 
-    private Location averageCenter(Location fallback, java.util.List<Location> locations) {
-        if (locations == null || locations.isEmpty()) return fallback.clone().add(0.5, 2.0, 0.5);
-        double sx = 0, sy = 0, sz = 0;
-        for (Location loc : locations) {
-            sx += loc.getX();
-            sy += loc.getY();
-            sz += loc.getZ();
-        }
-        double count = locations.size();
-        return new Location(fallback.getWorld(), sx / count + 0.5, sy / count + 1.5, sz / count + 0.5);
-    }
-
     private void orbitPlayerAroundCenter(Player player, Location center, double radius, int progress, int total, double verticalOffset) {
         if (player == null || center == null || center.getWorld() == null || total <= 0) return;
         double t = Math.min(1.0D, Math.max(0.0D, progress / (double) total));
@@ -1821,6 +1807,15 @@ public class EnvironmentManager {
         org.bukkit.util.Vector dir = center.toVector().subtract(cam.toVector());
         cam.setDirection(dir);
         player.teleport(cam);
+    }
+
+    private static int consumeAnimatedSteps(int totalItems, int elapsedTicks, int totalTicks, int lastConsumed) {
+        if (totalItems <= 0) return 0;
+        int safeTicks = Math.max(1, totalTicks);
+        int tick = Math.max(1, elapsedTicks);
+        int targetConsumed = (int) Math.ceil((tick * (double) totalItems) / safeTicks);
+        int toConsume = targetConsumed - lastConsumed;
+        return Math.max(1, toConsume);
     }
 
     // ----- Coop management -----
