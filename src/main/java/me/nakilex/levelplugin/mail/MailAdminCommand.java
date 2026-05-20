@@ -49,18 +49,20 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
     private void open(Player player) {
         Draft d = drafts.get(player.getUniqueId());
         Inventory inv = Bukkit.createInventory(null, 54, TITLE);
+        GuiUtil.fillBorder(inv, GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE));
         inv.setItem(10, GuiUtil.createGuiItem(Material.NAME_TAG, ChatColor.YELLOW + "Target: " + d.target(),
-                TooltipUtil.clickInstructions("to set target (player/all)", null)));
+                TooltipUtil.bulletList("Current: " + ChatColor.WHITE + d.target(), "Set target player or all")));
         inv.setItem(12, GuiUtil.createGuiItem(Material.GOLD_INGOT, ChatColor.GOLD + "Coins: " + d.coins(),
-                TooltipUtil.clickInstructions("to set amount", null)));
+                TooltipUtil.bulletList("Reward amount", "Shown as <glyph:coins_icon> on claim")));
         inv.setItem(14, GuiUtil.createGuiItem(Material.AMETHYST_SHARD, ChatColor.LIGHT_PURPLE + "Gems: " + d.gems(),
-                TooltipUtil.clickInstructions("to set amount", null)));
+                TooltipUtil.bulletList("Reward amount", "Shown as <glyph:purple_orb_icon> on claim")));
         inv.setItem(16, GuiUtil.createGuiItem(Material.EXPERIENCE_BOTTLE, ChatColor.AQUA + "XP: " + d.xp(),
-                TooltipUtil.clickInstructions("to set amount", null)));
+                TooltipUtil.bulletList("Reward amount")));
+        inv.setItem(30, GuiUtil.createGuiItem(Material.WRITABLE_BOOK, ChatColor.GOLD + "Subject",
+                TooltipUtil.bulletList("Current: " + ChatColor.WHITE + d.subject(), "Rename this mail")));
         inv.setItem(28, GuiUtil.createGuiItem(Material.CHEST, ChatColor.GREEN + "Items",
-                TooltipUtil.clickInstructions("to edit attachments", null)));
+                TooltipUtil.bulletList("Current attachments: " + ChatColor.WHITE + d.items().size(), "Edit attached items")));
         inv.setItem(49, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Send Mail", TooltipUtil.clickInstructions("to send", null)));
-        for (int i = 0; i < Math.min(7, d.items().size()); i++) inv.setItem(36 + i, d.items().get(i));
         player.openInventory(inv);
     }
 
@@ -83,7 +85,6 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
         }
         if (!GuiUtil.titleMatches(title, TITLE)) return;
         int slot = e.getRawSlot();
-        if (slot >= 36 && slot <= 42) { return; } // allow editing attachments
         e.setCancelled(true);
         Draft d = drafts.get(p.getUniqueId());
         if (d == null) return;
@@ -92,6 +93,7 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
             case 12 -> prompt(p, "Enter coin amount:", s -> drafts.put(p.getUniqueId(), d.with(null, parse(s), null, null, null, null)));
             case 14 -> prompt(p, "Enter gem amount:", s -> drafts.put(p.getUniqueId(), d.with(null, null, parse(s), null, null, null)));
             case 16 -> prompt(p, "Enter xp amount:", s -> drafts.put(p.getUniqueId(), d.with(null, null, null, parse(s), null, null)));
+            case 30 -> prompt(p, "Enter subject:", s -> drafts.put(p.getUniqueId(), d.with(null, null, null, null, sanitizeSubject(s), null)));
             case 28 -> openAttachments(p);
             case 49 -> send(p);
             default -> {}
@@ -119,13 +121,16 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
     }
 
     private void send(Player admin) {
-        Inventory top = admin.getOpenInventory().getTopInventory();
-        List<ItemStack> attachments = new ArrayList<>();
-        for (int i = 36; i <= 42; i++) {
-            ItemStack it = top.getItem(i);
-            if (it != null && !it.getType().isAir()) attachments.add(it.clone());
+        Draft d = drafts.get(admin.getUniqueId());
+        List<ItemStack> attachments = d == null ? List.of() : d.items().stream()
+                .filter(Objects::nonNull)
+                .filter(it -> !it.getType().isAir())
+                .map(ItemStack::clone)
+                .toList();
+        if (d == null) {
+            ChatMessageUtil.send(admin, ChatMessageUtil.MessageType.ERROR, "No mail draft found.");
+            return;
         }
-        Draft d = drafts.get(admin.getUniqueId()).with(null, null, null, null, null, attachments);
         if ("all".equalsIgnoreCase(d.target())) {
             int count = MailManager.getInstance().sendToAllKnown(admin.getUniqueId(), d.subject(), "Administrative mail.", d.coins(), d.gems(), d.xp(), attachments);
             ChatMessageUtil.send(admin, ChatMessageUtil.MessageType.SUCCESS, "Sent to " + count + " players.");
@@ -148,5 +153,11 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
         }).withLocalEcho(false).buildConversation(p).begin();
     }
     private int parse(String s) { try { return Math.max(0, Integer.parseInt(s.trim())); } catch (Exception ignored) { return 0; } }
+    private String sanitizeSubject(String subject) {
+        if (subject == null) return "Admin Mail";
+        String trimmed = subject.trim();
+        if (trimmed.isEmpty()) return "Admin Mail";
+        return trimmed.length() > 48 ? trimmed.substring(0, 48) : trimmed;
+    }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) { return List.of(); }
 }

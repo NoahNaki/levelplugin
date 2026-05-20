@@ -17,7 +17,7 @@ public final class MailManager {
 
     public record MailEntry(String id, UUID sender, String subject, String body, long createdAt,
                             int coins, int gems, int xp, List<ItemStack> items, boolean claimed, boolean read) {}
-    public record ClaimResult(int coins, int gems, int xp, int itemCount) {}
+    public record ClaimResult(int coins, int gems, int xp, int itemCount, List<ItemStack> items) {}
 
     public List<MailEntry> getInbox(UUID playerId) {
         var cfg = Main.getInstance().getPlayerConfig().getConfig();
@@ -117,7 +117,8 @@ public final class MailManager {
         cfg.set(base + "claimed", true);
         cfg.set(base + "read", true);
         Main.getInstance().getPlayerConfig().saveConfigFile();
-        return new ClaimResult(mail.coins(), mail.gems(), mail.xp(), mail.items().size());
+        return new ClaimResult(mail.coins(), mail.gems(), mail.xp(), mail.items().size(),
+                new ArrayList<>(mail.items()));
     }
 
     public String senderName(UUID sender) {
