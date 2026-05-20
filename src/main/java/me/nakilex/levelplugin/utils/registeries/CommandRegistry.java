@@ -357,10 +357,10 @@ public class CommandRegistry {
                 new me.nakilex.levelplugin.player.commands.ProfileCommand();
         plugin.getCommand("profile").setExecutor(profileCmd);
         plugin.getCommand("profile").setTabCompleter(profileCmd);
-        MailCommand mailCommand = new MailCommand();
+        MailCommand mailCommand = MailCommand.getInstance();
         plugin.getCommand("mail").setExecutor(mailCommand);
         plugin.getCommand("mail").setTabCompleter(mailCommand);
-        MailAdminCommand mailAdminCommand = new MailAdminCommand();
+        MailAdminCommand mailAdminCommand = MailAdminCommand.getInstance();
         plugin.getCommand("mailadmin").setExecutor(mailAdminCommand);
         plugin.getCommand("mailadmin").setTabCompleter(mailAdminCommand);
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());

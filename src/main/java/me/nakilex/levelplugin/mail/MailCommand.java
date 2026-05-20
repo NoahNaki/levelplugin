@@ -17,6 +17,13 @@ import java.util.*;
 
 public final class MailCommand implements CommandExecutor, TabCompleter, Listener {
     private static final String TITLE = "Mailbox";
+    private static final MailCommand INSTANCE = new MailCommand();
+
+    private MailCommand() {}
+
+    public static MailCommand getInstance() {
+        return INSTANCE;
+    }
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) return true;

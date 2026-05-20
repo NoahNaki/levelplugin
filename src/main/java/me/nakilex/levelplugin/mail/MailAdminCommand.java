@@ -22,12 +22,19 @@ import java.util.*;
 
 public final class MailAdminCommand implements CommandExecutor, TabCompleter, Listener {
     private static final String TITLE = "Mail Admin";
+    private static final MailAdminCommand INSTANCE = new MailAdminCommand();
     private final Map<UUID, Draft> drafts = new HashMap<>();
     private record Draft(String target, int coins, int gems, int xp, String subject, List<ItemStack> items) {
         Draft with(String t, Integer c, Integer g, Integer x, String s, List<ItemStack> i) {
             return new Draft(t == null ? target : t, c == null ? coins : c, g == null ? gems : g, x == null ? xp : x,
                     s == null ? subject : s, i == null ? items : i);
         }
+    }
+
+    private MailAdminCommand() {}
+
+    public static MailAdminCommand getInstance() {
+        return INSTANCE;
     }
 
     @Override
