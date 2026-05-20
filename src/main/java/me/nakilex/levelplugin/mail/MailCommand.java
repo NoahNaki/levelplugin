@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.mail;
 
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -33,23 +35,28 @@ public final class MailCommand implements CommandExecutor, TabCompleter, Listene
 
     private void openInbox(Player player) {
         Inventory inv = Bukkit.createInventory(null, 54, TITLE);
+        GuiUtil.fillBorder(inv, GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE));
         List<MailManager.MailEntry> inbox = MailManager.getInstance().getInbox(player.getUniqueId());
-        int slot = 0;
+        int slot = 10;
         for (MailManager.MailEntry mail : inbox) {
-            if (slot >= 45) break;
+            if (slot > 43) break;
+            if (slot % 9 == 8) slot += 2;
             ItemStack paper = new ItemStack(mail.claimed() ? Material.MAP : Material.PAPER);
             ItemMeta meta = paper.getItemMeta();
             if (meta != null) {
                 meta.setDisplayName((mail.claimed() ? ChatColor.GRAY : ChatColor.GOLD) + mail.subject());
                 List<String> lore = new ArrayList<>();
-                lore.add(ChatColor.DARK_GRAY + "From: " + ChatColor.GRAY + MailManager.getInstance().senderName(mail.sender()));
-                lore.add(ChatColor.GRAY + mail.body());
-                lore.add(ChatColor.YELLOW + "Coins: " + ChatColor.GOLD + mail.coins());
-                lore.add(ChatColor.LIGHT_PURPLE + "Gems: " + ChatColor.WHITE + mail.gems());
-                lore.add(ChatColor.AQUA + "XP: " + ChatColor.WHITE + mail.xp());
-                lore.add(ChatColor.GRAY + "Items: " + ChatColor.WHITE + mail.items().size());
-                lore.add("");
-                lore.add(mail.claimed() ? ChatColor.DARK_GRAY + "Already claimed." : ChatColor.GREEN + "Click to claim.");
+                lore.addAll(TooltipUtil.bulletList("From: " + ChatColor.WHITE + MailManager.getInstance().senderName(mail.sender())));
+                lore.addAll(TooltipUtil.wrapLoreLine(ChatColor.GRAY + mail.body(), 150));
+                lore.add(" ");
+                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Rewards"));
+                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "" + mail.coins() + " <glyph:coins_icon>"));
+                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "" + mail.gems() + " <glyph:purple_orb_icon>"));
+                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "" + mail.xp() + " XP"));
+                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "" + mail.items().size() + " Items"));
+                lore.add(" ");
+                lore.addAll(TooltipUtil.clickInstructions(mail.claimed() ? null : "to claim rewards", null));
+                if (mail.claimed()) lore.add(ChatColor.DARK_GRAY + "Already claimed.");
                 lore.add(ChatColor.DARK_GRAY + "mail:" + mail.id());
                 meta.setLore(lore);
                 paper.setItemMeta(meta);
@@ -62,7 +69,7 @@ public final class MailCommand implements CommandExecutor, TabCompleter, Listene
     @EventHandler
     public void onClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) return;
-        if (!event.getView().getTitle().equals(TITLE)) return;
+        if (!GuiUtil.titleMatches(event.getView().getTitle(), TITLE)) return;
         event.setCancelled(true);
         ItemStack current = event.getCurrentItem();
         if (current == null || !current.hasItemMeta() || current.getItemMeta().getLore() == null) return;
@@ -72,11 +79,11 @@ public final class MailCommand implements CommandExecutor, TabCompleter, Listene
         MailManager.getInstance().markRead(player.getUniqueId(), id);
         MailManager.ClaimResult result = MailManager.getInstance().claimWithResult(player, id);
         if (result != null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Mail claimed: "
-                    + result.coins() + " coins, "
-                    + result.gems() + " gems, "
-                    + result.xp() + " xp, "
-                    + result.itemCount() + " items.");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Quest-style reward claim:");
+            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.GRAY + result.coins() + " <glyph:coins_icon>");
+            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.GRAY + result.gems() + " <glyph:purple_orb_icon>");
+            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.GRAY + result.xp() + " XP");
+            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.GRAY + result.itemCount() + " items");
             openInbox(player);
         }
     }
