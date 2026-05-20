@@ -22,6 +22,7 @@ import java.util.*;
 
 public final class MailAdminCommand implements CommandExecutor, TabCompleter, Listener {
     private static final String TITLE = "Mail Admin";
+    private static final String ATTACHMENTS_TITLE = "Mail Attachments";
     private static final MailAdminCommand INSTANCE = new MailAdminCommand();
     private final Map<UUID, Draft> drafts = new HashMap<>();
     private record Draft(String target, int coins, int gems, int xp, String subject, List<ItemStack> items) {
@@ -56,16 +57,31 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
                 TooltipUtil.clickInstructions("to set amount", null)));
         inv.setItem(16, GuiUtil.createGuiItem(Material.EXPERIENCE_BOTTLE, ChatColor.AQUA + "XP: " + d.xp(),
                 TooltipUtil.clickInstructions("to set amount", null)));
-        inv.setItem(28, GuiUtil.createGuiItem(Material.BOOK, ChatColor.GREEN + "Subject: " + d.subject(),
-                TooltipUtil.clickInstructions("to set subject", null)));
+        inv.setItem(28, GuiUtil.createGuiItem(Material.CHEST, ChatColor.GREEN + "Items",
+                TooltipUtil.clickInstructions("to edit attachments", null)));
         inv.setItem(49, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Send Mail", TooltipUtil.clickInstructions("to send", null)));
         for (int i = 0; i < Math.min(7, d.items().size()); i++) inv.setItem(36 + i, d.items().get(i));
         player.openInventory(inv);
     }
 
+    private void openAttachments(Player player) {
+        Draft d = drafts.get(player.getUniqueId());
+        Inventory inv = Bukkit.createInventory(null, 54, ATTACHMENTS_TITLE);
+        for (int i = 0; i < Math.min(45, d.items().size()); i++) {
+            inv.setItem(i, d.items().get(i));
+        }
+        inv.setItem(49, GuiUtil.getNexoItem("arrow_left2", ChatColor.YELLOW + "Back", TooltipUtil.clickInstructions("to return to admin mail", null)));
+        player.openInventory(inv);
+    }
+
     @EventHandler public void click(InventoryClickEvent e) {
         if (!(e.getWhoClicked() instanceof Player p)) return;
-        if (!GuiUtil.titleMatches(e.getView().getTitle(), TITLE)) return;
+        String title = e.getView().getTitle();
+        if (GuiUtil.titleMatches(title, ATTACHMENTS_TITLE)) {
+            handleAttachmentsClick(e, p);
+            return;
+        }
+        if (!GuiUtil.titleMatches(title, TITLE)) return;
         int slot = e.getRawSlot();
         if (slot >= 36 && slot <= 42) { return; } // allow editing attachments
         e.setCancelled(true);
@@ -76,9 +92,29 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
             case 12 -> prompt(p, "Enter coin amount:", s -> drafts.put(p.getUniqueId(), d.with(null, parse(s), null, null, null, null)));
             case 14 -> prompt(p, "Enter gem amount:", s -> drafts.put(p.getUniqueId(), d.with(null, null, parse(s), null, null, null)));
             case 16 -> prompt(p, "Enter xp amount:", s -> drafts.put(p.getUniqueId(), d.with(null, null, null, parse(s), null, null)));
-            case 28 -> prompt(p, "Enter subject:", s -> drafts.put(p.getUniqueId(), d.with(null, null, null, null, s.trim(), null)));
+            case 28 -> openAttachments(p);
             case 49 -> send(p);
             default -> {}
+        }
+    }
+
+    private void handleAttachmentsClick(InventoryClickEvent event, Player player) {
+        int rawSlot = event.getRawSlot();
+        if (rawSlot == 49) {
+            event.setCancelled(true);
+            Inventory inv = event.getView().getTopInventory();
+            List<ItemStack> attachments = new ArrayList<>();
+            for (int i = 0; i < 45; i++) {
+                ItemStack item = inv.getItem(i);
+                if (item != null && !item.getType().isAir()) attachments.add(item.clone());
+            }
+            Draft current = drafts.get(player.getUniqueId());
+            if (current != null) drafts.put(player.getUniqueId(), current.with(null, null, null, null, null, attachments));
+            open(player);
+            return;
+        }
+        if (rawSlot >= 0 && rawSlot < event.getView().getTopInventory().getSize()) {
+            event.setCancelled(rawSlot >= 45);
         }
     }
 

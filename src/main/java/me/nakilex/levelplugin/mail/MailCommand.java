@@ -70,8 +70,13 @@ public final class MailCommand implements CommandExecutor, TabCompleter, Listene
         if (token == null) return;
         String id = token.substring((ChatColor.DARK_GRAY + "mail:").length());
         MailManager.getInstance().markRead(player.getUniqueId(), id);
-        if (MailManager.getInstance().claim(player, id)) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Mail claimed.");
+        MailManager.ClaimResult result = MailManager.getInstance().claimWithResult(player, id);
+        if (result != null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Mail claimed: "
+                    + result.coins() + " coins, "
+                    + result.gems() + " gems, "
+                    + result.xp() + " xp, "
+                    + result.itemCount() + " items.");
             openInbox(player);
         }
     }

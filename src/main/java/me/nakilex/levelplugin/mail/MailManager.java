@@ -17,6 +17,7 @@ public final class MailManager {
 
     public record MailEntry(String id, UUID sender, String subject, String body, long createdAt,
                             int coins, int gems, int xp, List<ItemStack> items, boolean claimed, boolean read) {}
+    public record ClaimResult(int coins, int gems, int xp, int itemCount) {}
 
     public List<MailEntry> getInbox(UUID playerId) {
         var cfg = Main.getInstance().getPlayerConfig().getConfig();
@@ -88,12 +89,16 @@ public final class MailManager {
     }
 
     public boolean claim(Player player, String mailId) {
+        return claimWithResult(player, mailId) != null;
+    }
+
+    public ClaimResult claimWithResult(Player player, String mailId) {
         UUID playerId = player.getUniqueId();
         MailEntry mail = getInbox(playerId).stream().filter(m -> m.id().equals(mailId)).findFirst().orElse(null);
-        if (mail == null || mail.claimed()) return false;
+        if (mail == null || mail.claimed()) return null;
         if (!mail.items().isEmpty() && player.getInventory().firstEmpty() == -1) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Not enough inventory space to claim this mail.");
-            return false;
+            return null;
         }
         if (mail.coins() > 0 && Main.getInstance().getEconomyManager() != null) {
             Main.getInstance().getEconomyManager().addCoins(player, mail.coins());
@@ -112,7 +117,7 @@ public final class MailManager {
         cfg.set(base + "claimed", true);
         cfg.set(base + "read", true);
         Main.getInstance().getPlayerConfig().saveConfigFile();
-        return true;
+        return new ClaimResult(mail.coins(), mail.gems(), mail.xp(), mail.items().size());
     }
 
     public String senderName(UUID sender) {
