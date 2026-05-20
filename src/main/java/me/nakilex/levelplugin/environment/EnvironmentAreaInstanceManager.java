@@ -31,6 +31,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import net.kyori.adventure.text.Component;
@@ -119,6 +120,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
     private final Map<UUID, UUID> coopOwnerByMember = new HashMap<>(); // member -> owner
     private final Map<UUID, UUID> coopPartnerByOwner = new HashMap<>(); // owner -> member
+    private final Map<UUID, UUID> pendingConfirmJoinOwner = new HashMap<>();
+    private static final String COOP_CONFIRM_TITLE = "Confirm Co-op Join";
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -231,6 +234,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "That debug area is no longer active.");
             return;
         }
+        if (hasSession(player.getUniqueId())) {
+            pendingConfirmJoinOwner.put(player.getUniqueId(), ownerId);
+            openCoopConfirm(player, ownerId);
+            return;
+        }
+        completeDebugCoopJoin(player, ownerId, ownerSession);
+    }
+
+    private void completeDebugCoopJoin(Player player, UUID ownerId, EnvironmentAreaSession ownerSession) {
         Location tp = lastValidLocations.getOrDefault(ownerId,
                 new Location(ownerSession.world(), ownerSession.originX() + (AREA.width() / 2.0), ownerSession.originY() + 1.0, ownerSession.originZ() + (AREA.depth() / 2.0)));
         coopOwnerByMember.put(player.getUniqueId(), ownerId);
@@ -240,6 +252,39 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         Player owner = Bukkit.getPlayer(ownerId);
         if (owner != null) {
             ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.INFO, ChatColor.WHITE + player.getName() + ChatColor.GRAY + " joined your debug area.");
+        }
+    }
+
+    private void openCoopConfirm(Player player, UUID ownerId) {
+        var inv = Bukkit.createInventory(null, 27, COOP_CONFIRM_TITLE);
+        inv.setItem(11, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm"));
+        inv.setItem(15, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
+        player.openInventory(inv);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                "Joining " + Bukkit.getOfflinePlayer(ownerId).getName() + " will replace your current debug area session.");
+    }
+
+    @EventHandler
+    public void onCoopConfirmClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (!COOP_CONFIRM_TITLE.equals(event.getView().getTitle())) return;
+        event.setCancelled(true);
+        UUID ownerId = pendingConfirmJoinOwner.get(player.getUniqueId());
+        if (ownerId == null) {
+            player.closeInventory();
+            return;
+        }
+        if (event.getRawSlot() == 11) {
+            EnvironmentAreaSession ownerSession = sessions.get(ownerId);
+            if (ownerSession != null) {
+                completeDebugCoopJoin(player, ownerId, ownerSession);
+            }
+            pendingConfirmJoinOwner.remove(player.getUniqueId());
+            player.closeInventory();
+        } else if (event.getRawSlot() == 15) {
+            pendingConfirmJoinOwner.remove(player.getUniqueId());
+            player.closeInventory();
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Co-op join cancelled.");
         }
     }
 
@@ -276,6 +321,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (partner != null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Debug Area Partner: " + ChatColor.WHITE + Bukkit.getOfflinePlayer(partner).getName());
         }
+    }
+
+    public String getDebugCoopPartnerName(UUID ownerId) {
+        if (ownerId == null) return null;
+        UUID partner = coopPartnerByOwner.get(ownerId);
+        if (partner == null) return null;
+        return Bukkit.getOfflinePlayer(partner).getName();
     }
 
     public void kick(Player ownerPlayer, Player target) {

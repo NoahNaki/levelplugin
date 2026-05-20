@@ -53,7 +53,6 @@ public class ProfileCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 pm.createProfile(player.getUniqueId(), slot, args[1]);
-                EnvironmentAreaInstanceManager.getInstance(Main.getInstance()).initialize(player);
                 ProfileSelectionGUI.markNewProfile(player, slot);
                 player.sendMessage(ChatColor.GREEN + "Profile created in slot " + (slot + 1) + ".");
                 return true;

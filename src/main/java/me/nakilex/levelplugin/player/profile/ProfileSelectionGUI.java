@@ -255,10 +255,15 @@ public class ProfileSelectionGUI implements Listener {
             int total = qm.getTotalQuestCount();
 
             int playMinutes = profile.getPlayMinutes();
+            String coopPartner = EnvironmentAreaInstanceManager.getInstance(Main.getInstance())
+                    .getDebugCoopPartnerName(player.getUniqueId());
 
             String className = pc.getDisplayName();
 
             lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + level);
+            if (coopPartner != null && !coopPartner.isBlank()) {
+                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Shared co-op with " + ChatColor.WHITE + coopPartner));
+            }
             lore.add(ChatColor.GRAY + "XP: " + ChatColor.WHITE + pct + "%");
             lore.add(ChatColor.GRAY + "Class: " + ChatColor.WHITE + className);
             lore.add(ChatColor.GRAY + "Finished Quests: " + ChatColor.WHITE + completed + "/" + total);
@@ -340,12 +345,7 @@ public class ProfileSelectionGUI implements Listener {
         org.bukkit.Location loc = cfg.getProfileLocation(player.getUniqueId(), index);
         if (loc != null) player.teleport(loc);
 
-        // Start the introductory quest for brand new characters
         QuestManager qm = Main.getInstance().getQuestManager();
-        if (!qm.hasCompleted(player.getUniqueId(), "officeerrands") &&
-                qm.getProgress(player.getUniqueId(), "officeerrands") == null) {
-            qm.startQuest(player, "officeerrands");
-        }
 
         loadProfileInventory(player, cfg, index);
         me.nakilex.levelplugin.player.attributes.managers.StatsManager statsManager =
@@ -447,7 +447,6 @@ public class ProfileSelectionGUI implements Listener {
                         }
                         ProfileManager pm = ProfileManager.getInstance();
                         pm.createProfile(player.getUniqueId(), index, input.trim());
-                        EnvironmentAreaInstanceManager.getInstance(Main.getInstance()).initialize(player);
                         player.getInventory().clear();
                         me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
                         markNewProfile(player, index);
