@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.mail;
 
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
@@ -93,11 +94,7 @@ public final class MailCommand implements CommandExecutor, TabCompleter, Listene
         MailManager.getInstance().markRead(player.getUniqueId(), id);
         MailManager.ClaimResult result = MailManager.getInstance().claimWithResult(player, id);
         if (result != null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Quest-style reward claim:");
-            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.WHITE + result.coins() + " " + ChatColor.GOLD + "<glyph:coins_icon>");
-            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.WHITE + result.gems() + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
-            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.WHITE + result.xp() + ChatColor.GRAY + " XP");
-            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.WHITE + result.itemCount() + ChatColor.GRAY + " items");
+            sendClaimRewardMessage(player, current.getItemMeta().getDisplayName(), result);
             openInbox(player);
         }
     }
@@ -136,5 +133,31 @@ public final class MailCommand implements CommandExecutor, TabCompleter, Listene
             sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
         }
         return sb.toString();
+    }
+
+    private void sendClaimRewardMessage(Player player, String subject, MailManager.ClaimResult result) {
+        ChatFormatter.constructDivider(player, "", 45);
+        ChatFormatter.sendCenteredMessage(player, ChatColor.GOLD + "" + ChatColor.BOLD + "Mail Claimed!");
+        ChatFormatter.sendCenteredMessage(player, ChatColor.YELLOW + ChatColor.stripColor(subject));
+        ChatFormatter.constructDivider(player, " ", 45);
+        ChatFormatter.sendIndentedMessage(player, ChatColor.GREEN + "Rewards:");
+        if (result.coins() > 0) {
+            ChatFormatter.sendIndentedMessage(player,
+                    ChatColor.GREEN + "- " + ChatColor.WHITE + result.coins() + " " + ChatColor.GOLD + "<glyph:coins_icon>");
+        }
+        if (result.gems() > 0) {
+            ChatFormatter.sendIndentedMessage(player,
+                    ChatColor.GREEN + "- " + ChatColor.WHITE + result.gems() + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
+        }
+        if (result.xp() > 0) {
+            String expLabel = ChatFormatter.experienceLabel();
+            String expColor = ChatFormatter.experienceColor();
+            ChatFormatter.sendIndentedMessage(player,
+                    ChatColor.GREEN + "- " + expColor + result.xp() + ChatColor.RESET + " <glyph:experience_orb_icon> " + expLabel);
+        }
+        for (ItemStack item : result.items()) {
+            ChatFormatter.sendIndentedMessage(player, ChatColor.GREEN + "- " + formatAttachmentLine(item));
+        }
+        ChatFormatter.constructDivider(player, " ", 45);
     }
 }
