@@ -21,6 +21,12 @@ public final class KingdomCommand implements CommandExecutor, TabCompleter {
             manager.initialize(player);
             return true;
         }
+        if ("create".equalsIgnoreCase(args[0])) {
+            manager.removeKingdom(player.getUniqueId());
+            manager.initialize(player);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Created a fresh kingdom.");
+            return true;
+        }
         if ("visit".equalsIgnoreCase(args[0])) {
             if (args.length < 2) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /kingdom visit <player>");
@@ -34,13 +40,13 @@ public final class KingdomCommand implements CommandExecutor, TabCompleter {
             manager.visit(player, target);
             return true;
         }
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /kingdom [visit <player>]");
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Usage: /kingdom [create|visit <player>]");
         return true;
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return List.of("visit");
+        if (args.length == 1) return List.of("create", "visit");
         return null;
     }
 }

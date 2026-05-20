@@ -261,7 +261,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private void openCoopConfirm(Player player, UUID ownerId) {
         var inv = Bukkit.createInventory(null, 27, COOP_CONFIRM_TITLE);
-        inv.setItem(11, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm"));
+        inv.setItem(11, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm",
+                me.nakilex.levelplugin.utils.TooltipUtil.bulletList(
+                        ChatColor.RED + "This will delete the progress",
+                        ChatColor.RED + "of your current kingdom.")));
         inv.setItem(15, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         player.openInventory(inv);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
