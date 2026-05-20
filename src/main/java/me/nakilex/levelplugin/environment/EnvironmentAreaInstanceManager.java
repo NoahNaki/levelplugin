@@ -181,6 +181,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     originZ + (AREA.depth() / 2.0));
         }
         spawn = spawn.clone().add(0.5, 0.0, 0.5);
+        spawn.setYaw(90.0f); // west
+        spawn.setPitch(0.0f);
         world.setSpawnLocation(spawn);
         lastValidLocations.put(target.getUniqueId(), spawn.clone());
         target.teleport(spawn);

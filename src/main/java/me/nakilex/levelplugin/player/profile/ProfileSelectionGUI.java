@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
+import me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -321,20 +322,8 @@ public class ProfileSelectionGUI implements Listener {
         Integer active = pm.getActiveSlot(player.getUniqueId());
         boolean sameActive = active != null && active == index;
 
-        // If this is the first profile the player ever created and
-        // they are selecting it for the first time, start the intro quest.
         Integer pending = FIRST_PROFILE_SLOT.get(player.getUniqueId());
         if (pending != null && pending == index) {
-            QuestManager questManager = Main.getInstance().getQuestManager();
-            long existingProfiles = pm.getProfiles(player.getUniqueId()).stream()
-                    .filter(java.util.Objects::nonNull)
-                    .count();
-            if (existingProfiles <= 1) {
-                questManager.clearPlayerData(player.getUniqueId());
-            } else {
-                questManager.resetQuest(player.getUniqueId(), "officeerrands", true);
-            }
-            questManager.startQuest(player, "officeerrands");
             FIRST_PROFILE_SLOT.remove(player.getUniqueId());
         }
 
@@ -458,6 +447,7 @@ public class ProfileSelectionGUI implements Listener {
                         }
                         ProfileManager pm = ProfileManager.getInstance();
                         pm.createProfile(player.getUniqueId(), index, input.trim());
+                        EnvironmentAreaInstanceManager.getInstance(Main.getInstance()).initialize(player);
                         player.getInventory().clear();
                         me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
                         markNewProfile(player, index);

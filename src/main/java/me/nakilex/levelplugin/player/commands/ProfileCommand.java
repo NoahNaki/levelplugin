@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.player.commands;
 import me.nakilex.levelplugin.player.profile.PlayerProfile;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.player.profile.ProfileSelectionGUI;
+import me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager;
+import me.nakilex.levelplugin.Main;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -51,6 +53,7 @@ public class ProfileCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 pm.createProfile(player.getUniqueId(), slot, args[1]);
+                EnvironmentAreaInstanceManager.getInstance(Main.getInstance()).initialize(player);
                 ProfileSelectionGUI.markNewProfile(player, slot);
                 player.sendMessage(ChatColor.GREEN + "Profile created in slot " + (slot + 1) + ".");
                 return true;
