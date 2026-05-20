@@ -14,6 +14,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import me.nakilex.levelplugin.items.data.ItemRarity;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 
 import java.util.*;
 
@@ -50,10 +52,22 @@ public final class MailCommand implements CommandExecutor, TabCompleter, Listene
                 lore.addAll(TooltipUtil.wrapLoreLine(ChatColor.GRAY + mail.body(), 150));
                 lore.add(" ");
                 lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Rewards"));
-                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "" + mail.coins() + " <glyph:coins_icon>"));
-                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "" + mail.gems() + " <glyph:purple_orb_icon>"));
-                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "" + mail.xp() + " XP"));
-                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "" + mail.items().size() + " Items"));
+                lore.add(TooltipUtil.bulletLine(ChatColor.WHITE + "" + mail.coins() + " " + ChatColor.GOLD + "<glyph:coins_icon>"));
+                lore.add(TooltipUtil.bulletLine(ChatColor.WHITE + "" + mail.gems() + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>"));
+                lore.add(TooltipUtil.bulletLine(ChatColor.WHITE + "" + mail.xp() + ChatColor.GRAY + " XP"));
+                lore.add(TooltipUtil.bulletLine(ChatColor.WHITE + "" + mail.items().size() + ChatColor.GRAY + " Items"));
+                if (!mail.items().isEmpty()) {
+                    lore.add(" ");
+                    lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Attachments"));
+                    int maxLines = Math.min(4, mail.items().size());
+                    for (int i = 0; i < maxLines; i++) {
+                        ItemStack attachment = mail.items().get(i);
+                        lore.add(TooltipUtil.bulletLine(formatAttachmentLine(attachment)));
+                    }
+                    if (mail.items().size() > maxLines) {
+                        lore.add(TooltipUtil.bulletLine(ChatColor.DARK_GRAY + "+" + String.valueOf(mail.items().size() - maxLines) + " more"));
+                    }
+                }
                 lore.add(" ");
                 lore.addAll(TooltipUtil.clickInstructions(mail.claimed() ? null : "to claim rewards", null));
                 if (mail.claimed()) lore.add(ChatColor.DARK_GRAY + "Already claimed.");
@@ -80,10 +94,10 @@ public final class MailCommand implements CommandExecutor, TabCompleter, Listene
         MailManager.ClaimResult result = MailManager.getInstance().claimWithResult(player, id);
         if (result != null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Quest-style reward claim:");
-            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.GRAY + result.coins() + " <glyph:coins_icon>");
-            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.GRAY + result.gems() + " <glyph:purple_orb_icon>");
-            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.GRAY + result.xp() + " XP");
-            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.GRAY + result.itemCount() + " items");
+            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.WHITE + result.coins() + " " + ChatColor.GOLD + "<glyph:coins_icon>");
+            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.WHITE + result.gems() + " " + ChatColor.LIGHT_PURPLE + "<glyph:purple_orb_icon>");
+            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.WHITE + result.xp() + ChatColor.GRAY + " XP");
+            player.sendMessage(ChatColor.GREEN + "- " + ChatColor.WHITE + result.itemCount() + ChatColor.GRAY + " items");
             openInbox(player);
         }
     }
@@ -91,5 +105,36 @@ public final class MailCommand implements CommandExecutor, TabCompleter, Listene
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         return List.of();
+    }
+
+    private String formatAttachmentLine(ItemStack stack) {
+        if (stack == null || stack.getType().isAir()) {
+            return ChatColor.GRAY + "Unknown Item";
+        }
+        int amount = Math.max(1, stack.getAmount());
+        String amountText = ChatColor.WHITE + String.valueOf(amount) + "x ";
+
+        String displayName = resolveItemDisplayName(stack);
+        ItemRarity rarity = ItemUtil.getCustomItemRarity(stack);
+        if (rarity != null && ItemUtil.isWeaponOrArmor(stack)) {
+            return amountText + rarity.getColor() + ChatColor.stripColor(displayName);
+        }
+        return amountText + ChatColor.GRAY + ChatColor.stripColor(displayName);
+    }
+
+    private String resolveItemDisplayName(ItemStack stack) {
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null && meta.hasDisplayName() && meta.getDisplayName() != null && !meta.getDisplayName().isBlank()) {
+            return meta.getDisplayName();
+        }
+        String friendly = stack.getType().name().toLowerCase(Locale.ROOT).replace('_', ' ');
+        String[] parts = friendly.split(" ");
+        StringBuilder sb = new StringBuilder();
+        for (String part : parts) {
+            if (part.isBlank()) continue;
+            if (!sb.isEmpty()) sb.append(' ');
+            sb.append(Character.toUpperCase(part.charAt(0))).append(part.substring(1));
+        }
+        return sb.toString();
     }
 }

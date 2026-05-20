@@ -58,6 +58,8 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
                 TooltipUtil.bulletList("Reward amount", "Shown as <glyph:purple_orb_icon> on claim")));
         inv.setItem(16, GuiUtil.createGuiItem(Material.EXPERIENCE_BOTTLE, ChatColor.AQUA + "XP: " + d.xp(),
                 TooltipUtil.bulletList("Reward amount")));
+        inv.setItem(30, GuiUtil.createGuiItem(Material.WRITABLE_BOOK, ChatColor.GOLD + "Subject",
+                TooltipUtil.bulletList("Current: " + ChatColor.WHITE + d.subject(), "Rename this mail")));
         inv.setItem(28, GuiUtil.createGuiItem(Material.CHEST, ChatColor.GREEN + "Items",
                 TooltipUtil.bulletList("Current attachments: " + ChatColor.WHITE + d.items().size(), "Edit attached items")));
         inv.setItem(49, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Send Mail", TooltipUtil.clickInstructions("to send", null)));
@@ -93,6 +95,7 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
             case 12 -> prompt(p, "Enter coin amount:", s -> drafts.put(p.getUniqueId(), d.with(null, parse(s), null, null, null, null)));
             case 14 -> prompt(p, "Enter gem amount:", s -> drafts.put(p.getUniqueId(), d.with(null, null, parse(s), null, null, null)));
             case 16 -> prompt(p, "Enter xp amount:", s -> drafts.put(p.getUniqueId(), d.with(null, null, null, parse(s), null, null)));
+            case 30 -> prompt(p, "Enter subject:", s -> drafts.put(p.getUniqueId(), d.with(null, null, null, null, sanitizeSubject(s), null)));
             case 28 -> openAttachments(p);
             case 49 -> send(p);
             default -> {}
@@ -149,5 +152,11 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
         }).withLocalEcho(false).buildConversation(p).begin();
     }
     private int parse(String s) { try { return Math.max(0, Integer.parseInt(s.trim())); } catch (Exception ignored) { return 0; } }
+    private String sanitizeSubject(String subject) {
+        if (subject == null) return "Admin Mail";
+        String trimmed = subject.trim();
+        if (trimmed.isEmpty()) return "Admin Mail";
+        return trimmed.length() > 48 ? trimmed.substring(0, 48) : trimmed;
+    }
     @Override public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) { return List.of(); }
 }
