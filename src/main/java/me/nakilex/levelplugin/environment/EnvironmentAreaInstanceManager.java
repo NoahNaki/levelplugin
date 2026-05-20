@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Debug/test harness for the new environment-area flow. It captures configured
@@ -96,6 +97,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
+    private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -120,10 +122,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return false;
         }
 
-        CuboidTemplate areaTemplate = capture(source, AREA);
+        CuboidTemplate areaTemplate = getOrCaptureTemplate(source, "area:base", AREA);
         Map<Integer, CuboidTemplate> buildingTemplates = new HashMap<>();
         for (BuildingTemplate building : BUILDINGS) {
-            buildingTemplates.put(building.slot(), capture(source, building.source()));
+            buildingTemplates.put(building.slot(),
+                    getOrCaptureTemplate(source, "building:" + building.id().toLowerCase(Locale.ROOT), building.source()));
         }
 
         World world = recreateWorld(target.getUniqueId());
@@ -172,7 +175,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return List.of("Unknown template: " + templateName);
         }
 
-        CuboidTemplate template = capture(source, building.source());
+        CuboidTemplate template = getOrCaptureTemplate(source,
+                "building:" + building.id().toLowerCase(Locale.ROOT), building.source());
         Map<Material, Integer> counts = new HashMap<>();
         for (CuboidTemplate.BlockCopy copy : template.blocks()) {
             counts.merge(copy.data().getMaterial(), 1, Integer::sum);
@@ -208,6 +212,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return CuboidTemplate.capture(
                 new Location(source, cuboid.x1(), cuboid.y1(), cuboid.z1()),
                 new Location(source, cuboid.x2(), cuboid.y2(), cuboid.z2()));
+    }
+
+    private CuboidTemplate getOrCaptureTemplate(World source, String templateKey, Cuboid cuboid) {
+        String worldScopedKey = source.getUID() + ":" + templateKey;
+        return templateCache.computeIfAbsent(worldScopedKey, ignored -> capture(source, cuboid));
     }
 
 
