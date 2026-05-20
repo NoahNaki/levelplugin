@@ -63,7 +63,6 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
         inv.setItem(28, GuiUtil.createGuiItem(Material.CHEST, ChatColor.GREEN + "Items",
                 TooltipUtil.bulletList("Current attachments: " + ChatColor.WHITE + d.items().size(), "Edit attached items")));
         inv.setItem(49, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Send Mail", TooltipUtil.clickInstructions("to send", null)));
-        for (int i = 0; i < Math.min(7, d.items().size()); i++) inv.setItem(36 + i, d.items().get(i));
         player.openInventory(inv);
     }
 
@@ -86,7 +85,6 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
         }
         if (!GuiUtil.titleMatches(title, TITLE)) return;
         int slot = e.getRawSlot();
-        if (slot >= 36 && slot <= 42) { return; } // allow editing attachments
         e.setCancelled(true);
         Draft d = drafts.get(p.getUniqueId());
         if (d == null) return;
@@ -123,13 +121,16 @@ public final class MailAdminCommand implements CommandExecutor, TabCompleter, Li
     }
 
     private void send(Player admin) {
-        Inventory top = admin.getOpenInventory().getTopInventory();
-        List<ItemStack> attachments = new ArrayList<>();
-        for (int i = 36; i <= 42; i++) {
-            ItemStack it = top.getItem(i);
-            if (it != null && !it.getType().isAir()) attachments.add(it.clone());
+        Draft d = drafts.get(admin.getUniqueId());
+        List<ItemStack> attachments = d == null ? List.of() : d.items().stream()
+                .filter(Objects::nonNull)
+                .filter(it -> !it.getType().isAir())
+                .map(ItemStack::clone)
+                .toList();
+        if (d == null) {
+            ChatMessageUtil.send(admin, ChatMessageUtil.MessageType.ERROR, "No mail draft found.");
+            return;
         }
-        Draft d = drafts.get(admin.getUniqueId()).with(null, null, null, null, null, attachments);
         if ("all".equalsIgnoreCase(d.target())) {
             int count = MailManager.getInstance().sendToAllKnown(admin.getUniqueId(), d.subject(), "Administrative mail.", d.coins(), d.gems(), d.xp(), attachments);
             ChatMessageUtil.send(admin, ChatMessageUtil.MessageType.SUCCESS, "Sent to " + count + " players.");
