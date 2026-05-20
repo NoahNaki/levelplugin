@@ -59,7 +59,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int PASTE_Y = 64;
     private static final int PASTE_Z = 0;
     private static final int AREA_SPACING_BLOCKS = 1500;
-    private static final Cuboid FINISHED_WORLD_BORDER = new Cuboid(3489, -44, -3143, 4058, 271, -2685);
+    /**
+     * Runtime movement border should be anchored to the pasted instance area
+     * itself (not absolute source-world coordinates), so every player gets a
+     * valid per-session cuboid regardless of world/offset.
+     */
+    private static final int BORDER_MIN_Y_OFFSET = -108; // matches provided -44 relative to paste Y=64
+    private static final int BORDER_MAX_Y_OFFSET = 207;  // matches provided 271 relative to paste Y=64
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
@@ -151,7 +157,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             old.removeHolograms();
         }
 
-        WorldCuboid border = toPastedCuboid(FINISHED_WORLD_BORDER, originX, originY, originZ);
+        WorldCuboid border = createSessionBorder(originX, originY, originZ);
         EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates, originX, originY, originZ, border);
         sessions.put(target.getUniqueId(), session);
         spawnBuildHolograms(session);
@@ -637,6 +643,17 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 originX + (source.maxX() - AREA.minX()),
                 originY + (source.maxY() - AREA.minY()),
                 originZ + (source.maxZ() - AREA.minZ()));
+    }
+
+    private WorldCuboid createSessionBorder(int originX, int originY, int originZ) {
+        WorldCuboid pastedArea = toPastedCuboid(AREA, originX, originY, originZ);
+        return new WorldCuboid(
+                pastedArea.minX(),
+                originY + BORDER_MIN_Y_OFFSET,
+                pastedArea.minZ(),
+                pastedArea.maxX(),
+                originY + BORDER_MAX_Y_OFFSET,
+                pastedArea.maxZ());
     }
 
     private static Cuboid projectFinishedToEmpty(Cuboid finishedSelection) {
