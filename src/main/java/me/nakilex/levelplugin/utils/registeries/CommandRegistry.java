@@ -78,6 +78,8 @@ import me.nakilex.levelplugin.friend.FriendGUI;
 import me.nakilex.levelplugin.friend.FriendsCommand;
 import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexCommand;
+import me.nakilex.levelplugin.mail.MailAdminCommand;
+import me.nakilex.levelplugin.mail.MailCommand;
 import me.nakilex.levelplugin.cursormenu.CursorMenuCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
@@ -354,6 +356,12 @@ public class CommandRegistry {
                 new me.nakilex.levelplugin.player.commands.ProfileCommand();
         plugin.getCommand("profile").setExecutor(profileCmd);
         plugin.getCommand("profile").setTabCompleter(profileCmd);
+        MailCommand mailCommand = new MailCommand();
+        plugin.getCommand("mail").setExecutor(mailCommand);
+        plugin.getCommand("mail").setTabCompleter(mailCommand);
+        MailAdminCommand mailAdminCommand = new MailAdminCommand();
+        plugin.getCommand("mailadmin").setExecutor(mailAdminCommand);
+        plugin.getCommand("mailadmin").setTabCompleter(mailAdminCommand);
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 
         DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,
