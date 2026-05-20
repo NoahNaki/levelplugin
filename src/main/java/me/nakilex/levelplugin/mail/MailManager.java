@@ -71,6 +71,16 @@ public final class MailManager {
         }
     }
 
+    public int sendToAllKnown(UUID sender, String subject, String body, int coins, int gems, int xp, List<ItemStack> items) {
+        int sent = 0;
+        for (OfflinePlayer player : Bukkit.getOfflinePlayers()) {
+            if (player == null || player.getUniqueId() == null) continue;
+            sendToPlayer(player.getUniqueId(), sender, subject, body, coins, gems, xp, items);
+            sent++;
+        }
+        return sent;
+    }
+
     public void markRead(UUID playerId, String mailId) {
         String p = "players." + playerId + ".mail.inbox." + mailId + ".read";
         Main.getInstance().getPlayerConfig().getConfig().set(p, true);

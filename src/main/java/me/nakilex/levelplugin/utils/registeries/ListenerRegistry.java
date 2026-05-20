@@ -210,6 +210,7 @@ public class ListenerRegistry {
         pm.registerEvents(new PlayerQuitListener(plugin.getPlayerConfig(), plugin.getEnvironmentManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.mail.MailCommand(), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.mail.MailJoinNotifier(), plugin);
+        pm.registerEvents(new me.nakilex.levelplugin.mail.MailAdminCommand(), plugin);
         if (petManager != null) {
             pm.registerEvents(new PetPlayerListener(petManager), plugin);
             pm.registerEvents(new PetCombatEffectListener(petManager), plugin);
