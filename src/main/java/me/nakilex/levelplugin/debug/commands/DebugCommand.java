@@ -14,7 +14,6 @@ import java.util.TreeSet;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
-import me.nakilex.levelplugin.codex.CodexManager;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
@@ -150,7 +149,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npccodexprune|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|" + statUsage + ">");
             }
             return true;
         }
@@ -918,59 +917,46 @@ public class DebugCommand implements TabExecutor {
                 return applyNpcModel(sender, args);
             case "npcundisguise":
                 return undisguiseNpcModel(sender, args);
-            case "npccodexprune":
-                return pruneNpcCodex(sender, args);
+            case "npcorphanprune":
+                return pruneOrphanCitizensNpcs(sender);
 
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npccodexprune|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|" + statUsage2 + ">");
                 return true;
         }
     }
 
-    private boolean pruneNpcCodex(CommandSender sender, String[] args) {
-        CodexManager codexManager = Main.getInstance().getCodexManager();
-        if (codexManager == null) {
-            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Codex manager is not available.");
-            return true;
-        }
-
-        if (args.length >= 2 && "all".equalsIgnoreCase(args[1])) {
-            int playersTouched = 0;
-            int totalRemoved = 0;
-            var playersSection = Main.getInstance().getPlayerConfig().getConfig().getConfigurationSection("players");
-            if (playersSection != null) {
-                for (String playerIdRaw : playersSection.getKeys(false)) {
-                    try {
-                        UUID playerId = UUID.fromString(playerIdRaw);
-                        var result = codexManager.pruneUnknownNpcDiscoveries(playerId);
-                        if (result.totalEntries() > 0) {
-                            playersTouched++;
-                            totalRemoved += result.removedEntries();
-                        }
-                    } catch (IllegalArgumentException ignored) {
-                    }
-                }
+    private boolean pruneOrphanCitizensNpcs(CommandSender sender) {
+        int totalChecked = 0;
+        int removed = 0;
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            totalChecked++;
+            if (!isOrphanCitizensNpc(npc)) {
+                continue;
             }
-            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
-                    "Pruned unknown NPC codex entries for " + ChatColor.WHITE + playersTouched + ChatColor.GREEN
-                            + " players. Removed " + ChatColor.WHITE + totalRemoved + ChatColor.GREEN + " entries.");
-            return true;
+            CitizensAPI.getNPCRegistry().deregister(npc);
+            removed++;
         }
-
-        if (!(sender instanceof Player player)) {
-            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.WARNING,
-                    "Usage: /debug npccodexprune <all>");
-            return true;
-        }
-        var result = codexManager.pruneUnknownNpcDiscoveries(player.getUniqueId());
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Checked " + ChatColor.WHITE + result.totalEntries() + ChatColor.GREEN + " discovered NPC entries, removed "
-                        + ChatColor.WHITE + result.removedEntries() + ChatColor.GREEN + ".");
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
+                "Checked " + ChatColor.WHITE + totalChecked + ChatColor.GREEN
+                        + " Citizens NPCs. Pruned " + ChatColor.WHITE + removed + ChatColor.GREEN
+                        + " orphan entries with missing stored locations.");
         return true;
+    }
+
+    private boolean isOrphanCitizensNpc(net.citizensnpcs.api.npc.NPC npc) {
+        if (npc == null) {
+            return false;
+        }
+        if (npc.isSpawned() && npc.getEntity() != null) {
+            return false;
+        }
+        org.bukkit.Location stored = npc.getStoredLocation();
+        return stored == null || stored.getWorld() == null;
     }
 
     private boolean spawnLootChestAnimationPreview(Player player, String animationName) {
@@ -1267,7 +1253,7 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "area", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npccodexprune"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -1308,10 +1294,6 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("strongholdxp")) {
             return List.of("50", "100", "150", "250").stream()
-                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
-                    .toList();
-        } else if (args.length == 2 && args[0].equalsIgnoreCase("npccodexprune")) {
-            return List.of("all").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("stronghold")) {
