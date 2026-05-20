@@ -51,7 +51,13 @@ public final class CoopCommand implements CommandExecutor, TabCompleter {
                         manager.invite(player, target);
                     }
                 }
-                if ("kick".equals(sub)) manager.kick(player, target);
+                if ("kick".equals(sub)) {
+                    if (areaManager.isDebugCoopParticipant(player.getUniqueId()) || areaManager.hasSession(player.getUniqueId())) {
+                        areaManager.kick(player, target);
+                    } else {
+                        manager.kick(player, target);
+                    }
+                }
                 if ("transfer".equals(sub)) manager.transfer(player, target);
             }
             case "accept" -> {
@@ -84,7 +90,13 @@ public final class CoopCommand implements CommandExecutor, TabCompleter {
                 }
             }
             case "leave" -> manager.leave(player);
-            case "list" -> manager.sendInfo(player);
+            case "list" -> {
+                if (areaManager.isDebugCoopParticipant(player.getUniqueId()) || areaManager.hasSession(player.getUniqueId())) {
+                    areaManager.sendCoopInfo(player);
+                } else {
+                    manager.sendInfo(player);
+                }
+            }
             default -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Usage: /coop <invite|accept|deny|kick|transfer|leave|list> [player]");
         }

@@ -117,6 +117,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
     private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
     private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
+    private final Map<UUID, UUID> coopOwnerByMember = new HashMap<>(); // member -> owner
+    private final Map<UUID, UUID> coopPartnerByOwner = new HashMap<>(); // owner -> member
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -229,6 +231,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         Location tp = lastValidLocations.getOrDefault(ownerId,
                 new Location(ownerSession.world(), ownerSession.originX() + (AREA.width() / 2.0), ownerSession.originY() + 1.0, ownerSession.originZ() + (AREA.depth() / 2.0)));
+        coopOwnerByMember.put(player.getUniqueId(), ownerId);
+        coopPartnerByOwner.put(ownerId, player.getUniqueId());
         player.teleport(tp);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Joined debug area.");
         Player owner = Bukkit.getPlayer(ownerId);
@@ -251,6 +255,38 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (!ownerId.equals(existing)) return false;
         pendingCoopInvites.remove(inviteeId);
         return true;
+    }
+
+    public UUID resolveAreaOwner(UUID playerId) {
+        if (playerId == null) return null;
+        return coopOwnerByMember.getOrDefault(playerId, playerId);
+    }
+
+    public boolean isDebugCoopParticipant(UUID playerId) {
+        return playerId != null && (coopOwnerByMember.containsKey(playerId) || coopPartnerByOwner.containsKey(playerId));
+    }
+
+    public void sendCoopInfo(Player player) {
+        UUID id = player.getUniqueId();
+        UUID owner = resolveAreaOwner(id);
+        UUID partner = coopPartnerByOwner.get(owner);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Debug Area Owner: " + ChatColor.WHITE + Bukkit.getOfflinePlayer(owner).getName());
+        if (partner != null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Debug Area Partner: " + ChatColor.WHITE + Bukkit.getOfflinePlayer(partner).getName());
+        }
+    }
+
+    public void kick(Player ownerPlayer, Player target) {
+        UUID owner = ownerPlayer.getUniqueId();
+        UUID partner = coopPartnerByOwner.get(owner);
+        if (partner == null || !partner.equals(target.getUniqueId())) {
+            ChatMessageUtil.send(ownerPlayer, ChatMessageUtil.MessageType.ERROR, "That player is not your debug area partner.");
+            return;
+        }
+        coopPartnerByOwner.remove(owner);
+        coopOwnerByMember.remove(partner);
+        ChatMessageUtil.send(ownerPlayer, ChatMessageUtil.MessageType.SUCCESS, "Removed " + target.getName() + " from debug co-op.");
+        ChatMessageUtil.send(target, ChatMessageUtil.MessageType.WARNING, "You were removed from debug co-op.");
     }
 
 
@@ -454,7 +490,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         } catch (IllegalArgumentException ex) {
             return;
         }
-        UUID sessionOwner = resolveAreaOwner(player);
+        UUID sessionOwner = resolveAreaOwner(player.getUniqueId());
         if (!ownerId.equals(sessionOwner)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "This environment area belongs to another player.");
             return;
