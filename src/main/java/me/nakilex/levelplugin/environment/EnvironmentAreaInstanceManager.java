@@ -81,6 +81,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 230, -3143);
     private static final WorldPoint FINISHED_WORLD_ANCHOR = new WorldPoint(3489, -23, -3143);
     private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, -23, -3603);
+    private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 8, -2933);
+    private static final WorldPoint EMPTY_WORLD_SPAWN = projectFinishedToEmpty(FINISHED_WORLD_SPAWN);
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
@@ -109,6 +111,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
+    private final Map<UUID, Location> lastValidLocations = new HashMap<>();
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -163,10 +166,16 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         spawnBuildHolograms(session);
         applySavedBuilds(target, session);
 
-        Location spawn = new Location(world,
-                originX + (AREA.width() / 2.0),
-                originY + 1.0,
-                originZ + (AREA.depth() / 2.0));
+        Location spawn = toPastedLocation(world, EMPTY_WORLD_SPAWN, originX, originY, originZ);
+        if (spawn == null) {
+            spawn = new Location(world,
+                    originX + (AREA.width() / 2.0),
+                    originY + 1.0,
+                    originZ + (AREA.depth() / 2.0));
+        }
+        spawn = spawn.clone().add(0.5, 0.0, 0.5);
+        world.setSpawnLocation(spawn);
+        lastValidLocations.put(target.getUniqueId(), spawn.clone());
         target.teleport(spawn);
         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.SUCCESS,
                 "Initialized environment area in " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
@@ -598,16 +607,29 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onMove(PlayerMoveEvent event) {
         if (event.getTo() == null) return;
-        EnvironmentAreaSession session = sessions.get(event.getPlayer().getUniqueId());
+        Player player = event.getPlayer();
+        UUID playerId = player.getUniqueId();
+        EnvironmentAreaSession session = sessions.get(playerId);
         if (session == null) return;
-        if (!event.getPlayer().getWorld().equals(session.world())) return;
-        if (session.border().contains(event.getTo())) return;
-        Location fallback = new Location(session.world(),
-                session.originX() + (AREA.width() / 2.0),
-                session.originY() + 1.0,
-                session.originZ() + (AREA.depth() / 2.0));
-        event.getPlayer().teleport(fallback);
-        ChatMessageUtil.send(event.getPlayer(), ChatMessageUtil.MessageType.WARNING, "You cannot leave your area border.");
+        if (!player.getWorld().equals(session.world())) return;
+        Location to = event.getTo();
+        if (session.border().contains(to)) {
+            lastValidLocations.put(playerId, to.clone());
+            return;
+        }
+        Location fallback = lastValidLocations.get(playerId);
+        if (fallback == null || !session.world().equals(fallback.getWorld()) || !session.border().contains(fallback)) {
+            fallback = toPastedLocation(session.world(), EMPTY_WORLD_SPAWN, session.originX(), session.originY(), session.originZ());
+            if (fallback == null) {
+                fallback = new Location(session.world(),
+                        session.originX() + (AREA.width() / 2.0),
+                        session.originY() + 1.0,
+                        session.originZ() + (AREA.depth() / 2.0));
+            }
+            fallback = fallback.clone().add(0.5, 0.0, 0.5);
+        }
+        player.teleport(fallback);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You cannot leave your area border.");
     }
 
     private record Cuboid(int x1, int y1, int z1, int x2, int y2, int z2) {
@@ -778,6 +800,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         UUID id = event.getPlayer().getUniqueId();
         EnvironmentAreaSession session = sessions.remove(id);
+        lastValidLocations.remove(id);
         if (session == null) {
             return;
         }
@@ -799,5 +822,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     }
         }
         sessions.clear();
+        lastValidLocations.clear();
     }
 }
