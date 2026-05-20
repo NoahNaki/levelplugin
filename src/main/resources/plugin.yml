@@ -358,6 +358,9 @@ commands:
   coop:
     description: Manage environment co-op membership
     usage: /coop [invite|accept|deny|kick|transfer|leave|list]
+  kingdom:
+    description: Open your kingdom or visit another player's kingdom
+    usage: /kingdom [visit <player>]
   townstage:
     description: Define settlement stage regions
     usage: /townstage <wand|create|remove|list>

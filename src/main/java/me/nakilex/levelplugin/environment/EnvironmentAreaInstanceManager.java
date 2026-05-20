@@ -261,7 +261,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         inv.setItem(15, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         player.openInventory(inv);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                "Joining " + Bukkit.getOfflinePlayer(ownerId).getName() + " will replace your current debug area session.");
+                "Joining this co-op will delete your existing kingdom session.");
     }
 
     @EventHandler
@@ -341,6 +341,33 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         coopOwnerByMember.remove(partner);
         ChatMessageUtil.send(ownerPlayer, ChatMessageUtil.MessageType.SUCCESS, "Removed " + target.getName() + " from debug co-op.");
         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.WARNING, "You were removed from debug co-op.");
+    }
+
+    public void removeKingdom(UUID playerId) {
+        if (playerId == null) return;
+        EnvironmentAreaSession session = sessions.remove(playerId);
+        if (session != null) {
+            session.removeHolograms();
+            Bukkit.unloadWorld(session.world(), false);
+            deleteWorldFolder(session.world().getName());
+        }
+        lastValidLocations.remove(playerId);
+        UUID partner = coopPartnerByOwner.remove(playerId);
+        if (partner != null) coopOwnerByMember.remove(partner);
+        UUID owner = coopOwnerByMember.remove(playerId);
+        if (owner != null) coopPartnerByOwner.remove(owner);
+    }
+
+    public void visit(Player visitor, Player owner) {
+        if (visitor == null || owner == null) return;
+        EnvironmentAreaSession session = sessions.get(owner.getUniqueId());
+        if (session == null) {
+            ChatMessageUtil.send(visitor, ChatMessageUtil.MessageType.ERROR, "That player's kingdom is not active.");
+            return;
+        }
+        Location tp = lastValidLocations.getOrDefault(owner.getUniqueId(),
+                new Location(session.world(), session.originX() + (AREA.width() / 2.0), session.originY() + 1.0, session.originZ() + (AREA.depth() / 2.0)));
+        visitor.teleport(tp);
     }
 
 

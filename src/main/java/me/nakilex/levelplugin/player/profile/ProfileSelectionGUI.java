@@ -450,13 +450,16 @@ public class ProfileSelectionGUI implements Listener {
                         player.getInventory().clear();
                         me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
                         markNewProfile(player, index);
+                        Bukkit.getScheduler().runTask(Main.getInstance(), () -> selectProfile(player, index));
                         return Prompt.END_OF_CONVERSATION;
                     }
                 })
                 .withLocalEcho(false)
                 .addConversationAbandonedListener(event -> {
                     NAMING.remove(player.getUniqueId());
-                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player));
+                    if (ProfileManager.getInstance().getActiveSlot(player.getUniqueId()) == null) {
+                        Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player));
+                    }
                 });
         factory.buildConversation(player).begin();
     }

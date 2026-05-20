@@ -160,6 +160,9 @@ public class ProfileManager {
             wipePlayer(player);
             clearActiveSlot(uuid);
         }
+        me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager
+                .getInstance(me.nakilex.levelplugin.Main.getInstance())
+                .removeKingdom(uuid);
         list.set(slot, null);
         SpellProgressionManager.getInstance().clearProfile(uuid, slot);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
