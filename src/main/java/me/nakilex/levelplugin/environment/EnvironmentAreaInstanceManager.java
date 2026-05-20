@@ -27,6 +27,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -98,6 +99,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
+    private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -145,6 +147,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates);
         sessions.put(target.getUniqueId(), session);
         spawnBuildHolograms(session);
+        applySavedBuilds(target, session);
 
         Location spawn = new Location(world,
                 PASTE_X + (AREA.width() / 2.0),
@@ -348,11 +351,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         } catch (IllegalArgumentException ex) {
             return;
         }
-        if (!ownerId.equals(player.getUniqueId())) {
+        UUID sessionOwner = resolveAreaOwner(player);
+        if (!ownerId.equals(sessionOwner)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "This environment area belongs to another player.");
             return;
         }
-        EnvironmentAreaSession session = sessions.get(ownerId);
+        EnvironmentAreaSession session = sessions.get(sessionOwner);
         BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
         if (session == null || building == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Environment build session is no longer active.");
@@ -375,7 +379,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         plugin.getEconomyManager().deductCoins(player, BUILD_COST_COINS);
         playCoinPaymentVisual(player, destinationMarker, BUILD_COST_COINS);
-        BukkitTask existing = activeBuildTasks.remove(ownerId);
+        BukkitTask existing = activeBuildTasks.remove(sessionOwner);
         if (existing != null) {
             existing.cancel();
         }
@@ -383,16 +387,62 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             @Override
             public void run() {
                 if (!player.isOnline()) {
-                    activeBuildTasks.remove(ownerId);
+                    activeBuildTasks.remove(sessionOwner);
                     cancel();
                     return;
                 }
                 buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
                 removeBuildHologram(session, tag);
-                activeBuildTasks.remove(ownerId);
+                markBuiltForProfile(player, slot);
+                activeBuildTasks.remove(sessionOwner);
             }
         }.runTaskLater(plugin, PAYMENT_ANIMATION_TICKS);
-        activeBuildTasks.put(ownerId, task);
+        activeBuildTasks.put(sessionOwner, task);
+    }
+
+    private UUID resolveAreaOwner(Player player) {
+        return player.getUniqueId();
+    }
+
+    private UUID resolveProfileScopedId(Player player) {
+        Integer slot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(player.getUniqueId());
+        int safeSlot = slot == null ? 0 : Math.max(0, slot);
+        String key = resolveAreaOwner(player) + ":" + safeSlot;
+        return UUID.nameUUIDFromBytes(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    private void markBuiltForProfile(Player player, int slot) {
+        UUID scoped = resolveProfileScopedId(player);
+        builtSlotsByProfile.computeIfAbsent(scoped, ignored -> new java.util.HashSet<>()).add(slot);
+        saveBuiltSlots(scoped);
+    }
+
+    private void applySavedBuilds(Player player, EnvironmentAreaSession session) {
+        UUID scoped = resolveProfileScopedId(player);
+        java.util.Set<Integer> built = loadBuiltSlots(scoped);
+        for (Integer slot : built) {
+            BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
+            CuboidTemplate template = session.buildingTemplates().get(slot);
+            if (building == null || template == null) continue;
+            WorldCuboid area = toPastedCuboid(building.placement());
+            template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+            removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
+        }
+    }
+
+    private java.util.Set<Integer> loadBuiltSlots(UUID scoped) {
+        java.util.Set<Integer> cached = builtSlotsByProfile.get(scoped);
+        if (cached != null) return cached;
+        var cfg = plugin.getPlayerConfig().getConfig().getIntegerList("players." + scoped + ".environment.area.built-slots");
+        java.util.Set<Integer> built = new java.util.HashSet<>(cfg);
+        builtSlotsByProfile.put(scoped, built);
+        return built;
+    }
+
+    private void saveBuiltSlots(UUID scoped) {
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.built-slots",
+                new java.util.ArrayList<>(builtSlotsByProfile.getOrDefault(scoped, java.util.Set.of())));
+        plugin.getPlayerConfig().saveConfigFile();
     }
 
     private void playCoinPaymentVisual(Player player, Location destinationMarker, int amount) {
@@ -659,6 +709,18 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         shutdown();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onQuit(PlayerQuitEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        EnvironmentAreaSession session = sessions.remove(id);
+        if (session == null) {
+            return;
+        }
+        session.removeHolograms();
+        Bukkit.unloadWorld(session.world(), false);
+        deleteWorldFolder(session.world().getName());
     }
 
     public void shutdown() {

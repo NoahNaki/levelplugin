@@ -94,6 +94,7 @@ import me.nakilex.levelplugin.fasttravel.commands.LocationCommand;
 import me.nakilex.levelplugin.fasttravel.commands.FastTravelCommand;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.environment.TownCommand;
+import me.nakilex.levelplugin.environment.CoopCommand;
 import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.stage.TownStageCommand;
 import me.nakilex.levelplugin.environment.stage.BuildingStageCommand;
@@ -411,6 +412,9 @@ public class CommandRegistry {
         plugin.getCommand("modelgate").setExecutor(modelGateCmd);
         plugin.getCommand("modelgate").setTabCompleter(modelGateCmd);
         plugin.getCommand("town").setExecutor(new TownCommand(upgradeGUI, plugin.getEnvironmentManager()));
+        CoopCommand coopCommand = new CoopCommand(plugin.getEnvironmentManager());
+        plugin.getCommand("coop").setExecutor(coopCommand);
+        plugin.getCommand("coop").setTabCompleter(coopCommand);
         TownStageCommand townStageCmd = new TownStageCommand(plugin.getTownStageManager());
         plugin.getCommand("townstage").setExecutor(townStageCmd);
         plugin.getCommand("townstage").setTabCompleter(townStageCmd);

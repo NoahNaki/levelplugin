@@ -349,6 +349,9 @@ commands:
   town:
     description: Manage your settlement upgrades
     usage: /town [start <name>|reset]
+  coop:
+    description: Manage environment co-op membership
+    usage: /coop [invite|accept|deny|kick|transfer|leave|list]
   townstage:
     description: Define settlement stage regions
     usage: /townstage <wand|create|remove|list>

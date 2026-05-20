@@ -373,6 +373,7 @@ public class ProfileSelectionGUI implements Listener {
         me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
         resyncScoreboardAfterHud(player);
         Main.getInstance().getPetManager().handleProfileActivated(player);
+        me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(Main.getInstance()).initialize(player);
 
     }
 
