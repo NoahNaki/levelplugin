@@ -202,6 +202,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (owner == null || target == null) {
             return;
         }
+        if (owner.getUniqueId().equals(target.getUniqueId())) {
+            ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.ERROR, "You cannot invite yourself.");
+            return;
+        }
         EnvironmentAreaSession ownerSession = sessions.get(owner.getUniqueId());
         if (ownerSession == null) {
             ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.ERROR, "You don't have an initialized debug area.");
@@ -261,7 +265,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         inv.setItem(15, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         player.openInventory(inv);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                "Joining this co-op will delete your existing kingdom session.");
+                "Joining this co-op will delete the progress of your current kingdom.");
     }
 
     @EventHandler

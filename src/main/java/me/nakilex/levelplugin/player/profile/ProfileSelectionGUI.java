@@ -86,6 +86,7 @@ public class ProfileSelectionGUI implements Listener {
     // When the very first profile is created, store the slot so the
     // introductory quest can start once that profile is selected.
     private static final Map<UUID, Integer> FIRST_PROFILE_SLOT = new HashMap<>();
+    private static final Set<UUID> SUPPRESS_REOPEN_ON_CONVO_END = new HashSet<>();
 
     private static void hideOthers(Player player) {
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -450,6 +451,7 @@ public class ProfileSelectionGUI implements Listener {
                         player.getInventory().clear();
                         me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
                         markNewProfile(player, index);
+                        SUPPRESS_REOPEN_ON_CONVO_END.add(player.getUniqueId());
                         Bukkit.getScheduler().runTask(Main.getInstance(), () -> selectProfile(player, index));
                         return Prompt.END_OF_CONVERSATION;
                     }
@@ -457,6 +459,9 @@ public class ProfileSelectionGUI implements Listener {
                 .withLocalEcho(false)
                 .addConversationAbandonedListener(event -> {
                     NAMING.remove(player.getUniqueId());
+                    if (SUPPRESS_REOPEN_ON_CONVO_END.remove(player.getUniqueId())) {
+                        return;
+                    }
                     if (ProfileManager.getInstance().getActiveSlot(player.getUniqueId()) == null) {
                         Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player));
                     }
