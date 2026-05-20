@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.environment;
 
+import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -12,9 +13,11 @@ import java.util.List;
 
 public final class CoopCommand implements CommandExecutor, TabCompleter {
     private final EnvironmentManager manager;
+    private final EnvironmentAreaInstanceManager areaManager;
 
     public CoopCommand(EnvironmentManager manager) {
         this.manager = manager;
+        this.areaManager = EnvironmentAreaInstanceManager.getInstance(Main.getInstance());
     }
 
     @Override
@@ -40,11 +43,23 @@ public final class CoopCommand implements CommandExecutor, TabCompleter {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Player not found.");
                     return true;
                 }
-                if ("invite".equals(sub)) manager.invite(player, target);
+                if ("invite".equals(sub)) {
+                    if (areaManager.hasSession(player.getUniqueId())) {
+                        areaManager.invite(player, target);
+                    } else {
+                        manager.invite(player, target);
+                    }
+                }
                 if ("kick".equals(sub)) manager.kick(player, target);
                 if ("transfer".equals(sub)) manager.transfer(player, target);
             }
-            case "accept" -> manager.accept(player);
+            case "accept" -> {
+                if (areaManager.hasPendingInvite(player.getUniqueId())) {
+                    areaManager.accept(player);
+                } else {
+                    manager.accept(player);
+                }
+            }
             case "deny" -> manager.deny(player);
             case "leave" -> manager.leave(player);
             case "list" -> manager.sendInfo(player);

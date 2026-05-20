@@ -112,6 +112,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
+    private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -180,6 +181,53 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.SUCCESS,
                 "Initialized environment area in " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
         return true;
+    }
+
+    public boolean hasSession(UUID playerId) {
+        return playerId != null && sessions.containsKey(playerId);
+    }
+
+    public void invite(Player owner, Player target) {
+        if (owner == null || target == null) {
+            return;
+        }
+        EnvironmentAreaSession ownerSession = sessions.get(owner.getUniqueId());
+        if (ownerSession == null) {
+            ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.ERROR, "You don't have an initialized debug area.");
+            return;
+        }
+        pendingCoopInvites.put(target.getUniqueId(), owner.getUniqueId());
+        ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.SUCCESS, "Invited " + ChatColor.WHITE + target.getName() + ChatColor.GREEN + " to your debug area.");
+        ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO,
+                ChatColor.WHITE + owner.getName() + ChatColor.GRAY + " invited you to their debug area. Use /coop accept.");
+    }
+
+    public void accept(Player player) {
+        if (player == null) {
+            return;
+        }
+        UUID ownerId = pendingCoopInvites.remove(player.getUniqueId());
+        if (ownerId == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "You have no pending debug area invites.");
+            return;
+        }
+        EnvironmentAreaSession ownerSession = sessions.get(ownerId);
+        if (ownerSession == null || ownerSession.world() == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "That debug area is no longer active.");
+            return;
+        }
+        Location tp = lastValidLocations.getOrDefault(ownerId,
+                new Location(ownerSession.world(), ownerSession.originX() + (AREA.width() / 2.0), ownerSession.originY() + 1.0, ownerSession.originZ() + (AREA.depth() / 2.0)));
+        player.teleport(tp);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Joined debug area.");
+        Player owner = Bukkit.getPlayer(ownerId);
+        if (owner != null) {
+            ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.INFO, ChatColor.WHITE + player.getName() + ChatColor.GRAY + " joined your debug area.");
+        }
+    }
+
+    public boolean hasPendingInvite(UUID playerId) {
+        return playerId != null && pendingCoopInvites.containsKey(playerId);
     }
 
 
