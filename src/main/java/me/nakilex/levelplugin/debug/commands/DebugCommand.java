@@ -14,6 +14,7 @@ import java.util.TreeSet;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
+import me.nakilex.levelplugin.npc.NpcCleanupUtil;
 import me.nakilex.levelplugin.debug.gui.DebugGUI;
 import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
@@ -931,32 +932,12 @@ public class DebugCommand implements TabExecutor {
     }
 
     private boolean pruneOrphanCitizensNpcs(CommandSender sender) {
-        int totalChecked = 0;
-        int removed = 0;
-        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
-            totalChecked++;
-            if (!isOrphanCitizensNpc(npc)) {
-                continue;
-            }
-            CitizensAPI.getNPCRegistry().deregister(npc);
-            removed++;
-        }
+        NpcCleanupUtil.PruneResult result = NpcCleanupUtil.pruneOrphanCitizensNpcs();
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
-                "Checked " + ChatColor.WHITE + totalChecked + ChatColor.GREEN
-                        + " Citizens NPCs. Pruned " + ChatColor.WHITE + removed + ChatColor.GREEN
+                "Checked " + ChatColor.WHITE + result.totalChecked() + ChatColor.GREEN
+                        + " Citizens NPCs. Pruned " + ChatColor.WHITE + result.removed() + ChatColor.GREEN
                         + " orphan entries with missing stored locations.");
         return true;
-    }
-
-    private boolean isOrphanCitizensNpc(net.citizensnpcs.api.npc.NPC npc) {
-        if (npc == null) {
-            return false;
-        }
-        if (npc.isSpawned() && npc.getEntity() != null) {
-            return false;
-        }
-        org.bukkit.Location stored = npc.getStoredLocation();
-        return stored == null || stored.getWorld() == null;
     }
 
     private boolean spawnLootChestAnimationPreview(Player player, String animationName) {
