@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.player.commands;
 import me.nakilex.levelplugin.player.profile.PlayerProfile;
 import me.nakilex.levelplugin.player.profile.ProfileManager;
 import me.nakilex.levelplugin.player.profile.ProfileSelectionGUI;
+import me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager;
+import me.nakilex.levelplugin.Main;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
@@ -66,7 +68,11 @@ public class ProfileCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 Integer active = pm.getActiveSlot(player.getUniqueId());
+                PlayerProfile beforeDelete = pm.getProfile(player.getUniqueId(), del);
                 pm.deleteProfile(player, del);
+                if (beforeDelete != null && pm.getProfile(player.getUniqueId(), del) != null) {
+                    return true;
+                }
                 player.sendMessage(ChatColor.GREEN + "Profile deleted.");
                 if (active != null && active.equals(del)) {
                     pm.clearActiveSlot(player.getUniqueId());

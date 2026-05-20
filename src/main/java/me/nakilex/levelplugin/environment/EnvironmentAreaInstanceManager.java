@@ -27,10 +27,16 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -42,6 +48,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Debug/test harness for the new environment-area flow. It captures configured
@@ -55,6 +62,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int PASTE_X = 0;
     private static final int PASTE_Y = 64;
     private static final int PASTE_Z = 0;
+    private static final int AREA_SPACING_BLOCKS = 1500;
+    /**
+     * Runtime movement border should be anchored to the pasted instance area
+     * itself (not absolute source-world coordinates), so every player gets a
+     * valid per-session cuboid regardless of world/offset.
+     */
+    private static final int BORDER_MIN_Y_OFFSET = -108; // matches provided -44 relative to paste Y=64
+    private static final int BORDER_MAX_Y_OFFSET = 207;  // matches provided 271 relative to paste Y=64
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
@@ -70,6 +85,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 230, -3143);
     private static final WorldPoint FINISHED_WORLD_ANCHOR = new WorldPoint(3489, -23, -3143);
     private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, -23, -3603);
+    private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 8, -2934);
+    private static final WorldPoint EMPTY_WORLD_SPAWN = projectFinishedToEmpty(FINISHED_WORLD_SPAWN);
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
@@ -96,6 +113,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
+    private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
+    private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
+    private final Map<UUID, Location> lastValidLocations = new HashMap<>();
+    private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
+    private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
+    private final Map<UUID, UUID> coopOwnerByMember = new HashMap<>(); // member -> owner
+    private final Map<UUID, UUID> coopPartnerByOwner = new HashMap<>(); // owner -> member
+    private final Map<UUID, UUID> pendingConfirmJoinOwner = new HashMap<>();
+    private static final String COOP_CONFIRM_TITLE = "Confirm Co-op Join";
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -120,10 +146,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return false;
         }
 
-        CuboidTemplate areaTemplate = capture(source, AREA);
+        CuboidTemplate areaTemplate = getOrCaptureTemplate(source, "area:base", AREA);
         Map<Integer, CuboidTemplate> buildingTemplates = new HashMap<>();
         for (BuildingTemplate building : BUILDINGS) {
-            buildingTemplates.put(building.slot(), capture(source, building.source()));
+            buildingTemplates.put(building.slot(),
+                    getOrCaptureTemplate(source, "building:" + building.id().toLowerCase(Locale.ROOT), building.source()));
         }
 
         World world = recreateWorld(target.getUniqueId());
@@ -133,24 +160,225 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return false;
         }
 
-        areaTemplate.paste(world, PASTE_X, PASTE_Y, PASTE_Z);
+        SlotOffset offset = slotOffsetFor(target.getUniqueId());
+        int originX = PASTE_X + offset.dx();
+        int originY = PASTE_Y;
+        int originZ = PASTE_Z + offset.dz();
+        areaTemplate.paste(world, originX, originY, originZ);
         EnvironmentAreaSession old = sessions.remove(target.getUniqueId());
         if (old != null) {
             old.removeHolograms();
         }
 
-        EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates);
+        WorldCuboid border = createSessionBorder(originX, originY, originZ);
+        EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates, originX, originY, originZ, border);
         sessions.put(target.getUniqueId(), session);
         spawnBuildHolograms(session);
+        applySavedBuilds(target, session);
 
-        Location spawn = new Location(world,
-                PASTE_X + (AREA.width() / 2.0),
-                PASTE_Y + 1.0,
-                PASTE_Z + (AREA.depth() / 2.0));
+        Location spawn = toPastedLocation(world, EMPTY_WORLD_SPAWN, originX, originY, originZ);
+        if (spawn == null) {
+            spawn = new Location(world,
+                    originX + (AREA.width() / 2.0),
+                    originY + 1.0,
+                    originZ + (AREA.depth() / 2.0));
+        }
+        spawn = spawn.clone().add(0.5, 0.0, 0.5);
+        spawn.setYaw(90.0f); // west
+        spawn.setPitch(0.0f);
+        world.setSpawnLocation(spawn);
+        lastValidLocations.put(target.getUniqueId(), spawn.clone());
         target.teleport(spawn);
         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.SUCCESS,
                 "Initialized environment area in " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
         return true;
+    }
+
+    public boolean hasSession(UUID playerId) {
+        return playerId != null && sessions.containsKey(playerId);
+    }
+
+    public void invite(Player owner, Player target) {
+        if (owner == null || target == null) {
+            return;
+        }
+        if (owner.getUniqueId().equals(target.getUniqueId())) {
+            ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.ERROR, "You cannot invite yourself.");
+            return;
+        }
+        EnvironmentAreaSession ownerSession = sessions.get(owner.getUniqueId());
+        if (ownerSession == null) {
+            ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.ERROR, "You don't have an initialized debug area.");
+            return;
+        }
+        pendingCoopInvites.put(target.getUniqueId(), owner.getUniqueId());
+        ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.SUCCESS, "Invited " + ChatColor.WHITE + target.getName() + ChatColor.GREEN + " to your debug area.");
+        ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO,
+                ChatColor.WHITE + owner.getName() + ChatColor.GRAY + " invited you to their debug area.");
+        Component accept = Component.text(ChatColor.GREEN + "[Accept]")
+                .clickEvent(ClickEvent.runCommand("/coop accept " + owner.getName()))
+                .hoverEvent(HoverEvent.showText(Component.text("Click to accept this co-op invite")));
+        Component deny = Component.text(ChatColor.RED + "[Deny]")
+                .clickEvent(ClickEvent.runCommand("/coop deny " + owner.getName()))
+                .hoverEvent(HoverEvent.showText(Component.text("Click to deny this co-op invite")));
+        target.sendMessage(accept.append(Component.text(" ")).append(deny));
+    }
+
+    public void accept(Player player) {
+        if (player == null) {
+            return;
+        }
+        UUID ownerId = pendingCoopInvites.remove(player.getUniqueId());
+        if (ownerId == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "You have no pending debug area invites.");
+            return;
+        }
+        EnvironmentAreaSession ownerSession = sessions.get(ownerId);
+        if (ownerSession == null || ownerSession.world() == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "That debug area is no longer active.");
+            return;
+        }
+        if (hasSession(player.getUniqueId())) {
+            pendingConfirmJoinOwner.put(player.getUniqueId(), ownerId);
+            openCoopConfirm(player, ownerId);
+            return;
+        }
+        completeDebugCoopJoin(player, ownerId, ownerSession);
+    }
+
+    private void completeDebugCoopJoin(Player player, UUID ownerId, EnvironmentAreaSession ownerSession) {
+        Location tp = lastValidLocations.getOrDefault(ownerId,
+                new Location(ownerSession.world(), ownerSession.originX() + (AREA.width() / 2.0), ownerSession.originY() + 1.0, ownerSession.originZ() + (AREA.depth() / 2.0)));
+        coopOwnerByMember.put(player.getUniqueId(), ownerId);
+        coopPartnerByOwner.put(ownerId, player.getUniqueId());
+        player.teleport(tp);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Joined debug area.");
+        Player owner = Bukkit.getPlayer(ownerId);
+        if (owner != null) {
+            ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.INFO, ChatColor.WHITE + player.getName() + ChatColor.GRAY + " joined your debug area.");
+        }
+    }
+
+    private void openCoopConfirm(Player player, UUID ownerId) {
+        var inv = Bukkit.createInventory(null, 27, COOP_CONFIRM_TITLE);
+        inv.setItem(11, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm",
+                me.nakilex.levelplugin.utils.TooltipUtil.bulletList(
+                        ChatColor.RED + "This will delete the progress",
+                        ChatColor.RED + "of your current kingdom.")));
+        inv.setItem(15, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
+        player.openInventory(inv);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                "Joining this co-op will delete the progress of your current kingdom.");
+    }
+
+    @EventHandler
+    public void onCoopConfirmClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (!COOP_CONFIRM_TITLE.equals(event.getView().getTitle())) return;
+        event.setCancelled(true);
+        UUID ownerId = pendingConfirmJoinOwner.get(player.getUniqueId());
+        if (ownerId == null) {
+            player.closeInventory();
+            return;
+        }
+        if (event.getRawSlot() == 11) {
+            EnvironmentAreaSession ownerSession = sessions.get(ownerId);
+            if (ownerSession != null) {
+                completeDebugCoopJoin(player, ownerId, ownerSession);
+            }
+            pendingConfirmJoinOwner.remove(player.getUniqueId());
+            player.closeInventory();
+        } else if (event.getRawSlot() == 15) {
+            pendingConfirmJoinOwner.remove(player.getUniqueId());
+            player.closeInventory();
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Co-op join cancelled.");
+        }
+    }
+
+    public boolean hasPendingInvite(UUID playerId) {
+        return playerId != null && pendingCoopInvites.containsKey(playerId);
+    }
+
+    public UUID getPendingInviteOwner(UUID inviteeId) {
+        return inviteeId == null ? null : pendingCoopInvites.get(inviteeId);
+    }
+
+    public boolean clearPendingInvite(UUID inviteeId, UUID ownerId) {
+        if (inviteeId == null || ownerId == null) return false;
+        UUID existing = pendingCoopInvites.get(inviteeId);
+        if (!ownerId.equals(existing)) return false;
+        pendingCoopInvites.remove(inviteeId);
+        return true;
+    }
+
+    public UUID resolveAreaOwner(UUID playerId) {
+        if (playerId == null) return null;
+        return coopOwnerByMember.getOrDefault(playerId, playerId);
+    }
+
+    public boolean isDebugCoopParticipant(UUID playerId) {
+        return playerId != null && (coopOwnerByMember.containsKey(playerId) || coopPartnerByOwner.containsKey(playerId));
+    }
+
+    public void sendCoopInfo(Player player) {
+        UUID id = player.getUniqueId();
+        UUID owner = resolveAreaOwner(id);
+        UUID partner = coopPartnerByOwner.get(owner);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Debug Area Owner: " + ChatColor.WHITE + Bukkit.getOfflinePlayer(owner).getName());
+        if (partner != null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Debug Area Partner: " + ChatColor.WHITE + Bukkit.getOfflinePlayer(partner).getName());
+        }
+    }
+
+    public String getDebugCoopPartnerName(UUID ownerId) {
+        if (ownerId == null) return null;
+        UUID partner = coopPartnerByOwner.get(ownerId);
+        if (partner == null) return null;
+        return Bukkit.getOfflinePlayer(partner).getName();
+    }
+
+    public boolean hasCoopPartner(UUID ownerId) {
+        return ownerId != null && coopPartnerByOwner.containsKey(ownerId);
+    }
+
+    public void kick(Player ownerPlayer, Player target) {
+        UUID owner = ownerPlayer.getUniqueId();
+        UUID partner = coopPartnerByOwner.get(owner);
+        if (partner == null || !partner.equals(target.getUniqueId())) {
+            ChatMessageUtil.send(ownerPlayer, ChatMessageUtil.MessageType.ERROR, "That player is not your debug area partner.");
+            return;
+        }
+        coopPartnerByOwner.remove(owner);
+        coopOwnerByMember.remove(partner);
+        ChatMessageUtil.send(ownerPlayer, ChatMessageUtil.MessageType.SUCCESS, "Removed " + target.getName() + " from debug co-op.");
+        ChatMessageUtil.send(target, ChatMessageUtil.MessageType.WARNING, "You were removed from debug co-op.");
+    }
+
+    public void removeKingdom(UUID playerId) {
+        if (playerId == null) return;
+        EnvironmentAreaSession session = sessions.remove(playerId);
+        if (session != null) {
+            session.removeHolograms();
+            Bukkit.unloadWorld(session.world(), false);
+            deleteWorldFolder(session.world().getName());
+        }
+        lastValidLocations.remove(playerId);
+        UUID partner = coopPartnerByOwner.remove(playerId);
+        if (partner != null) coopOwnerByMember.remove(partner);
+        UUID owner = coopOwnerByMember.remove(playerId);
+        if (owner != null) coopPartnerByOwner.remove(owner);
+    }
+
+    public void visit(Player visitor, Player owner) {
+        if (visitor == null || owner == null) return;
+        EnvironmentAreaSession session = sessions.get(owner.getUniqueId());
+        if (session == null) {
+            ChatMessageUtil.send(visitor, ChatMessageUtil.MessageType.ERROR, "That player's kingdom is not active.");
+            return;
+        }
+        Location tp = lastValidLocations.getOrDefault(owner.getUniqueId(),
+                new Location(session.world(), session.originX() + (AREA.width() / 2.0), session.originY() + 1.0, session.originZ() + (AREA.depth() / 2.0)));
+        visitor.teleport(tp);
     }
 
 
@@ -172,7 +400,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return List.of("Unknown template: " + templateName);
         }
 
-        CuboidTemplate template = capture(source, building.source());
+        CuboidTemplate template = getOrCaptureTemplate(source,
+                "building:" + building.id().toLowerCase(Locale.ROOT), building.source());
         Map<Material, Integer> counts = new HashMap<>();
         for (CuboidTemplate.BlockCopy copy : template.blocks()) {
             counts.merge(copy.data().getMaterial(), 1, Integer::sum);
@@ -207,7 +436,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private CuboidTemplate capture(World source, Cuboid cuboid) {
         return CuboidTemplate.capture(
                 new Location(source, cuboid.x1(), cuboid.y1(), cuboid.z1()),
-                new Location(source, cuboid.x2(), cuboid.y2(), cuboid.z2()));
+                new Location(source, cuboid.x2(), cuboid.y2(), cuboid.z2()),
+                false);
+    }
+
+    private CuboidTemplate getOrCaptureTemplate(World source, String templateKey, Cuboid cuboid) {
+        String worldScopedKey = source.getUID() + ":" + templateKey;
+        return templateCache.computeIfAbsent(worldScopedKey, ignored -> capture(source, cuboid));
     }
 
 
@@ -263,7 +498,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private void spawnBuildHolograms(EnvironmentAreaSession session) {
         session.removeHolograms();
         for (BuildingTemplate building : BUILDINGS) {
-            Location marker = findMarker(session.world(), building);
+            Location marker = findMarker(session, building);
             String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
             session.holograms().addAll(spawnClickableHologram(marker, tag, List.of(
                     ChatColor.GREEN + "Build " + ChatColor.WHITE + building.displayName(),
@@ -274,9 +509,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
     }
 
-    private Location findMarker(World world, BuildingTemplate building) {
-        WorldCuboid placementBounds = toPastedCuboid(building.placement());
-        Location configured = toPastedLocation(world, building.hologramPoint());
+    private Location findMarker(EnvironmentAreaSession session, BuildingTemplate building) {
+        World world = session.world();
+        WorldCuboid placementBounds = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
+        Location configured = toPastedLocation(world, building.hologramPoint(), session.originX(), session.originY(), session.originZ());
         if (configured != null) {
             return configured.add(0.5, 1.0, 0.5);
         }
@@ -315,10 +551,17 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (player == null || entity == null) {
             return;
         }
+        long now = System.currentTimeMillis();
+        long last = interactDebounceMs.getOrDefault(player.getUniqueId(), 0L);
+        if (now - last < 150L) {
+            cancelAction.run();
+            return;
+        }
         for (String tag : entity.getScoreboardTags()) {
             if (!tag.startsWith(HOLOGRAM_TAG_PREFIX)) {
                 continue;
             }
+            interactDebounceMs.put(player.getUniqueId(), now);
             cancelAction.run();
             handleBuildTag(player, tag);
             return;
@@ -339,11 +582,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         } catch (IllegalArgumentException ex) {
             return;
         }
-        if (!ownerId.equals(player.getUniqueId())) {
+        UUID sessionOwner = resolveAreaOwner(player.getUniqueId());
+        if (!ownerId.equals(sessionOwner)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "This environment area belongs to another player.");
             return;
         }
-        EnvironmentAreaSession session = sessions.get(ownerId);
+        EnvironmentAreaSession session = sessions.get(sessionOwner);
         BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
         if (session == null || building == null) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Environment build session is no longer active.");
@@ -354,7 +598,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Template is missing for this build slot.");
             return;
         }
-        WorldCuboid destinationArea = toPastedCuboid(building.placement());
+        WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
         int coins = plugin.getEconomyManager().getBalance(player);
         if (coins < BUILD_COST_COINS) {
@@ -366,7 +610,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         plugin.getEconomyManager().deductCoins(player, BUILD_COST_COINS);
         playCoinPaymentVisual(player, destinationMarker, BUILD_COST_COINS);
-        BukkitTask existing = activeBuildTasks.remove(ownerId);
+        BukkitTask existing = activeBuildTasks.remove(sessionOwner);
         if (existing != null) {
             existing.cancel();
         }
@@ -374,16 +618,74 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             @Override
             public void run() {
                 if (!player.isOnline()) {
-                    activeBuildTasks.remove(ownerId);
+                    activeBuildTasks.remove(sessionOwner);
                     cancel();
                     return;
                 }
                 buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
                 removeBuildHologram(session, tag);
-                activeBuildTasks.remove(ownerId);
+                markBuiltForProfile(player, slot);
+                activeBuildTasks.remove(sessionOwner);
             }
         }.runTaskLater(plugin, PAYMENT_ANIMATION_TICKS);
-        activeBuildTasks.put(ownerId, task);
+        activeBuildTasks.put(sessionOwner, task);
+    }
+
+    private UUID resolveAreaOwner(Player player) {
+        return player.getUniqueId();
+    }
+
+    private UUID resolveProfileScopedId(Player player) {
+        Integer slot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(player.getUniqueId());
+        int safeSlot = slot == null ? 0 : Math.max(0, slot);
+        return scopedProfileId(resolveAreaOwner(player), safeSlot);
+    }
+
+    private UUID scopedProfileId(UUID ownerId, int slot) {
+        String key = ownerId + ":" + Math.max(0, slot);
+        return UUID.nameUUIDFromBytes(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    private void markBuiltForProfile(Player player, int slot) {
+        UUID scoped = resolveProfileScopedId(player);
+        builtSlotsByProfile.computeIfAbsent(scoped, ignored -> new java.util.HashSet<>()).add(slot);
+        saveBuiltSlots(scoped);
+    }
+
+    private void applySavedBuilds(Player player, EnvironmentAreaSession session) {
+        UUID scoped = resolveProfileScopedId(player);
+        java.util.Set<Integer> built = loadBuiltSlots(scoped);
+        for (Integer slot : built) {
+            BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
+            CuboidTemplate template = session.buildingTemplates().get(slot);
+            if (building == null || template == null) continue;
+            WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
+            template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+            removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
+        }
+    }
+
+    private java.util.Set<Integer> loadBuiltSlots(UUID scoped) {
+        java.util.Set<Integer> cached = builtSlotsByProfile.get(scoped);
+        if (cached != null) return cached;
+        var cfg = plugin.getPlayerConfig().getConfig().getIntegerList("players." + scoped + ".environment.area.built-slots");
+        java.util.Set<Integer> built = new java.util.HashSet<>(cfg);
+        builtSlotsByProfile.put(scoped, built);
+        return built;
+    }
+
+    private void saveBuiltSlots(UUID scoped) {
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.built-slots",
+                new java.util.ArrayList<>(builtSlotsByProfile.getOrDefault(scoped, java.util.Set.of())));
+        plugin.getPlayerConfig().saveConfigFile();
+    }
+
+    public void clearProfileKingdomProgress(UUID playerId, int slot) {
+        if (playerId == null) return;
+        UUID scoped = scopedProfileId(playerId, slot);
+        builtSlotsByProfile.remove(scoped);
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.built-slots", null);
+        plugin.getPlayerConfig().saveConfigFile();
     }
 
     private void playCoinPaymentVisual(Player player, Location destinationMarker, int amount) {
@@ -521,6 +823,34 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         handleInteract(event.getPlayer(), event.getRightClicked(), () -> event.setCancelled(true));
     }
 
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onMove(PlayerMoveEvent event) {
+        if (event.getTo() == null) return;
+        Player player = event.getPlayer();
+        UUID playerId = player.getUniqueId();
+        EnvironmentAreaSession session = sessions.get(playerId);
+        if (session == null) return;
+        if (!player.getWorld().equals(session.world())) return;
+        Location to = event.getTo();
+        if (session.border().contains(to)) {
+            lastValidLocations.put(playerId, to.clone());
+            return;
+        }
+        Location fallback = lastValidLocations.get(playerId);
+        if (fallback == null || !session.world().equals(fallback.getWorld()) || !session.border().contains(fallback)) {
+            fallback = toPastedLocation(session.world(), EMPTY_WORLD_SPAWN, session.originX(), session.originY(), session.originZ());
+            if (fallback == null) {
+                fallback = new Location(session.world(),
+                        session.originX() + (AREA.width() / 2.0),
+                        session.originY() + 1.0,
+                        session.originZ() + (AREA.depth() / 2.0));
+            }
+            fallback = fallback.clone().add(0.5, 0.0, 0.5);
+        }
+        player.teleport(fallback);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You cannot leave your area border.");
+    }
+
     private record Cuboid(int x1, int y1, int z1, int x2, int y2, int z2) {
         int minX() { return Math.min(x1, x2); }
         int minY() { return Math.min(y1, y2); }
@@ -546,14 +876,25 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private record WorldPoint(int x, int y, int z) { }
 
 
-    private WorldCuboid toPastedCuboid(Cuboid source) {
+    private WorldCuboid toPastedCuboid(Cuboid source, int originX, int originY, int originZ) {
         return new WorldCuboid(
-                PASTE_X + (source.minX() - AREA.minX()),
-                PASTE_Y + (source.minY() - AREA.minY()),
-                PASTE_Z + (source.minZ() - AREA.minZ()),
-                PASTE_X + (source.maxX() - AREA.minX()),
-                PASTE_Y + (source.maxY() - AREA.minY()),
-                PASTE_Z + (source.maxZ() - AREA.minZ()));
+                originX + (source.minX() - AREA.minX()),
+                originY + (source.minY() - AREA.minY()),
+                originZ + (source.minZ() - AREA.minZ()),
+                originX + (source.maxX() - AREA.minX()),
+                originY + (source.maxY() - AREA.minY()),
+                originZ + (source.maxZ() - AREA.minZ()));
+    }
+
+    private WorldCuboid createSessionBorder(int originX, int originY, int originZ) {
+        WorldCuboid pastedArea = toPastedCuboid(AREA, originX, originY, originZ);
+        return new WorldCuboid(
+                pastedArea.minX(),
+                originY + BORDER_MIN_Y_OFFSET,
+                pastedArea.minZ(),
+                pastedArea.maxX(),
+                originY + BORDER_MAX_Y_OFFSET,
+                pastedArea.maxZ());
     }
 
     private static Cuboid projectFinishedToEmpty(Cuboid finishedSelection) {
@@ -570,15 +911,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return new WorldPoint(finishedPoint.x() + dx, finishedPoint.y() + dy, finishedPoint.z() + dz);
     }
 
-    private Location toPastedLocation(World world, WorldPoint source) {
+    private Location toPastedLocation(World world, WorldPoint source, int originX, int originY, int originZ) {
         if (world == null || source == null) {
             return null;
         }
         return new Location(
                 world,
-                PASTE_X + (source.x() - AREA.minX()),
-                PASTE_Y + (source.y() - AREA.minY()),
-                PASTE_Z + (source.z() - AREA.minZ()));
+                originX + (source.x() - AREA.minX()),
+                originY + (source.y() - AREA.minY()),
+                originZ + (source.z() - AREA.minZ()));
     }
 
     private Block findFirstBlock(World world, WorldCuboid cuboid, Material material, boolean includeY) {
@@ -622,6 +963,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     minY() + yOffset,
                     (minZ() + maxZ()) / 2.0 + 0.5);
         }
+
+        boolean contains(Location location) {
+            if (location == null) return false;
+            double x = location.getX(), y = location.getY(), z = location.getZ();
+            return x >= minX() && x <= maxX() + 1
+                    && y >= minY() && y <= maxY() + 1
+                    && z >= minZ() && z <= maxZ() + 1;
+        }
     }
 
     private record CoinVisual(int value, Material material, String modelId) { }
@@ -629,9 +978,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private record EnvironmentAreaSession(UUID ownerId,
                                           World world,
                                           Map<Integer, CuboidTemplate> buildingTemplates,
-                                          List<Entity> holograms) {
-        private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, CuboidTemplate> buildingTemplates) {
-            this(ownerId, world, buildingTemplates, new ArrayList<>());
+                                          List<Entity> holograms,
+                                          int originX,
+                                          int originY,
+                                          int originZ,
+                                          WorldCuboid border) {
+        private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, CuboidTemplate> buildingTemplates,
+                                       int originX, int originY, int originZ, WorldCuboid border) {
+            this(ownerId, world, buildingTemplates, new ArrayList<>(), originX, originY, originZ, border);
         }
 
         private void removeHolograms() {
@@ -644,12 +998,34 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
     }
 
+    private SlotOffset slotOffsetFor(UUID ownerId) {
+        int hash = Math.abs(ownerId.hashCode());
+        int col = hash % 8;
+        int row = (hash / 8) % 8;
+        return new SlotOffset(col * AREA_SPACING_BLOCKS, row * AREA_SPACING_BLOCKS);
+    }
+
+    private record SlotOffset(int dx, int dz) {}
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPluginDisable(PluginDisableEvent event) {
         if (event.getPlugin() != plugin) {
             return;
         }
         shutdown();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onQuit(PlayerQuitEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        EnvironmentAreaSession session = sessions.remove(id);
+        lastValidLocations.remove(id);
+        if (session == null) {
+            return;
+        }
+        session.removeHolograms();
+        Bukkit.unloadWorld(session.world(), false);
+        deleteWorldFolder(session.world().getName());
     }
 
     public void shutdown() {
@@ -665,5 +1041,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     }
         }
         sessions.clear();
+        lastValidLocations.clear();
     }
 }

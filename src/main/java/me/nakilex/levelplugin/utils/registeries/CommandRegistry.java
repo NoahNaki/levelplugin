@@ -78,6 +78,8 @@ import me.nakilex.levelplugin.friend.FriendGUI;
 import me.nakilex.levelplugin.friend.FriendsCommand;
 import me.nakilex.levelplugin.codex.CodexMainGUI;
 import me.nakilex.levelplugin.codex.CodexCommand;
+import me.nakilex.levelplugin.mail.MailAdminCommand;
+import me.nakilex.levelplugin.mail.MailCommand;
 import me.nakilex.levelplugin.cursormenu.CursorMenuCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
@@ -94,6 +96,8 @@ import me.nakilex.levelplugin.fasttravel.commands.LocationCommand;
 import me.nakilex.levelplugin.fasttravel.commands.FastTravelCommand;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.environment.TownCommand;
+import me.nakilex.levelplugin.environment.CoopCommand;
+import me.nakilex.levelplugin.environment.KingdomCommand;
 import me.nakilex.levelplugin.environment.UpgradeGUI;
 import me.nakilex.levelplugin.environment.stage.TownStageCommand;
 import me.nakilex.levelplugin.environment.stage.BuildingStageCommand;
@@ -353,6 +357,12 @@ public class CommandRegistry {
                 new me.nakilex.levelplugin.player.commands.ProfileCommand();
         plugin.getCommand("profile").setExecutor(profileCmd);
         plugin.getCommand("profile").setTabCompleter(profileCmd);
+        MailCommand mailCommand = MailCommand.getInstance();
+        plugin.getCommand("mail").setExecutor(mailCommand);
+        plugin.getCommand("mail").setTabCompleter(mailCommand);
+        MailAdminCommand mailAdminCommand = MailAdminCommand.getInstance();
+        plugin.getCommand("mailadmin").setExecutor(mailAdminCommand);
+        plugin.getCommand("mailadmin").setTabCompleter(mailAdminCommand);
         plugin.getCommand("wipeprofile").setExecutor(new WipeProfileCommand());
 
         DebugCommand debugCmd = new DebugCommand(mobDebugToggleManager,
@@ -411,6 +421,12 @@ public class CommandRegistry {
         plugin.getCommand("modelgate").setExecutor(modelGateCmd);
         plugin.getCommand("modelgate").setTabCompleter(modelGateCmd);
         plugin.getCommand("town").setExecutor(new TownCommand(upgradeGUI, plugin.getEnvironmentManager()));
+        CoopCommand coopCommand = new CoopCommand(plugin.getEnvironmentManager());
+        plugin.getCommand("coop").setExecutor(coopCommand);
+        plugin.getCommand("coop").setTabCompleter(coopCommand);
+        KingdomCommand kingdomCommand = new KingdomCommand(me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin));
+        plugin.getCommand("kingdom").setExecutor(kingdomCommand);
+        plugin.getCommand("kingdom").setTabCompleter(kingdomCommand);
         TownStageCommand townStageCmd = new TownStageCommand(plugin.getTownStageManager());
         plugin.getCommand("townstage").setExecutor(townStageCmd);
         plugin.getCommand("townstage").setTabCompleter(townStageCmd);

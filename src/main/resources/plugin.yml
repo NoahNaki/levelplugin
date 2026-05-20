@@ -295,6 +295,12 @@ commands:
   profile:
     description: Manage player profiles
     usage: /profile [create|delete|select|update|unlock|lock]
+  mail:
+    description: Open your mailbox
+    usage: /mail
+  mailadmin:
+    description: Send administrative mail
+    usage: /mailadmin send <player|all> <coins> <gems> <xp> <subject>
   genitem:
     description: Gives a procedurally generated item
     usage: /genitem [player] <mobType> <level> [amount]
@@ -349,6 +355,12 @@ commands:
   town:
     description: Manage your settlement upgrades
     usage: /town [start <name>|reset]
+  coop:
+    description: Manage environment co-op membership
+    usage: /coop [invite|accept|deny|kick|transfer|leave|list]
+  kingdom:
+    description: Open your kingdom or visit another player's kingdom
+    usage: /kingdom [create|visit <player>]
   townstage:
     description: Define settlement stage regions
     usage: /townstage <wand|create|remove|list>

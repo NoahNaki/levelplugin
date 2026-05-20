@@ -68,6 +68,9 @@ public class ProfileManager {
         cfg.clearProfileData(uuid, slot);
         cfg.setProfileName(uuid, slot, name);
         cfg.setProfilePlayTime(uuid, slot, 0);
+        me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager
+                .getInstance(me.nakilex.levelplugin.Main.getInstance())
+                .clearProfileKingdomProgress(uuid, slot);
         cfg.saveConfigFile();
         return p;
     }
@@ -156,10 +159,18 @@ public class ProfileManager {
         if (petManager != null) {
             petManager.handleProfileDeletion(uuid);
         }
+        var areaManager = me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager
+                .getInstance(me.nakilex.levelplugin.Main.getInstance());
+        if (areaManager.hasCoopPartner(uuid)) {
+            player.sendMessage(org.bukkit.ChatColor.RED + "Transfer kingdom ownership before deleting this profile.");
+            return;
+        }
         if (wasActive) {
             wipePlayer(player);
             clearActiveSlot(uuid);
         }
+        areaManager.removeKingdom(uuid);
+        areaManager.clearProfileKingdomProgress(uuid, slot);
         list.set(slot, null);
         SpellProgressionManager.getInstance().clearProfile(uuid, slot);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =

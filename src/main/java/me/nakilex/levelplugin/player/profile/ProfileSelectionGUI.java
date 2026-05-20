@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import me.nakilex.levelplugin.spells.input.SpellKeybindManager;
 import me.nakilex.levelplugin.utils.BetterHudUtil;
+import me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -85,6 +86,7 @@ public class ProfileSelectionGUI implements Listener {
     // When the very first profile is created, store the slot so the
     // introductory quest can start once that profile is selected.
     private static final Map<UUID, Integer> FIRST_PROFILE_SLOT = new HashMap<>();
+    private static final Set<UUID> SUPPRESS_REOPEN_ON_CONVO_END = new HashSet<>();
 
     private static void hideOthers(Player player) {
         for (Player p : Bukkit.getOnlinePlayers()) {
@@ -254,10 +256,15 @@ public class ProfileSelectionGUI implements Listener {
             int total = qm.getTotalQuestCount();
 
             int playMinutes = profile.getPlayMinutes();
+            String coopPartner = EnvironmentAreaInstanceManager.getInstance(Main.getInstance())
+                    .getDebugCoopPartnerName(player.getUniqueId());
 
             String className = pc.getDisplayName();
 
             lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + level);
+            if (coopPartner != null && !coopPartner.isBlank()) {
+                lore.add(TooltipUtil.bulletLine(ChatColor.GRAY + "Shared co-op with " + ChatColor.WHITE + coopPartner));
+            }
             lore.add(ChatColor.GRAY + "XP: " + ChatColor.WHITE + pct + "%");
             lore.add(ChatColor.GRAY + "Class: " + ChatColor.WHITE + className);
             lore.add(ChatColor.GRAY + "Finished Quests: " + ChatColor.WHITE + completed + "/" + total);
@@ -321,20 +328,8 @@ public class ProfileSelectionGUI implements Listener {
         Integer active = pm.getActiveSlot(player.getUniqueId());
         boolean sameActive = active != null && active == index;
 
-        // If this is the first profile the player ever created and
-        // they are selecting it for the first time, start the intro quest.
         Integer pending = FIRST_PROFILE_SLOT.get(player.getUniqueId());
         if (pending != null && pending == index) {
-            QuestManager questManager = Main.getInstance().getQuestManager();
-            long existingProfiles = pm.getProfiles(player.getUniqueId()).stream()
-                    .filter(java.util.Objects::nonNull)
-                    .count();
-            if (existingProfiles <= 1) {
-                questManager.clearPlayerData(player.getUniqueId());
-            } else {
-                questManager.resetQuest(player.getUniqueId(), "officeerrands", true);
-            }
-            questManager.startQuest(player, "officeerrands");
             FIRST_PROFILE_SLOT.remove(player.getUniqueId());
         }
 
@@ -351,12 +346,7 @@ public class ProfileSelectionGUI implements Listener {
         org.bukkit.Location loc = cfg.getProfileLocation(player.getUniqueId(), index);
         if (loc != null) player.teleport(loc);
 
-        // Start the introductory quest for brand new characters
         QuestManager qm = Main.getInstance().getQuestManager();
-        if (!qm.hasCompleted(player.getUniqueId(), "officeerrands") &&
-                qm.getProgress(player.getUniqueId(), "officeerrands") == null) {
-            qm.startQuest(player, "officeerrands");
-        }
 
         loadProfileInventory(player, cfg, index);
         me.nakilex.levelplugin.player.attributes.managers.StatsManager statsManager =
@@ -373,6 +363,7 @@ public class ProfileSelectionGUI implements Listener {
         me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
         resyncScoreboardAfterHud(player);
         Main.getInstance().getPetManager().handleProfileActivated(player);
+        me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(Main.getInstance()).initialize(player);
 
     }
 
@@ -460,13 +451,20 @@ public class ProfileSelectionGUI implements Listener {
                         player.getInventory().clear();
                         me.nakilex.levelplugin.items.listeners.StaticItemListener.giveStaticItems(player);
                         markNewProfile(player, index);
+                        SUPPRESS_REOPEN_ON_CONVO_END.add(player.getUniqueId());
+                        Bukkit.getScheduler().runTask(Main.getInstance(), () -> selectProfile(player, index));
                         return Prompt.END_OF_CONVERSATION;
                     }
                 })
                 .withLocalEcho(false)
                 .addConversationAbandonedListener(event -> {
                     NAMING.remove(player.getUniqueId());
-                    Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player));
+                    if (SUPPRESS_REOPEN_ON_CONVO_END.remove(player.getUniqueId())) {
+                        return;
+                    }
+                    if (ProfileManager.getInstance().getActiveSlot(player.getUniqueId()) == null) {
+                        Bukkit.getScheduler().runTask(Main.getInstance(), () -> open(player));
+                    }
                 });
         factory.buildConversation(player).begin();
     }
