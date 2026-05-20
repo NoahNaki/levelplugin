@@ -104,7 +104,23 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new BuildingTemplate(4, "castle", "Castle", Material.STONE_BRICKS,
                     new Cuboid(3717, 13, -2849, 3583, 213, -3027),
                     projectFinishedToEmpty(new Cuboid(3717, 13, -2849, 3583, 213, -3027)),
-                    projectFinishedToEmpty(new WorldPoint(3693, 25, -2934)))
+                    projectFinishedToEmpty(new WorldPoint(3693, 25, -2934))),
+            new BuildingTemplate(5, "farm", "Farm", Material.HAY_BLOCK,
+                    new Cuboid(3796, -18, -3059, 3753, 79, -2996),
+                    projectFinishedToEmpty(new Cuboid(3796, -18, -3059, 3753, 79, -2996)),
+                    projectFinishedToEmpty(new WorldPoint(3795, -3, -3032))),
+            new BuildingTemplate(6, "house", "House", Material.OAK_PLANKS,
+                    new Cuboid(3810, -11, -3003, 3838, 31, -3035),
+                    projectFinishedToEmpty(new Cuboid(3810, -11, -3003, 3838, 31, -3035)),
+                    projectFinishedToEmpty(new WorldPoint(3822, -3, -3004))),
+            new BuildingTemplate(7, "house_2", "House 2", Material.SPRUCE_PLANKS,
+                    new Cuboid(3856, -10, -2961, 3819, 29, -3000),
+                    projectFinishedToEmpty(new Cuboid(3856, -10, -2961, 3819, 29, -3000)),
+                    projectFinishedToEmpty(new WorldPoint(3825, -2, -2986))),
+            new BuildingTemplate(8, "house_3", "House 3", Material.BIRCH_PLANKS,
+                    new Cuboid(3755, -8, -2842, 3717, 67, -2884),
+                    projectFinishedToEmpty(new Cuboid(3755, -8, -2842, 3717, 67, -2884)),
+                    projectFinishedToEmpty(new WorldPoint(3757, 2, -2875)))
     );
 
     private static final Map<Integer, BuildingTemplate> BUILDINGS_BY_SLOT = BUILDINGS.stream()
