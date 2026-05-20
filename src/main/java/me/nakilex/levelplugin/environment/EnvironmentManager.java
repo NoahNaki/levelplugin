@@ -59,6 +59,8 @@ public class EnvironmentManager {
 
     /** Players that already saw the initial build animation. */
     private final java.util.Set<UUID> playedInitAnimation = new java.util.HashSet<>();
+    /** Multiplier for building animation duration, controlled via debug command. */
+    private double buildSpeedMultiplier = 0.10D;
 
 
     private static String key(Location loc) {
@@ -162,6 +164,15 @@ public class EnvironmentManager {
 
     public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() {
         return buildingStageManager;
+    }
+
+    public void setBuildSpeedPercent(int percent) {
+        int clamped = Math.max(1, Math.min(100, percent));
+        this.buildSpeedMultiplier = clamped / 100.0D;
+    }
+
+    public int getBuildSpeedPercent() {
+        return (int) Math.round(buildSpeedMultiplier * 100.0D);
     }
 
     public String getTown(UUID uuid) {
@@ -1399,6 +1410,7 @@ public class EnvironmentManager {
 
         class Change { Location loc; org.bukkit.block.data.BlockData data; Change(Location l, org.bukkit.block.data.BlockData d){this.loc=l;this.data=d;} }
         java.util.List<Change> changes = new java.util.ArrayList<>();
+        java.util.List<Location> changeLocations = new java.util.ArrayList<>();
         java.util.Set<String> newKeys = new java.util.HashSet<>();
 
         for (var b : newData.blocks) {
@@ -1406,6 +1418,7 @@ public class EnvironmentManager {
             String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
             newKeys.add(locKey);
             changes.add(new Change(loc, b.data));
+            changeLocations.add(loc);
         }
 
         if (oldData != null) {
@@ -1415,6 +1428,7 @@ public class EnvironmentManager {
                 String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
                 if (!newKeys.contains(locKey)) {
                     changes.add(new Change(loc, air));
+                    changeLocations.add(loc);
                 }
             }
         }
@@ -1483,7 +1497,10 @@ public class EnvironmentManager {
         java.util.List<BuildingStageManager.BlockDef> blocks = new java.util.ArrayList<>(stageData.blocks);
         blocks.sort(java.util.Comparator.comparingInt(b -> b.y));
 
-        final int blocksPerTick = Math.max(1, blocks.size() / totalTime);
+        final int adjustedTotalTime = Math.max(20, (int) Math.round(totalTime / Math.max(0.01D, buildSpeedMultiplier)));
+        final int blocksPerTick = Math.max(1, blocks.size() / adjustedTotalTime);
+        final Location orbitCenter = computeCenter(baseOrigin, stageData.blocks, stageData.ox, stageData.oy, stageData.oz);
+        final double orbitRadius = Math.max(4.0D, Math.sqrt(Math.max(1, stageData.blocks.size())) * 0.22D);
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
@@ -1511,6 +1528,7 @@ public class EnvironmentManager {
                     player.getWorld().playSound(loc, placeS, 0.7f, 1f);
                 }
                 applyBlocks(batch);
+                orbitPlayerAroundCenter(player, orbitCenter, orbitRadius, index, Math.max(1, blocks.size()), 0.35D);
                 if (index >= blocks.size()) {
                     player.playSound(baseOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     buildingStageManager.spawnForStage(player, building, stage, baseOrigin);
@@ -1651,6 +1669,7 @@ public class EnvironmentManager {
 
         class Change { Location loc; org.bukkit.block.data.BlockData data; Change(Location l, org.bukkit.block.data.BlockData d){this.loc=l;this.data=d;} }
         java.util.List<Change> changes = new java.util.ArrayList<>();
+        java.util.List<Location> changeLocations = new java.util.ArrayList<>();
         java.util.Set<String> newKeys = new java.util.HashSet<>();
 
         for (var b : newData.blocks) {
@@ -1658,6 +1677,7 @@ public class EnvironmentManager {
             String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
             newKeys.add(locKey);
             changes.add(new Change(loc, b.data));
+            changeLocations.add(loc);
         }
 
         if (oldData != null) {
@@ -1667,6 +1687,7 @@ public class EnvironmentManager {
                 String locKey = loc.getBlockX()+":"+loc.getBlockY()+":"+loc.getBlockZ();
                 if (!newKeys.contains(locKey)) {
                     changes.add(new Change(loc, air));
+                    changeLocations.add(loc);
                 }
             }
         }
@@ -1675,8 +1696,10 @@ public class EnvironmentManager {
         changes.sort(java.util.Comparator.comparingInt(c -> c.loc.getBlockY()));
 
         // build upgrade animation runs for ~6 seconds
-        final int totalTime = 6 * 20; // 6 seconds in ticks
+        final int totalTime = Math.max(20, (int) Math.round((6 * 20) / Math.max(0.01D, buildSpeedMultiplier)));
         final int blocksPerTick = Math.max(1, changes.size() / totalTime);
+        final Location orbitCenter = averageCenter(newOrigin, changeLocations);
+        final double orbitRadius = Math.max(5.0D, Math.sqrt(Math.max(1, changes.size())) * 0.20D);
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
@@ -1707,6 +1730,7 @@ public class EnvironmentManager {
                     player.getWorld().playSound(c.loc, placeS, 0.7f, 1f);
                 }
                 applyBlocks(batch);
+                orbitPlayerAroundCenter(player, orbitCenter, orbitRadius, index, Math.max(1, changes.size()), 0.6D);
                 if (index >= changes.size()) {
                     player.playSound(newOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     buildingStageManager.spawnForStage(player, building, newStage, newOrigin);
@@ -1763,6 +1787,40 @@ public class EnvironmentManager {
         for (Location l : locs) {
             l.getBlock().setType(org.bukkit.Material.AIR, false);
         }
+    }
+
+    private Location computeCenter(Location baseOrigin, java.util.List<BuildingStageManager.BlockDef> blocks, int ox, int oy, int oz) {
+        if (blocks == null || blocks.isEmpty()) return baseOrigin.clone().add(0.5, 2.0, 0.5);
+        double sx = 0, sy = 0, sz = 0;
+        for (var b : blocks) {
+            sx += baseOrigin.getX() + (b.x - ox);
+            sy += baseOrigin.getY() + (b.y - oy);
+            sz += baseOrigin.getZ() + (b.z - oz);
+        }
+        double count = blocks.size();
+        return new Location(baseOrigin.getWorld(), sx / count + 0.5, sy / count + 1.5, sz / count + 0.5);
+    }
+
+    private Location averageCenter(Location fallback, java.util.List<Location> locations) {
+        if (locations == null || locations.isEmpty()) return fallback.clone().add(0.5, 2.0, 0.5);
+        double sx = 0, sy = 0, sz = 0;
+        for (Location loc : locations) {
+            sx += loc.getX();
+            sy += loc.getY();
+            sz += loc.getZ();
+        }
+        double count = locations.size();
+        return new Location(fallback.getWorld(), sx / count + 0.5, sy / count + 1.5, sz / count + 0.5);
+    }
+
+    private void orbitPlayerAroundCenter(Player player, Location center, double radius, int progress, int total, double verticalOffset) {
+        if (player == null || center == null || center.getWorld() == null || total <= 0) return;
+        double t = Math.min(1.0D, Math.max(0.0D, progress / (double) total));
+        double angle = t * (Math.PI * 2.0D);
+        Location cam = center.clone().add(Math.cos(angle) * radius, verticalOffset + 2.0D, Math.sin(angle) * radius);
+        org.bukkit.util.Vector dir = center.toVector().subtract(cam.toVector());
+        cam.setDirection(dir);
+        player.teleport(cam);
     }
 
     // ----- Coop management -----
