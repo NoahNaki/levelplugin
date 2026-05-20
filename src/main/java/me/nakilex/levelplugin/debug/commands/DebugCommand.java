@@ -336,6 +336,7 @@ public class DebugCommand implements TabExecutor {
                 environmentManager.setBuildSpeedPercent(percent);
                 sender.sendMessage(ChatColor.GREEN + "Building speed set to "
                         + environmentManager.getBuildSpeedPercent() + "%.");
+                sender.sendMessage(ChatColor.DARK_GRAY + "Tip: enable debug.environment in config to log animation timings.");
                 return true;
 
             case "area":

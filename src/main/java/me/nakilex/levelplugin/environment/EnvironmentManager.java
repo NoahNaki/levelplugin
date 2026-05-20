@@ -169,6 +169,7 @@ public class EnvironmentManager {
     public void setBuildSpeedPercent(int percent) {
         int clamped = Math.max(1, Math.min(100, percent));
         this.buildSpeedMultiplier = clamped / 100.0D;
+        envDebugLog("Set building speed percent to " + clamped + "% (multiplier=" + buildSpeedMultiplier + ")");
     }
 
     public int getBuildSpeedPercent() {
@@ -1497,6 +1498,12 @@ public class EnvironmentManager {
         final int adjustedTotalTime = Math.max(20, (int) Math.round(totalTime / Math.max(0.01D, buildSpeedMultiplier)));
         final Location orbitCenter = computeCenter(baseOrigin, stageData.blocks, stageData.ox, stageData.oy, stageData.oz);
         final double orbitRadius = Math.max(4.0D, Math.sqrt(Math.max(1, stageData.blocks.size())) * 0.22D);
+        envDebugLog("Building animation start [" + player.getName() + ":" + building + " S" + stage + "] "
+                + "blocks=" + blocks.size()
+                + ", requestedTicks=" + totalTime
+                + ", speedPercent=" + getBuildSpeedPercent()
+                + ", adjustedTicks=" + adjustedTotalTime
+                + ", orbitRadius=" + String.format(java.util.Locale.US, "%.2f", orbitRadius));
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
@@ -1529,6 +1536,8 @@ public class EnvironmentManager {
                 applyBlocks(batch);
                 orbitPlayerAroundCenter(player, orbitCenter, orbitRadius, index, Math.max(1, blocks.size()), 0.35D);
                 if (index >= blocks.size()) {
+                    envDebugLog("Building animation done [" + player.getName() + ":" + building + " S" + stage + "] "
+                            + "elapsedTicks=" + ticksElapsed + ", consumed=" + index + "/" + blocks.size());
                     player.playSound(baseOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     buildingStageManager.spawnForStage(player, building, stage, baseOrigin);
                     envDebugLog("Finished spawning building " + building + " stage " + stage + " for " + player.getName()
@@ -1695,6 +1704,12 @@ public class EnvironmentManager {
         final int totalTime = Math.max(20, (int) Math.round((6 * 20) / Math.max(0.01D, buildSpeedMultiplier)));
         final Location orbitCenter = computeCenter(newOrigin, newData.blocks, newData.ox, newData.oy, newData.oz);
         final double orbitRadius = Math.max(5.0D, Math.sqrt(Math.max(1, changes.size())) * 0.20D);
+        envDebugLog("Building upgrade animation start [" + player.getName() + ":" + building + " " + oldStage + "->" + newStage + "] "
+                + "changes=" + changes.size()
+                + ", speedPercent=" + getBuildSpeedPercent()
+                + ", adjustedTicks=" + totalTime
+                + ", orbitRadius=" + String.format(java.util.Locale.US, "%.2f", orbitRadius)
+                + ", center=" + orbitCenter.getBlockX() + "," + orbitCenter.getBlockY() + "," + orbitCenter.getBlockZ());
 
         java.util.Random rand = new java.util.Random();
         Sound[] breakSounds = { Sound.BLOCK_STONE_BREAK, Sound.BLOCK_DEEPSLATE_BREAK, Sound.BLOCK_WOOD_BREAK };
@@ -1730,6 +1745,8 @@ public class EnvironmentManager {
                 applyBlocks(batch);
                 orbitPlayerAroundCenter(player, orbitCenter, orbitRadius, index, Math.max(1, changes.size()), 0.6D);
                 if (index >= changes.size()) {
+                    envDebugLog("Building upgrade animation done [" + player.getName() + ":" + building + " " + oldStage + "->" + newStage + "] "
+                            + "elapsedTicks=" + ticksElapsed + ", consumed=" + index + "/" + changes.size());
                     player.playSound(newOrigin, Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     buildingStageManager.spawnForStage(player, building, newStage, newOrigin);
                     Location holo = newOrigin.clone().add(
