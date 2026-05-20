@@ -68,7 +68,11 @@ public class ProfileCommand implements CommandExecutor, TabCompleter {
                     return true;
                 }
                 Integer active = pm.getActiveSlot(player.getUniqueId());
+                PlayerProfile beforeDelete = pm.getProfile(player.getUniqueId(), del);
                 pm.deleteProfile(player, del);
+                if (beforeDelete != null && pm.getProfile(player.getUniqueId(), del) != null) {
+                    return true;
+                }
                 player.sendMessage(ChatColor.GREEN + "Profile deleted.");
                 if (active != null && active.equals(del)) {
                     pm.clearActiveSlot(player.getUniqueId());

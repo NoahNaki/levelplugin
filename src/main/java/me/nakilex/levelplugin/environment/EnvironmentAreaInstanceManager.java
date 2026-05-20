@@ -337,6 +337,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return Bukkit.getOfflinePlayer(partner).getName();
     }
 
+    public boolean hasCoopPartner(UUID ownerId) {
+        return ownerId != null && coopPartnerByOwner.containsKey(ownerId);
+    }
+
     public void kick(Player ownerPlayer, Player target) {
         UUID owner = ownerPlayer.getUniqueId();
         UUID partner = coopPartnerByOwner.get(owner);
@@ -634,7 +638,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private UUID resolveProfileScopedId(Player player) {
         Integer slot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(player.getUniqueId());
         int safeSlot = slot == null ? 0 : Math.max(0, slot);
-        String key = resolveAreaOwner(player) + ":" + safeSlot;
+        return scopedProfileId(resolveAreaOwner(player), safeSlot);
+    }
+
+    private UUID scopedProfileId(UUID ownerId, int slot) {
+        String key = ownerId + ":" + Math.max(0, slot);
         return UUID.nameUUIDFromBytes(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 
@@ -669,6 +677,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private void saveBuiltSlots(UUID scoped) {
         plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.built-slots",
                 new java.util.ArrayList<>(builtSlotsByProfile.getOrDefault(scoped, java.util.Set.of())));
+        plugin.getPlayerConfig().saveConfigFile();
+    }
+
+    public void clearProfileKingdomProgress(UUID playerId, int slot) {
+        if (playerId == null) return;
+        UUID scoped = scopedProfileId(playerId, slot);
+        builtSlotsByProfile.remove(scoped);
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.built-slots", null);
         plugin.getPlayerConfig().saveConfigFile();
     }
 
