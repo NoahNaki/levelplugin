@@ -53,6 +53,7 @@ import me.nakilex.levelplugin.codex.*;
 import me.nakilex.levelplugin.cursormenu.CursorMenuManager;
 import me.nakilex.levelplugin.utils.BlockGlowUtil;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
+import me.nakilex.levelplugin.npc.NpcCleanupUtil;
 import me.nakilex.levelplugin.friend.IgnoreManager;
 import me.nakilex.levelplugin.friend.FriendRequestListener;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
@@ -332,6 +333,13 @@ public class PluginBootstrap {
         plugin.getServer().getScheduler().runTaskLater(plugin,
                 () -> ModelEngineUtil.warmupModelAnimations(plugin),
                 40L);
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            NpcCleanupUtil.PruneResult result = NpcCleanupUtil.pruneOrphanCitizensNpcs();
+            if (result.removed() > 0) {
+                plugin.getLogger().info("Pruned " + result.removed()
+                        + " orphan Citizens NPC entries at startup (checked " + result.totalChecked() + ").");
+            }
+        }, 20L);
         plugin.getLogger().info("LevelPlugin has been enabled successfully!");
     }
 
