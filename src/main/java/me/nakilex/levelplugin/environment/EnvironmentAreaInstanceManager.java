@@ -33,6 +33,9 @@ import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -113,6 +116,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
     private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
+    private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -199,7 +203,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         pendingCoopInvites.put(target.getUniqueId(), owner.getUniqueId());
         ChatMessageUtil.send(owner, ChatMessageUtil.MessageType.SUCCESS, "Invited " + ChatColor.WHITE + target.getName() + ChatColor.GREEN + " to your debug area.");
         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO,
-                ChatColor.WHITE + owner.getName() + ChatColor.GRAY + " invited you to their debug area. Use /coop accept.");
+                ChatColor.WHITE + owner.getName() + ChatColor.GRAY + " invited you to their debug area.");
+        Component accept = Component.text(ChatColor.GREEN + "[Accept]")
+                .clickEvent(ClickEvent.runCommand("/coop accept " + owner.getName()))
+                .hoverEvent(HoverEvent.showText(Component.text("Click to accept this co-op invite")));
+        Component deny = Component.text(ChatColor.RED + "[Deny]")
+                .clickEvent(ClickEvent.runCommand("/coop deny " + owner.getName()))
+                .hoverEvent(HoverEvent.showText(Component.text("Click to deny this co-op invite")));
+        target.sendMessage(accept.append(Component.text(" ")).append(deny));
     }
 
     public void accept(Player player) {
@@ -228,6 +239,18 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     public boolean hasPendingInvite(UUID playerId) {
         return playerId != null && pendingCoopInvites.containsKey(playerId);
+    }
+
+    public UUID getPendingInviteOwner(UUID inviteeId) {
+        return inviteeId == null ? null : pendingCoopInvites.get(inviteeId);
+    }
+
+    public boolean clearPendingInvite(UUID inviteeId, UUID ownerId) {
+        if (inviteeId == null || ownerId == null) return false;
+        UUID existing = pendingCoopInvites.get(inviteeId);
+        if (!ownerId.equals(existing)) return false;
+        pendingCoopInvites.remove(inviteeId);
+        return true;
     }
 
 
@@ -400,10 +423,17 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (player == null || entity == null) {
             return;
         }
+        long now = System.currentTimeMillis();
+        long last = interactDebounceMs.getOrDefault(player.getUniqueId(), 0L);
+        if (now - last < 150L) {
+            cancelAction.run();
+            return;
+        }
         for (String tag : entity.getScoreboardTags()) {
             if (!tag.startsWith(HOLOGRAM_TAG_PREFIX)) {
                 continue;
             }
+            interactDebounceMs.put(player.getUniqueId(), now);
             cancelAction.run();
             handleBuildTag(player, tag);
             return;
