@@ -81,66 +81,66 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new CoinVisual(1, Material.COPPER_INGOT, "copper_coin")
     );
 
-    private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 230, -3145);
-    private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 230, -3143);
-    private static final WorldPoint FINISHED_WORLD_ANCHOR = new WorldPoint(3489, -23, -3143);
-    private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, -23, -3603);
-    private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 8, -2934);
+    private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 330, -3145);
+    private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 330, -3143);
+    private static final WorldPoint FINISHED_WORLD_ANCHOR = new WorldPoint(3489, 77, -3143);
+    private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, 77, -3603);
+    private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 108, -2934);
     private static final WorldPoint EMPTY_WORLD_SPAWN = projectFinishedToEmpty(FINISHED_WORLD_SPAWN);
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
-                    new Cuboid(3821, -5, -2852, 3780, 60, -2805),
-                    projectFinishedToEmpty(new Cuboid(3821, -5, -2852, 3780, 60, -2805)),
-                    projectFinishedToEmpty(new WorldPoint(3799, 0, -2851))),
+                    new Cuboid(3821, 95, -2852, 3780, 160, -2805),
+                    projectFinishedToEmpty(new Cuboid(3821, 95, -2852, 3780, 160, -2805)),
+                    projectFinishedToEmpty(new WorldPoint(3799, 100, -2851))),
             new BuildingTemplate(2, "blacksmith", "Blacksmith", Material.ANVIL,
-                    new Cuboid(3875, -20, -2976, 3922, 51, -3035),
-                    projectFinishedToEmpty(new Cuboid(3875, -20, -2976, 3922, 51, -3035)),
-                    projectFinishedToEmpty(new WorldPoint(3883, -10, -2982))),
+                    new Cuboid(3875, 80, -2976, 3922, 151, -3035),
+                    projectFinishedToEmpty(new Cuboid(3875, 80, -2976, 3922, 151, -3035)),
+                    projectFinishedToEmpty(new WorldPoint(3883, 90, -2982))),
             new BuildingTemplate(3, "fishing", "Fishing", Material.WATER_BUCKET,
-                    new Cuboid(3860, -15, -2807, 3921, 61, -2880),
-                    projectFinishedToEmpty(new Cuboid(3860, -15, -2807, 3921, 61, -2880)),
-                    projectFinishedToEmpty(new WorldPoint(3877, -8, -2836))),
+                    new Cuboid(3860, 85, -2807, 3921, 161, -2880),
+                    projectFinishedToEmpty(new Cuboid(3860, 85, -2807, 3921, 161, -2880)),
+                    projectFinishedToEmpty(new WorldPoint(3877, 92, -2836))),
             new BuildingTemplate(4, "castle", "Castle", Material.STONE_BRICKS,
-                    new Cuboid(3717, 13, -2849, 3583, 213, -3027),
-                    projectFinishedToEmpty(new Cuboid(3717, 13, -2849, 3583, 213, -3027)),
-                    projectFinishedToEmpty(new WorldPoint(3693, 25, -2934))),
+                    new Cuboid(3717, 113, -2849, 3583, 313, -3027),
+                    projectFinishedToEmpty(new Cuboid(3717, 113, -2849, 3583, 313, -3027)),
+                    projectFinishedToEmpty(new WorldPoint(3693, 125, -2934))),
             new BuildingTemplate(5, "farm", "Farm", Material.HAY_BLOCK,
-                    new Cuboid(3796, -18, -3059, 3753, 79, -2996),
-                    projectFinishedToEmpty(new Cuboid(3796, -18, -3059, 3753, 79, -2996)),
-                    projectFinishedToEmpty(new WorldPoint(3795, -3, -3032))),
+                    new Cuboid(3796, 82, -3059, 3753, 179, -2996),
+                    projectFinishedToEmpty(new Cuboid(3796, 82, -3059, 3753, 179, -2996)),
+                    projectFinishedToEmpty(new WorldPoint(3795, 97, -3032))),
             new BuildingTemplate(6, "house", "House", Material.OAK_PLANKS,
-                    new Cuboid(3810, -11, -3003, 3838, 31, -3035),
-                    projectFinishedToEmpty(new Cuboid(3810, -11, -3003, 3838, 31, -3035)),
-                    projectFinishedToEmpty(new WorldPoint(3822, -3, -3004))),
+                    new Cuboid(3810, 89, -3003, 3838, 131, -3035),
+                    projectFinishedToEmpty(new Cuboid(3810, 89, -3003, 3838, 131, -3035)),
+                    projectFinishedToEmpty(new WorldPoint(3822, 97, -3004))),
             new BuildingTemplate(7, "house_2", "House 2", Material.SPRUCE_PLANKS,
-                    new Cuboid(3856, -10, -2961, 3819, 29, -3000),
-                    projectFinishedToEmpty(new Cuboid(3856, -10, -2961, 3819, 29, -3000)),
-                    projectFinishedToEmpty(new WorldPoint(3825, -2, -2986))),
+                    new Cuboid(3856, 90, -2961, 3819, 129, -3000),
+                    projectFinishedToEmpty(new Cuboid(3856, 90, -2961, 3819, 129, -3000)),
+                    projectFinishedToEmpty(new WorldPoint(3825, 98, -2986))),
             new BuildingTemplate(8, "house_3", "House 3", Material.BIRCH_PLANKS,
-                    new Cuboid(3755, -8, -2842, 3717, 67, -2884),
-                    projectFinishedToEmpty(new Cuboid(3755, -8, -2842, 3717, 67, -2884)),
-                    projectFinishedToEmpty(new WorldPoint(3757, 2, -2875))),
+                    new Cuboid(3755, 92, -2842, 3717, 167, -2884),
+                    projectFinishedToEmpty(new Cuboid(3755, 92, -2842, 3717, 167, -2884)),
+                    projectFinishedToEmpty(new WorldPoint(3757, 102, -2875))),
             new BuildingTemplate(9, "house_4", "House 4", Material.JUNGLE_PLANKS,
-                    new Cuboid(3782, -2, -2862, 3812, 33, -2900),
-                    projectFinishedToEmpty(new Cuboid(3782, -2, -2862, 3812, 33, -2900)),
-                    projectFinishedToEmpty(new WorldPoint(3799, 1, -2897))),
+                    new Cuboid(3782, 98, -2862, 3812, 133, -2900),
+                    projectFinishedToEmpty(new Cuboid(3782, 98, -2862, 3812, 133, -2900)),
+                    projectFinishedToEmpty(new WorldPoint(3799, 101, -2897))),
             new BuildingTemplate(10, "house_5", "House 5", Material.ACACIA_PLANKS,
-                    new Cuboid(3813, 31, -2909, 3849, -3, -2872),
-                    projectFinishedToEmpty(new Cuboid(3813, 31, -2909, 3849, -3, -2872)),
-                    projectFinishedToEmpty(new WorldPoint(3832, -1, -2887))),
+                    new Cuboid(3813, 131, -2909, 3849, 97, -2872),
+                    projectFinishedToEmpty(new Cuboid(3813, 131, -2909, 3849, 97, -2872)),
+                    projectFinishedToEmpty(new WorldPoint(3832, 99, -2887))),
             new BuildingTemplate(11, "house_6", "House 6", Material.DARK_OAK_PLANKS,
-                    new Cuboid(3790, 21, -2797, 3745, -41, -2757),
-                    projectFinishedToEmpty(new Cuboid(3790, 21, -2797, 3745, -41, -2757)),
-                    projectFinishedToEmpty(new WorldPoint(3759, -8, -2817))),
+                    new Cuboid(3790, 121, -2797, 3745, 59, -2757),
+                    projectFinishedToEmpty(new Cuboid(3790, 121, -2797, 3745, 59, -2757)),
+                    projectFinishedToEmpty(new WorldPoint(3759, 92, -2817))),
             new BuildingTemplate(12, "house_7", "House 7", Material.MANGROVE_PLANKS,
-                    new Cuboid(3765, 20, -2841, 3729, -16, -2812),
-                    projectFinishedToEmpty(new Cuboid(3765, 20, -2841, 3729, -16, -2812)),
-                    projectFinishedToEmpty(new WorldPoint(3753, -2, -2842))),
+                    new Cuboid(3765, 120, -2841, 3729, 84, -2812),
+                    projectFinishedToEmpty(new Cuboid(3765, 120, -2841, 3729, 84, -2812)),
+                    projectFinishedToEmpty(new WorldPoint(3753, 98, -2842))),
             new BuildingTemplate(13, "house_8", "House 8", Material.CHERRY_PLANKS,
-                    new Cuboid(3742, -13, -2996, 3775, 38, -2937),
-                    projectFinishedToEmpty(new Cuboid(3742, -13, -2996, 3775, 38, -2937)),
-                    projectFinishedToEmpty(new WorldPoint(3780, 0, -2975)))
+                    new Cuboid(3742, 87, -2996, 3775, 138, -2937),
+                    projectFinishedToEmpty(new Cuboid(3742, 87, -2996, 3775, 138, -2937)),
+                    projectFinishedToEmpty(new WorldPoint(3780, 100, -2975)))
     );
 
     private static final Map<Integer, BuildingTemplate> BUILDINGS_BY_SLOT = BUILDINGS.stream()
