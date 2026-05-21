@@ -91,7 +91,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, 77, -3603);
     private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 108, -2934);
     private static final WorldPoint EMPTY_WORLD_SPAWN = projectFinishedToEmpty(FINISHED_WORLD_SPAWN);
-    private static final WorldPoint KINGDOM_ANIMATED_LB = new WorldPoint(3810, 105, -3377);
+    private static final WorldPoint KINGDOM_ANIMATED_LB = new WorldPoint(3811, 105, -3377);
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
@@ -988,7 +988,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         float yaw = (float) plugin.getConfig().getDouble("animatedlb.yaw", 0.0D);
-        origin.setYaw(yaw);
+        origin.setYaw(yaw + 180.0F);
         origin.setPitch(0.0F);
 
         LeaderboardDataProvider provider = plugin instanceof Main main
