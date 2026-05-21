@@ -91,8 +91,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, 77, -3603);
     private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 108, -2934);
     private static final WorldPoint EMPTY_WORLD_SPAWN = projectFinishedToEmpty(FINISHED_WORLD_SPAWN);
-    private static final WorldPoint FINISHED_WORLD_ANIMATED_LB = new WorldPoint(3810, 105, -3377);
-    private static final WorldPoint EMPTY_WORLD_ANIMATED_LB = projectFinishedToEmpty(FINISHED_WORLD_ANIMATED_LB);
+    private static final WorldPoint KINGDOM_ANIMATED_LB = new WorldPoint(3810, 105, -3377);
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
@@ -906,6 +905,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         int maxZ() { return Math.max(z1, z2); }
         int width() { return Math.abs(x1 - x2) + 1; }
         int depth() { return Math.abs(z1 - z2) + 1; }
+        boolean contains(WorldPoint point) {
+            if (point == null) {
+                return false;
+            }
+            return point.x() >= minX() && point.x() <= maxX()
+                    && point.y() >= minY() && point.y() <= maxY()
+                    && point.z() >= minZ() && point.z() <= maxZ();
+        }
         Cuboid translate(int dx, int dy, int dz) {
             return new Cuboid(x1 + dx, y1 + dy, z1 + dz, x2 + dx, y2 + dy, z2 + dz);
         }
@@ -957,12 +964,26 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return new WorldPoint(finishedPoint.x() + dx, finishedPoint.y() + dy, finishedPoint.z() + dz);
     }
 
+    private static WorldPoint resolveKingdomTemplatePoint(WorldPoint point) {
+        if (point == null) {
+            return null;
+        }
+        if (AREA.contains(point)) {
+            return point;
+        }
+        if (FINISHED_WORLD_AREA.contains(point)) {
+            return projectFinishedToEmpty(point);
+        }
+        return point;
+    }
+
     private void spawnAnimatedLeaderboard(EnvironmentAreaSession session) {
         if (session == null || session.world() == null) {
             return;
         }
         removeAnimatedLeaderboard(session.ownerId());
-        Location origin = toPastedLocation(session.world(), EMPTY_WORLD_ANIMATED_LB, session.originX(), session.originY(), session.originZ());
+        WorldPoint resolvedSourcePoint = resolveKingdomTemplatePoint(KINGDOM_ANIMATED_LB);
+        Location origin = toPastedLocation(session.world(), resolvedSourcePoint, session.originX(), session.originY(), session.originZ());
         if (origin == null) {
             return;
         }
