@@ -1,6 +1,10 @@
 package me.nakilex.levelplugin.environment;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.animatedlb.AnimatedLeaderboard;
+import me.nakilex.levelplugin.animatedlb.LeaderboardDataProvider;
+import me.nakilex.levelplugin.animatedlb.MockLeaderboardDataProvider;
+import me.nakilex.levelplugin.animatedlb.PlayerStatsLeaderboardDataProvider;
 import me.nakilex.levelplugin.dungeon.VoidWorldGenerator;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -87,6 +91,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, 77, -3603);
     private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 108, -2934);
     private static final WorldPoint EMPTY_WORLD_SPAWN = projectFinishedToEmpty(FINISHED_WORLD_SPAWN);
+    private static final WorldPoint FINISHED_WORLD_ANIMATED_LB = new WorldPoint(3810, 105, -3377);
+    private static final WorldPoint EMPTY_WORLD_ANIMATED_LB = projectFinishedToEmpty(FINISHED_WORLD_ANIMATED_LB);
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
@@ -149,6 +155,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
+    private final Map<UUID, AnimatedLeaderboard> animatedLeaderboardsByOwner = new HashMap<>();
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
@@ -205,12 +212,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (old != null) {
             old.removeHolograms();
         }
+        removeAnimatedLeaderboard(target.getUniqueId());
 
         WorldCuboid border = createSessionBorder(originX, originY, originZ);
         EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates, originX, originY, originZ, border);
         sessions.put(target.getUniqueId(), session);
         spawnBuildHolograms(session);
         applySavedBuilds(target, session);
+        spawnAnimatedLeaderboard(session);
 
         Location spawn = toPastedLocation(world, EMPTY_WORLD_SPAWN, originX, originY, originZ);
         if (spawn == null) {
@@ -398,6 +407,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             Bukkit.unloadWorld(session.world(), false);
             deleteWorldFolder(session.world().getName());
         }
+        removeAnimatedLeaderboard(playerId);
         lastValidLocations.remove(playerId);
         UUID partner = coopPartnerByOwner.remove(playerId);
         if (partner != null) coopOwnerByMember.remove(partner);
@@ -947,6 +957,44 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return new WorldPoint(finishedPoint.x() + dx, finishedPoint.y() + dy, finishedPoint.z() + dz);
     }
 
+    private void spawnAnimatedLeaderboard(EnvironmentAreaSession session) {
+        if (session == null || session.world() == null) {
+            return;
+        }
+        removeAnimatedLeaderboard(session.ownerId());
+        Location origin = toPastedLocation(session.world(), EMPTY_WORLD_ANIMATED_LB, session.originX(), session.originY(), session.originZ());
+        if (origin == null) {
+            return;
+        }
+        float yaw = (float) plugin.getConfig().getDouble("animatedlb.yaw", 0.0D);
+        origin.setYaw(yaw);
+        origin.setPitch(0.0F);
+
+        LeaderboardDataProvider provider = plugin instanceof Main main
+                ? new PlayerStatsLeaderboardDataProvider(main)
+                : new MockLeaderboardDataProvider();
+        AnimatedLeaderboard board = new AnimatedLeaderboard(
+                plugin,
+                provider,
+                origin,
+                (float) plugin.getConfig().getDouble("animatedlb.scale", 0.85D),
+                plugin.getConfig().getInt("animatedlb.cycle-duration", 200),
+                plugin.getConfig().getInt("animatedlb.row-count", 10),
+                plugin.getConfig().getDouble("animatedlb.animation-speed", 1.0D));
+        board.spawn();
+        animatedLeaderboardsByOwner.put(session.ownerId(), board);
+    }
+
+    private void removeAnimatedLeaderboard(UUID ownerId) {
+        if (ownerId == null) {
+            return;
+        }
+        AnimatedLeaderboard board = animatedLeaderboardsByOwner.remove(ownerId);
+        if (board != null) {
+            board.remove();
+        }
+    }
+
     private Location toPastedLocation(World world, WorldPoint source, int originX, int originY, int originZ) {
         if (world == null || source == null) {
             return null;
@@ -1059,6 +1107,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (session == null) {
             return;
         }
+        removeAnimatedLeaderboard(id);
         session.removeHolograms();
         Bukkit.unloadWorld(session.world(), false);
         deleteWorldFolder(session.world().getName());
@@ -1076,6 +1125,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 session.removeHolograms();
                     }
         }
+        for (AnimatedLeaderboard board : new ArrayList<>(animatedLeaderboardsByOwner.values())) {
+            if (board != null) {
+                board.remove();
+            }
+        }
+        animatedLeaderboardsByOwner.clear();
         sessions.clear();
         lastValidLocations.clear();
     }
