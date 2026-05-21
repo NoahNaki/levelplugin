@@ -81,8 +81,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new CoinVisual(1, Material.COPPER_INGOT, "copper_coin")
     );
 
-    private static final Cuboid AREA = new Cuboid(4058, 56, -3603, 3489, 330, -3145);
-    private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, 56, -2685, 3489, 330, -3143);
+    private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 330, -3145);
+    private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 330, -3143);
     private static final WorldPoint FINISHED_WORLD_ANCHOR = new WorldPoint(3489, 77, -3143);
     private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, 77, -3603);
     private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 108, -2934);
