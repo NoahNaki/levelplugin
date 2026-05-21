@@ -987,6 +987,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (origin == null) {
             return;
         }
+        origin.add(0.5D, 0.0D, 0.0D);
         float yaw = (float) plugin.getConfig().getDouble("animatedlb.yaw", 0.0D);
         origin.setYaw(yaw + 180.0F);
         origin.setPitch(0.0F);
