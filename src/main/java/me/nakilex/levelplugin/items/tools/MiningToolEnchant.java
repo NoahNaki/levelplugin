@@ -1,0 +1,29 @@
+package me.nakilex.levelplugin.items.tools;
+
+import java.util.Locale;
+
+public enum MiningToolEnchant {
+    VEINSPARK("Veinspark", "20% chance to gain +1 extra ore drop."),
+    SCHOLAR("Scholar", "25% chance to gain +50% Mining XP."),
+    SHATTER("Shatter", "15% chance to instantly skip to Bedrock stage.");
+
+    private final String displayName;
+    private final String[] description;
+
+    MiningToolEnchant(String displayName, String... description) {
+        this.displayName = displayName;
+        this.description = description;
+    }
+
+    public String getDisplayName() { return displayName; }
+    public String[] getDescription() { return description; }
+    public String getKey() { return name().toLowerCase(Locale.ROOT); }
+
+    public static MiningToolEnchant fromKey(String key) {
+        if (key == null) return null;
+        for (MiningToolEnchant enchant : values()) {
+            if (enchant.getKey().equalsIgnoreCase(key)) return enchant;
+        }
+        return null;
+    }
+}
