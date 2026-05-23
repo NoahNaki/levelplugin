@@ -11,9 +11,11 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Handles kingdom mine regeneration gameplay for per-player environment worlds.
@@ -21,10 +23,12 @@ import java.util.Map;
 public final class KingdomMineRegenListener implements Listener {
 
     private static final long REGEN_TICKS = 20L * 10L;
+    private static final long DEBUG_COOLDOWN_MS = 1200L;
 
     private final Main plugin;
     private final EnvironmentAreaInstanceManager areaManager;
     private final Map<Material, Material> oreFallback = new HashMap<>();
+    private final Map<UUID, Long> lastDebugMessageAt = new HashMap<>();
 
     public KingdomMineRegenListener(Main plugin, EnvironmentAreaInstanceManager areaManager) {
         this.plugin = plugin;
@@ -50,7 +54,9 @@ public final class KingdomMineRegenListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
-        if (!areaManager.isMineBlock(player, block)) {
+        EnvironmentAreaInstanceManager.MineDebugInfo debug = areaManager.mineDebug(player, block);
+        if (!debug.insideMine()) {
+            maybeSendDebug(player, debug);
             return;
         }
 
@@ -75,6 +81,25 @@ public final class KingdomMineRegenListener implements Listener {
                 }
             }, REGEN_TICKS);
         }
+    }
+
+    private void maybeSendDebug(Player player, EnvironmentAreaInstanceManager.MineDebugInfo debug) {
+        if (player == null || debug == null) {
+            return;
+        }
+        String worldName = player.getWorld() == null ? "" : player.getWorld().getName();
+        if (!player.isOp() || !worldName.startsWith("environment_")) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long last = lastDebugMessageAt.getOrDefault(player.getUniqueId(), 0L);
+        if (now - last < DEBUG_COOLDOWN_MS) {
+            return;
+        }
+        lastDebugMessageAt.put(player.getUniqueId(), now);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "[MineDebug] " + debug.summary());
+        plugin.getLogger().info("[KingdomMineDebug] player=" + player.getName() + " " + debug.summary());
     }
 
     private Material nextState(Material material) {

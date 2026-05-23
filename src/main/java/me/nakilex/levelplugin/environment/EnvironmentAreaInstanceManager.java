@@ -243,17 +243,25 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     public boolean isMineBlock(Player player, Block block) {
+        return mineDebug(player, block).insideMine();
+    }
+
+    public MineDebugInfo mineDebug(Player player, Block block) {
         if (player == null || block == null || block.getWorld() == null) {
-            return false;
+            return new MineDebugInfo(false, "invalid_input", null, null, null, null, null);
         }
         UUID ownerId = resolveAreaOwner(player.getUniqueId());
         EnvironmentAreaSession session = sessions.get(ownerId);
-        if (session == null || !session.world().equals(block.getWorld())) {
-            return false;
+        if (session == null) {
+            return new MineDebugInfo(false, "missing_session", ownerId, null, null, block.getWorld().getName(), block.getLocation());
+        }
+        if (!session.world().equals(block.getWorld())) {
+            return new MineDebugInfo(false, "wrong_world", ownerId, session.world().getName(), null, block.getWorld().getName(), block.getLocation());
         }
         Cuboid resolvedMineArea = resolveKingdomTemplateCuboid(KINGDOM_MINE_AREA);
         WorldCuboid mine = toPastedCuboid(resolvedMineArea, session.originX(), session.originY(), session.originZ());
-        return mine.contains(block.getLocation());
+        boolean inside = mine.contains(block.getLocation());
+        return new MineDebugInfo(inside, inside ? "inside" : "outside_bounds", ownerId, session.world().getName(), mine, block.getWorld().getName(), block.getLocation());
     }
 
     public boolean hasSession(UUID playerId) {
@@ -1095,6 +1103,27 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         }
         return null;
+    }
+
+
+    public record MineDebugInfo(boolean insideMine,
+                                String reason,
+                                UUID ownerId,
+                                String sessionWorld,
+                                WorldCuboid mineBounds,
+                                String blockWorld,
+                                Location blockLocation) {
+        public String summary() {
+            String bounds = mineBounds == null
+                    ? "n/a"
+                    : "[" + mineBounds.minX() + "," + mineBounds.minY() + "," + mineBounds.minZ() + " -> "
+                    + mineBounds.maxX() + "," + mineBounds.maxY() + "," + mineBounds.maxZ() + "]";
+            String block = blockLocation == null
+                    ? "n/a"
+                    : "(" + blockLocation.getBlockX() + "," + blockLocation.getBlockY() + "," + blockLocation.getBlockZ() + ")";
+            return "reason=" + reason + ", owner=" + ownerId + ", sessionWorld=" + sessionWorld
+                    + ", blockWorld=" + blockWorld + ", block=" + block + ", mineBounds=" + bounds;
+        }
     }
 
     private record WorldCuboid(int x1, int y1, int z1, int x2, int y2, int z2) {
