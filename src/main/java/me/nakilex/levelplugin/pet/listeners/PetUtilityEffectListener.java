@@ -4,6 +4,8 @@ import me.nakilex.levelplugin.lootchests.listeners.LootChestListener;
 import me.nakilex.levelplugin.lootchests.managers.LootChestManager;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager;
+import me.nakilex.levelplugin.Main;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
@@ -38,6 +40,13 @@ public class PetUtilityEffectListener implements Listener {
         this.petManager = petManager;
         this.lootChestListener = lootChestListener;
         this.lootChestManager = lootChestManager;
+
+        Bukkit.getScheduler().runTaskTimer(Main.getInstance(), () -> {
+            for (Player online : Bukkit.getOnlinePlayers()) {
+                if (online == null || !online.isOnline()) continue;
+                handleItemMagnet(online);
+            }
+        }, 10L, 10L);
     }
 
     @EventHandler(ignoreCancelled = true)

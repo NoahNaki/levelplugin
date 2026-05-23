@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.enchanting.managers.EnchantManager;
 import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.tools.FarmingToolEnchant;
+import me.nakilex.levelplugin.items.tools.MiningToolEnchant;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.items.tools.WoodcuttingToolEnchant;
 import me.nakilex.levelplugin.items.tools.ToolManager;
@@ -202,7 +203,7 @@ public class EnchantGUI implements Listener {
         CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
         me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(stack);
         boolean isEnchantableTool = tool != null
-                && (tool.getDiscipline() == ToolDiscipline.FARMING || tool.getDiscipline() == ToolDiscipline.WOODCUTTING);
+                && (tool.getDiscipline() == ToolDiscipline.FARMING || tool.getDiscipline() == ToolDiscipline.WOODCUTTING || tool.getDiscipline() == ToolDiscipline.MINING);
         if (ci == null && !isEnchantableTool) {
             return new EnchantButtonState(0, 0);
         }
@@ -226,7 +227,8 @@ public class EnchantGUI implements Listener {
         me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(item);
         boolean isFarmingTool = tool != null && tool.getDiscipline() == ToolDiscipline.FARMING;
         boolean isWoodcuttingTool = tool != null && tool.getDiscipline() == ToolDiscipline.WOODCUTTING;
-        if (ci == null && !isFarmingTool && !isWoodcuttingTool) return;
+        boolean isMiningTool = tool != null && tool.getDiscipline() == ToolDiscipline.MINING;
+        if (ci == null && !isFarmingTool && !isWoodcuttingTool && !isMiningTool) return;
         boolean freeEnchant = SharpestSecretQuest.shouldReceiveFreeEnchant(player.getUniqueId());
         int baseCost = ci != null ? manager.getEnchantCost(ci) : manager.getEnchantCost(item);
         int discountedCost = TownPerkManager.getInstance().applyDiscount(
@@ -266,6 +268,14 @@ public class EnchantGUI implements Listener {
             }
         } else if (isWoodcuttingTool) {
             WoodcuttingToolEnchant enchant = manager.enchantWoodcuttingTool(player, item);
+            inventory.setItem(13, item);
+            ItemUtil.updateCustomToolTooltip(item, player);
+            if (enchant != null) {
+                player.sendMessage(ChatColor.GREEN + "Tool enchanted with " + ChatColor.LIGHT_PURPLE
+                        + enchant.getDisplayName() + ChatColor.GREEN + "!");
+            }
+        } else if (isMiningTool) {
+            MiningToolEnchant enchant = manager.enchantMiningTool(player, item);
             inventory.setItem(13, item);
             ItemUtil.updateCustomToolTooltip(item, player);
             if (enchant != null) {

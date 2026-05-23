@@ -86,6 +86,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     );
 
     private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 330, -3145);
+    private static final Cuboid KINGDOM_MINE_AREA = new Cuboid(3885, 81, -3502, 3774, -24, -3366);
     private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 330, -3143);
     private static final WorldPoint FINISHED_WORLD_ANCHOR = new WorldPoint(3489, 77, -3143);
     private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, 77, -3603);
@@ -189,6 +190,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
 
         CuboidTemplate areaTemplate = getOrCaptureTemplate(source, "area:base", AREA);
+        // Warm mine template cache early; allows deferred gameplay setup after join without first-hit capture delay.
+        Cuboid resolvedMineArea = resolveKingdomTemplateCuboid(KINGDOM_MINE_AREA);
+        getOrCaptureTemplate(source, "area:mine", resolvedMineArea);
         Map<Integer, CuboidTemplate> buildingTemplates = new HashMap<>();
         for (BuildingTemplate building : BUILDINGS) {
             buildingTemplates.put(building.slot(),
@@ -236,6 +240,20 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.SUCCESS,
                 "Initialized environment area in " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
         return true;
+    }
+
+    public boolean isMineBlock(Player player, Block block) {
+        if (player == null || block == null || block.getWorld() == null) {
+            return false;
+        }
+        UUID ownerId = resolveAreaOwner(player.getUniqueId());
+        EnvironmentAreaSession session = sessions.get(ownerId);
+        if (session == null || !session.world().equals(block.getWorld())) {
+            return false;
+        }
+        Cuboid resolvedMineArea = resolveKingdomTemplateCuboid(KINGDOM_MINE_AREA);
+        WorldCuboid mine = toPastedCuboid(resolvedMineArea, session.originX(), session.originY(), session.originZ());
+        return mine.contains(block.getLocation());
     }
 
     public boolean hasSession(UUID playerId) {
@@ -964,6 +982,30 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return new WorldPoint(finishedPoint.x() + dx, finishedPoint.y() + dy, finishedPoint.z() + dz);
     }
 
+    private static Cuboid resolveKingdomTemplateCuboid(Cuboid cuboid) {
+        if (cuboid == null) {
+            return null;
+        }
+        boolean inBaseArea = isInsideCuboid(cuboid, AREA);
+        if (inBaseArea) {
+            return cuboid;
+        }
+        boolean inFinishedArea = isInsideCuboid(cuboid, FINISHED_WORLD_AREA);
+        if (inFinishedArea) {
+            return projectFinishedToEmpty(cuboid);
+        }
+        return cuboid;
+    }
+
+    private static boolean isInsideCuboid(Cuboid inner, Cuboid outer) {
+        if (inner == null || outer == null) {
+            return false;
+        }
+        return inner.minX() >= outer.minX() && inner.maxX() <= outer.maxX()
+                && inner.minY() >= outer.minY() && inner.maxY() <= outer.maxY()
+                && inner.minZ() >= outer.minZ() && inner.maxZ() <= outer.maxZ();
+    }
+
     private static WorldPoint resolveKingdomTemplatePoint(WorldPoint point) {
         if (point == null) {
             return null;
@@ -1054,6 +1096,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         return null;
     }
+
 
     private record WorldCuboid(int x1, int y1, int z1, int x2, int y2, int z2) {
         int minX() { return Math.min(x1, x2); }
