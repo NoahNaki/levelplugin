@@ -3,9 +3,9 @@ package me.nakilex.levelplugin.items.tools;
 import java.util.Locale;
 
 public enum MiningToolEnchant {
-    VEINSPARK("Veinspark", "20% chance to gain +1 extra ore drop."),
-    SCHOLAR("Scholar", "25% chance to gain +50% Mining XP."),
-    SHATTER("Shatter", "15% chance to instantly skip to Bedrock stage.");
+    QUARRY("Quarry", "Mines in a 3x3 plane around the target block."),
+    LODEBOUND("Lodebound", "25% chance to gain +1 extra drop from ore blocks."),
+    INSIGHT("Insight", "30% chance to gain +60% Mining XP.");
 
     private final String displayName;
     private final String[] description;

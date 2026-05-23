@@ -92,22 +92,30 @@ public final class KingdomMineRegenListener implements Listener {
         Block block = event.getBlock();
         if (event.isCancelled() || !areaManager.isMineBlock(player, block)) return;
 
-        Material current = block.getType();
-        if (!allowedMineMaterials.contains(current)) {
-            event.setCancelled(true);
-            event.setDropItems(false);
-            event.setExpToDrop(0);
-            return;
-        }
-        Material next = nextState(current, player);
-        if (next == null) return;
-
         event.setCancelled(true);
         event.setDropItems(false);
         event.setExpToDrop(0);
 
-        rewardPlayer(player, block, current);
+        ItemStack tool = player.getInventory().getItemInMainHand();
+        MiningToolEnchant enchant = ToolManager.getInstance().getMiningEnchant(tool);
+        processBlock(player, block, enchant);
 
+        if (enchant == MiningToolEnchant.QUARRY) {
+            for (Block extra : getQuarryNeighbors(block, player)) {
+                processBlock(player, extra, enchant);
+            }
+        }
+    }
+
+
+    private void processBlock(Player player, Block block, MiningToolEnchant enchant) {
+        if (block == null || !areaManager.isMineBlock(player, block)) return;
+        Material current = block.getType();
+        if (!allowedMineMaterials.contains(current)) return;
+        Material next = nextState(current, player);
+        if (next == null) return;
+
+        rewardPlayer(player, block, current);
         BlockData original = block.getBlockData().clone();
         block.setType(next, false);
 
@@ -121,13 +129,34 @@ public final class KingdomMineRegenListener implements Listener {
         }
     }
 
+    private java.util.List<Block> getQuarryNeighbors(Block origin, Player player) {
+        java.util.List<Block> out = new java.util.ArrayList<>(8);
+        org.bukkit.block.BlockFace face = player.getTargetBlockFace(6);
+        if (face == null) face = org.bukkit.block.BlockFace.UP;
+        for (int a = -1; a <= 1; a++) {
+            for (int b = -1; b <= 1; b++) {
+                if (a == 0 && b == 0) continue;
+                Block target;
+                if (face == org.bukkit.block.BlockFace.UP || face == org.bukkit.block.BlockFace.DOWN) {
+                    target = origin.getRelative(a, 0, b);
+                } else if (face == org.bukkit.block.BlockFace.NORTH || face == org.bukkit.block.BlockFace.SOUTH) {
+                    target = origin.getRelative(a, b, 0);
+                } else {
+                    target = origin.getRelative(0, b, a);
+                }
+                out.add(target);
+            }
+        }
+        return out;
+    }
+
     private void rewardPlayer(Player player, Block block, Material brokenMaterial) {
         ItemStack tool = player.getInventory().getItemInMainHand();
         MiningToolEnchant enchant = ToolManager.getInstance().getMiningEnchant(tool);
 
         int xp = miningXpByMaterial.getOrDefault(brokenMaterial, 2);
-        if (enchant == MiningToolEnchant.SCHOLAR && ThreadLocalRandom.current().nextDouble() <= 0.25D) {
-            xp = (int) Math.round(xp * 1.5D);
+        if (enchant == MiningToolEnchant.INSIGHT && ThreadLocalRandom.current().nextDouble() <= 0.30D) {
+            xp = (int) Math.round(xp * 1.6D);
         }
         MiningManager.getInstance().addXP(player, Math.max(1, xp));
 
@@ -135,7 +164,7 @@ public final class KingdomMineRegenListener implements Listener {
         if (dropMaterial == null || dropMaterial == Material.AIR) return;
 
         int dropAmount = 1;
-        if (enchant == MiningToolEnchant.VEINSPARK && ThreadLocalRandom.current().nextDouble() <= 0.20D) {
+        if (enchant == MiningToolEnchant.LODEBOUND && ThreadLocalRandom.current().nextDouble() <= 0.25D && brokenMaterial.name().contains("ORE")) {
             dropAmount++;
         }
 
@@ -173,9 +202,6 @@ public final class KingdomMineRegenListener implements Listener {
         if (fallback != null) {
             ItemStack tool = player.getInventory().getItemInMainHand();
             MiningToolEnchant enchant = ToolManager.getInstance().getMiningEnchant(tool);
-            if (enchant == MiningToolEnchant.SHATTER && ThreadLocalRandom.current().nextDouble() <= 0.15D) {
-                return Material.BEDROCK;
-            }
             return fallback;
         }
         return null;
