@@ -191,7 +191,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
         CuboidTemplate areaTemplate = getOrCaptureTemplate(source, "area:base", AREA);
         // Warm mine template cache early; allows deferred gameplay setup after join without first-hit capture delay.
-        getOrCaptureTemplate(source, "area:mine", KINGDOM_MINE_AREA);
+        Cuboid resolvedMineArea = resolveKingdomTemplateCuboid(KINGDOM_MINE_AREA);
+        getOrCaptureTemplate(source, "area:mine", resolvedMineArea);
         Map<Integer, CuboidTemplate> buildingTemplates = new HashMap<>();
         for (BuildingTemplate building : BUILDINGS) {
             buildingTemplates.put(building.slot(),
@@ -250,7 +251,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (session == null || !session.world().equals(block.getWorld())) {
             return false;
         }
-        WorldCuboid mine = toPastedCuboid(KINGDOM_MINE_AREA, session.originX(), session.originY(), session.originZ());
+        Cuboid resolvedMineArea = resolveKingdomTemplateCuboid(KINGDOM_MINE_AREA);
+        WorldCuboid mine = toPastedCuboid(resolvedMineArea, session.originX(), session.originY(), session.originZ());
         return mine.contains(block.getLocation());
     }
 
@@ -978,6 +980,30 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         int dy = EMPTY_WORLD_ANCHOR.y() - FINISHED_WORLD_ANCHOR.y();
         int dz = EMPTY_WORLD_ANCHOR.z() - FINISHED_WORLD_ANCHOR.z();
         return new WorldPoint(finishedPoint.x() + dx, finishedPoint.y() + dy, finishedPoint.z() + dz);
+    }
+
+    private static Cuboid resolveKingdomTemplateCuboid(Cuboid cuboid) {
+        if (cuboid == null) {
+            return null;
+        }
+        boolean inBaseArea = isInsideCuboid(cuboid, AREA);
+        if (inBaseArea) {
+            return cuboid;
+        }
+        boolean inFinishedArea = isInsideCuboid(cuboid, FINISHED_WORLD_AREA);
+        if (inFinishedArea) {
+            return projectFinishedToEmpty(cuboid);
+        }
+        return cuboid;
+    }
+
+    private static boolean isInsideCuboid(Cuboid inner, Cuboid outer) {
+        if (inner == null || outer == null) {
+            return false;
+        }
+        return inner.minX() >= outer.minX() && inner.maxX() <= outer.maxX()
+                && inner.minY() >= outer.minY() && inner.maxY() <= outer.maxY()
+                && inner.minZ() >= outer.minZ() && inner.maxZ() <= outer.maxZ();
     }
 
     private static WorldPoint resolveKingdomTemplatePoint(WorldPoint point) {
