@@ -50,7 +50,7 @@ public final class KingdomMineRegenListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
@@ -76,11 +76,12 @@ public final class KingdomMineRegenListener implements Listener {
             return;
         }
 
+        event.setCancelled(true);
         event.setDropItems(false);
         event.setExpToDrop(0);
         BlockData original = block.getBlockData().clone();
         block.setType(next, false);
-        maybeSendDebug(player, debug, false, "transition:" + current.name() + "->" + next.name());
+        maybeSendDebug(player, debug, false, "transition_applied:" + current.name() + "->" + next.name());
 
         if (next == Material.BEDROCK) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
