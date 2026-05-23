@@ -4,7 +4,7 @@ import java.util.Locale;
 
 public enum MiningToolEnchant {
     QUARRY("Quarry", "Mines in a 3x3 plane around the target block."),
-    LODEBOUND("Lodebound", "25% chance to gain +1 extra drop from ore blocks."),
+    DEEPCORE("Deepcore", "Instantly mines the block to Bedrock and grants stage materials."),
     INSIGHT("Insight", "30% chance to gain +60% Mining XP.");
 
     private final String displayName;

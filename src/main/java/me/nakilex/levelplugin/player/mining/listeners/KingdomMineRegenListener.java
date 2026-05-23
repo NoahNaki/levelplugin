@@ -115,17 +115,20 @@ public final class KingdomMineRegenListener implements Listener {
         Material next = nextState(current, player);
         if (next == null) return;
 
-        rewardPlayer(player, block, current);
         BlockData original = block.getBlockData().clone();
+        if (enchant == MiningToolEnchant.DEEPCORE) {
+            rewardPlayer(player, block, current);
+            rewardStageMaterial(player, block, next);
+            block.setType(Material.BEDROCK, false);
+            scheduleRegen(player, block, original);
+            return;
+        }
+
+        rewardPlayer(player, block, current);
         block.setType(next, false);
 
         if (next == Material.BEDROCK) {
-            Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (!block.getChunk().isLoaded()) block.getChunk().load();
-                if (block.getType() == Material.BEDROCK && areaManager.isMineBlock(player, block)) {
-                    block.setBlockData(original, false);
-                }
-            }, REGEN_TICKS);
+            scheduleRegen(player, block, original);
         }
     }
 
@@ -150,6 +153,23 @@ public final class KingdomMineRegenListener implements Listener {
         return out;
     }
 
+
+    private void rewardStageMaterial(Player player, Block block, Material stageMaterial) {
+        Material dropMaterial = resolveDropMaterial(stageMaterial);
+        if (dropMaterial == null || dropMaterial == Material.AIR) return;
+        Item drop = block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.35, 0.5), new ItemStack(dropMaterial, 1));
+        drop.setPickupDelay(0);
+    }
+
+    private void scheduleRegen(Player player, Block block, BlockData original) {
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (!block.getChunk().isLoaded()) block.getChunk().load();
+            if (block.getType() == Material.BEDROCK && areaManager.isMineBlock(player, block)) {
+                block.setBlockData(original, false);
+            }
+        }, REGEN_TICKS);
+    }
+
     private void rewardPlayer(Player player, Block block, Material brokenMaterial) {
         ItemStack tool = player.getInventory().getItemInMainHand();
         MiningToolEnchant enchant = ToolManager.getInstance().getMiningEnchant(tool);
@@ -164,9 +184,6 @@ public final class KingdomMineRegenListener implements Listener {
         if (dropMaterial == null || dropMaterial == Material.AIR) return;
 
         int dropAmount = 1;
-        if (enchant == MiningToolEnchant.LODEBOUND && ThreadLocalRandom.current().nextDouble() <= 0.25D && brokenMaterial.name().contains("ORE")) {
-            dropAmount++;
-        }
 
         Item drop = block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.35, 0.5), new ItemStack(dropMaterial, dropAmount));
         drop.setPickupDelay(0);
