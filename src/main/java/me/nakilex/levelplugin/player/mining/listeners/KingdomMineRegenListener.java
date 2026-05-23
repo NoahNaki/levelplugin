@@ -32,12 +32,14 @@ public final class KingdomMineRegenListener implements Listener {
     private final EnvironmentAreaInstanceManager areaManager;
     private final Map<Material, Material> oreFallback = new HashMap<>();
     private final Map<Material, Integer> miningXpByMaterial = new HashMap<>();
+    private final java.util.Set<Material> allowedMineMaterials = new java.util.HashSet<>();
 
     public KingdomMineRegenListener(Main plugin, EnvironmentAreaInstanceManager areaManager) {
         this.plugin = plugin;
         this.areaManager = areaManager;
         registerOreFallbacks();
         registerXpValues();
+        registerAllowedMineMaterials();
     }
 
     private void registerOreFallbacks() {
@@ -74,6 +76,16 @@ public final class KingdomMineRegenListener implements Listener {
         miningXpByMaterial.put(Material.ANCIENT_DEBRIS, 28);
     }
 
+
+    private void registerAllowedMineMaterials() {
+        allowedMineMaterials.add(Material.STONE);
+        allowedMineMaterials.add(Material.COBBLESTONE);
+        allowedMineMaterials.add(Material.DEEPSLATE);
+        allowedMineMaterials.add(Material.NETHERRACK);
+        allowedMineMaterials.add(Material.BEDROCK);
+        allowedMineMaterials.addAll(oreFallback.keySet());
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
@@ -81,6 +93,12 @@ public final class KingdomMineRegenListener implements Listener {
         if (event.isCancelled() || !areaManager.isMineBlock(player, block)) return;
 
         Material current = block.getType();
+        if (!allowedMineMaterials.contains(current)) {
+            event.setCancelled(true);
+            event.setDropItems(false);
+            event.setExpToDrop(0);
+            return;
+        }
         Material next = nextState(current, player);
         if (next == null) return;
 
