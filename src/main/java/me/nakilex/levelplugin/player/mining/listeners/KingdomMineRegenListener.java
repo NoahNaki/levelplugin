@@ -50,19 +50,29 @@ public final class KingdomMineRegenListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         Block block = event.getBlock();
         EnvironmentAreaInstanceManager.MineDebugInfo debug = areaManager.mineDebug(player, block);
+
+        // Always expose event flow for environment worlds so we can diagnose cancellations/filters.
+        maybeSendDebug(player, debug, event.isCancelled(), "event_seen");
+
+        if (event.isCancelled()) {
+            maybeSendDebug(player, debug, true, "cancelled_before_mine_logic");
+            return;
+        }
+
         if (!debug.insideMine()) {
-            maybeSendDebug(player, debug);
+            maybeSendDebug(player, debug, false, "outside_mine");
             return;
         }
 
         Material current = block.getType();
         Material next = nextState(current);
         if (next == null) {
+            maybeSendDebug(player, debug, false, "inside_mine_unsupported_material:" + current.name());
             return;
         }
 
@@ -70,6 +80,7 @@ public final class KingdomMineRegenListener implements Listener {
         event.setExpToDrop(0);
         BlockData original = block.getBlockData().clone();
         block.setType(next, false);
+        maybeSendDebug(player, debug, false, "transition:" + current.name() + "->" + next.name());
 
         if (next == Material.BEDROCK) {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -83,12 +94,12 @@ public final class KingdomMineRegenListener implements Listener {
         }
     }
 
-    private void maybeSendDebug(Player player, EnvironmentAreaInstanceManager.MineDebugInfo debug) {
+    private void maybeSendDebug(Player player, EnvironmentAreaInstanceManager.MineDebugInfo debug, boolean cancelled, String stage) {
         if (player == null || debug == null) {
             return;
         }
         String worldName = player.getWorld() == null ? "" : player.getWorld().getName();
-        if (!player.isOp() || !worldName.startsWith("environment_")) {
+        if (!worldName.startsWith("environment_")) {
             return;
         }
         long now = System.currentTimeMillis();
@@ -97,9 +108,11 @@ public final class KingdomMineRegenListener implements Listener {
             return;
         }
         lastDebugMessageAt.put(player.getUniqueId(), now);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                "[MineDebug] " + debug.summary());
-        plugin.getLogger().info("[KingdomMineDebug] player=" + player.getName() + " " + debug.summary());
+        String message = "[MineDebug] stage=" + stage + ", cancelled=" + cancelled + ", " + debug.summary();
+        if (player.isOp()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, message);
+        }
+        plugin.getLogger().info("[KingdomMineDebug] player=" + player.getName() + " " + message);
     }
 
     private Material nextState(Material material) {
