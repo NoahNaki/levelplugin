@@ -86,6 +86,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     );
 
     private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 330, -3145);
+    private static final Cuboid KINGDOM_MINE_AREA = new Cuboid(3885, 81, -3502, 3774, -24, -3366);
     private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 330, -3143);
     private static final WorldPoint FINISHED_WORLD_ANCHOR = new WorldPoint(3489, 77, -3143);
     private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, 77, -3603);
@@ -189,6 +190,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
 
         CuboidTemplate areaTemplate = getOrCaptureTemplate(source, "area:base", AREA);
+        // Warm mine template cache early; allows deferred gameplay setup after join without first-hit capture delay.
+        getOrCaptureTemplate(source, "area:mine", KINGDOM_MINE_AREA);
         Map<Integer, CuboidTemplate> buildingTemplates = new HashMap<>();
         for (BuildingTemplate building : BUILDINGS) {
             buildingTemplates.put(building.slot(),
@@ -236,6 +239,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.SUCCESS,
                 "Initialized environment area in " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
         return true;
+    }
+
+    public boolean isMineBlock(Player player, Block block) {
+        if (player == null || block == null || block.getWorld() == null) {
+            return false;
+        }
+        UUID ownerId = resolveAreaOwner(player.getUniqueId());
+        EnvironmentAreaSession session = sessions.get(ownerId);
+        if (session == null || !session.world().equals(block.getWorld())) {
+            return false;
+        }
+        WorldCuboid mine = toPastedCuboid(KINGDOM_MINE_AREA, session.originX(), session.originY(), session.originZ());
+        return mine.contains(block.getLocation());
     }
 
     public boolean hasSession(UUID playerId) {
