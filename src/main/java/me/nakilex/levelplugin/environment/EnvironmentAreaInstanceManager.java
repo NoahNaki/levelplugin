@@ -36,6 +36,8 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.FluidLevelChangeEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import net.kyori.adventure.text.Component;
@@ -1000,6 +1002,32 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         player.teleport(fallback);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You cannot leave your area border.");
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onWaterFlow(BlockFromToEvent event) {
+        Block block = event.getBlock();
+        if (block == null || (block.getType() != Material.WATER && block.getType() != Material.LAVA)) return;
+        if (isEnvironmentSessionWorld(block.getWorld())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onFluidLevelChange(FluidLevelChangeEvent event) {
+        Block block = event.getBlock();
+        if (block == null || (block.getType() != Material.WATER && block.getType() != Material.LAVA)) return;
+        if (isEnvironmentSessionWorld(block.getWorld())) {
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean isEnvironmentSessionWorld(World world) {
+        if (world == null) return false;
+        for (EnvironmentAreaSession session : sessions.values()) {
+            if (session != null && world.equals(session.world())) return true;
+        }
+        return false;
     }
 
     private record Cuboid(int x1, int y1, int z1, int x2, int y2, int z2) {

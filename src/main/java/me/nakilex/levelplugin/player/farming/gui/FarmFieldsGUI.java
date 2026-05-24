@@ -23,6 +23,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockGrowEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -89,7 +90,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private void openMain(Player player) {
         Inventory inv = GuiBuilder.create(27, MAIN_TITLE).filler(Material.GRAY_STAINED_GLASS_PANE).border().build();
         int farmLevel = Math.max(0, areaInstanceManager.getFarmLevel(player));
-        FarmingCrop[] playerSelection = selections.computeIfAbsent(player.getUniqueId(), id -> new FarmingCrop[3]);
+        FarmingCrop[] playerSelection = selections.computeIfAbsent(selectionKey(player), id -> new FarmingCrop[3]);
 
         for (int i = 0; i < 3; i++) {
             if (i + 1 > farmLevel) {
@@ -151,7 +152,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
         if (event.getClickedInventory() == null || event.getRawSlot() >= event.getView().getTopInventory().getSize()) return;
 
         if (GuiUtil.titleMatches(title, MAIN_TITLE)) {
-            int farmLevel = Math.max(0, environmentManager.getPlayerBuildingStage(player, "farm"));
+            int farmLevel = Math.max(0, areaInstanceManager.getFarmLevel(player));
             for (int i = 0; i < FIELD_SLOTS.length; i++) {
                 if (event.getRawSlot() == FIELD_SLOTS[i]) {
                     if (i + 1 > farmLevel) {
@@ -171,7 +172,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
         FarmingCrop crop = FarmingCrop.fromItem(clicked.getType());
         if (crop == null) return;
         int fieldIndex = fieldNumber - 1;
-        FarmingCrop[] arr = selections.computeIfAbsent(player.getUniqueId(), id -> new FarmingCrop[3]);
+        FarmingCrop[] arr = selections.computeIfAbsent(selectionKey(player), id -> new FarmingCrop[3]);
         arr[fieldIndex] = crop;
         save();
         plantField(player, fieldIndex, crop);
@@ -223,7 +224,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private void tickManagedGrowth() {
         growthTick++;
         for (Player player : Bukkit.getOnlinePlayers()) {
-            FarmingCrop[] selected = selections.get(player.getUniqueId());
+            FarmingCrop[] selected = selections.get(selectionKey(player));
             if (selected == null) continue;
             for (int i = 0; i < selected.length; i++) {
                 FarmingCrop crop = selected[i];
@@ -264,7 +265,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private boolean isManagedFarmBlock(Block block, FarmingCrop crop) {
         if (block == null || crop == null) return false;
         for (Player player : Bukkit.getOnlinePlayers()) {
-            FarmingCrop[] selected = selections.get(player.getUniqueId());
+            FarmingCrop[] selected = selections.get(selectionKey(player));
             if (selected == null) continue;
             for (int i = 0; i < selected.length; i++) {
                 if (selected[i] != crop) continue;
@@ -284,13 +285,12 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private void load() {
         for (String key : data.getKeys(false)) {
             try {
-                UUID uuid = UUID.fromString(key);
                 FarmingCrop[] arr = new FarmingCrop[3];
                 for (int i = 0; i < 3; i++) {
                     String value = data.getString(key + ".field" + (i + 1));
                     if (value != null) arr[i] = FarmingCrop.valueOf(value);
                 }
-                selections.put(uuid, arr);
+                selections.put(UUID.fromString(key), arr);
             } catch (Exception ignored) {}
         }
     }
@@ -309,5 +309,13 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private static String pretty(String input) {
         String raw = input.toLowerCase(Locale.ROOT).replace('_', ' ');
         return raw.substring(0, 1).toUpperCase(Locale.ROOT) + raw.substring(1);
+    }
+
+    private UUID selectionKey(Player player) {
+        if (player == null) return null;
+        Integer slot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(player.getUniqueId());
+        int safeSlot = slot == null ? 0 : Math.max(0, slot);
+        String key = player.getUniqueId() + ":" + safeSlot;
+        return UUID.nameUUIDFromBytes(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
     }
 }
