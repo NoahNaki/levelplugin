@@ -83,7 +83,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int BORDER_MIN_Y_OFFSET = -108; // matches provided -44 relative to paste Y=-40
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final int BUILD_COST_COINS = 100;
-    private static final int DEBUG_TRACKED_NPC_ID = 637;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
     private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
     private static final long COIN_SEND_INTERVAL_TICKS = 2L;
@@ -743,8 +742,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         CuboidTemplate template = session.buildingTemplates().get(slot);
         if (template == null) return;
-        debugSpecificNpcLocation(player, DEBUG_TRACKED_NPC_ID, building);
-        debugBuildingSelectionNpcs(player, building);
         WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
         int coins = plugin.getEconomyManager().getBalance(player);
@@ -1097,6 +1094,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             if (building == null || template == null) continue;
             WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
             template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+            spawnCitizensNpcsForBuilding(session, building, area);
             removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
         }
     }
@@ -1291,6 +1289,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     ? citizensNpc.getEntity().getType()
                     : org.bukkit.entity.EntityType.PLAYER;
             net.citizensnpcs.api.npc.NPC clone = CitizensAPI.getNPCRegistry().createNPC(cloneType, citizensNpc.getName());
+            copyCitizensNpcState(citizensNpc, clone);
             if (clone.spawn(target)) {
                 spawned++;
             } else {
@@ -1298,6 +1297,45 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         }
         plugin.getLogger().warning("[EnvironmentArea] Citizens spawn for building='" + building.id() + "' spawned=" + spawned);
+    }
+
+    private void copyCitizensNpcState(net.citizensnpcs.api.npc.NPC source, net.citizensnpcs.api.npc.NPC target) {
+        if (source == null || target == null) return;
+        copyBooleanFlag(source, target, "isProtected", "setProtected");
+        copyBooleanFlag(source, target, "isFlyable", "setFlyable");
+        copyBooleanFlag(source, target, "useMinecraftAI", "setUseMinecraftAI");
+        copyBooleanFlag(source, target, "isPushableByFluids", "setPushableByFluids");
+        copyBooleanFlag(source, target, "isNameVisible", "setNameVisible");
+
+        try {
+            var sourceTraits = source.getClass().getMethod("getTraits").invoke(source);
+            if (sourceTraits instanceof Iterable<?> traits) {
+                for (Object trait : traits) {
+                    if (trait == null) continue;
+                    Class<?> traitType = trait.getClass();
+                    Object targetTrait = target.getClass().getMethod("getOrAddTrait", Class.class).invoke(target, traitType);
+                    if (targetTrait == null) continue;
+                    for (var field : traitType.getDeclaredFields()) {
+                        if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
+                        field.setAccessible(true);
+                        field.set(targetTrait, field.get(trait));
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+            // best-effort copy only; flags above still apply
+        }
+    }
+
+    private void copyBooleanFlag(Object source, Object target, String getter, String setter) {
+        try {
+            Object value = source.getClass().getMethod(getter).invoke(source);
+            if (value instanceof Boolean bool) {
+                target.getClass().getMethod(setter, boolean.class).invoke(target, bool);
+            }
+        } catch (Exception ignored) {
+            // trait/method may not exist on this Citizens version
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
