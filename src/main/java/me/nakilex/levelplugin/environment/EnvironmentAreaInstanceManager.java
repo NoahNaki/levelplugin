@@ -1252,6 +1252,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (session == null || building == null || destinationArea == null || session.world() == null) {
             return;
         }
+        if (!plugin.isEnabled()) {
+            return;
+        }
+        org.bukkit.plugin.Plugin citizensPlugin = Bukkit.getPluginManager().getPlugin("Citizens");
+        if (citizensPlugin == null || !citizensPlugin.isEnabled()) {
+            return;
+        }
         World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
         if (sourceWorld == null || CitizensAPI.getNPCRegistry() == null) {
             return;
@@ -1266,7 +1273,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         int maxZ = Math.max(source.z1(), source.z2());
 
         int spawned = 0;
+        java.util.List<net.citizensnpcs.api.npc.NPC> snapshot = new java.util.ArrayList<>();
         for (net.citizensnpcs.api.npc.NPC citizensNpc : CitizensAPI.getNPCRegistry()) {
+            snapshot.add(citizensNpc);
+        }
+        for (net.citizensnpcs.api.npc.NPC citizensNpc : snapshot) {
             if (citizensNpc == null) continue;
             Location sourceLoc = resolveCitizensLocation(citizensNpc);
             if (sourceLoc == null || sourceLoc.getWorld() == null || !sourceLoc.getWorld().equals(sourceWorld)) continue;
