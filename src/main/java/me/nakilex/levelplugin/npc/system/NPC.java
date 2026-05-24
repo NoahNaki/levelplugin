@@ -167,6 +167,10 @@ public class NPC {
         return type.cast(traits.get(type));
     }
 
+    public void tickTraits() {
+        traits.values().forEach(trait -> trait.onTick(this));
+    }
+
     public NPC copy(int newId) {
         NPC clone = new NPC(newId, type, name);
         clone.copyFrom(this);
