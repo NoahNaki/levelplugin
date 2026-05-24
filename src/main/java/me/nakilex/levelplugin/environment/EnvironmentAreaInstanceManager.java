@@ -82,6 +82,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int BORDER_MIN_Y_OFFSET = -108; // matches provided -44 relative to paste Y=-40
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final int BUILD_COST_COINS = 100;
+    private static final int DEBUG_TRACKED_NPC_ID = 637;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
     private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
     private static final long COIN_SEND_INTERVAL_TICKS = 2L;
@@ -741,6 +742,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         CuboidTemplate template = session.buildingTemplates().get(slot);
         if (template == null) return;
+        debugSpecificNpcLocation(player, DEBUG_TRACKED_NPC_ID, building);
         debugBuildingSelectionNpcs(player, building);
         WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
@@ -853,6 +855,44 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     "NPC debug: no NPCs found in " + ChatColor.WHITE + building.displayName()
                             + ChatColor.YELLOW + " selection in " + ChatColor.WHITE + SOURCE_WORLD + ChatColor.YELLOW + ".");
         }
+    }
+
+    private void debugSpecificNpcLocation(Player player, int npcId, BuildingTemplate building) {
+        NPC npc = NpcApi.getRegistry().getById(npcId);
+        if (npc == null) {
+            plugin.getLogger().warning("[EnvironmentArea] NPC debug tracked npcId=" + npcId + " not found in registry.");
+            return;
+        }
+        Location loc = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
+        if (loc == null || loc.getWorld() == null) {
+            plugin.getLogger().warning("[EnvironmentArea] NPC debug tracked npcId=" + npcId + " has no world location.");
+            return;
+        }
+        Cuboid source = building.source();
+        int minX = Math.min(source.x1(), source.x2());
+        int maxX = Math.max(source.x1(), source.x2());
+        int minY = Math.min(source.y1(), source.y2());
+        int maxY = Math.max(source.y1(), source.y2());
+        int minZ = Math.min(source.z1(), source.z2());
+        int maxZ = Math.max(source.z1(), source.z2());
+        int x = loc.getBlockX();
+        int y = loc.getBlockY();
+        int z = loc.getBlockZ();
+        boolean inside = x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
+        plugin.getLogger().warning("[EnvironmentArea] NPC debug tracked npcId=" + npcId
+                + " world=" + loc.getWorld().getName()
+                + " pos=(" + x + "," + y + "," + z + ")"
+                + " insideBuildingSelection=" + inside
+                + " building='" + building.id() + "'"
+                + " selectionMin=(" + minX + "," + minY + "," + minZ + ")"
+                + " selectionMax=(" + maxX + "," + maxY + "," + maxZ + ")");
+        String tp = "/execute in " + loc.getWorld().getName() + " run tp @s " + x + " " + y + " " + z;
+        Component line = Component.text(ChatColor.YELLOW + "[Area NPC Debug] " + ChatColor.WHITE
+                        + "Tracked NPC " + npcId + " @ " + x + "," + y + "," + z + " ")
+                .append(Component.text(ChatColor.AQUA + "[Teleport]")
+                        .clickEvent(ClickEvent.suggestCommand(tp))
+                        .hoverEvent(HoverEvent.showText(Component.text("Suggest teleport command"))));
+        player.sendMessage(line);
     }
 
     @EventHandler
