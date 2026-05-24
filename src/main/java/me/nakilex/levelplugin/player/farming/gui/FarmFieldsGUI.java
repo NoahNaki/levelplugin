@@ -21,6 +21,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockGrowEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -29,6 +30,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import org.bukkit.scheduler.BukkitTask;
 
 public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private static final String MAIN_TITLE = "Farm Fields";
@@ -41,6 +43,16 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private final Map<UUID, FarmingCrop[]> selections = new HashMap<>();
     private final File dataFile;
     private YamlConfiguration data;
+    private BukkitTask growthTask;
+    private final Map<FarmingCrop, Integer> growthStepTicks = Map.of(
+            FarmingCrop.WHEAT, 40,
+            FarmingCrop.POTATO, 50,
+            FarmingCrop.CARROT, 55,
+            FarmingCrop.BEETROOT, 60,
+            FarmingCrop.SWEET_BERRIES, 70,
+            FarmingCrop.PUMPKIN, 80
+    );
+    private long growthTick = 0L;
 
     private record Plot(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {}
     private static final Plot[] PLOTS = {
@@ -57,6 +69,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
         load();
         plugin.getCommand("farmfields").setExecutor(this);
         Bukkit.getPluginManager().registerEvents(this, plugin);
+        startGrowthTask();
     }
 
     @Override
@@ -110,6 +123,16 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
             inv.setItem(slots[idx++], item);
         }
         player.openInventory(inv);
+    }
+
+
+    @EventHandler
+    public void onBlockGrow(BlockGrowEvent event) {
+        FarmingCrop crop = FarmingCrop.fromBlock(event.getBlock());
+        if (crop == null) return;
+        if (isManagedFarmBlock(event.getBlock(), crop)) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler
@@ -212,6 +235,89 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
             }
         }
         return planted;
+    }
+
+
+    private void startGrowthTask() {
+        if (growthTask != null) {
+            growthTask.cancel();
+        }
+        growthTask = Bukkit.getScheduler().runTaskTimer(plugin, this::tickManagedGrowth, 20L, 20L);
+    }
+
+    private void tickManagedGrowth() {
+        growthTick++;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            FarmingCrop[] selected = selections.get(player.getUniqueId());
+            if (selected == null) continue;
+            for (int i = 0; i < selected.length; i++) {
+                FarmingCrop crop = selected[i];
+                if (crop == null) continue;
+                int every = Math.max(1, growthStepTicks.getOrDefault(crop, 60));
+                if (growthTick % every != 0) continue;
+                advanceFieldAge(player, i, crop);
+            }
+        }
+    }
+
+    private void advanceFieldAge(Player player, int fieldIndex, FarmingCrop crop) {
+        Location origin = environmentManager.getOrigin(player.getUniqueId());
+        if (origin == null || origin.getWorld() == null) return;
+        Plot local = PLOTS[fieldIndex];
+        int dx = origin.getBlockX() - (int) TEMPLATE_ANCHOR.getX();
+        int dy = origin.getBlockY() - (int) TEMPLATE_ANCHOR.getY();
+        int dz = origin.getBlockZ() - (int) TEMPLATE_ANCHOR.getZ();
+        Plot plot = new Plot(local.minX + dx, local.minY + dy, local.minZ + dz, local.maxX + dx, local.maxY + dy, local.maxZ + dz);
+        int minX = Math.min(plot.minX, plot.maxX), maxX = Math.max(plot.minX, plot.maxX);
+        int minY = Math.min(plot.minY, plot.maxY), maxY = Math.max(plot.minY, plot.maxY);
+        int minZ = Math.min(plot.minZ, plot.maxZ), maxZ = Math.max(plot.minZ, plot.maxZ);
+        World world = origin.getWorld();
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Block base = world.getBlockAt(x, y, z);
+                    if (base.getType() != Material.FARMLAND) continue;
+                    incrementCropAge(base.getRelative(0, 1, 0), crop);
+                }
+            }
+        }
+    }
+
+    private void incrementCropAge(Block cropBlock, FarmingCrop crop) {
+        if (cropBlock == null || crop == null) return;
+        if (cropBlock.getType() != crop.getBlockMaterial()) return;
+        if (!(cropBlock.getBlockData() instanceof Ageable ageable)) return;
+        if (ageable.getAge() >= ageable.getMaximumAge()) return;
+        ageable.setAge(Math.min(ageable.getMaximumAge(), ageable.getAge() + 1));
+        cropBlock.setBlockData(ageable, false);
+    }
+
+    private boolean isManagedFarmBlock(Block block, FarmingCrop crop) {
+        if (block == null || crop == null) return false;
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            FarmingCrop[] selected = selections.get(player.getUniqueId());
+            if (selected == null) continue;
+            Location origin = environmentManager.getOrigin(player.getUniqueId());
+            if (origin == null || origin.getWorld() == null || !origin.getWorld().equals(block.getWorld())) continue;
+            for (int i = 0; i < selected.length; i++) {
+                if (selected[i] != crop) continue;
+                Plot local = PLOTS[i];
+                int dx = origin.getBlockX() - (int) TEMPLATE_ANCHOR.getX();
+                int dy = origin.getBlockY() - (int) TEMPLATE_ANCHOR.getY();
+                int dz = origin.getBlockZ() - (int) TEMPLATE_ANCHOR.getZ();
+                int minX = Math.min(local.minX + dx, local.maxX + dx);
+                int maxX = Math.max(local.minX + dx, local.maxX + dx);
+                int minY = Math.min(local.minY + dy, local.maxY + dy);
+                int maxY = Math.max(local.minY + dy, local.maxY + dy);
+                int minZ = Math.min(local.minZ + dz, local.maxZ + dz);
+                int maxZ = Math.max(local.minZ + dz, local.maxZ + dz);
+                int x = block.getX(), y = block.getY(), z = block.getZ();
+                if (x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void load() {
