@@ -150,7 +150,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|" + statUsage + ">");
             }
             return true;
         }
@@ -309,11 +309,9 @@ public class DebugCommand implements TabExecutor {
                 return true;
 
             case "citymax":
+            case "kingdommax":
                 if (!(sender instanceof Player cityPlayer)) {
                     sender.sendMessage("Players only.");
-                    return true;
-                }
-                if (!hasTownOwnership(cityPlayer)) {
                     return true;
                 }
                 EnvironmentManager.TownMaxResult result = environmentManager.maxTownProgress(cityPlayer);
@@ -926,7 +924,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -1172,21 +1170,6 @@ public class DebugCommand implements TabExecutor {
         player.updateInventory();
     }
 
-    private boolean hasTownOwnership(Player player) {
-        String owner = GuildSiegeManager.getInstance().getOwnerGuild();
-        if (owner == null) {
-            return true;
-        }
-
-        Guild guild = GuildManager.getInstance().getGuild(player.getUniqueId());
-        if (guild == null || !owner.equalsIgnoreCase(guild.getName())) {
-            ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Your guild does not control this town.");
-            return false;
-        }
-
-        return true;
-    }
-
     private void handleChatGameToggle(CommandSender sender, String[] args) {
         if (chatGameManager == null) {
             sender.sendMessage(ChatColor.RED + "Chat games are not initialized.");
@@ -1231,7 +1214,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "area", "autocast",
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "kingdommax", "area", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
                     "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
