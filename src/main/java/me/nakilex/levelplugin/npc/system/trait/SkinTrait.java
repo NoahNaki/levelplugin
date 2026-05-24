@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.npc.system.trait;
 
 import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.skin.NpcSkinService;
 
 public class SkinTrait implements NpcTrait {
     private String skinName;
@@ -20,6 +21,7 @@ public class SkinTrait implements NpcTrait {
         this.signature = signature;
         this.texture = texture;
         this.updateSkins = false;
+        NpcSkinService.cache(skinName, signature, texture);
     }
 
     public void setSkinPersistent(NPC npc, String skinName, String signature, String texture) {
@@ -59,17 +61,7 @@ public class SkinTrait implements NpcTrait {
     }
 
     private void applyToNpc(NPC npc, boolean forceUpdate) {
-        if (npc == null || npc.getCitizensNpc() == null) {
-            return;
-        }
-        net.citizensnpcs.trait.SkinTrait citizensSkin = npc.getCitizensNpc().getOrAddTrait(net.citizensnpcs.trait.SkinTrait.class);
-        if (texture != null && signature != null && !texture.isBlank() && !signature.isBlank()) {
-            citizensSkin.setSkinPersistent(skinName, signature, texture);
-            return;
-        }
-        if (skinName != null && !skinName.isBlank()) {
-            citizensSkin.setSkinName(skinName, forceUpdate);
-        }
+        NpcSkinService.applyToNpc(npc, this, forceUpdate);
     }
 
     public boolean shouldUpdateSkins() {

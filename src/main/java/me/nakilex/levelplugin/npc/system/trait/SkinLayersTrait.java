@@ -70,9 +70,9 @@ public class SkinLayersTrait implements NpcTrait {
     }
 
     private void applyToNpc(NPC npc) {
-        if (npc == null || npc.getCitizensNpc() == null) {
+        if (npc == null) {
             return;
         }
-        npc.getCitizensNpc().data().setPersistent("player-skin-layers", toBitMask());
+        npc.data().set("skin_layers_mask", String.valueOf(toBitMask() & 0xFF));
     }
 }

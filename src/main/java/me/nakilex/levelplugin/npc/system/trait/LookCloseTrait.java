@@ -2,7 +2,13 @@ package me.nakilex.levelplugin.npc.system.trait;
 
 import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 public class LookCloseTrait implements NpcTrait {
     private boolean enabled;
@@ -21,6 +27,7 @@ public class LookCloseTrait implements NpcTrait {
     private boolean disableWhileNavigating;
     private boolean targetNpcs;
     private String filter;
+    private int randomLookCooldownTicks;
 
     public void lookClose(boolean enabled) {
         this.enabled = enabled;
@@ -146,7 +153,7 @@ public class LookCloseTrait implements NpcTrait {
 
     @Override
     public void onSpawn(NPC npc) {
-        applyToCitizens(npc);
+        randomLookCooldownTicks = randomLookDelayTicks;
     }
 
     @Override
@@ -154,44 +161,58 @@ public class LookCloseTrait implements NpcTrait {
         if (npc == null || npc.getEntity() == null || !enabled || npc.getNavigator().isNavigating() && disableWhileNavigating) {
             return;
         }
-        if (npc.getCitizensNpc() != null) {
-            applyToCitizens(npc);
-            return;
-        }
-        Player closest = null;
-        double bestDistanceSq = range * range;
+        List<Player> targets = new ArrayList<>();
         for (Entity nearby : npc.getEntity().getNearbyEntities(range, range, range)) {
-            if (!(nearby instanceof Player player) || player.isInvisible()) {
+            if (!(nearby instanceof Player player) || player.isInvisible() || !passesFilter(player)) {
                 continue;
             }
-            double distanceSq = player.getLocation().distanceSquared(npc.getEntity().getLocation());
-            if (distanceSq < bestDistanceSq) {
-                bestDistanceSq = distanceSq;
-                closest = player;
+            if (realisticLooking && npc.getEntity() instanceof LivingEntity living && !living.hasLineOfSight(player)) {
+                continue;
             }
+            targets.add(player);
         }
-        if (closest == null) {
+        if (targets.isEmpty()) {
+            handleRandomLook(npc);
             return;
+        }
+        targets.sort(Comparator.comparingDouble(p -> p.getLocation().distanceSquared(npc.getEntity().getLocation())));
+        Player target = targets.get(0);
+        if (randomSwitchTargets && targets.size() > 1 && ThreadLocalRandom.current().nextDouble() < 0.1D) {
+            target = targets.get(ThreadLocalRandom.current().nextInt(targets.size()));
         }
         RotationTrait rotation = npc.getOrAddTrait(RotationTrait.class);
-        rotation.rotateToFace(closest.getEyeLocation(), npc);
+        rotation.setHeadOnly(headOnly);
+        rotation.setLinkedBody(linkedBody);
+        if (perPlayer) {
+            for (Player player : targets) {
+                rotation.rotateToFace(player.getEyeLocation(), npc);
+            }
+        } else {
+            rotation.rotateToFace(target.getEyeLocation(), npc);
+        }
     }
 
-    private void applyToCitizens(NPC npc) {
-        if (npc == null || npc.getCitizensNpc() == null) {
+    private void handleRandomLook(NPC npc) {
+        if (!randomLookEnabled) {
             return;
         }
-        net.citizensnpcs.trait.LookClose trait = npc.getCitizensNpc().getOrAddTrait(net.citizensnpcs.trait.LookClose.class);
-        trait.lookClose(enabled);
-        trait.setRange(range);
-        trait.setPerPlayer(perPlayer);
-        trait.setRandomLook(randomLookEnabled);
-        trait.setRandomlySwitchTargets(randomSwitchTargets);
-        trait.setHeadOnly(headOnly);
-        trait.setLinkedBody(linkedBody);
-        trait.setDisableWhileNavigating(disableWhileNavigating);
-        trait.setTargetNPCs(targetNpcs);
-        // Citizens LookClose filter API differs across versions; keep local filter stored
-        // and apply only where available in this plugin's own tick fallback.
+        if (randomLookCooldownTicks-- > 0) {
+            return;
+        }
+        randomLookCooldownTicks = Math.max(1, randomLookDelayTicks);
+        float yaw = ThreadLocalRandom.current().nextFloat(randomYawMin, randomYawMax);
+        float pitch = ThreadLocalRandom.current().nextFloat(randomPitchMin, randomPitchMax);
+        npc.getOrAddTrait(RotationTrait.class).rotateTo(yaw, pitch);
+    }
+
+    private boolean passesFilter(Player player) {
+        if (filter == null || filter.isBlank()) {
+            return true;
+        }
+        String lowered = filter.toLowerCase();
+        if (lowered.startsWith("name:")) {
+            return player.getName().toLowerCase().contains(lowered.substring("name:".length()).trim());
+        }
+        return true;
     }
 }
