@@ -10,6 +10,8 @@ import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.npc.system.NpcApi;
+import me.nakilex.levelplugin.npc.system.NPC;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameRule;
@@ -736,6 +738,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         CuboidTemplate template = session.buildingTemplates().get(slot);
         if (template == null) return;
+        debugBuildingSelectionNpcs(player, building);
         WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
         int coins = plugin.getEconomyManager().getBalance(player);
@@ -777,6 +780,53 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         }.runTaskLater(plugin, PAYMENT_ANIMATION_TICKS);
         activeBuildTasks.put(sessionOwner, task);
+    }
+
+    private void debugBuildingSelectionNpcs(Player player, BuildingTemplate building) {
+        if (player == null || building == null) {
+            return;
+        }
+        Cuboid source = building.source();
+        World world = Bukkit.getWorld(SOURCE_WORLD);
+        if (world == null) {
+            plugin.getLogger().warning("[EnvironmentArea] NPC debug: source world '" + SOURCE_WORLD + "' not loaded for building " + building.id());
+            return;
+        }
+        int minX = Math.min(source.x1(), source.x2());
+        int maxX = Math.max(source.x1(), source.x2());
+        int minY = Math.min(source.y1(), source.y2());
+        int maxY = Math.max(source.y1(), source.y2());
+        int minZ = Math.min(source.z1(), source.z2());
+        int maxZ = Math.max(source.z1(), source.z2());
+        plugin.getLogger().warning("[EnvironmentArea] NPC debug scan building='" + building.id() + "' world=" + world.getName()
+                + " min=(" + minX + "," + minY + "," + minZ + ") max=(" + maxX + "," + maxY + "," + maxZ + ")");
+
+        int matched = 0;
+        for (NPC npc : NpcApi.getRegistry()) {
+            Location loc = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
+            if (loc == null || loc.getWorld() == null || !loc.getWorld().equals(world)) continue;
+            int x = loc.getBlockX();
+            int y = loc.getBlockY();
+            int z = loc.getBlockZ();
+            if (x < minX || x > maxX || y < minY || y > maxY || z < minZ || z > maxZ) continue;
+            matched++;
+            plugin.getLogger().warning("[EnvironmentArea] NPC debug matched building='" + building.id() + "' npcId=" + npc.getId()
+                    + " at " + world.getName() + " (" + x + "," + y + "," + z + ") rel=("
+                    + (x - minX) + "," + (y - minY) + "," + (z - minZ) + ")");
+            String tp = "/execute in " + world.getName() + " run tp @s " + x + " " + y + " " + z;
+            Component line = Component.text(ChatColor.YELLOW + "[Area NPC Debug] " + ChatColor.WHITE
+                            + building.displayName() + " NPC " + npc.getId() + " @ " + x + "," + y + "," + z + " ")
+                    .append(Component.text(ChatColor.AQUA + "[Teleport]")
+                            .clickEvent(ClickEvent.suggestCommand(tp))
+                            .hoverEvent(HoverEvent.showText(Component.text("Suggest teleport command"))));
+            player.sendMessage(line);
+        }
+        plugin.getLogger().warning("[EnvironmentArea] NPC debug result building='" + building.id() + "' matched=" + matched);
+        if (matched == 0) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "NPC debug: no NPCs found in " + ChatColor.WHITE + building.displayName()
+                            + ChatColor.YELLOW + " selection in " + ChatColor.WHITE + SOURCE_WORLD + ChatColor.YELLOW + ".");
+        }
     }
 
     @EventHandler
