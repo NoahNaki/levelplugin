@@ -840,6 +840,37 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             player.sendMessage(line);
         }
         plugin.getLogger().warning("[EnvironmentArea] NPC debug registry listing end total=" + registryChecked);
+
+        int citizensChecked = 0;
+        int citizensMatched = 0;
+        plugin.getLogger().warning("[EnvironmentArea] NPC debug citizens listing start");
+        for (net.citizensnpcs.api.npc.NPC citizensNpc : CitizensAPI.getNPCRegistry()) {
+            citizensChecked++;
+            Location cLoc = citizensNpc.isSpawned() && citizensNpc.getEntity() != null
+                    ? citizensNpc.getEntity().getLocation()
+                    : citizensNpc.getStoredLocation();
+            if (cLoc == null || cLoc.getWorld() == null) {
+                plugin.getLogger().warning("[EnvironmentArea] NPC debug citizens npcId=" + citizensNpc.getId()
+                        + " name='" + citizensNpc.getName() + "' spawned=" + citizensNpc.isSpawned() + " loc=null");
+                continue;
+            }
+            plugin.getLogger().warning("[EnvironmentArea] NPC debug citizens npcId=" + citizensNpc.getId()
+                    + " name='" + citizensNpc.getName() + "' spawned=" + citizensNpc.isSpawned()
+                    + " world=" + cLoc.getWorld().getName()
+                    + " pos=(" + cLoc.getBlockX() + "," + cLoc.getBlockY() + "," + cLoc.getBlockZ() + ")");
+            if (!cLoc.getWorld().equals(world)) continue;
+            int cx = cLoc.getBlockX();
+            int cy = cLoc.getBlockY();
+            int cz = cLoc.getBlockZ();
+            if (cx < minX || cx > maxX || cy < minY || cy > maxY || cz < minZ || cz > maxZ) continue;
+            citizensMatched++;
+            plugin.getLogger().warning("[EnvironmentArea] NPC debug citizens matched building='" + building.id()
+                    + "' npcId=" + citizensNpc.getId() + " name='" + citizensNpc.getName() + "' at "
+                    + world.getName() + " (" + cx + "," + cy + "," + cz + ") rel=("
+                    + (cx - minX) + "," + (cy - minY) + "," + (cz - minZ) + ")");
+        }
+        plugin.getLogger().warning("[EnvironmentArea] NPC debug citizens listing end total=" + citizensChecked
+                + " matchedInSelection=" + citizensMatched);
         int pdcMatched = 0;
         int pdcTaggedInside = 0;
         for (LivingEntity entity : world.getLivingEntities()) {
@@ -860,6 +891,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         plugin.getLogger().warning("[EnvironmentArea] NPC debug result building='" + building.id()
                 + "' registryChecked=" + registryChecked
                 + " matchedInRegistry=" + matched
+                + " citizensChecked=" + citizensChecked
+                + " matchedInCitizens=" + citizensMatched
                 + " pdcTaggedInsideSelection=" + pdcTaggedInside
                 + " pdcResolvedInRegistry=" + pdcMatched);
         if (matched == 0) {
