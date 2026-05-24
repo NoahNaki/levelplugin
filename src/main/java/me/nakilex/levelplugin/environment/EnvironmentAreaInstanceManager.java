@@ -565,14 +565,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private void spawnBuildHolograms(EnvironmentAreaSession session) {
         session.removeHolograms();
+        Player owner = Bukkit.getPlayer(session.ownerId());
+        UUID scoped = owner != null ? resolveProfileScopedId(owner) : scopedProfileId(session.ownerId(), 0);
+        java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
         for (BuildingTemplate building : BUILDINGS) {
             Location marker = findMarker(session, building);
             String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
+            boolean isBuilt = builtSlots.contains(building.slot());
+            String actionText = isBuilt ? "Level Up " : "Build ";
             session.holograms().addAll(spawnClickableHologram(marker, tag, List.of(
-                    ChatColor.GREEN + "Build " + ChatColor.WHITE + building.displayName(),
+                    ChatColor.GREEN + actionText + ChatColor.WHITE + building.displayName(),
                     ChatColor.GRAY + "Cost: " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>",
                     ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------",
-                    TooltipUtil.bulletLine(ChatColor.GRAY + "Replaces empty space."),
+                    " ",
                     ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + "to build")));
         }
     }
@@ -593,9 +598,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private List<Entity> spawnClickableHologram(Location base, String tag, List<String> lines) {
         List<Entity> entities = new ArrayList<>();
-        Interaction clicker = base.getWorld().spawn(base, Interaction.class, interaction -> {
-            interaction.setInteractionWidth(3.5f);
-            interaction.setInteractionHeight(3.5f);
+        Interaction clicker = base.getWorld().spawn(base.clone().add(0, -1.0, 0), Interaction.class, interaction -> {
+            interaction.setInteractionWidth(4.5f);
+            interaction.setInteractionHeight(5.5f);
             interaction.addScoreboardTag(tag);
         });
         entities.add(clicker);

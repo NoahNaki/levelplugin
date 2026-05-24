@@ -82,13 +82,13 @@ public final class PalaceGUI implements CommandExecutor, Listener {
             lore.add(ChatColor.GRAY + "Passive generation for Coins and XP.");
             lore.add("");
             lore.add(ChatColor.YELLOW + "Production Rates");
-            lore.add(ChatColor.GRAY + "• Coins/min: " + ChatColor.GOLD + state.coinsPerMinute);
-            lore.add(ChatColor.GRAY + "• XP/min: " + ChatColor.AQUA + state.xpPerMinute);
+            lore.add(ChatColor.GRAY + "• Coins/min: " + ChatColor.GOLD + state.coinsPerMinute + " <glyph:coins_icon>");
+            lore.add(ChatColor.GRAY + "• XP/min: " + ChatColor.WHITE + state.xpPerMinute + " <glyph:experience_orb_icon>");
             lore.add("");
             lore.add(ChatColor.YELLOW + "Storage");
             lore.add(ChatColor.GRAY + "• Max Duration: " + ChatColor.WHITE + formatDuration(state.storageMinutes));
             lore.add(ChatColor.GRAY + "• Collected: " + ChatColor.GOLD + state.coins + " <glyph:coins_icon>" + ChatColor.GRAY + ", "
-                    + ChatColor.AQUA + state.xp + " <glyph:experience_orb_icon>");
+                    + ChatColor.WHITE + state.xp + " <glyph:experience_orb_icon>");
             lore.add("");
             lore.addAll(TooltipUtil.bulletList(
                     "Base storage is 3h 30m at level 1.",
