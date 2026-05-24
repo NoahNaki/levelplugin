@@ -387,23 +387,9 @@ public class BuildingStageManager {
         Location pos2 = readLocation(world, base + "pos2");
         if (pos1 == null || pos2 == null) return;
 
-        List<NPCSpawn> npcList = new ArrayList<>();
-        if (config.isList(base + "npcs")) {
-            for (Object o : config.getList(base + "npcs")) {
-                if (!(o instanceof String s)) continue;
-                String[] parts = s.split(";");
-                if (parts.length < 6) continue;
-                try {
-                    int id = Integer.parseInt(parts[0]);
-                    int dx = Integer.parseInt(parts[1]);
-                    int dy = Integer.parseInt(parts[2]);
-                    int dz = Integer.parseInt(parts[3]);
-                    float yaw = Float.parseFloat(parts[4]);
-                    float pitch = Float.parseFloat(parts[5]);
-                    npcList.add(new NPCSpawn(id, dx, dy, dz, yaw, pitch));
-                } catch (Exception ignore) {
-                }
-            }
+        List<NPCSpawn> npcList = parseNPCSpawns(base + "npcs");
+        if (npcList.isEmpty()) {
+            npcList = captureNPCs(pos1, pos2);
         }
         List<FurnitureSpawn> furnitureList = new ArrayList<>();
         if (config.isList(base + "furniture")) {
@@ -469,6 +455,29 @@ public class BuildingStageManager {
             .put(stage, new BuildingStage(building.toLowerCase(), stage,
                     pos1, pos2, npcList, blockList, schematic, fileName, priority,
                     hx, hy, hz, ox, oy, oz, matCost, coinCost, furnitureList));
+    }
+
+    private List<NPCSpawn> parseNPCSpawns(String path) {
+        List<NPCSpawn> npcList = new ArrayList<>();
+        if (!config.isList(path)) {
+            return npcList;
+        }
+        for (Object o : config.getList(path)) {
+            if (!(o instanceof String s)) continue;
+            String[] parts = s.split(";");
+            if (parts.length < 6) continue;
+            try {
+                int id = Integer.parseInt(parts[0]);
+                int dx = Integer.parseInt(parts[1]);
+                int dy = Integer.parseInt(parts[2]);
+                int dz = Integer.parseInt(parts[3]);
+                float yaw = Float.parseFloat(parts[4]);
+                float pitch = Float.parseFloat(parts[5]);
+                npcList.add(new NPCSpawn(id, dx, dy, dz, yaw, pitch));
+            } catch (Exception ignore) {
+            }
+        }
+        return npcList;
     }
 
     private List<BlockDef> loadTemplateBlocks(Location pos1, Location pos2, File schematic) {
