@@ -180,7 +180,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
         FarmingCrop[] arr = selections.computeIfAbsent(selectionKey(player), id -> new FarmingCrop[3]);
         arr[fieldIndex] = crop;
         save();
-        plantField(player, fieldIndex, crop);
+        plantField(player, fieldIndex, crop, true);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Field " + fieldNumber + " now growing " + ChatColor.WHITE + pretty(crop.name()) + ChatColor.GREEN + ".");
         openMain(player);
@@ -192,13 +192,15 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
         Bukkit.getScheduler().runTaskLater(plugin, () -> applyStoredFieldState(player), 40L);
     }
 
-    private void plantField(Player player, int fieldIndex, FarmingCrop crop) {
+    private void plantField(Player player, int fieldIndex, FarmingCrop crop, boolean notifyFailures) {
         Plot local = PLOTS[fieldIndex];
         EnvironmentAreaInstanceManager.RuntimeCuboid plot = areaInstanceManager.projectFinishedSelectionForPlayer(
                 player, local.minX(), local.minY(), local.minZ(), local.maxX(), local.maxY(), local.maxZ());
         if (plot == null || plot.world() == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Your kingdom area is not initialized yet.");
+            if (notifyFailures) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "Your kingdom area is not initialized yet.");
+            }
             return;
         }
 
@@ -219,7 +221,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
             }
         }
 
-        if (planted == 0) {
+        if (planted == 0 && notifyFailures) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "No farmland found in projected Field " + (fieldIndex + 1) + ".");
         }
@@ -332,7 +334,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
             if (i + 1 > farmBuildingLevel) continue;
             FarmingCrop crop = selected[i];
             if (crop == null) continue;
-            plantField(player, i, crop);
+            plantField(player, i, crop, false);
         }
     }
 
