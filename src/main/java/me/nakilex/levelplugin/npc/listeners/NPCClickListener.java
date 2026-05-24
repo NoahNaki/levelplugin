@@ -241,7 +241,7 @@ public class NPCClickListener implements Listener {
         }
         if (quest != null) {
             QuestState state = questManager.getQuestState(player, quest);
-            if (questHandlerRegistry.handle(player, npc, citizensNpc, quest, state, questManager, dialogManager)) {
+            if (questHandlerRegistry.handle(player, npc, quest, state, questManager, dialogManager)) {
                 return;
             }
 

@@ -35,4 +35,10 @@ public class QuestNpcInteractionRegistry {
         }
         return handler.handle(player, npc, citizensNpc, quest, state, questManager, dialogManager);
     }
+
+    public boolean handle(Player player, me.nakilex.levelplugin.npc.system.NPC npc,
+                          Quest quest, QuestState state,
+                          QuestManager questManager, NPCDialogManager dialogManager) {
+        return handle(player, npc, null, quest, state, questManager, dialogManager);
+    }
 }
