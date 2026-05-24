@@ -808,9 +808,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
         int matched = 0;
         int registryChecked = 0;
+        plugin.getLogger().warning("[EnvironmentArea] NPC debug registry listing start");
         for (NPC npc : NpcApi.getRegistry()) {
             registryChecked++;
             Location loc = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
+            if (loc == null || loc.getWorld() == null) {
+                plugin.getLogger().warning("[EnvironmentArea] NPC debug registry npcId=" + npc.getId()
+                        + " spawned=" + npc.isSpawned() + " loc=null");
+                continue;
+            }
+            plugin.getLogger().warning("[EnvironmentArea] NPC debug registry npcId=" + npc.getId()
+                    + " spawned=" + npc.isSpawned()
+                    + " world=" + loc.getWorld().getName()
+                    + " pos=(" + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ() + ")");
             if (loc == null || loc.getWorld() == null || !loc.getWorld().equals(world)) continue;
             int x = loc.getBlockX();
             int y = loc.getBlockY();
@@ -828,6 +838,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                             .hoverEvent(HoverEvent.showText(Component.text("Suggest teleport command"))));
             player.sendMessage(line);
         }
+        plugin.getLogger().warning("[EnvironmentArea] NPC debug registry listing end total=" + registryChecked);
         int pdcMatched = 0;
         int pdcTaggedInside = 0;
         for (LivingEntity entity : world.getLivingEntities()) {
