@@ -694,6 +694,47 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         activeBuildTasks.put(sessionOwner, task);
     }
 
+
+    public record RuntimeCuboid(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {}
+
+    public RuntimeCuboid projectFinishedSelectionForPlayer(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
+        if (player == null) return null;
+        UUID ownerId = resolveAreaOwner(player.getUniqueId());
+        EnvironmentAreaSession session = sessions.get(ownerId);
+        if (session == null || session.world() == null) return null;
+        Cuboid resolved = resolveKingdomTemplateCuboid(new Cuboid(x1, y1, z1, x2, y2, z2));
+        WorldCuboid pasted = toPastedCuboid(resolved, session.originX(), session.originY(), session.originZ());
+        return new RuntimeCuboid(session.world(),
+                Math.min(pasted.x1(), pasted.x2()), Math.min(pasted.y1(), pasted.y2()), Math.min(pasted.z1(), pasted.z2()),
+                Math.max(pasted.x1(), pasted.x2()), Math.max(pasted.y1(), pasted.y2()), Math.max(pasted.z1(), pasted.z2()));
+    }
+
+    public int maxAllBuilds(Player player) {
+        if (player == null) return 0;
+        UUID ownerId = resolveAreaOwner(player.getUniqueId());
+        EnvironmentAreaSession session = sessions.get(ownerId);
+        if (session == null) {
+            if (!initialize(player)) return 0;
+            session = sessions.get(ownerId);
+            if (session == null) return 0;
+        }
+        UUID scoped = resolveProfileScopedId(player);
+        java.util.Set<Integer> built = builtSlotsByProfile.computeIfAbsent(scoped, ignored -> new java.util.HashSet<>());
+        int added = 0;
+        for (BuildingTemplate building : BUILDINGS) {
+            int slot = building.slot();
+            if (built.contains(slot)) continue;
+            CuboidTemplate template = session.buildingTemplates().get(slot);
+            if (template == null) continue;
+            WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
+            template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+            removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
+            built.add(slot);
+            added++;
+        }
+        saveBuiltSlots(scoped);
+        return added;
+    }
     private UUID resolveAreaOwner(Player player) {
         return player.getUniqueId();
     }

@@ -332,8 +332,9 @@ public class DebugCommand implements TabExecutor {
                             "Initialized your kingdom area. Run /debug kingdommax again after it loads.");
                     return true;
                 }
-                ChatMessageUtil.send(kingdomPlayer, ChatMessageUtil.MessageType.INFO,
-                        "Kingdom area is initialized. Use /kingdom create to regenerate at max state if needed.");
+                int addedBuilds = environmentAreaInstanceManager.maxAllBuilds(kingdomPlayer);
+                ChatMessageUtil.send(kingdomPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Kingdom max applied. Newly built slots: " + ChatColor.WHITE + addedBuilds + ChatColor.GREEN + ".");
                 return true;
 
             case "area":

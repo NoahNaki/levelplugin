@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.player.farming.gui;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
+import me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager;
 import me.nakilex.levelplugin.player.farming.data.FarmingCrop;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -36,10 +37,10 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private static final String MAIN_TITLE = "Farm Fields";
     private static final String SELECT_TITLE_PREFIX = "Select Seed: Field ";
     private static final int[] FIELD_SLOTS = {11, 13, 15};
-    private static final Location TEMPLATE_ANCHOR = new Location(null, 3489, 77, -3143);
 
     private final Main plugin;
     private final EnvironmentManager environmentManager;
+    private final EnvironmentAreaInstanceManager areaInstanceManager;
     private final Map<UUID, FarmingCrop[]> selections = new HashMap<>();
     private final File dataFile;
     private YamlConfiguration data;
@@ -66,6 +67,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     public FarmFieldsGUI(Main plugin, EnvironmentManager environmentManager) {
         this.plugin = plugin;
         this.environmentManager = environmentManager;
+        this.areaInstanceManager = EnvironmentAreaInstanceManager.getInstance(plugin);
         this.dataFile = new File(plugin.getDataFolder(), "farm_fields.yml");
         this.data = YamlConfiguration.loadConfiguration(dataFile);
         load();
@@ -176,22 +178,20 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     }
 
     private void plantField(Player player, int fieldIndex, FarmingCrop crop) {
-        Location origin = environmentManager.getOrigin(player.getUniqueId());
-        if (origin == null || origin.getWorld() == null) return;
         Plot local = PLOTS[fieldIndex];
-        int dx = origin.getBlockX() - (int) TEMPLATE_ANCHOR.getX();
-        int dy = origin.getBlockY() - (int) TEMPLATE_ANCHOR.getY();
-        int dz = origin.getBlockZ() - (int) TEMPLATE_ANCHOR.getZ();
-        Plot plot = new Plot(local.minX + dx, local.minY + dy, local.minZ + dz, local.maxX + dx, local.maxY + dy, local.maxZ + dz);
-        World world = origin.getWorld();
-        int minX = Math.min(plot.minX, plot.maxX), maxX = Math.max(plot.minX, plot.maxX);
-        int minY = Math.min(plot.minY, plot.maxY), maxY = Math.max(plot.minY, plot.maxY);
-        int minZ = Math.min(plot.minZ, plot.maxZ), maxZ = Math.max(plot.minZ, plot.maxZ);
+        EnvironmentAreaInstanceManager.RuntimeCuboid plot = areaInstanceManager.projectFinishedSelectionForPlayer(
+                player, local.minX(), local.minY(), local.minZ(), local.maxX(), local.maxY(), local.maxZ());
+        if (plot == null || plot.world() == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Your kingdom area is not initialized yet.");
+            return;
+        }
+
         int planted = 0;
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    Block base = world.getBlockAt(x, y, z);
+        for (int x = plot.minX(); x <= plot.maxX(); x++) {
+            for (int y = plot.minY(); y <= plot.maxY(); y++) {
+                for (int z = plot.minZ(); z <= plot.maxZ(); z++) {
+                    Block base = plot.world().getBlockAt(x, y, z);
                     if (base.getType() != Material.FARMLAND) continue;
                     Block cropBlock = base.getRelative(0, 1, 0);
                     cropBlock.setType(crop.getBlockMaterial(), false);
@@ -204,33 +204,11 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
             }
         }
 
-    }
-
-    private int plantNearbyFarmland(Player player, FarmingCrop crop, int radius) {
-        if (player == null || crop == null || player.getWorld() == null) return 0;
-        Location c = player.getLocation();
-        World world = c.getWorld();
-        int cx = c.getBlockX(), cy = c.getBlockY(), cz = c.getBlockZ();
-        int planted = 0;
-        for (int x = cx - radius; x <= cx + radius; x++) {
-            for (int y = Math.max(world.getMinHeight(), cy - 10); y <= Math.min(world.getMaxHeight() - 2, cy + 10); y++) {
-                for (int z = cz - radius; z <= cz + radius; z++) {
-                    Block base = world.getBlockAt(x, y, z);
-                    if (base.getType() != Material.FARMLAND) continue;
-                    Block cropBlock = base.getRelative(0, 1, 0);
-                    if (cropBlock.getType() != Material.AIR && cropBlock.getType() != crop.getBlockMaterial()) continue;
-                    cropBlock.setType(crop.getBlockMaterial(), false);
-                    if (cropBlock.getBlockData() instanceof Ageable ageable) {
-                        ageable.setAge(0);
-                        cropBlock.setBlockData(ageable, false);
-                    }
-                    planted++;
-                }
-            }
+        if (planted == 0) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "No farmland found in projected Field " + (fieldIndex + 1) + ".");
         }
-        return planted;
     }
-
 
     private void startGrowthTask() {
         if (growthTask != null) {
@@ -255,21 +233,14 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     }
 
     private void advanceFieldAge(Player player, int fieldIndex, FarmingCrop crop) {
-        Location origin = environmentManager.getOrigin(player.getUniqueId());
-        if (origin == null || origin.getWorld() == null) return;
         Plot local = PLOTS[fieldIndex];
-        int dx = origin.getBlockX() - (int) TEMPLATE_ANCHOR.getX();
-        int dy = origin.getBlockY() - (int) TEMPLATE_ANCHOR.getY();
-        int dz = origin.getBlockZ() - (int) TEMPLATE_ANCHOR.getZ();
-        Plot plot = new Plot(local.minX + dx, local.minY + dy, local.minZ + dz, local.maxX + dx, local.maxY + dy, local.maxZ + dz);
-        int minX = Math.min(plot.minX, plot.maxX), maxX = Math.max(plot.minX, plot.maxX);
-        int minY = Math.min(plot.minY, plot.maxY), maxY = Math.max(plot.minY, plot.maxY);
-        int minZ = Math.min(plot.minZ, plot.maxZ), maxZ = Math.max(plot.minZ, plot.maxZ);
-        World world = origin.getWorld();
-        for (int x = minX; x <= maxX; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = minZ; z <= maxZ; z++) {
-                    Block base = world.getBlockAt(x, y, z);
+        EnvironmentAreaInstanceManager.RuntimeCuboid plot = areaInstanceManager.projectFinishedSelectionForPlayer(
+                player, local.minX(), local.minY(), local.minZ(), local.maxX(), local.maxY(), local.maxZ());
+        if (plot == null || plot.world() == null) return;
+        for (int x = plot.minX(); x <= plot.maxX(); x++) {
+            for (int y = plot.minY(); y <= plot.maxY(); y++) {
+                for (int z = plot.minZ(); z <= plot.maxZ(); z++) {
+                    Block base = plot.world().getBlockAt(x, y, z);
                     if (base.getType() != Material.FARMLAND) continue;
                     incrementCropAge(base.getRelative(0, 1, 0), crop);
                 }
@@ -291,22 +262,14 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
         for (Player player : Bukkit.getOnlinePlayers()) {
             FarmingCrop[] selected = selections.get(player.getUniqueId());
             if (selected == null) continue;
-            Location origin = environmentManager.getOrigin(player.getUniqueId());
-            if (origin == null || origin.getWorld() == null || !origin.getWorld().equals(block.getWorld())) continue;
             for (int i = 0; i < selected.length; i++) {
                 if (selected[i] != crop) continue;
                 Plot local = PLOTS[i];
-                int dx = origin.getBlockX() - (int) TEMPLATE_ANCHOR.getX();
-                int dy = origin.getBlockY() - (int) TEMPLATE_ANCHOR.getY();
-                int dz = origin.getBlockZ() - (int) TEMPLATE_ANCHOR.getZ();
-                int minX = Math.min(local.minX + dx, local.maxX + dx);
-                int maxX = Math.max(local.minX + dx, local.maxX + dx);
-                int minY = Math.min(local.minY + dy, local.maxY + dy);
-                int maxY = Math.max(local.minY + dy, local.maxY + dy);
-                int minZ = Math.min(local.minZ + dz, local.maxZ + dz);
-                int maxZ = Math.max(local.minZ + dz, local.maxZ + dz);
+                EnvironmentAreaInstanceManager.RuntimeCuboid plot = areaInstanceManager.projectFinishedSelectionForPlayer(
+                        player, local.minX(), local.minY(), local.minZ(), local.maxX(), local.maxY(), local.maxZ());
+                if (plot == null || plot.world() == null || !plot.world().equals(block.getWorld())) continue;
                 int x = block.getX(), y = block.getY(), z = block.getZ();
-                if (x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
+                if (x >= plot.minX() && x <= plot.maxX() && y >= plot.minY() && y <= plot.maxY() && z >= plot.minZ() && z <= plot.maxZ()) {
                     return true;
                 }
             }
