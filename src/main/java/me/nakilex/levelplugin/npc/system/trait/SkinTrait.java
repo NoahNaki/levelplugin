@@ -35,6 +35,10 @@ public class SkinTrait implements NpcTrait {
             this.signature = null;
             this.texture = null;
         }
+        if ((this.texture == null || this.signature == null) && shouldUpdateSkins()) {
+            NpcSkinService.fetchAndApplyToNpc(npc, this, forceUpdate);
+            return;
+        }
         applyToNpc(npc, forceUpdate);
     }
 
