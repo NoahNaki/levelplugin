@@ -309,13 +309,31 @@ public class DebugCommand implements TabExecutor {
                 return true;
 
             case "citymax":
-            case "kingdommax":
                 if (!(sender instanceof Player cityPlayer)) {
                     sender.sendMessage("Players only.");
                     return true;
                 }
-                EnvironmentManager.TownMaxResult result = environmentManager.maxTownProgress(cityPlayer);
-                cityPlayer.sendMessage(result.message());
+                EnvironmentManager.TownMaxResult legacyTownResult = environmentManager.maxTownProgress(cityPlayer);
+                cityPlayer.sendMessage(legacyTownResult.message());
+                return true;
+            case "kingdommax":
+                if (!(sender instanceof Player kingdomPlayer)) {
+                    sender.sendMessage("Players only.");
+                    return true;
+                }
+                if (!environmentAreaInstanceManager.hasSession(kingdomPlayer.getUniqueId())) {
+                    boolean initialized = environmentAreaInstanceManager.initialize(kingdomPlayer);
+                    if (!initialized) {
+                        ChatMessageUtil.send(kingdomPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Could not initialize your kingdom area.");
+                        return true;
+                    }
+                    ChatMessageUtil.send(kingdomPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Initialized your kingdom area. Run /debug kingdommax again after it loads.");
+                    return true;
+                }
+                ChatMessageUtil.send(kingdomPlayer, ChatMessageUtil.MessageType.INFO,
+                        "Kingdom area is initialized. Use /kingdom create to regenerate at max state if needed.");
                 return true;
 
             case "area":
