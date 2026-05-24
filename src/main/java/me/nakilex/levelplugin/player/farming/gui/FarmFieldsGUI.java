@@ -36,7 +36,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private static final String MAIN_TITLE = "Farm Fields";
     private static final String SELECT_TITLE_PREFIX = "Select Seed: Field ";
     private static final int[] FIELD_SLOTS = {11, 13, 15};
-    private static final Location TEMPLATE_ANCHOR = new Location(null, 3489, 77, -3603);
+    private static final Location TEMPLATE_ANCHOR = new Location(null, 3489, 77, -3143);
 
     private final Main plugin;
     private final EnvironmentManager environmentManager;
@@ -56,9 +56,11 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
 
     private record Plot(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {}
     private static final Plot[] PLOTS = {
-            new Plot(3770, 96, -3472, 3800, 103, -3449),
-            new Plot(3787, 81, -3549, 3810, 96, -3499),
-            new Plot(3752, 79, -3554, 3781, 95, -3512)
+            // Coordinates are authored in the finished kingdom reference area.
+            // We project them into each player's initialized kingdom via TEMPLATE_ANCHOR offset.
+            new Plot(3770, 96, -3012, 3800, 103, -2989),
+            new Plot(3787, 81, -3089, 3810, 96, -3039),
+            new Plot(3752, 79, -3094, 3781, 95, -3052)
     };
 
     public FarmFieldsGUI(Main plugin, EnvironmentManager environmentManager) {
@@ -202,14 +204,6 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
             }
         }
 
-        if (planted == 0) {
-            planted = plantNearbyFarmland(player, crop, 30);
-            if (planted > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                        "Field bounds had no farmland; planted nearby farmland instead (" + ChatColor.WHITE + planted
-                                + ChatColor.GRAY + " blocks)." );
-            }
-        }
     }
 
     private int plantNearbyFarmland(Player player, FarmingCrop crop, int radius) {
