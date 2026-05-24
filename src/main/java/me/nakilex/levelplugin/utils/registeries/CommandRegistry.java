@@ -428,6 +428,7 @@ public class CommandRegistry {
         KingdomCommand kingdomCommand = new KingdomCommand(me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin));
         plugin.getCommand("kingdom").setExecutor(kingdomCommand);
         plugin.getCommand("kingdom").setTabCompleter(kingdomCommand);
+        new me.nakilex.levelplugin.environment.PalaceGUI(plugin, me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin));
         TownStageCommand townStageCmd = new TownStageCommand(plugin.getTownStageManager());
         plugin.getCommand("townstage").setExecutor(townStageCmd);
         plugin.getCommand("townstage").setTabCompleter(townStageCmd);
