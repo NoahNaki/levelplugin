@@ -438,6 +438,9 @@ commands:
   dpsdummy:
     description: Manage DPS training dummies
     usage: /dpsdummy <spawn|select|despawn|list>
+  npc:
+    description: Manage internal NPCs
+    usage: /npc <create|skin|skinlayers|lookclose>
 
   animatedlb:
     description: Manage animated world leaderboard
