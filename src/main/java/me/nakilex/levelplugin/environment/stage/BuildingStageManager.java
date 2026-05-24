@@ -167,6 +167,7 @@ public class BuildingStageManager {
             NPC template = CitizensAPI.getNPCRegistry().getById(spawn.id);
             if (template == null) continue;
             NPC clone = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, template.getName());
+            configureStageClone(clone);
             Location loc = origin.clone().add(
                     spawn.x - st.ox + 0.5,
                     spawn.y - st.oy + NPC_SPAWN_Y_OFFSET,
@@ -319,6 +320,35 @@ public class BuildingStageManager {
             String skinName = fromTrait.getSkinName();
             if (skinName != null && !skinName.isBlank()) {
                 toTrait.setSkinName(skinName);
+            }
+        }
+    }
+
+    private void configureStageClone(NPC npc) {
+        if (npc == null) {
+            return;
+        }
+        npc.setProtected(true);
+        setNpcMetadataSafely(npc, false, "collidable");
+        setNpcMetadataSafely(npc, false, "targetable");
+        setNpcMetadataSafely(npc, false, "nameplate-visible", "nameplatevisible");
+        setNpcMetadataSafely(npc, true, "removefromplayerlist", "remove-from-playerlist");
+        setNpcMetadataSafely(npc, true, "removefromtablist", "remove-from-tablist");
+        // Ensure runtime stage clones never get persisted into Citizens saves.
+        setNpcMetadataSafely(npc, false, "persistent", "save", "should-save");
+    }
+
+    private void setNpcMetadataSafely(NPC npc, Object value, String... keys) {
+        if (npc == null || keys == null) {
+            return;
+        }
+        for (String key : keys) {
+            if (key == null || key.isBlank()) {
+                continue;
+            }
+            try {
+                npc.data().setPersistent(key, value);
+            } catch (Throwable ignored) {
             }
         }
     }
