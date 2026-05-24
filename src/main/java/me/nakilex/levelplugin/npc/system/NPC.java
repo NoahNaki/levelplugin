@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.npc.system;
 
 import me.nakilex.levelplugin.npc.system.trait.NpcTrait;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Location;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
@@ -22,6 +23,7 @@ public class NPC {
     private final Map<Class<? extends NpcTrait>, NpcTrait> traits = new HashMap<>();
     private Location storedLocation;
     private Entity entity;
+    private net.citizensnpcs.api.npc.NPC citizensNpc;
     private final NpcNavigator navigator = new NpcNavigator(this);
     private boolean persistent = true;
 
@@ -89,13 +91,22 @@ public class NPC {
             entity.teleport(location);
             return;
         }
-        EntityType spawnType = type == EntityType.PLAYER ? EntityType.ARMOR_STAND : type;
-        entity = location.getWorld().spawnEntity(location, spawnType);
+        if (type == EntityType.PLAYER && CitizensAPI.hasImplementation()) {
+            if (citizensNpc == null) {
+                citizensNpc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, name);
+            } else {
+                citizensNpc.setName(name);
+            }
+            citizensNpc.spawn(location);
+            entity = citizensNpc.getEntity();
+        } else {
+            entity = location.getWorld().spawnEntity(location, type);
+        }
         if (entity instanceof LivingEntity living) {
             living.setCustomName(name);
             living.setCustomNameVisible(true);
         }
-        if (entity instanceof ArmorStand stand) {
+        if (type == EntityType.PLAYER && entity instanceof ArmorStand stand) {
             stand.setInvisible(true);
             stand.setMarker(true);
             stand.setGravity(false);
@@ -107,7 +118,11 @@ public class NPC {
     public void despawn() {
         if (entity != null) {
             traits.values().forEach(trait -> trait.onDespawn(this));
-            entity.remove();
+            if (citizensNpc != null) {
+                citizensNpc.despawn();
+            } else {
+                entity.remove();
+            }
             entity = null;
         }
     }
@@ -139,6 +154,10 @@ public class NPC {
 
     public UUID getEntityUuid() {
         return entity == null ? null : entity.getUniqueId();
+    }
+
+    public net.citizensnpcs.api.npc.NPC getCitizensNpc() {
+        return citizensNpc;
     }
 
     public <T extends NpcTrait> T getOrAddTrait(Class<T> type) {

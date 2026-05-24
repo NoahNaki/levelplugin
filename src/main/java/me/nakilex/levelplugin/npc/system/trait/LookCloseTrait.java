@@ -1,5 +1,9 @@
 package me.nakilex.levelplugin.npc.system.trait;
 
+import me.nakilex.levelplugin.npc.system.NPC;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
+
 public class LookCloseTrait implements NpcTrait {
     private boolean enabled;
     private double range = 5.0;
@@ -138,5 +142,56 @@ public class LookCloseTrait implements NpcTrait {
 
     public void setFilter(String filter) {
         this.filter = filter == null || filter.isBlank() ? null : filter.trim();
+    }
+
+    @Override
+    public void onSpawn(NPC npc) {
+        applyToCitizens(npc);
+    }
+
+    @Override
+    public void onTick(NPC npc) {
+        if (npc == null || npc.getEntity() == null || !enabled || npc.getNavigator().isNavigating() && disableWhileNavigating) {
+            return;
+        }
+        if (npc.getCitizensNpc() != null) {
+            applyToCitizens(npc);
+            return;
+        }
+        Player closest = null;
+        double bestDistanceSq = range * range;
+        for (Entity nearby : npc.getEntity().getNearbyEntities(range, range, range)) {
+            if (!(nearby instanceof Player player) || player.isInvisible()) {
+                continue;
+            }
+            double distanceSq = player.getLocation().distanceSquared(npc.getEntity().getLocation());
+            if (distanceSq < bestDistanceSq) {
+                bestDistanceSq = distanceSq;
+                closest = player;
+            }
+        }
+        if (closest == null) {
+            return;
+        }
+        RotationTrait rotation = npc.getOrAddTrait(RotationTrait.class);
+        rotation.rotateToFace(closest.getEyeLocation(), npc);
+    }
+
+    private void applyToCitizens(NPC npc) {
+        if (npc == null || npc.getCitizensNpc() == null) {
+            return;
+        }
+        net.citizensnpcs.trait.LookClose trait = npc.getCitizensNpc().getOrAddTrait(net.citizensnpcs.trait.LookClose.class);
+        trait.lookClose(enabled);
+        trait.setRange(range);
+        trait.setPerPlayer(perPlayer);
+        trait.setRandomLook(randomLookEnabled);
+        trait.setRandomlySwitchTargets(randomSwitchTargets);
+        trait.setHeadOnly(headOnly);
+        trait.setLinkedBody(linkedBody);
+        trait.setDisableWhileNavigating(disableWhileNavigating);
+        trait.setTargetNPCs(targetNpcs);
+        // Citizens LookClose filter API differs across versions; keep local filter stored
+        // and apply only where available in this plugin's own tick fallback.
     }
 }

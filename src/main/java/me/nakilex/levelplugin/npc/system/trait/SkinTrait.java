@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.npc.system.trait;
 
+import me.nakilex.levelplugin.npc.system.NPC;
+
 public class SkinTrait implements NpcTrait {
     private String skinName;
     private String signature;
@@ -17,6 +19,21 @@ public class SkinTrait implements NpcTrait {
         this.skinName = skinName;
         this.signature = signature;
         this.texture = texture;
+        this.updateSkins = false;
+    }
+
+    public void setSkinPersistent(NPC npc, String skinName, String signature, String texture) {
+        setSkinPersistent(skinName, signature, texture);
+        applyToNpc(npc, true);
+    }
+
+    public void setSkinName(NPC npc, String skinName, boolean forceUpdate) {
+        this.skinName = skinName;
+        if (forceUpdate) {
+            this.signature = null;
+            this.texture = null;
+        }
+        applyToNpc(npc, forceUpdate);
     }
 
     public String getTexture() {
@@ -34,6 +51,25 @@ public class SkinTrait implements NpcTrait {
     public void clearTexture() {
         this.signature = null;
         this.texture = null;
+    }
+
+    @Override
+    public void onSpawn(NPC npc) {
+        applyToNpc(npc, true);
+    }
+
+    private void applyToNpc(NPC npc, boolean forceUpdate) {
+        if (npc == null || npc.getCitizensNpc() == null) {
+            return;
+        }
+        net.citizensnpcs.trait.SkinTrait citizensSkin = npc.getCitizensNpc().getOrAddTrait(net.citizensnpcs.trait.SkinTrait.class);
+        if (texture != null && signature != null && !texture.isBlank() && !signature.isBlank()) {
+            citizensSkin.setSkinPersistent(skinName, signature, texture);
+            return;
+        }
+        if (skinName != null && !skinName.isBlank()) {
+            citizensSkin.setSkinName(skinName, forceUpdate);
+        }
     }
 
     public boolean shouldUpdateSkins() {
