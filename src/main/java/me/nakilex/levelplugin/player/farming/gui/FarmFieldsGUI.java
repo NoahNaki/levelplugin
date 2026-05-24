@@ -23,8 +23,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockGrowEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -88,6 +88,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     }
 
     private void openMain(Player player) {
+        applyStoredFieldState(player);
         Inventory inv = GuiBuilder.create(27, MAIN_TITLE).filler(Material.GRAY_STAINED_GLASS_PANE).border().build();
         int farmLevel = Math.max(0, areaInstanceManager.getFarmBuildingLevel(player));
         FarmingCrop[] playerSelection = selections.computeIfAbsent(selectionKey(player), id -> new FarmingCrop[3]);
@@ -179,6 +180,12 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Field " + fieldNumber + " now growing " + ChatColor.WHITE + pretty(crop.name()) + ChatColor.GREEN + ".");
         openMain(player);
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        Bukkit.getScheduler().runTaskLater(plugin, () -> applyStoredFieldState(player), 40L);
     }
 
     private void plantField(Player player, int fieldIndex, FarmingCrop crop) {
@@ -309,6 +316,19 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private static String pretty(String input) {
         String raw = input.toLowerCase(Locale.ROOT).replace('_', ' ');
         return raw.substring(0, 1).toUpperCase(Locale.ROOT) + raw.substring(1);
+    }
+
+    private void applyStoredFieldState(Player player) {
+        if (player == null || !player.isOnline()) return;
+        int farmBuildingLevel = Math.max(0, areaInstanceManager.getFarmBuildingLevel(player));
+        FarmingCrop[] selected = selections.get(selectionKey(player));
+        if (selected == null) return;
+        for (int i = 0; i < selected.length; i++) {
+            if (i + 1 > farmBuildingLevel) continue;
+            FarmingCrop crop = selected[i];
+            if (crop == null) continue;
+            plantField(player, i, crop);
+        }
     }
 
     private UUID selectionKey(Player player) {

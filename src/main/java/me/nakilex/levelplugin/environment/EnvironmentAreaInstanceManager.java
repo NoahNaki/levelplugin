@@ -671,6 +671,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             if (upgraded > 0) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                         "Farm upgraded to Level " + ChatColor.WHITE + upgraded + ChatColor.GREEN + ".");
+                if (upgraded >= 3) {
+                    removeBuildHologram(session, tag);
+                }
             }
             return;
         }
