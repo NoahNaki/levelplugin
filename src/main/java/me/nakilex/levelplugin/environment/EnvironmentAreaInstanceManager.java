@@ -36,6 +36,8 @@ import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.FluidLevelChangeEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import net.kyori.adventure.text.Component;
@@ -158,6 +160,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, AnimatedLeaderboard> animatedLeaderboardsByOwner = new HashMap<>();
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
+    private final Map<UUID, Integer> farmBuildingLevelByProfile = new HashMap<>();
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
     private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
     private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
@@ -661,6 +664,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Template is missing for this build slot.");
             return;
         }
+        UUID scoped = resolveProfileScopedId(player);
+        java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
+        if (slot == 5 && builtSlots.contains(slot)) {
+            int upgraded = upgradeFarmLevel(player, scoped);
+            if (upgraded > 0) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Farm upgraded to Level " + ChatColor.WHITE + upgraded + ChatColor.GREEN + ".");
+                if (upgraded >= 3) {
+                    removeBuildHologram(session, tag);
+                }
+            }
+            return;
+        }
         WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
         int coins = plugin.getEconomyManager().getBalance(player);
@@ -686,14 +702,59 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     return;
                 }
                 buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
-                removeBuildHologram(session, tag);
                 markBuiltForProfile(player, slot);
+                if (slot != 5) {
+                    removeBuildHologram(session, tag);
+                } else {
+                    setFarmBuildingLevel(resolveProfileScopedId(player), 1);
+                }
                 activeBuildTasks.remove(sessionOwner);
             }
         }.runTaskLater(plugin, PAYMENT_ANIMATION_TICKS);
         activeBuildTasks.put(sessionOwner, task);
     }
 
+
+    public record RuntimeCuboid(World world, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {}
+
+    public RuntimeCuboid projectFinishedSelectionForPlayer(Player player, int x1, int y1, int z1, int x2, int y2, int z2) {
+        if (player == null) return null;
+        UUID ownerId = resolveAreaOwner(player.getUniqueId());
+        EnvironmentAreaSession session = sessions.get(ownerId);
+        if (session == null || session.world() == null) return null;
+        Cuboid resolved = resolveKingdomTemplateCuboid(new Cuboid(x1, y1, z1, x2, y2, z2));
+        WorldCuboid pasted = toPastedCuboid(resolved, session.originX(), session.originY(), session.originZ());
+        return new RuntimeCuboid(session.world(),
+                Math.min(pasted.x1(), pasted.x2()), Math.min(pasted.y1(), pasted.y2()), Math.min(pasted.z1(), pasted.z2()),
+                Math.max(pasted.x1(), pasted.x2()), Math.max(pasted.y1(), pasted.y2()), Math.max(pasted.z1(), pasted.z2()));
+    }
+
+    public int maxAllBuilds(Player player) {
+        if (player == null) return 0;
+        UUID ownerId = resolveAreaOwner(player.getUniqueId());
+        EnvironmentAreaSession session = sessions.get(ownerId);
+        if (session == null) {
+            if (!initialize(player)) return 0;
+            session = sessions.get(ownerId);
+            if (session == null) return 0;
+        }
+        UUID scoped = resolveProfileScopedId(player);
+        java.util.Set<Integer> built = builtSlotsByProfile.computeIfAbsent(scoped, ignored -> new java.util.HashSet<>());
+        int added = 0;
+        for (BuildingTemplate building : BUILDINGS) {
+            int slot = building.slot();
+            if (built.contains(slot)) continue;
+            CuboidTemplate template = session.buildingTemplates().get(slot);
+            if (template == null) continue;
+            WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
+            template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+            removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
+            built.add(slot);
+            added++;
+        }
+        saveBuiltSlots(scoped);
+        return added;
+    }
     private UUID resolveAreaOwner(Player player) {
         return player.getUniqueId();
     }
@@ -713,6 +774,40 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         UUID scoped = resolveProfileScopedId(player);
         builtSlotsByProfile.computeIfAbsent(scoped, ignored -> new java.util.HashSet<>()).add(slot);
         saveBuiltSlots(scoped);
+    }
+
+    public int getFarmBuildingLevel(Player player) {
+        if (player == null) return 0;
+        UUID scoped = resolveProfileScopedId(player);
+        return farmBuildingLevelByProfile.computeIfAbsent(scoped,
+                id -> plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.farm-building-level", 0));
+    }
+
+    private void setFarmBuildingLevel(UUID scoped, int level) {
+        int clamped = Math.max(0, Math.min(3, level));
+        farmBuildingLevelByProfile.put(scoped, clamped);
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.farm-building-level", clamped);
+        // keep legacy key synced for backward compatibility
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.farm-level", clamped);
+        plugin.getPlayerConfig().saveConfigFile();
+    }
+
+    private int upgradeFarmLevel(Player player, UUID scoped) {
+        int current = getFarmBuildingLevel(player);
+        if (current >= 3) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Farm is already at max level.");
+            return 0;
+        }
+        int cost = BUILD_COST_COINS;
+        int coins = plugin.getEconomyManager().getBalance(player);
+        if (coins < cost) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "You need " + ChatColor.GOLD + cost + " <glyph:coins_icon>" + ChatColor.RED + " to upgrade the farm.");
+            return 0;
+        }
+        plugin.getEconomyManager().deductCoins(player, cost);
+        setFarmBuildingLevel(scoped, current + 1);
+        return current + 1;
     }
 
     private void applySavedBuilds(Player player, EnvironmentAreaSession session) {
@@ -912,6 +1007,32 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         player.teleport(fallback);
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You cannot leave your area border.");
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onWaterFlow(BlockFromToEvent event) {
+        Block block = event.getBlock();
+        if (block == null || (block.getType() != Material.WATER && block.getType() != Material.LAVA)) return;
+        if (isEnvironmentSessionWorld(block.getWorld())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onFluidLevelChange(FluidLevelChangeEvent event) {
+        Block block = event.getBlock();
+        if (block == null || (block.getType() != Material.WATER && block.getType() != Material.LAVA)) return;
+        if (isEnvironmentSessionWorld(block.getWorld())) {
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean isEnvironmentSessionWorld(World world) {
+        if (world == null) return false;
+        for (EnvironmentAreaSession session : sessions.values()) {
+            if (session != null && world.equals(session.world())) return true;
+        }
+        return false;
     }
 
     private record Cuboid(int x1, int y1, int z1, int x2, int y2, int z2) {

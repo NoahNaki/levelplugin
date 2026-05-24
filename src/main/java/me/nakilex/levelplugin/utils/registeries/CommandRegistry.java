@@ -220,6 +220,7 @@ public class CommandRegistry {
         plugin.getCommand("mininglevel").setExecutor(new MiningLevelCommand(miningManager));
         plugin.getCommand("farminglevel").setExecutor(new FarmingLevelCommand(plugin.getFarmingManager()));
         new me.nakilex.levelplugin.player.farming.gui.FarmingRewardsGUI(plugin, economyManager);
+        new me.nakilex.levelplugin.player.farming.gui.FarmFieldsGUI(plugin, plugin.getEnvironmentManager());
         new me.nakilex.levelplugin.player.fishing.gui.FishingRewardsGUI(plugin, economyManager);
 
         me.nakilex.levelplugin.player.mining.commands.SetMiningLevelCommand setMiningLevelCmd =

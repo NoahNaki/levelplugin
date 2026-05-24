@@ -150,7 +150,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|" + statUsage + ">");
             }
             return true;
         }
@@ -313,11 +313,28 @@ public class DebugCommand implements TabExecutor {
                     sender.sendMessage("Players only.");
                     return true;
                 }
-                if (!hasTownOwnership(cityPlayer)) {
+                EnvironmentManager.TownMaxResult legacyTownResult = environmentManager.maxTownProgress(cityPlayer);
+                cityPlayer.sendMessage(legacyTownResult.message());
+                return true;
+            case "kingdommax":
+                if (!(sender instanceof Player kingdomPlayer)) {
+                    sender.sendMessage("Players only.");
                     return true;
                 }
-                EnvironmentManager.TownMaxResult result = environmentManager.maxTownProgress(cityPlayer);
-                cityPlayer.sendMessage(result.message());
+                if (!environmentAreaInstanceManager.hasSession(kingdomPlayer.getUniqueId())) {
+                    boolean initialized = environmentAreaInstanceManager.initialize(kingdomPlayer);
+                    if (!initialized) {
+                        ChatMessageUtil.send(kingdomPlayer, ChatMessageUtil.MessageType.ERROR,
+                                "Could not initialize your kingdom area.");
+                        return true;
+                    }
+                    ChatMessageUtil.send(kingdomPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                            "Initialized your kingdom area. Run /debug kingdommax again after it loads.");
+                    return true;
+                }
+                int addedBuilds = environmentAreaInstanceManager.maxAllBuilds(kingdomPlayer);
+                ChatMessageUtil.send(kingdomPlayer, ChatMessageUtil.MessageType.SUCCESS,
+                        "Kingdom max applied. Newly built slots: " + ChatColor.WHITE + addedBuilds + ChatColor.GREEN + ".");
                 return true;
 
             case "area":
@@ -920,13 +937,31 @@ public class DebugCommand implements TabExecutor {
                 return undisguiseNpcModel(sender, args);
             case "npcorphanprune":
                 return pruneOrphanCitizensNpcs(sender);
+            case "farmgrowthspeed":
+                if (args.length < 2) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                            "Farm growth speed: " + ChatColor.WHITE + me.nakilex.levelplugin.player.farming.gui.FarmFieldsGUI.getGrowthSpeedMultiplier()
+                                    + ChatColor.GRAY + "x. Usage: /debug farmgrowthspeed <multiplier>");
+                    return true;
+                }
+                double multiplier;
+                try {
+                    multiplier = Double.parseDouble(args[1]);
+                } catch (NumberFormatException ex) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Multiplier must be a number.");
+                    return true;
+                }
+                me.nakilex.levelplugin.player.farming.gui.FarmFieldsGUI.setGrowthSpeedMultiplier(multiplier);
+                ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
+                        "Farm growth speed set to " + ChatColor.WHITE + me.nakilex.levelplugin.player.farming.gui.FarmFieldsGUI.getGrowthSpeedMultiplier() + ChatColor.GREEN + "x.");
+                return true;
 
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|citymax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -1172,21 +1207,6 @@ public class DebugCommand implements TabExecutor {
         player.updateInventory();
     }
 
-    private boolean hasTownOwnership(Player player) {
-        String owner = GuildSiegeManager.getInstance().getOwnerGuild();
-        if (owner == null) {
-            return true;
-        }
-
-        Guild guild = GuildManager.getInstance().getGuild(player.getUniqueId());
-        if (guild == null || !owner.equalsIgnoreCase(guild.getName())) {
-            ChatFormatter.sendCenteredMessage(player, ChatColor.RED + "Your guild does not control this town.");
-            return false;
-        }
-
-        return true;
-    }
-
     private void handleChatGameToggle(CommandSender sender, String[] args) {
         if (chatGameManager == null) {
             sender.sendMessage(ChatColor.RED + "Chat games are not initialized.");
@@ -1231,10 +1251,10 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "citymax", "area", "autocast",
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "kingdommax", "area", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "farmgrowthspeed", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
