@@ -45,7 +45,6 @@ import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
-import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -105,15 +104,13 @@ public class NPCClickListener implements Listener {
 
         Player player = event.getPlayer();
         NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
-        net.citizensnpcs.api.npc.NPC citizensNpc = npc == null
-                ? CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked())
-                : null;
-        if (npc == null && citizensNpc == null) {
+        if (npc == null) {
             return;
         }
+        net.citizensnpcs.api.npc.NPC citizensNpc = null;
 
-        int npcId = npc != null ? npc.getId() : citizensNpc.getId();
-        String npcName = npc != null ? npc.getName() : citizensNpc.getName();
+        int npcId = npc.getId();
+        String npcName = npc.getName();
 
         if (questManager.isDebug()) {
             logQuestNpcClickDebug(player, npc, citizensNpc, npcId, npcName);
@@ -195,15 +192,9 @@ public class NPCClickListener implements Listener {
                 questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
             if (!dialogManager.hasSession(player)) {
                 NPC seras = NpcApi.getRegistry().getById(823);
-                net.citizensnpcs.api.npc.NPC serasCitizen = CitizensAPI.getNPCRegistry().getById(823);
                 String coords = "unknown";
                 if (seras != null) {
                     Location l = seras.isSpawned() ? seras.getEntity().getLocation() : seras.getStoredLocation();
-                    if (l != null) {
-                        coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
-                    }
-                } else if (serasCitizen != null) {
-                    Location l = serasCitizen.isSpawned() ? serasCitizen.getEntity().getLocation() : serasCitizen.getStoredLocation();
                     if (l != null) {
                         coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
                     }
@@ -230,9 +221,7 @@ public class NPCClickListener implements Listener {
             return;
         }
 
-        Quest quest = npc != null
-                ? questManager.getQuestByNpc(npc, player)
-                : questManager.getQuestByNpc(citizensNpc, player);
+        Quest quest = questManager.getQuestByNpc(npc, player);
         if (npcId == SerasQuest.NPC_ID) {
             Quest serasPartTwo = questManager.getQuestById(SerasSlimeKingQuest.ID);
             if (serasPartTwo != null && !questManager.hasCompleted(player.getUniqueId(), serasPartTwo.getId())) {
