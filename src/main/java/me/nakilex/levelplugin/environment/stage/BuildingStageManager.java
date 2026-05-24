@@ -24,10 +24,11 @@ import com.sk89q.worldedit.math.BlockVector3;
 
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.SchematicUtil;
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
 import net.md_5.bungee.api.ChatColor;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 
 import java.io.File;
 import java.util.*;
@@ -236,16 +237,14 @@ public class BuildingStageManager {
 
         String tpCommand = "/execute in " + loc.getWorld().getName() + " run tp @s "
                 + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ();
-        Component clickable = Component.text(ChatColor.GRAY + "[")
-                .append(Component.text(ChatColor.AQUA + "Teleport"))
-                .append(Component.text(ChatColor.GRAY + "]"))
-                .clickEvent(ClickEvent.suggestCommand(tpCommand))
-                .hoverEvent(HoverEvent.showText(Component.text("Suggest teleport command to spawned NPC")));
-        Component line = Component.text(ChatColor.YELLOW + "[Building Debug] "
-                        + ChatColor.WHITE + building + " s" + stage + " NPC " + templateId
-                        + " at " + coords + " ")
-                .append(clickable);
-        viewer.sendMessage(line);
+        TextComponent line = new TextComponent(ChatColor.YELLOW + "[Building Debug] "
+                + ChatColor.WHITE + building + " s" + stage + " NPC " + templateId
+                + " at " + coords + " ");
+        TextComponent tp = new TextComponent(ChatColor.GRAY + "[" + ChatColor.AQUA + "Teleport" + ChatColor.GRAY + "]");
+        tp.setClickEvent(new ClickEvent(ClickEvent.Action.SUGGEST_COMMAND, tpCommand));
+        tp.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text("Suggest teleport command to spawned NPC")));
+        line.addExtra(tp);
+        viewer.spigot().sendMessage(line);
     }
 
     private String formatWorldCoords(Location loc) {
@@ -431,6 +430,11 @@ public class BuildingStageManager {
         List<NPCSpawn> npcList = parseNPCSpawns(base + "npcs");
         if (npcList.isEmpty()) {
             npcList = captureNPCs(pos1, pos2);
+            plugin.getLogger().info("[BuildingStageManager] Stage " + building + ":" + stage
+                    + " had no configured NPC list; captured " + npcList.size() + " NPC(s) from selection.");
+        } else {
+            plugin.getLogger().info("[BuildingStageManager] Stage " + building + ":" + stage
+                    + " loaded " + npcList.size() + " configured NPC spawn(s).");
         }
         List<FurnitureSpawn> furnitureList = new ArrayList<>();
         if (config.isList(base + "furniture")) {
