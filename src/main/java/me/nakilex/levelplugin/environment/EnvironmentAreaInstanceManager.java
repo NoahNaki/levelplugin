@@ -48,6 +48,7 @@ import org.bukkit.scheduler.BukkitTask;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
+import net.citizensnpcs.api.CitizensAPI;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -1206,6 +1207,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                             .setBlockData(copy.data(), false);
                 }
                 if (index >= copies.size()) {
+                    spawnCitizensNpcsForBuilding(session, building, destinationArea);
                     player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                             "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
@@ -1213,6 +1215,56 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void spawnCitizensNpcsForBuilding(EnvironmentAreaSession session,
+                                              BuildingTemplate building,
+                                              WorldCuboid destinationArea) {
+        if (session == null || building == null || destinationArea == null || session.world() == null) {
+            return;
+        }
+        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
+        if (sourceWorld == null || CitizensAPI.getNPCRegistry() == null) {
+            return;
+        }
+
+        Cuboid source = building.source();
+        int minX = Math.min(source.x1(), source.x2());
+        int maxX = Math.max(source.x1(), source.x2());
+        int minY = Math.min(source.y1(), source.y2());
+        int maxY = Math.max(source.y1(), source.y2());
+        int minZ = Math.min(source.z1(), source.z2());
+        int maxZ = Math.max(source.z1(), source.z2());
+
+        int spawned = 0;
+        for (net.citizensnpcs.api.npc.NPC citizensNpc : CitizensAPI.getNPCRegistry()) {
+            if (citizensNpc == null) continue;
+            Location sourceLoc = citizensNpc.isSpawned() && citizensNpc.getEntity() != null
+                    ? citizensNpc.getEntity().getLocation()
+                    : citizensNpc.getStoredLocation();
+            if (sourceLoc == null || sourceLoc.getWorld() == null || !sourceLoc.getWorld().equals(sourceWorld)) continue;
+            int x = sourceLoc.getBlockX();
+            int y = sourceLoc.getBlockY();
+            int z = sourceLoc.getBlockZ();
+            if (x < minX || x > maxX || y < minY || y > maxY || z < minZ || z > maxZ) continue;
+
+            Location target = new Location(session.world(),
+                    destinationArea.minX() + (x - minX) + 0.5,
+                    destinationArea.minY() + (y - minY),
+                    destinationArea.minZ() + (z - minZ) + 0.5,
+                    sourceLoc.getYaw(),
+                    sourceLoc.getPitch());
+            org.bukkit.entity.EntityType cloneType = citizensNpc.isSpawned() && citizensNpc.getEntity() != null
+                    ? citizensNpc.getEntity().getType()
+                    : org.bukkit.entity.EntityType.PLAYER;
+            net.citizensnpcs.api.npc.NPC clone = CitizensAPI.getNPCRegistry().createNPC(cloneType, citizensNpc.getName());
+            if (clone.spawn(target)) {
+                spawned++;
+            } else {
+                CitizensAPI.getNPCRegistry().deregister(clone);
+            }
+        }
+        plugin.getLogger().warning("[EnvironmentArea] Citizens spawn for building='" + building.id() + "' spawned=" + spawned);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
