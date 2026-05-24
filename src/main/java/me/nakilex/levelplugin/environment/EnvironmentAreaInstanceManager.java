@@ -167,7 +167,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, UUID> coopOwnerByMember = new HashMap<>(); // member -> owner
     private final Map<UUID, UUID> coopPartnerByOwner = new HashMap<>(); // owner -> member
     private final Map<UUID, UUID> pendingConfirmJoinOwner = new HashMap<>();
+    private final Map<UUID, PendingBuildAction> pendingBuildActions = new HashMap<>();
     private static final String COOP_CONFIRM_TITLE = "Confirm Co-op Join";
+    private static final String BUILD_CONFIRM_TITLE = "Confirm Build Action";
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -570,7 +572,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     ChatColor.GREEN + "Build " + ChatColor.WHITE + building.displayName(),
                     ChatColor.GRAY + "Cost: " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>",
                     ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------",
-                    TooltipUtil.bulletLine(ChatColor.GRAY + "Replaces the matching empty-world area."),
+                    TooltipUtil.bulletLine(ChatColor.GRAY + "Replaces empty space."),
                     ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + "to build")));
         }
     }
@@ -592,8 +594,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private List<Entity> spawnClickableHologram(Location base, String tag, List<String> lines) {
         List<Entity> entities = new ArrayList<>();
         Interaction clicker = base.getWorld().spawn(base, Interaction.class, interaction -> {
-            interaction.setInteractionWidth(2.0f);
-            interaction.setInteractionHeight(2.0f);
+            interaction.setInteractionWidth(3.5f);
+            interaction.setInteractionHeight(3.5f);
             interaction.addScoreboardTag(tag);
         });
         entities.add(clicker);
@@ -666,28 +668,54 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         UUID scoped = resolveProfileScopedId(player);
         java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
+        int nextLevel = builtSlots.contains(slot) ? resolveNextLevel(player, slot) : 1;
+        openBuildConfirm(player, tag, slot, building.displayName(), nextLevel);
+    }
+
+    private void openBuildConfirm(Player player, String tag, int slot, String buildingName, int nextLevel) {
+        var inv = Bukkit.createInventory(null, 27, BUILD_CONFIRM_TITLE);
+        String actionName = nextLevel <= 1 ? "Build " : "Level Up ";
+        inv.setItem(11, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm",
+                TooltipUtil.bulletList(
+                        ChatColor.GRAY + actionName + ChatColor.WHITE + buildingName,
+                        ChatColor.GRAY + "Target Level: " + ChatColor.WHITE + nextLevel,
+                        ChatColor.GRAY + "Cost: " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>")));
+        inv.setItem(15, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
+        pendingBuildActions.put(player.getUniqueId(), new PendingBuildAction(tag, slot));
+        player.openInventory(inv);
+    }
+
+    private int resolveNextLevel(Player player, int slot) {
+        if (slot == 4) return getPalaceBuildingLevel(player) + 1;
+        if (slot == 5) return getFarmBuildingLevel(player) + 1;
+        return 2;
+    }
+
+    private void executeBuildAction(Player player, String tag, int slot) {
+        UUID sessionOwner = resolveAreaOwner(player.getUniqueId());
+        EnvironmentAreaSession session = sessions.get(sessionOwner);
+        BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
+        if (session == null || building == null) return;
+        UUID scoped = resolveProfileScopedId(player);
+        java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
         if (slot == 4 && builtSlots.contains(slot)) {
             int upgraded = upgradePalaceLevel(player, scoped);
             if (upgraded > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Palace upgraded to Level " + ChatColor.WHITE + upgraded + ChatColor.GREEN + ".");
-                if (upgraded >= 10) {
-                    removeBuildHologram(session, tag);
-                }
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Palace" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                if (upgraded >= 10) removeBuildHologram(session, tag);
             }
             return;
         }
         if (slot == 5 && builtSlots.contains(slot)) {
             int upgraded = upgradeFarmLevel(player, scoped);
             if (upgraded > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Farm upgraded to Level " + ChatColor.WHITE + upgraded + ChatColor.GREEN + ".");
-                if (upgraded >= 3) {
-                    removeBuildHologram(session, tag);
-                }
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Farm" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                if (upgraded >= 3) removeBuildHologram(session, tag);
             }
             return;
         }
+        CuboidTemplate template = session.buildingTemplates().get(slot);
+        if (template == null) return;
         WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
         int coins = plugin.getEconomyManager().getBalance(player);
@@ -728,6 +756,26 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         }.runTaskLater(plugin, PAYMENT_ANIMATION_TICKS);
         activeBuildTasks.put(sessionOwner, task);
+    }
+
+    @EventHandler
+    public void onBuildConfirmClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (!BUILD_CONFIRM_TITLE.equals(event.getView().getTitle())) return;
+        event.setCancelled(true);
+        PendingBuildAction pending = pendingBuildActions.get(player.getUniqueId());
+        if (pending == null) {
+            player.closeInventory();
+            return;
+        }
+        if (event.getRawSlot() == 11) {
+            executeBuildAction(player, pending.tag(), pending.slot());
+            pendingBuildActions.remove(player.getUniqueId());
+            player.closeInventory();
+        } else if (event.getRawSlot() == 15) {
+            pendingBuildActions.remove(player.getUniqueId());
+            player.closeInventory();
+        }
     }
 
 
@@ -1324,6 +1372,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private record SlotOffset(int dx, int dz) {}
+    private record PendingBuildAction(String tag, int slot) {}
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPluginDisable(PluginDisableEvent event) {

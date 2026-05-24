@@ -2,9 +2,11 @@ package me.nakilex.levelplugin.environment;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
+import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -84,9 +86,9 @@ public final class PalaceGUI implements CommandExecutor, Listener {
             lore.add(ChatColor.GRAY + "• XP/min: " + ChatColor.AQUA + state.xpPerMinute);
             lore.add("");
             lore.add(ChatColor.YELLOW + "Storage");
-            lore.add(ChatColor.GRAY + "• Max Duration: " + ChatColor.WHITE + state.storageMinutes + "m");
-            lore.add(ChatColor.GRAY + "• Collected: " + ChatColor.GOLD + state.coins + " coins" + ChatColor.GRAY + ", "
-                    + ChatColor.AQUA + state.xp + " xp");
+            lore.add(ChatColor.GRAY + "• Max Duration: " + ChatColor.WHITE + formatDuration(state.storageMinutes));
+            lore.add(ChatColor.GRAY + "• Collected: " + ChatColor.GOLD + state.coins + " <glyph:coins_icon>" + ChatColor.GRAY + ", "
+                    + ChatColor.AQUA + state.xp + " <glyph:experience_orb_icon>");
             lore.add("");
             lore.addAll(TooltipUtil.bulletList(
                     "Base storage is 3h 30m at level 1.",
@@ -96,7 +98,7 @@ public final class PalaceGUI implements CommandExecutor, Listener {
         }
         inv.setItem(INFO_SLOT, info);
 
-        inv.setItem(CLAIM_SLOT, GuiUtil.getNexoItem("check", ChatColor.GREEN + "Claim Rewards",
+        inv.setItem(CLAIM_SLOT, GuiUtil.createGuiItem(Material.CAULDRON, ChatColor.GREEN + "Claim Rewards",
                 TooltipUtil.clickInstructions("to collect coins and experience", null)));
     }
 
@@ -107,12 +109,22 @@ public final class PalaceGUI implements CommandExecutor, Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "No palace rewards to claim yet.");
             return;
         }
-        plugin.getEconomyManager().addCoins(player, state.coins, false);
+        int droppedCoins = CoinDropManager.dropCoins(plugin, plugin.getEconomyManager(), player, player.getLocation(), state.coins, true);
         plugin.getLevelManager().addXP(player, state.xp);
         setLastClaimAt(player.getUniqueId(), System.currentTimeMillis());
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Claimed " + ChatColor.GOLD + state.coins + " <glyph:coins_icon> " + ChatColor.GREEN + "and "
-                        + ChatColor.AQUA + state.xp + " XP" + ChatColor.GREEN + " from your Palace.");
+        String expColor = ChatFormatter.experienceColor();
+        String expLabel = ChatFormatter.experienceLabel();
+        player.sendMessage(ChatColor.GOLD + "You received "
+                + expColor + "+" + state.xp + " <glyph:experience_orb_icon> " + expLabel
+                + ChatColor.GOLD + ", and "
+                + me.nakilex.levelplugin.utils.CurrencyMessageUtil.formatAmount(
+                me.nakilex.levelplugin.utils.CurrencyMessageUtil.Currency.COINS, droppedCoins)
+                + ChatColor.GOLD + " dropped nearby!");
+    }
+    private String formatDuration(int minutes) {
+        int h = minutes / 60;
+        int m = minutes % 60;
+        return h + "h " + m + "m";
     }
 
     private RewardState computeState(Player player, int level) {
