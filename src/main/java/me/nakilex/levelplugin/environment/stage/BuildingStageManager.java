@@ -328,13 +328,14 @@ public class BuildingStageManager {
         if (npc == null) {
             return;
         }
+        npc.data().set(NPC.Metadata.SHOULD_SAVE, false);
         npc.setProtected(true);
         setNpcMetadataSafely(npc, false, "collidable");
         setNpcMetadataSafely(npc, false, "targetable");
         setNpcMetadataSafely(npc, false, "nameplate-visible", "nameplatevisible");
         setNpcMetadataSafely(npc, true, "removefromplayerlist", "remove-from-playerlist");
         setNpcMetadataSafely(npc, true, "removefromtablist", "remove-from-tablist");
-        // Ensure runtime stage clones never get persisted into Citizens saves.
+        // Legacy keys for compatibility across Citizens metadata conventions.
         setNpcMetadataSafely(npc, false, "persistent", "save", "should-save");
     }
 
