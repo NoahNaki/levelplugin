@@ -66,7 +66,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private static final String SOURCE_WORLD = "flatland";
     private static final int PASTE_X = 0;
-    private static final int PASTE_Y = 64;
+    private static final int PASTE_Y = -40;
     private static final int PASTE_Z = 0;
     private static final int AREA_SPACING_BLOCKS = 1500;
     /**
@@ -74,8 +74,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
      * itself (not absolute source-world coordinates), so every player gets a
      * valid per-session cuboid regardless of world/offset.
      */
-    private static final int BORDER_MIN_Y_OFFSET = -108; // matches provided -44 relative to paste Y=64
-    private static final int BORDER_MAX_Y_OFFSET = 207;  // matches provided 271 relative to paste Y=64
+    private static final int BORDER_MIN_Y_OFFSET = -108; // matches provided -44 relative to paste Y=-40
+    private static final int BORDER_MAX_Y_OFFSET = 207;  // matches provided 271 relative to paste Y=-40
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
