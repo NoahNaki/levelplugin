@@ -565,21 +565,34 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private void spawnBuildHolograms(EnvironmentAreaSession session) {
         session.removeHolograms();
+        for (BuildingTemplate building : BUILDINGS) {
+            session.holograms().addAll(buildHologramEntitiesForSlot(session, building));
+        }
+    }
+
+    private List<Entity> buildHologramEntitiesForSlot(EnvironmentAreaSession session, BuildingTemplate building) {
         Player owner = Bukkit.getPlayer(session.ownerId());
         UUID scoped = owner != null ? resolveProfileScopedId(owner) : scopedProfileId(session.ownerId(), 0);
-        java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
-        for (BuildingTemplate building : BUILDINGS) {
-            Location marker = findMarker(session, building);
-            String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
-            boolean isBuilt = builtSlots.contains(building.slot());
-            String actionText = isBuilt ? "Level Up " : "Build ";
-            session.holograms().addAll(spawnClickableHologram(marker, tag, List.of(
-                    ChatColor.GREEN + actionText + ChatColor.WHITE + building.displayName(),
-                    ChatColor.GRAY + "Cost: " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>",
-                    ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------",
-                    " ",
-                    ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + "to build")));
-        }
+        boolean isBuilt = loadBuiltSlots(scoped).contains(building.slot());
+        String actionText = isBuilt ? "Level Up " : "Build ";
+        String clickAction = isBuilt ? "to level up" : "to build";
+        Location marker = findMarker(session, building);
+        String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
+        return spawnClickableHologram(marker, tag, List.of(
+                ChatColor.GREEN + actionText + ChatColor.WHITE + building.displayName(),
+                ChatColor.GRAY + "Cost: " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>",
+                ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------",
+                " ",
+                ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + clickAction));
+    }
+
+    private void refreshBuildHologram(EnvironmentAreaSession session, int slot) {
+        if (session == null) return;
+        BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
+        if (building == null) return;
+        String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot;
+        removeBuildHologram(session, tag);
+        session.holograms().addAll(buildHologramEntitiesForSlot(session, building));
     }
 
     private Location findMarker(EnvironmentAreaSession session, BuildingTemplate building) {
@@ -708,6 +721,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             if (upgraded > 0) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Palace" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
                 if (upgraded >= 10) removeBuildHologram(session, tag);
+                else refreshBuildHologram(session, slot);
             }
             return;
         }
@@ -716,6 +730,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             if (upgraded > 0) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Farm" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
                 if (upgraded >= 3) removeBuildHologram(session, tag);
+                else refreshBuildHologram(session, slot);
             }
             return;
         }
@@ -756,6 +771,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     if (slot == 5) {
                         setFarmBuildingLevel(resolveProfileScopedId(player), 1);
                     }
+                    refreshBuildHologram(session, slot);
                 }
                 activeBuildTasks.remove(sessionOwner);
             }
