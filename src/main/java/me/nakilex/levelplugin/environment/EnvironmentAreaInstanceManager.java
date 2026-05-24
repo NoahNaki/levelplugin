@@ -66,7 +66,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private static final String SOURCE_WORLD = "flatland";
     private static final int PASTE_X = 0;
-    private static final int PASTE_Y = 64;
+    private static final int PASTE_Y = -40;
     private static final int PASTE_Z = 0;
     private static final int AREA_SPACING_BLOCKS = 1500;
     /**
@@ -74,8 +74,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
      * itself (not absolute source-world coordinates), so every player gets a
      * valid per-session cuboid regardless of world/offset.
      */
-    private static final int BORDER_MIN_Y_OFFSET = -108; // matches provided -44 relative to paste Y=64
-    private static final int BORDER_MAX_Y_OFFSET = 207;  // matches provided 271 relative to paste Y=64
+    private static final int BORDER_MIN_Y_OFFSET = -108; // matches provided -44 relative to paste Y=-40
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
@@ -220,7 +219,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         removeAnimatedLeaderboard(target.getUniqueId());
 
-        WorldCuboid border = createSessionBorder(originX, originY, originZ);
+        WorldCuboid border = createSessionBorder(world, originX, originY, originZ);
         EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates, originX, originY, originZ, border);
         sessions.put(target.getUniqueId(), session);
         spawnBuildHolograms(session);
@@ -1078,14 +1077,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 originZ + (source.maxZ() - AREA.minZ()));
     }
 
-    private WorldCuboid createSessionBorder(int originX, int originY, int originZ) {
+    private WorldCuboid createSessionBorder(World world, int originX, int originY, int originZ) {
         WorldCuboid pastedArea = toPastedCuboid(AREA, originX, originY, originZ);
         return new WorldCuboid(
                 pastedArea.minX(),
                 originY + BORDER_MIN_Y_OFFSET,
                 pastedArea.minZ(),
                 pastedArea.maxX(),
-                originY + BORDER_MAX_Y_OFFSET,
+                world.getMaxHeight() - 1,
                 pastedArea.maxZ());
     }
 
