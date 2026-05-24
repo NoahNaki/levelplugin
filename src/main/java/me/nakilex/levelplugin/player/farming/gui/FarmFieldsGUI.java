@@ -162,6 +162,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
         int minX = Math.min(plot.minX, plot.maxX), maxX = Math.max(plot.minX, plot.maxX);
         int minY = Math.min(plot.minY, plot.maxY), maxY = Math.max(plot.minY, plot.maxY);
         int minZ = Math.min(plot.minZ, plot.maxZ), maxZ = Math.max(plot.minZ, plot.maxZ);
+        int planted = 0;
         for (int x = minX; x <= maxX; x++) {
             for (int y = minY; y <= maxY; y++) {
                 for (int z = minZ; z <= maxZ; z++) {
@@ -173,9 +174,44 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
                         ageable.setAge(0);
                         cropBlock.setBlockData(ageable, false);
                     }
+                    planted++;
                 }
             }
         }
+
+        if (planted == 0) {
+            planted = plantNearbyFarmland(player, crop, 30);
+            if (planted > 0) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "Field bounds had no farmland; planted nearby farmland instead (" + ChatColor.WHITE + planted
+                                + ChatColor.GRAY + " blocks)." );
+            }
+        }
+    }
+
+    private int plantNearbyFarmland(Player player, FarmingCrop crop, int radius) {
+        if (player == null || crop == null || player.getWorld() == null) return 0;
+        Location c = player.getLocation();
+        World world = c.getWorld();
+        int cx = c.getBlockX(), cy = c.getBlockY(), cz = c.getBlockZ();
+        int planted = 0;
+        for (int x = cx - radius; x <= cx + radius; x++) {
+            for (int y = Math.max(world.getMinHeight(), cy - 10); y <= Math.min(world.getMaxHeight() - 2, cy + 10); y++) {
+                for (int z = cz - radius; z <= cz + radius; z++) {
+                    Block base = world.getBlockAt(x, y, z);
+                    if (base.getType() != Material.FARMLAND) continue;
+                    Block cropBlock = base.getRelative(0, 1, 0);
+                    if (cropBlock.getType() != Material.AIR && cropBlock.getType() != crop.getBlockMaterial()) continue;
+                    cropBlock.setType(crop.getBlockMaterial(), false);
+                    if (cropBlock.getBlockData() instanceof Ageable ageable) {
+                        ageable.setAge(0);
+                        cropBlock.setBlockData(ageable, false);
+                    }
+                    planted++;
+                }
+            }
+        }
+        return planted;
     }
 
     private void load() {
