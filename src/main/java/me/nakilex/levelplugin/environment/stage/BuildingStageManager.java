@@ -156,6 +156,10 @@ public class BuildingStageManager {
                               int stage, Location origin) {
         BuildingStage st = getStage(building, stage);
         if (st == null || origin == null || viewer == null) return;
+        plugin.getLogger().info("[BuildingStageManager] spawnForStage start building=" + building
+                + " stage=" + stage + " viewer=" + viewer.getName()
+                + " stageNpcCount=" + st.npcs.size()
+                + " origin=" + formatWorldCoords(origin));
         UUID id = viewer.getUniqueId();
         var map = spawnedNPCs.computeIfAbsent(id, k -> new HashMap<>());
         String key = building.toLowerCase() + ":" + stage;
@@ -313,12 +317,19 @@ public class BuildingStageManager {
 
     private List<NPCSpawn> captureNPCs(Location p1, Location p2) {
         List<NPCSpawn> list = new ArrayList<>();
+        if (p1 == null || p2 == null || p1.getWorld() == null || p2.getWorld() == null) {
+            plugin.getLogger().warning("[BuildingStageManager] captureNPCs called with invalid bounds.");
+            return list;
+        }
         int minX = Math.min(p1.getBlockX(), p2.getBlockX());
         int maxX = Math.max(p1.getBlockX(), p2.getBlockX());
         int minY = Math.min(p1.getBlockY(), p2.getBlockY());
         int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
         int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
         int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
+        plugin.getLogger().info("[BuildingStageManager] captureNPCs scanning world=" + p1.getWorld().getName()
+                + " min=(" + minX + "," + minY + "," + minZ + ")"
+                + " max=(" + maxX + "," + maxY + "," + maxZ + ")");
         for (NPC npc : NpcApi.getRegistry()) {
             Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
             if (l == null || !l.getWorld().equals(p1.getWorld())) continue;
@@ -327,8 +338,12 @@ public class BuildingStageManager {
             int z = l.getBlockZ();
             if (x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
                 list.add(new NPCSpawn(npc.getId(), x - minX, y - minY, z - minZ, l.getYaw(), l.getPitch()));
+                plugin.getLogger().info("[BuildingStageManager] captureNPCs matched npcId=" + npc.getId()
+                        + " at " + formatWorldCoords(l)
+                        + " rel=(" + (x - minX) + "," + (y - minY) + "," + (z - minZ) + ")");
             }
         }
+        plugin.getLogger().info("[BuildingStageManager] captureNPCs found " + list.size() + " NPC(s).");
         return list;
     }
 
@@ -421,11 +436,19 @@ public class BuildingStageManager {
      * Helper to load a single stage definition from configuration.
      */
     private void loadStage(String building, int stage, String base) {
-        World world = Bukkit.getWorld(config.getString(base + "world"));
-        if (world == null) return;
+        String worldName = config.getString(base + "world");
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            plugin.getLogger().warning("[BuildingStageManager] Could not load stage " + building + ":" + stage
+                    + " because world '" + worldName + "' is not loaded.");
+            return;
+        }
         Location pos1 = readLocation(world, base + "pos1");
         Location pos2 = readLocation(world, base + "pos2");
-        if (pos1 == null || pos2 == null) return;
+        if (pos1 == null || pos2 == null) {
+            plugin.getLogger().warning("[BuildingStageManager] Missing pos1/pos2 for stage " + building + ":" + stage);
+            return;
+        }
 
         List<NPCSpawn> npcList = parseNPCSpawns(base + "npcs");
         if (npcList.isEmpty()) {
