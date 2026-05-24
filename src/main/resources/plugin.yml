@@ -4,7 +4,8 @@ version: 1.0
 author: Nakilex
 api-version: 1.21
 description: A simple MMORPG leveling system plugin for Minecraft
-depend: [ProtocolLib, Citizens, Vault, PlaceholderAPI, Nexo, ModelEngine, packetevents]
+depend: [ProtocolLib, Vault, PlaceholderAPI, Nexo, ModelEngine, packetevents]
+softdepend: [Citizens]
 
 commands:
   addpoints:

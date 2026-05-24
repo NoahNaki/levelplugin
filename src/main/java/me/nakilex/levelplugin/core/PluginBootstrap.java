@@ -303,7 +303,12 @@ public class PluginBootstrap {
                 duelStatsManager,
                 settingsManager,
                 environmentManager);
-        CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
+        if (plugin.getServer().getPluginManager().isPluginEnabled("Citizens")) {
+            CitizensAPI.getTraitFactory()
+                    .registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
+        } else {
+            plugin.getLogger().warning("Citizens is not enabled; using internal NPC systems only.");
+        }
         mobRewardsConfig = new MobRewardsConfig(plugin);
         customMobManager = new CustomMobManager(plugin);
         petManager = new PetManager(plugin);
@@ -333,13 +338,15 @@ public class PluginBootstrap {
         plugin.getServer().getScheduler().runTaskLater(plugin,
                 () -> ModelEngineUtil.warmupModelAnimations(plugin),
                 40L);
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            NpcCleanupUtil.PruneResult result = NpcCleanupUtil.pruneOrphanCitizensNpcs();
-            if (result.removed() > 0) {
-                plugin.getLogger().info("Pruned " + result.removed()
-                        + " orphan Citizens NPC entries at startup (checked " + result.totalChecked() + ").");
-            }
-        }, 20L);
+        if (plugin.getServer().getPluginManager().isPluginEnabled("Citizens")) {
+            plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+                NpcCleanupUtil.PruneResult result = NpcCleanupUtil.pruneOrphanCitizensNpcs();
+                if (result.removed() > 0) {
+                    plugin.getLogger().info("Pruned " + result.removed()
+                            + " orphan Citizens NPC entries at startup (checked " + result.totalChecked() + ").");
+                }
+            }, 20L);
+        }
         plugin.getLogger().info("LevelPlugin has been enabled successfully!");
     }
 
@@ -858,7 +865,7 @@ public class PluginBootstrap {
     }
 
     private boolean validateDependencies() {
-        return ensureDependency("Citizens", null);
+        return true;
     }
 
     private boolean ensureDependency(String pluginName, String requiredClassName) {
