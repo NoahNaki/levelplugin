@@ -1291,6 +1291,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             net.citizensnpcs.api.npc.NPC clone = CitizensAPI.getNPCRegistry().createNPC(cloneType, citizensNpc.getName());
             copyCitizensNpcState(citizensNpc, clone);
             if (clone.spawn(target)) {
+                copyCitizensNpcState(citizensNpc, clone);
                 spawned++;
             } else {
                 CitizensAPI.getNPCRegistry().deregister(clone);
@@ -1306,6 +1307,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         copyBooleanFlag(source, target, "useMinecraftAI", "setUseMinecraftAI");
         copyBooleanFlag(source, target, "isPushableByFluids", "setPushableByFluids");
         copyBooleanFlag(source, target, "isNameVisible", "setNameVisible");
+        copyCitizensSkinTrait(source, target);
+        copyCitizensLookCloseTrait(source, target);
 
         try {
             var sourceTraits = source.getClass().getMethod("getTraits").invoke(source);
@@ -1327,11 +1330,94 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
     }
 
+    private void copyCitizensSkinTrait(net.citizensnpcs.api.npc.NPC source, net.citizensnpcs.api.npc.NPC target) {
+        try {
+            Class<?> skinTraitClass = Class.forName("net.citizensnpcs.trait.SkinTrait");
+            Object sourceTrait = source.getClass().getMethod("getTrait", Class.class).invoke(source, skinTraitClass);
+            if (sourceTrait == null) return;
+            Object targetTrait = target.getClass().getMethod("getOrAddTrait", Class.class).invoke(target, skinTraitClass);
+            if (targetTrait == null) return;
+
+            String skinName = invokeString(sourceTrait, "getSkinName");
+            String signature = invokeString(sourceTrait, "getSignature");
+            String texture = invokeString(sourceTrait, "getTexture");
+            if (skinName != null && !skinName.isBlank() && signature != null && texture != null) {
+                targetTrait.getClass()
+                        .getMethod("setSkinPersistent", String.class, String.class, String.class)
+                        .invoke(targetTrait, skinName, signature, texture);
+            } else if (skinName != null && !skinName.isBlank()) {
+                try {
+                    targetTrait.getClass().getMethod("setSkinPersistent", String.class).invoke(targetTrait, skinName);
+                } catch (Exception ignored) {
+                    // method signature differs by Citizens version
+                }
+            }
+        } catch (Exception ignored) {
+            // Citizens trait not available in this runtime/version
+        }
+    }
+
+    private void copyCitizensLookCloseTrait(net.citizensnpcs.api.npc.NPC source, net.citizensnpcs.api.npc.NPC target) {
+        try {
+            Class<?> lookCloseClass = Class.forName("net.citizensnpcs.trait.LookClose");
+            Object sourceTrait = source.getClass().getMethod("getTrait", Class.class).invoke(source, lookCloseClass);
+            if (sourceTrait == null) return;
+            Object targetTrait = target.getClass().getMethod("getOrAddTrait", Class.class).invoke(target, lookCloseClass);
+            if (targetTrait == null) return;
+
+            Boolean enabled = invokeBoolean(sourceTrait, "isEnabled");
+            if (enabled != null) {
+                try {
+                    targetTrait.getClass().getMethod("lookClose", boolean.class).invoke(targetTrait, enabled);
+                } catch (Exception ex) {
+                    targetTrait.getClass().getMethod("setEnabled", boolean.class).invoke(targetTrait, enabled);
+                }
+            }
+            copyBooleanFlag(sourceTrait, targetTrait, "isRealisticLooking", "setRealisticLooking");
+            copyPrimitiveNumberFlag(sourceTrait, targetTrait, "getRange", "setRange", double.class);
+            copyPrimitiveNumberFlag(sourceTrait, targetTrait, "getRandomLookDelay", "setRandomLookDelay", int.class);
+        } catch (Exception ignored) {
+            // Citizens trait not available in this runtime/version
+        }
+    }
+
+    private String invokeString(Object target, String method) {
+        try {
+            Object value = target.getClass().getMethod(method).invoke(target);
+            return value instanceof String s ? s : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private Boolean invokeBoolean(Object target, String method) {
+        try {
+            Object value = target.getClass().getMethod(method).invoke(target);
+            return value instanceof Boolean b ? b : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
     private void copyBooleanFlag(Object source, Object target, String getter, String setter) {
         try {
             Object value = source.getClass().getMethod(getter).invoke(source);
             if (value instanceof Boolean bool) {
                 target.getClass().getMethod(setter, boolean.class).invoke(target, bool);
+            }
+        } catch (Exception ignored) {
+            // trait/method may not exist on this Citizens version
+        }
+    }
+
+    private void copyPrimitiveNumberFlag(Object source, Object target, String getter, String setter, Class<?> setterType) {
+        try {
+            Object value = source.getClass().getMethod(getter).invoke(source);
+            if (value == null) return;
+            if (setterType == int.class && value instanceof Number n) {
+                target.getClass().getMethod(setter, int.class).invoke(target, n.intValue());
+            } else if (setterType == double.class && value instanceof Number n) {
+                target.getClass().getMethod(setter, double.class).invoke(target, n.doubleValue());
             }
         } catch (Exception ignored) {
             // trait/method may not exist on this Citizens version
