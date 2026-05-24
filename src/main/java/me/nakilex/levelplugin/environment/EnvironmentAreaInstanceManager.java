@@ -158,6 +158,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, AnimatedLeaderboard> animatedLeaderboardsByOwner = new HashMap<>();
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
+    private final Map<UUID, Integer> farmLevelByProfile = new HashMap<>();
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
     private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
     private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
@@ -661,6 +662,16 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Template is missing for this build slot.");
             return;
         }
+        UUID scoped = resolveProfileScopedId(player);
+        java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
+        if (slot == 5 && builtSlots.contains(slot)) {
+            int upgraded = upgradeFarmLevel(player, scoped);
+            if (upgraded > 0) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Farm upgraded to Level " + ChatColor.WHITE + upgraded + ChatColor.GREEN + ".");
+            }
+            return;
+        }
         WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
         int coins = plugin.getEconomyManager().getBalance(player);
@@ -686,8 +697,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     return;
                 }
                 buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
-                removeBuildHologram(session, tag);
                 markBuiltForProfile(player, slot);
+                if (slot != 5) {
+                    removeBuildHologram(session, tag);
+                } else {
+                    setFarmLevel(resolveProfileScopedId(player), 1);
+                }
                 activeBuildTasks.remove(sessionOwner);
             }
         }.runTaskLater(plugin, PAYMENT_ANIMATION_TICKS);
@@ -754,6 +769,38 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         UUID scoped = resolveProfileScopedId(player);
         builtSlotsByProfile.computeIfAbsent(scoped, ignored -> new java.util.HashSet<>()).add(slot);
         saveBuiltSlots(scoped);
+    }
+
+    public int getFarmLevel(Player player) {
+        if (player == null) return 0;
+        UUID scoped = resolveProfileScopedId(player);
+        return farmLevelByProfile.computeIfAbsent(scoped,
+                id -> plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.farm-level", 0));
+    }
+
+    private void setFarmLevel(UUID scoped, int level) {
+        int clamped = Math.max(0, Math.min(3, level));
+        farmLevelByProfile.put(scoped, clamped);
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.farm-level", clamped);
+        plugin.getPlayerConfig().saveConfigFile();
+    }
+
+    private int upgradeFarmLevel(Player player, UUID scoped) {
+        int current = getFarmLevel(player);
+        if (current >= 3) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Farm is already at max level.");
+            return 0;
+        }
+        int cost = BUILD_COST_COINS;
+        int coins = plugin.getEconomyManager().getBalance(player);
+        if (coins < cost) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "You need " + ChatColor.GOLD + cost + " <glyph:coins_icon>" + ChatColor.RED + " to upgrade the farm.");
+            return 0;
+        }
+        plugin.getEconomyManager().deductCoins(player, cost);
+        setFarmLevel(scoped, current + 1);
+        return current + 1;
     }
 
     private void applySavedBuilds(Player player, EnvironmentAreaSession session) {

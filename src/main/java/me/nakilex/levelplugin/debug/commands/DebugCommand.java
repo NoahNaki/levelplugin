@@ -150,7 +150,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|" + statUsage + ">");
             }
             return true;
         }
@@ -937,13 +937,31 @@ public class DebugCommand implements TabExecutor {
                 return undisguiseNpcModel(sender, args);
             case "npcorphanprune":
                 return pruneOrphanCitizensNpcs(sender);
+            case "farmgrowthspeed":
+                if (args.length < 2) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                            "Farm growth speed: " + ChatColor.WHITE + me.nakilex.levelplugin.player.farming.gui.FarmFieldsGUI.getGrowthSpeedMultiplier()
+                                    + ChatColor.GRAY + "x. Usage: /debug farmgrowthspeed <multiplier>");
+                    return true;
+                }
+                double multiplier;
+                try {
+                    multiplier = Double.parseDouble(args[1]);
+                } catch (NumberFormatException ex) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Multiplier must be a number.");
+                    return true;
+                }
+                me.nakilex.levelplugin.player.farming.gui.FarmFieldsGUI.setGrowthSpeedMultiplier(multiplier);
+                ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
+                        "Farm growth speed set to " + ChatColor.WHITE + me.nakilex.levelplugin.player.farming.gui.FarmFieldsGUI.getGrowthSpeedMultiplier() + ChatColor.GREEN + "x.");
+                return true;
 
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -1236,7 +1254,7 @@ public class DebugCommand implements TabExecutor {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "cityowner", "kingdommax", "area", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "farmgrowthspeed", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))

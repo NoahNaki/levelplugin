@@ -54,6 +54,9 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
             FarmingCrop.PUMPKIN, 80
     );
     private long growthTick = 0L;
+    private static double growthSpeedMultiplier = 1.0;
+    public static double getGrowthSpeedMultiplier() { return growthSpeedMultiplier; }
+    public static void setGrowthSpeedMultiplier(double value) { growthSpeedMultiplier = Math.max(0.1, Math.min(20.0, value)); }
 
     private record Plot(int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {}
     private static final Plot[] PLOTS = {
@@ -85,7 +88,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
 
     private void openMain(Player player) {
         Inventory inv = GuiBuilder.create(27, MAIN_TITLE).filler(Material.GRAY_STAINED_GLASS_PANE).border().build();
-        int farmLevel = Math.max(0, environmentManager.getPlayerBuildingStage(player, "farm"));
+        int farmLevel = Math.max(0, areaInstanceManager.getFarmLevel(player));
         FarmingCrop[] playerSelection = selections.computeIfAbsent(player.getUniqueId(), id -> new FarmingCrop[3]);
 
         for (int i = 0; i < 3; i++) {
@@ -225,7 +228,8 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
             for (int i = 0; i < selected.length; i++) {
                 FarmingCrop crop = selected[i];
                 if (crop == null) continue;
-                int every = Math.max(1, growthStepTicks.getOrDefault(crop, 60));
+                int baseEvery = Math.max(1, growthStepTicks.getOrDefault(crop, 60));
+                int every = Math.max(1, (int) Math.round(baseEvery / growthSpeedMultiplier));
                 if (growthTick % every != 0) continue;
                 advanceFieldAge(player, i, crop);
             }
