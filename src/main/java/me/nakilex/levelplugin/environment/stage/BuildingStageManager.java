@@ -6,9 +6,10 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.lootchests.utils.LocationUtils;
 import me.nakilex.levelplugin.utils.FurnitureCleanupUtil;
 import me.nakilex.levelplugin.utils.NexoUtil;
-import me.nakilex.levelplugin.npc.system.NpcApi;
-import me.nakilex.levelplugin.npc.system.NPC;
-import me.nakilex.levelplugin.npc.system.trait.CurrentLocationTrait;
+import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.npc.NPC;
+import net.citizensnpcs.trait.LookClose;
+import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -17,6 +18,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 
@@ -160,10 +162,11 @@ public class BuildingStageManager {
             npc.destroy();
         }
         list.clear();
+        if (!plugin.getServer().getPluginManager().isPluginEnabled("Citizens")) return;
         for (NPCSpawn spawn : st.npcs) {
-            NPC template = NpcApi.getRegistry().getById(spawn.id);
+            NPC template = CitizensAPI.getNPCRegistry().getById(spawn.id);
             if (template == null) continue;
-            NPC clone = NpcApi.getRegistry().cloneNpc(template);
+            NPC clone = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, template.getName());
             Location loc = origin.clone().add(
                     spawn.x - st.ox + 0.5,
                     spawn.y - st.oy + NPC_SPAWN_Y_OFFSET,
@@ -171,9 +174,13 @@ public class BuildingStageManager {
             );
             loc.setYaw(spawn.yaw);
             loc.setPitch(spawn.pitch);
-            clone.getOrAddTrait(CurrentLocationTrait.class).setLocation(loc);
-            clone.spawn(loc);
-            if (clone.isSpawned()) {
+            copySkinTrait(template, clone);
+            clone.getOrAddTrait(LookClose.class).lookClose(true);
+            if (!clone.spawn(loc)) {
+                clone.destroy();
+                continue;
+            }
+            if (clone.getEntity() != null) {
                 clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
                 clone.getEntity().setGravity(false);
             }
@@ -279,8 +286,11 @@ public class BuildingStageManager {
         int maxY = Math.max(p1.getBlockY(), p2.getBlockY());
         int minZ = Math.min(p1.getBlockZ(), p2.getBlockZ());
         int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
-        for (NPC npc : NpcApi.getRegistry()) {
-            Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
+        if (!plugin.getServer().getPluginManager().isPluginEnabled("Citizens")) {
+            return list;
+        }
+        for (NPC npc : CitizensAPI.getNPCRegistry()) {
+            Location l = npc.isSpawned() && npc.getEntity() != null ? npc.getEntity().getLocation() : npc.getStoredLocation();
             if (l == null || !l.getWorld().equals(p1.getWorld())) continue;
             int x = l.getBlockX();
             int y = l.getBlockY();
@@ -290,6 +300,27 @@ public class BuildingStageManager {
             }
         }
         return list;
+    }
+
+    private void copySkinTrait(NPC from, NPC to) {
+        if (from == null || to == null) {
+            return;
+        }
+        SkinTrait fromTrait = from.getTraitNullable(SkinTrait.class);
+        if (fromTrait == null) {
+            return;
+        }
+        SkinTrait toTrait = to.getOrAddTrait(SkinTrait.class);
+        String texture = fromTrait.getTexture();
+        String signature = fromTrait.getSignature();
+        if (texture != null && !texture.isBlank() && signature != null && !signature.isBlank()) {
+            toTrait.setSkinPersistent(from.getRawName(), signature, texture);
+        } else {
+            String skinName = fromTrait.getSkinName();
+            if (skinName != null && !skinName.isBlank()) {
+                toTrait.setSkinName(skinName);
+            }
+        }
     }
 
     private List<BlockDef> captureBlocks(Location p1, Location p2) {
