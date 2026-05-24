@@ -24,6 +24,10 @@ import com.sk89q.worldedit.math.BlockVector3;
 
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.SchematicUtil;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
+import net.md_5.bungee.api.ChatColor;
 
 import java.io.File;
 import java.util.*;
@@ -162,7 +166,11 @@ public class BuildingStageManager {
         list.clear();
         for (NPCSpawn spawn : st.npcs) {
             NPC template = NpcApi.getRegistry().getById(spawn.id);
-            if (template == null) continue;
+            if (template == null) {
+                plugin.getLogger().warning("[BuildingStageManager] Missing NPC template id=" + spawn.id
+                        + " while spawning " + building + " stage " + stage + " for " + viewer.getName());
+                continue;
+            }
             NPC clone = NpcApi.getRegistry().cloneNpc(template);
             Location loc = origin.clone().add(
                     spawn.x - st.ox + 0.5,
@@ -176,9 +184,17 @@ public class BuildingStageManager {
             if (clone.isSpawned()) {
                 clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
                 clone.getEntity().setGravity(false);
+                debugNpcSpawn(viewer, building, stage, spawn.id, clone.getId(), loc);
+            } else {
+                plugin.getLogger().warning("[BuildingStageManager] Failed to spawn NPC template id=" + spawn.id
+                        + " for " + building + " stage " + stage + " at "
+                        + formatWorldCoords(loc) + " viewer=" + viewer.getName());
             }
             list.add(clone);
         }
+        plugin.getLogger().info("[BuildingStageManager] Spawned " + list.size() + " NPC(s) for "
+                + building + " stage " + stage + " viewer=" + viewer.getName() + " world="
+                + (origin.getWorld() != null ? origin.getWorld().getName() : "null"));
 
         var furnMap = spawnedFurniture.computeIfAbsent(id, k -> new HashMap<>());
         List<ItemDisplay> furnList = furnMap.computeIfAbsent(key, k -> new ArrayList<>());
@@ -210,6 +226,31 @@ public class BuildingStageManager {
                 furnList.add(display);
             }
         }
+    }
+
+    private void debugNpcSpawn(Player viewer, String building, int stage, int templateId, int cloneId, Location loc) {
+        String coords = formatWorldCoords(loc);
+        plugin.getLogger().info("[BuildingStageManager] Spawned NPC template=" + templateId
+                + " clone=" + cloneId + " for " + building + " stage " + stage
+                + " viewer=" + viewer.getName() + " at " + coords);
+
+        String tpCommand = "/execute in " + loc.getWorld().getName() + " run tp @s "
+                + loc.getBlockX() + " " + loc.getBlockY() + " " + loc.getBlockZ();
+        Component clickable = Component.text(ChatColor.GRAY + "[")
+                .append(Component.text(ChatColor.AQUA + "Teleport"))
+                .append(Component.text(ChatColor.GRAY + "]"))
+                .clickEvent(ClickEvent.suggestCommand(tpCommand))
+                .hoverEvent(HoverEvent.showText(Component.text("Suggest teleport command to spawned NPC")));
+        Component line = Component.text(ChatColor.YELLOW + "[Building Debug] "
+                        + ChatColor.WHITE + building + " s" + stage + " NPC " + templateId
+                        + " at " + coords + " ")
+                .append(clickable);
+        viewer.sendMessage(line);
+    }
+
+    private String formatWorldCoords(Location loc) {
+        return (loc.getWorld() != null ? loc.getWorld().getName() : "null")
+                + " (" + loc.getBlockX() + ", " + loc.getBlockY() + ", " + loc.getBlockZ() + ")";
     }
 
     public void despawnForStage(UUID viewerId, String building, int stage) {
