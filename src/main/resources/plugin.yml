@@ -365,6 +365,9 @@ commands:
   kingdom:
     description: Open your kingdom or visit another player's kingdom
     usage: /kingdom [create|visit <player>]
+  palace:
+    description: Open the palace production and claim menu
+    usage: /palace
   townstage:
     description: Define settlement stage regions
     usage: /townstage <wand|create|remove|list>

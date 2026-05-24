@@ -108,7 +108,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     new Cuboid(3860, 85, -2807, 3921, 161, -2880),
                     projectFinishedToEmpty(new Cuboid(3860, 85, -2807, 3921, 161, -2880)),
                     projectFinishedToEmpty(new WorldPoint(3877, 92, -2836))),
-            new BuildingTemplate(4, "castle", "Castle", Material.STONE_BRICKS,
+            new BuildingTemplate(4, "palace", "Palace", Material.STONE_BRICKS,
                     new Cuboid(3717, 113, -2849, 3583, 313, -3027),
                     projectFinishedToEmpty(new Cuboid(3717, 113, -2849, 3583, 313, -3027)),
                     projectFinishedToEmpty(new WorldPoint(3693, 125, -2934))),
@@ -160,6 +160,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
     private final Map<UUID, Integer> farmBuildingLevelByProfile = new HashMap<>();
+    private final Map<UUID, Integer> palaceBuildingLevelByProfile = new HashMap<>();
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
     private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
     private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
@@ -665,6 +666,17 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         UUID scoped = resolveProfileScopedId(player);
         java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
+        if (slot == 4 && builtSlots.contains(slot)) {
+            int upgraded = upgradePalaceLevel(player, scoped);
+            if (upgraded > 0) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Palace upgraded to Level " + ChatColor.WHITE + upgraded + ChatColor.GREEN + ".");
+                if (upgraded >= 10) {
+                    removeBuildHologram(session, tag);
+                }
+            }
+            return;
+        }
         if (slot == 5 && builtSlots.contains(slot)) {
             int upgraded = upgradeFarmLevel(player, scoped);
             if (upgraded > 0) {
@@ -702,10 +714,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 }
                 buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
                 markBuiltForProfile(player, slot);
-                if (slot != 5) {
+                if (slot == 4) {
+                    setPalaceBuildingLevel(resolveProfileScopedId(player), 1);
+                }
+                if (slot != 5 && slot != 4) {
                     removeBuildHologram(session, tag);
                 } else {
-                    setFarmBuildingLevel(resolveProfileScopedId(player), 1);
+                    if (slot == 5) {
+                        setFarmBuildingLevel(resolveProfileScopedId(player), 1);
+                    }
                 }
                 activeBuildTasks.remove(sessionOwner);
             }
@@ -782,6 +799,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 id -> plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.farm-building-level", 0));
     }
 
+    public int getPalaceBuildingLevel(Player player) {
+        if (player == null) return 0;
+        UUID scoped = resolveProfileScopedId(player);
+        return palaceBuildingLevelByProfile.computeIfAbsent(scoped,
+                id -> plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.palace-building-level", 0));
+    }
+
     private void setFarmBuildingLevel(UUID scoped, int level) {
         int clamped = Math.max(0, Math.min(3, level));
         farmBuildingLevelByProfile.put(scoped, clamped);
@@ -807,6 +831,31 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         plugin.getEconomyManager().deductCoins(player, cost);
         setFarmBuildingLevel(scoped, current + 1);
         return current + 1;
+    }
+
+    private void setPalaceBuildingLevel(UUID scoped, int level) {
+        int clamped = Math.max(0, Math.min(10, level));
+        palaceBuildingLevelByProfile.put(scoped, clamped);
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.palace-building-level", clamped);
+        plugin.getPlayerConfig().saveConfigFile();
+    }
+
+    private int upgradePalaceLevel(Player player, UUID scoped) {
+        int current = getPalaceBuildingLevel(player);
+        if (current >= 10) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Palace is already at max level.");
+            return 0;
+        }
+        int cost = BUILD_COST_COINS;
+        int coins = plugin.getEconomyManager().getBalance(player);
+        if (coins < cost) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "You need " + ChatColor.GOLD + cost + " <glyph:coins_icon>" + ChatColor.RED + " to upgrade the palace.");
+            return 0;
+        }
+        plugin.getEconomyManager().deductCoins(player, cost);
+        setPalaceBuildingLevel(scoped, Math.max(1, current + 1));
+        return Math.max(1, current + 1);
     }
 
     private void applySavedBuilds(Player player, EnvironmentAreaSession session) {
