@@ -38,6 +38,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     private static final String MAIN_TITLE = "Farm Fields";
     private static final String SELECT_TITLE_PREFIX = "Select Seed: Field ";
     private static final int[] FIELD_SLOTS = {11, 13, 15};
+    private static final int[] FIELD_UNDER_SLOTS = {20, 22, 24};
 
     private final Main plugin;
     private final EnvironmentManager environmentManager;
@@ -88,8 +89,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
     }
 
     private void openMain(Player player) {
-        applyStoredFieldState(player);
-        Inventory inv = GuiBuilder.create(27, MAIN_TITLE).filler(Material.GRAY_STAINED_GLASS_PANE).border().build();
+        Inventory inv = GuiBuilder.create(45, MAIN_TITLE).filler(Material.GRAY_STAINED_GLASS_PANE).border().build();
         int farmLevel = Math.max(0, areaInstanceManager.getFarmBuildingLevel(player));
         FarmingCrop[] playerSelection = selections.computeIfAbsent(selectionKey(player), id -> new FarmingCrop[3]);
 
@@ -112,12 +112,13 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
                 item.setItemMeta(meta);
             }
             inv.setItem(FIELD_SLOTS[i], item);
+            inv.setItem(FIELD_UNDER_SLOTS[i], null);
         }
         player.openInventory(inv);
     }
 
     private void openSeedSelect(Player player, int fieldIndex) {
-        Inventory inv = GuiBuilder.create(27, SELECT_TITLE_PREFIX + (fieldIndex + 1)).filler(Material.BLACK_STAINED_GLASS_PANE).border().build();
+        Inventory inv = GuiBuilder.create(45, SELECT_TITLE_PREFIX + (fieldIndex + 1)).filler(Material.BLACK_STAINED_GLASS_PANE).border().build();
         int[] slots = {10,11,12,13,14,15,16};
         int idx = 0;
         for (FarmingCrop crop : FarmingCrop.values()) {
@@ -131,6 +132,9 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
             }
             inv.setItem(slots[idx++], item);
         }
+        inv.setItem(20, null);
+        inv.setItem(22, null);
+        inv.setItem(24, null);
         player.openInventory(inv);
     }
 
@@ -233,6 +237,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
         for (Player player : Bukkit.getOnlinePlayers()) {
             FarmingCrop[] selected = selections.get(selectionKey(player));
             if (selected == null) continue;
+            applyStoredFieldState(player);
             for (int i = 0; i < selected.length; i++) {
                 FarmingCrop crop = selected[i];
                 if (crop == null) continue;
