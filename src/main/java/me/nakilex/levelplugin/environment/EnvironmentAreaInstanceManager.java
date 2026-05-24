@@ -843,9 +843,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         plugin.getLogger().warning("[EnvironmentArea] NPC debug citizens listing start");
         for (net.citizensnpcs.api.npc.NPC citizensNpc : CitizensAPI.getNPCRegistry()) {
             citizensChecked++;
-            Location cLoc = citizensNpc.isSpawned() && citizensNpc.getEntity() != null
-                    ? citizensNpc.getEntity().getLocation()
-                    : citizensNpc.getStoredLocation();
+            Location cLoc = resolveCitizensLocation(citizensNpc);
             if (cLoc == null || cLoc.getWorld() == null) {
                 plugin.getLogger().warning("[EnvironmentArea] NPC debug citizens npcId=" + citizensNpc.getId()
                         + " name='" + citizensNpc.getName() + "' spawned=" + citizensNpc.isSpawned() + " loc=null");
@@ -1270,9 +1268,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         int spawned = 0;
         for (net.citizensnpcs.api.npc.NPC citizensNpc : CitizensAPI.getNPCRegistry()) {
             if (citizensNpc == null) continue;
-            Location sourceLoc = citizensNpc.isSpawned() && citizensNpc.getEntity() != null
-                    ? citizensNpc.getEntity().getLocation()
-                    : citizensNpc.getStoredLocation();
+            Location sourceLoc = resolveCitizensLocation(citizensNpc);
             if (sourceLoc == null || sourceLoc.getWorld() == null || !sourceLoc.getWorld().equals(sourceWorld)) continue;
             int x = sourceLoc.getBlockX();
             int y = sourceLoc.getBlockY();
@@ -1327,6 +1323,22 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         } catch (Exception ignored) {
             // best-effort copy only; flags above still apply
+        }
+    }
+
+    private Location resolveCitizensLocation(net.citizensnpcs.api.npc.NPC citizensNpc) {
+        if (citizensNpc == null) {
+            return null;
+        }
+        if (citizensNpc.isSpawned() && citizensNpc.getEntity() != null) {
+            return citizensNpc.getEntity().getLocation();
+        }
+        try {
+            return citizensNpc.getStoredLocation();
+        } catch (IllegalArgumentException ex) {
+            plugin.getLogger().warning("[EnvironmentArea] Citizens NPC " + citizensNpc.getId()
+                    + " has an unloaded stored world; skipping until world is available.");
+            return null;
         }
     }
 
