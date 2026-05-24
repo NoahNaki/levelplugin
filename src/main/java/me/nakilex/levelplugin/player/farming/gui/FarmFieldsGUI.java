@@ -89,13 +89,13 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
 
     private void openMain(Player player) {
         Inventory inv = GuiBuilder.create(27, MAIN_TITLE).filler(Material.GRAY_STAINED_GLASS_PANE).border().build();
-        int farmLevel = Math.max(0, areaInstanceManager.getFarmLevel(player));
+        int farmLevel = Math.max(0, areaInstanceManager.getFarmBuildingLevel(player));
         FarmingCrop[] playerSelection = selections.computeIfAbsent(selectionKey(player), id -> new FarmingCrop[3]);
 
         for (int i = 0; i < 3; i++) {
             if (i + 1 > farmLevel) {
                 inv.setItem(FIELD_SLOTS[i], GuiUtil.getNexoItem("lock", ChatColor.RED + "Field " + (i + 1) + " Locked",
-                        TooltipUtil.bulletList("Upgrade Farm to level " + (i + 1) + " to unlock this plot.")));
+                        TooltipUtil.bulletList("Upgrade the Farm building to level " + (i + 1) + " to unlock this plot.")));
                 continue;
             }
             FarmingCrop crop = playerSelection[i];
@@ -152,7 +152,7 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
         if (event.getClickedInventory() == null || event.getRawSlot() >= event.getView().getTopInventory().getSize()) return;
 
         if (GuiUtil.titleMatches(title, MAIN_TITLE)) {
-            int farmLevel = Math.max(0, areaInstanceManager.getFarmLevel(player));
+            int farmLevel = Math.max(0, areaInstanceManager.getFarmBuildingLevel(player));
             for (int i = 0; i < FIELD_SLOTS.length; i++) {
                 if (event.getRawSlot() == FIELD_SLOTS[i]) {
                     if (i + 1 > farmLevel) {

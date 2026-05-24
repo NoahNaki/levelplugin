@@ -160,7 +160,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, AnimatedLeaderboard> animatedLeaderboardsByOwner = new HashMap<>();
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
-    private final Map<UUID, Integer> farmLevelByProfile = new HashMap<>();
+    private final Map<UUID, Integer> farmBuildingLevelByProfile = new HashMap<>();
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
     private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
     private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
@@ -703,7 +703,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 if (slot != 5) {
                     removeBuildHologram(session, tag);
                 } else {
-                    setFarmLevel(resolveProfileScopedId(player), 1);
+                    setFarmBuildingLevel(resolveProfileScopedId(player), 1);
                 }
                 activeBuildTasks.remove(sessionOwner);
             }
@@ -773,22 +773,24 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         saveBuiltSlots(scoped);
     }
 
-    public int getFarmLevel(Player player) {
+    public int getFarmBuildingLevel(Player player) {
         if (player == null) return 0;
         UUID scoped = resolveProfileScopedId(player);
-        return farmLevelByProfile.computeIfAbsent(scoped,
-                id -> plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.farm-level", 0));
+        return farmBuildingLevelByProfile.computeIfAbsent(scoped,
+                id -> plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.farm-building-level", 0));
     }
 
-    private void setFarmLevel(UUID scoped, int level) {
+    private void setFarmBuildingLevel(UUID scoped, int level) {
         int clamped = Math.max(0, Math.min(3, level));
-        farmLevelByProfile.put(scoped, clamped);
+        farmBuildingLevelByProfile.put(scoped, clamped);
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.farm-building-level", clamped);
+        // keep legacy key synced for backward compatibility
         plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.farm-level", clamped);
         plugin.getPlayerConfig().saveConfigFile();
     }
 
     private int upgradeFarmLevel(Player player, UUID scoped) {
-        int current = getFarmLevel(player);
+        int current = getFarmBuildingLevel(player);
         if (current >= 3) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Farm is already at max level.");
             return 0;
@@ -801,7 +803,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return 0;
         }
         plugin.getEconomyManager().deductCoins(player, cost);
-        setFarmLevel(scoped, current + 1);
+        setFarmBuildingLevel(scoped, current + 1);
         return current + 1;
     }
 
