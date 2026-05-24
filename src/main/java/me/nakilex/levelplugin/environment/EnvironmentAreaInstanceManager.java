@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.NpcRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameRule;
@@ -29,6 +30,8 @@ import org.bukkit.entity.Interaction;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -802,7 +805,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 + " min=(" + minX + "," + minY + "," + minZ + ") max=(" + maxX + "," + maxY + "," + maxZ + ")");
 
         int matched = 0;
+        int registryChecked = 0;
         for (NPC npc : NpcApi.getRegistry()) {
+            registryChecked++;
             Location loc = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
             if (loc == null || loc.getWorld() == null || !loc.getWorld().equals(world)) continue;
             int x = loc.getBlockX();
@@ -821,7 +826,28 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                             .hoverEvent(HoverEvent.showText(Component.text("Suggest teleport command"))));
             player.sendMessage(line);
         }
-        plugin.getLogger().warning("[EnvironmentArea] NPC debug result building='" + building.id() + "' matched=" + matched);
+        int pdcMatched = 0;
+        int pdcTaggedInside = 0;
+        for (LivingEntity entity : world.getLivingEntities()) {
+            Integer npcId = entity.getPersistentDataContainer().get(NpcRegistry.getNpcIdKey(), PersistentDataType.INTEGER);
+            if (npcId == null) continue;
+            int x = entity.getLocation().getBlockX();
+            int y = entity.getLocation().getBlockY();
+            int z = entity.getLocation().getBlockZ();
+            if (x < minX || x > maxX || y < minY || y > maxY || z < minZ || z > maxZ) continue;
+            pdcTaggedInside++;
+            NPC resolved = NpcApi.getRegistry().getById(npcId);
+            if (resolved != null) pdcMatched++;
+            plugin.getLogger().warning("[EnvironmentArea] NPC debug pdcEntity building='" + building.id()
+                    + "' npcId=" + npcId + " resolvedInRegistry=" + (resolved != null)
+                    + " entityType=" + entity.getType() + " at " + world.getName()
+                    + " (" + x + "," + y + "," + z + ")");
+        }
+        plugin.getLogger().warning("[EnvironmentArea] NPC debug result building='" + building.id()
+                + "' registryChecked=" + registryChecked
+                + " matchedInRegistry=" + matched
+                + " pdcTaggedInsideSelection=" + pdcTaggedInside
+                + " pdcResolvedInRegistry=" + pdcMatched);
         if (matched == 0) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "NPC debug: no NPCs found in " + ChatColor.WHITE + building.displayName()
