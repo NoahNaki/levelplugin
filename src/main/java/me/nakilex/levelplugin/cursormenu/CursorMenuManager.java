@@ -9,9 +9,6 @@ import me.nakilex.levelplugin.cursormenu.model.ItemPreset;
 import me.nakilex.levelplugin.cursormenu.model.MenuButton;
 import me.nakilex.levelplugin.cursormenu.model.MenuSection;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.npc.NPC;
-import net.citizensnpcs.trait.SkinTrait;
 import org.bukkit.*;
 import org.bukkit.block.BlockState;
 import org.bukkit.configuration.ConfigurationSection;
@@ -931,30 +928,23 @@ public class CursorMenuManager implements Listener {
                     + "' for actor '" + actor.id() + "' in menu '" + section.key() + "'.");
             return null;
         }
-        if (!plugin.getServer().getPluginManager().isPluginEnabled("Citizens")) {
-            plugin.getLogger().warning("[CursorMenu] Citizens is required for actor '" + actor.id()
-                    + "' in menu '" + section.key() + "'.");
-            return null;
-        }
-
         Location spawn = resolveActorLocation(section, actor);
         String actorName = resolveActorName(viewer, actor);
-        NPC npc = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, actorName);
-        npc.setProtected(true);
-        setNpcMetadataSafely(npc, false, "collidable");
-        setNpcMetadataSafely(npc, false, "targetable");
-        setNpcMetadataSafely(npc, false, "nameplate-visible", "nameplatevisible");
-        setNpcMetadataSafely(npc, true, "removefromplayerlist", "remove-from-playerlist");
-        setNpcMetadataSafely(npc, true, "removefromtablist", "remove-from-tablist");
-        applyActorSkin(viewer, actor, npc);
-        if (!npc.spawn(spawn)) {
-            npc.destroy();
-            plugin.getLogger().warning("[CursorMenu] Failed to spawn actor '" + actor.id()
-                    + "' in menu '" + section.key() + "'.");
-            return null;
-        }
-
-        Entity entity = npc.getEntity();
+        Entity entity = spawn.getWorld().spawn(spawn, ArmorStand.class, stand -> {
+            stand.setCustomName(actorName);
+            stand.setCustomNameVisible(false);
+            stand.setVisible(false);
+            stand.setSmall(false);
+            stand.setMarker(false);
+            stand.setArms(false);
+            stand.setBasePlate(false);
+            stand.setGravity(false);
+            stand.setAI(false);
+            stand.setPersistent(false);
+            stand.setInvulnerable(true);
+            stand.setSilent(true);
+        });
+        applyActorSkin(viewer, actor);
         entity.setGravity(false);
         entity.setInvulnerable(true);
         entity.setSilent(true);
@@ -966,7 +956,7 @@ public class CursorMenuManager implements Listener {
             living.setGravity(false);
         }
         entity.setPersistent(false);
-        return new SpawnedActor(actor, npc);
+        return new SpawnedActor(actor, entity);
     }
 
     private Location resolveActorLocation(MenuSection section, MenuActor actor) {
@@ -992,32 +982,12 @@ public class CursorMenuManager implements Listener {
         return colorize(withPlaceholders);
     }
 
-    private void applyActorSkin(Player viewer, MenuActor actor, NPC npc) {
+    private void applyActorSkin(Player viewer, MenuActor actor) {
         if (!actor.useViewerSkin()) {
             return;
         }
-        try {
-            SkinTrait skinTrait = npc.getOrAddTrait(SkinTrait.class);
-            skinTrait.setSkinPersistent(viewer);
-        } catch (Exception ex) {
-            plugin.getLogger().warning("[CursorMenu] Failed to apply viewer skin to actor '" + actor.id()
-                    + "': " + ex.getMessage());
-        }
-    }
-
-    private void setNpcMetadataSafely(NPC npc, Object value, String... keys) {
-        if (npc == null || keys == null) {
-            return;
-        }
-        for (String key : keys) {
-            if (key == null || key.isBlank()) {
-                continue;
-            }
-            try {
-                npc.data().setPersistent(key, value);
-            } catch (Throwable ignored) {
-            }
-        }
+        plugin.getLogger().fine("[CursorMenu] Viewer skin requested for actor '" + actor.id()
+                + "' but internal actor renderer does not yet support skin application.");
     }
 
     private void ensureDefaultFiles() {
@@ -1496,19 +1466,15 @@ public class CursorMenuManager implements Listener {
 
     private static final class SpawnedActor {
         private final MenuActor definition;
-        private final NPC npc;
+        private final Entity entity;
 
-        private SpawnedActor(MenuActor definition, NPC npc) {
+        private SpawnedActor(MenuActor definition, Entity entity) {
             this.definition = definition;
-            this.npc = npc;
+            this.entity = entity;
         }
 
         private void syncLocation(Location location) {
-            if (npc == null || location == null || !npc.isSpawned()) {
-                return;
-            }
-            Entity entity = npc.getEntity();
-            if (entity == null || entity.isDead()) {
+            if (entity == null || location == null || entity.isDead()) {
                 return;
             }
             entity.teleport(location);
@@ -1516,11 +1482,11 @@ public class CursorMenuManager implements Listener {
         }
 
         private void destroy() {
-            if (npc == null) {
+            if (entity == null) {
                 return;
             }
             try {
-                npc.destroy();
+                entity.remove();
             } catch (Exception ignored) {
             }
         }
