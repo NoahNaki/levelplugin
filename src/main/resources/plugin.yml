@@ -4,7 +4,8 @@ version: 1.0
 author: Nakilex
 api-version: 1.21
 description: A simple MMORPG leveling system plugin for Minecraft
-depend: [ProtocolLib, Citizens, Vault, PlaceholderAPI, Nexo, ModelEngine, packetevents]
+depend: [ProtocolLib, Vault, PlaceholderAPI, Nexo, ModelEngine, packetevents]
+softdepend: [Citizens]
 
 commands:
   addpoints:
@@ -438,6 +439,9 @@ commands:
   dpsdummy:
     description: Manage DPS training dummies
     usage: /dpsdummy <spawn|select|despawn|list>
+  npc:
+    description: Manage internal NPCs
+    usage: /npc <create|skin|skinlayers|lookclose>
 
   animatedlb:
     description: Manage animated world leaderboard

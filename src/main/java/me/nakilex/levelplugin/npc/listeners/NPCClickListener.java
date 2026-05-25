@@ -45,7 +45,6 @@ import me.nakilex.levelplugin.quests.util.QuestServiceAccessTracker;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
-import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -105,18 +104,15 @@ public class NPCClickListener implements Listener {
 
         Player player = event.getPlayer();
         NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
-        net.citizensnpcs.api.npc.NPC citizensNpc = npc == null
-                ? CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked())
-                : null;
-        if (npc == null && citizensNpc == null) {
+        if (npc == null) {
             return;
         }
 
-        int npcId = npc != null ? npc.getId() : citizensNpc.getId();
-        String npcName = npc != null ? npc.getName() : citizensNpc.getName();
+        int npcId = npc.getId();
+        String npcName = npc.getName();
 
         if (questManager.isDebug()) {
-            logQuestNpcClickDebug(player, npc, citizensNpc, npcId, npcName);
+            logQuestNpcClickDebug(player, npc, npcId, npcName);
         }
 
         var serverSelection = Main.getInstance().getServerSelectionManager();
@@ -195,21 +191,15 @@ public class NPCClickListener implements Listener {
                 questManager.hasCompleted(player.getUniqueId(), "newbeginning")) {
             if (!dialogManager.hasSession(player)) {
                 NPC seras = NpcApi.getRegistry().getById(823);
-                net.citizensnpcs.api.npc.NPC serasCitizen = CitizensAPI.getNPCRegistry().getById(823);
                 String coords = "unknown";
                 if (seras != null) {
                     Location l = seras.isSpawned() ? seras.getEntity().getLocation() : seras.getStoredLocation();
                     if (l != null) {
                         coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
                     }
-                } else if (serasCitizen != null) {
-                    Location l = serasCitizen.isSpawned() ? serasCitizen.getEntity().getLocation() : serasCitizen.getStoredLocation();
-                    if (l != null) {
-                        coords = l.getBlockX() + ", " + l.getBlockY() + ", " + l.getBlockZ();
-                    }
                 }
                 String line = "Piwan|You should talk to Seras at §8[§e" + coords + "§8]§f, I'm sure she has plenty of tasks for you, though be wary she's a fiery one.";
-                startDialog(player, java.util.List.of(line), npc, citizensNpc, null);
+                startDialog(player, java.util.List.of(line), npc, null);
             }
         }
 
@@ -221,18 +211,16 @@ public class NPCClickListener implements Listener {
         }
 
         if (isNpcName(npcName, "Storage Manager")) {
-            handleStorageManagerInteraction(player, npc, citizensNpc);
+            handleStorageManagerInteraction(player, npc);
             return;
         }
 
         if (npcId == DungeonGuardQuest.NPC_ID) {
-            handleDungeonGuard(player, npc, citizensNpc);
+            handleDungeonGuard(player, npc);
             return;
         }
 
-        Quest quest = npc != null
-                ? questManager.getQuestByNpc(npc, player)
-                : questManager.getQuestByNpc(citizensNpc, player);
+        Quest quest = questManager.getQuestByNpc(npc, player);
         if (npcId == SerasQuest.NPC_ID) {
             Quest serasPartTwo = questManager.getQuestById(SerasSlimeKingQuest.ID);
             if (serasPartTwo != null && !questManager.hasCompleted(player.getUniqueId(), serasPartTwo.getId())) {
@@ -252,14 +240,14 @@ public class NPCClickListener implements Listener {
         }
         if (quest != null) {
             QuestState state = questManager.getQuestState(player, quest);
-            if (questHandlerRegistry.handle(player, npc, citizensNpc, quest, state, questManager, dialogManager)) {
+            if (questHandlerRegistry.handle(player, npc, quest, state, questManager, dialogManager)) {
                 return;
             }
 
             switch (state) {
                 case AVAILABLE -> {
                     questManager.handleTalk(player, resolveTalkTarget(player.getUniqueId(), quest, npcId, npcName));
-                    startDialog(player, quest, npc, citizensNpc);
+                    startDialog(player, quest, npc);
                 }
                 case LOCKED -> questManager.meetsRequirements(player, quest);
                 case ACCEPTED, IN_PROGRESS -> {
@@ -279,7 +267,7 @@ public class NPCClickListener implements Listener {
         }
     }
 
-    private void handleStorageManagerInteraction(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+    private void handleStorageManagerInteraction(Player player, NPC npc) {
         if (storageManager == null) {
             return;
         }
@@ -289,38 +277,38 @@ public class NPCClickListener implements Listener {
             return;
         }
 
-        startDialog(player, STORAGE_INTRO_DIALOG, npc, citizensNpc,
+        startDialog(player, STORAGE_INTRO_DIALOG, npc,
                 () -> Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
-                        startChoiceDialog(player, npc, citizensNpc, List.of("Yes", "No"), choice -> {
+                        startChoiceDialog(player, npc, List.of("Yes", "No"), choice -> {
                             if (choice == 0) {
-                                completeStorageRegistration(player, npc, citizensNpc);
+                                completeStorageRegistration(player, npc);
                             } else {
-                                startDialog(player, STORAGE_DECLINE_DIALOG, npc, citizensNpc, null);
+                                startDialog(player, STORAGE_DECLINE_DIALOG, npc, null);
                             }
                         }), 1L));
     }
 
-    private void completeStorageRegistration(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+    private void completeStorageRegistration(Player player, NPC npc) {
         if (storageManager.hasStorage(player.getUniqueId())) {
             storageManager.openStorage(player);
             return;
         }
 
         if (economyManager.getBalance(player) < STORAGE_REGISTRATION_COST) {
-            startDialog(player, STORAGE_FUNDS_DIALOG, npc, citizensNpc, null);
+            startDialog(player, STORAGE_FUNDS_DIALOG, npc, null);
             return;
         }
 
         economyManager.deductCoins(player, STORAGE_REGISTRATION_COST);
         CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS, STORAGE_REGISTRATION_COST);
         storageManager.createStorage(player.getUniqueId());
-        startDialog(player, STORAGE_CREATED_DIALOG, npc, citizensNpc,
+        startDialog(player, STORAGE_CREATED_DIALOG, npc,
                 () -> storageManager.openStorage(player));
     }
 
-    private void handleDungeonGuard(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+    private void handleDungeonGuard(Player player, NPC npc) {
         if (StatsManager.getInstance().getLevel(player) < DungeonGuardQuest.REQUIRED_LEVEL) {
-            startDialog(player, DungeonGuardQuest.getTooWeakDialog(), npc, citizensNpc, null);
+            startDialog(player, DungeonGuardQuest.getTooWeakDialog(), npc, null);
             return;
         }
 
@@ -330,29 +318,27 @@ public class NPCClickListener implements Listener {
             startDialog(player,
                     DungeonGuardQuest.getApprovalDialog(),
                     npc,
-                    citizensNpc,
                     () -> openDungeonGate(player));
             return;
         }
 
-        if (resumePendingChoice(player, npc, citizensNpc)) {
+        if (resumePendingChoice(player, npc)) {
             return;
         }
 
-        startDialog(player, DungeonGuardQuest.getIntroDialog(), npc, citizensNpc,
+        startDialog(player, DungeonGuardQuest.getIntroDialog(), npc,
                 () -> Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
-                        startChoiceDialog(player, npc, citizensNpc,
+                        startChoiceDialog(player, npc,
                                 java.util.List.of("Yes", "No"),
                                 DungeonGuardQuest.QUEST_ID,
                                 "dungeonguard_choice_",
                                 choice -> {
                                     if (choice == 0) {
-                                        processDungeonEntryPurchase(player, npc, citizensNpc);
+                                        processDungeonEntryPurchase(player, npc);
                                     } else {
                                         startDialog(player,
                                                 DungeonGuardQuest.getDeclineDialog(),
                                                 npc,
-                                                citizensNpc,
                                                 null);
                                     }
                                 }), 1L));
@@ -371,18 +357,18 @@ public class NPCClickListener implements Listener {
         }
     }
 
-    private void processDungeonEntryPurchase(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+    private void processDungeonEntryPurchase(Player player, NPC npc) {
         int balance = economyManager.getBalance(player);
         if (balance < DungeonGuardQuest.ENTRY_FEE) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "You need " + DungeonGuardQuest.ENTRY_FEE + " coins to pay the entrance fee.");
-            startDialog(player, DungeonGuardQuest.getDeclineDialog(), npc, citizensNpc, null);
+            startDialog(player, DungeonGuardQuest.getDeclineDialog(), npc, null);
             return;
         }
 
         economyManager.deductCoins(player, DungeonGuardQuest.ENTRY_FEE);
         CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS, DungeonGuardQuest.ENTRY_FEE);
-        startDialog(player, DungeonGuardQuest.getApprovalDialog(), npc, citizensNpc, () -> {
+        startDialog(player, DungeonGuardQuest.getApprovalDialog(), npc, () -> {
             questManager.handleTalk(player, "npc" + DungeonGuardQuest.NPC_ID + "_entry");
             openDungeonGate(player);
         });
@@ -467,55 +453,41 @@ public class NPCClickListener implements Listener {
         return "npc" + npcId;
     }
 
-    private void startDialog(Player player, Quest quest, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+    private void startDialog(Player player, Quest quest, NPC npc) {
         if (npc != null) {
             dialogManager.startDialog(player, quest, npc);
-        } else {
-            dialogManager.startDialog(player, quest, citizensNpc);
         }
     }
 
-    private void startDialog(Player player, List<String> lines, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc,
-                             Runnable finish) {
+    private void startDialog(Player player, List<String> lines, NPC npc, Runnable finish) {
         if (npc != null) {
             dialogManager.startDialog(player, lines, npc, finish);
-        } else {
-            dialogManager.startDialog(player, lines, citizensNpc, finish);
         }
     }
 
-    private void startChoiceDialog(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc,
+    private void startChoiceDialog(Player player, NPC npc,
                                    List<String> options, java.util.function.Consumer<Integer> callback) {
         if (npc != null) {
             dialogManager.startChoiceDialog(player, npc, options, callback);
-        } else {
-            dialogManager.startChoiceDialog(player, citizensNpc, options, callback);
         }
     }
 
-    private void startChoiceDialog(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc,
+    private void startChoiceDialog(Player player, NPC npc,
                                    List<String> options, String questId, String flagBase,
                                    java.util.function.Consumer<Integer> callback) {
         if (npc != null) {
             dialogManager.startChoiceDialog(player, npc, options, questId, flagBase, callback);
-        } else {
-            dialogManager.startChoiceDialog(player, citizensNpc, options, questId, flagBase, callback);
         }
     }
 
-    private boolean resumePendingChoice(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
-        if (npc != null) {
-            return dialogManager.resumePendingChoice(player, npc);
-        }
-        return dialogManager.resumePendingChoice(player, citizensNpc);
+    private boolean resumePendingChoice(Player player, NPC npc) {
+        return npc != null && dialogManager.resumePendingChoice(player, npc);
     }
 
-    private void logQuestNpcClickDebug(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc,
+    private void logQuestNpcClickDebug(Player player, NPC npc,
                                        int npcId, String npcName) {
-        String source = npc != null ? "level" : "citizens";
-        Quest questForNpc = npc != null
-                ? questManager.getQuestByNpc(npc, player)
-                : questManager.getQuestByNpc(citizensNpc, player);
+        String source = "level";
+        Quest questForNpc = questManager.getQuestByNpc(npc, player);
         String questForNpcId = questForNpc != null ? questForNpc.getId() : "none";
         String trackedId = questManager.getTrackedQuest(player.getUniqueId());
         Quest trackedQuest = trackedId != null ? questManager.getQuest(trackedId) : null;
