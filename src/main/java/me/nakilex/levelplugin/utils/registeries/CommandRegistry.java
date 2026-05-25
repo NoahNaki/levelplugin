@@ -83,6 +83,7 @@ import me.nakilex.levelplugin.mail.MailCommand;
 import me.nakilex.levelplugin.cursormenu.CursorMenuCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantCommand;
 import me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager;
+import me.nakilex.levelplugin.npc.commands.NpcCommand;
 import me.nakilex.levelplugin.music.commands.SkipSongCommand;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.horse.managers.HorseManager;
@@ -481,6 +482,9 @@ public class CommandRegistry {
         plugin.getCommand("emotes").setTabCompleter(emotesCommand);
 
         plugin.getCommand("roll").setExecutor(new RollCommand());
+        NpcCommand npcCommand = new NpcCommand();
+        plugin.getCommand("npc").setExecutor(npcCommand);
+        plugin.getCommand("npc").setTabCompleter(npcCommand);
 
         if (plugin.getBlockGlowUtil() != null) {
             BlockGlowCommand blockGlowCommand = new BlockGlowCommand(plugin.getBlockGlowUtil());

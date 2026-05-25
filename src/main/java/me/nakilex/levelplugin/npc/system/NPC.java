@@ -95,7 +95,7 @@ public class NPC {
             living.setCustomName(name);
             living.setCustomNameVisible(true);
         }
-        if (entity instanceof ArmorStand stand) {
+        if (type == EntityType.PLAYER && entity instanceof ArmorStand stand) {
             stand.setInvisible(true);
             stand.setMarker(true);
             stand.setGravity(false);
@@ -165,6 +165,10 @@ public class NPC {
 
     public <T extends NpcTrait> T getTrait(Class<T> type) {
         return type.cast(traits.get(type));
+    }
+
+    public void tickTraits() {
+        traits.values().forEach(trait -> trait.onTick(this));
     }
 
     public NPC copy(int newId) {

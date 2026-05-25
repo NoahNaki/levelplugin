@@ -14,4 +14,10 @@ public interface NpcTrait {
 
     default void onDespawn(NPC npc) {
     }
+
+    /**
+     * Called periodically by NPC systems that tick traits.
+     */
+    default void onTick(NPC npc) {
+    }
 }
