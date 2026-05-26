@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameRule;
@@ -170,6 +171,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, PendingBuildAction> pendingBuildActions = new HashMap<>();
     private static final String COOP_CONFIRM_TITLE = "Confirm Co-op Join";
     private static final String BUILD_CONFIRM_TITLE = "Confirm Build Action";
+    private static final String ENV_AREA_CLONE_KEY = "levelplugin_env_area_clone";
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -1082,10 +1084,107 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                             "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
+                    copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea);
                     cancel();
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void copyCitizensNpcsIntoBuiltBuilding(EnvironmentAreaSession session,
+                                                   BuildingTemplate building,
+                                                   WorldCuboid destinationArea) {
+        if (session == null || building == null || destinationArea == null) return;
+        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
+        if (sourceWorld == null) {
+            plugin.getLogger().warning("[EnvironmentArea] Could not copy Citizens NPCs for building '" + building.id()
+                    + "': source world '" + SOURCE_WORLD + "' is unavailable.");
+            return;
+        }
+        Cuboid sourceCuboid = building.source();
+        int sourceMinX = sourceCuboid.minX();
+        int sourceMinY = sourceCuboid.minY();
+        int sourceMinZ = sourceCuboid.minZ();
+        int found = 0;
+        int spawned = 0;
+        for (net.citizensnpcs.api.npc.NPC template : CitizensAPI.getNPCRegistry()) {
+            if (template.data().get(ENV_AREA_CLONE_KEY, false)) {
+                continue;
+            }
+            Location npcLocation = template.isSpawned() && template.getEntity() != null
+                    ? template.getEntity().getLocation()
+                    : template.getStoredLocation();
+            if (!isInsideSelection(npcLocation, sourceWorld, sourceCuboid)) continue;
+            found++;
+
+            int relX = npcLocation.getBlockX() - sourceMinX;
+            int relY = npcLocation.getBlockY() - sourceMinY;
+            int relZ = npcLocation.getBlockZ() - sourceMinZ;
+            Location dest = new Location(
+                    session.world(),
+                    destinationArea.minX() + relX + 0.5,
+                    destinationArea.minY() + relY,
+                    destinationArea.minZ() + relZ + 0.5,
+                    npcLocation.getYaw(),
+                    npcLocation.getPitch());
+
+            org.bukkit.entity.EntityType type = template.isSpawned() && template.getEntity() != null
+                    ? template.getEntity().getType()
+                    : org.bukkit.entity.EntityType.PLAYER;
+            net.citizensnpcs.api.npc.NPC clone = cloneCitizensNpc(template, type);
+            clone.spawn(dest);
+            if (!clone.isSpawned() || clone.getEntity() == null) {
+                plugin.getLogger().warning("[EnvironmentArea] Citizens clone failed to spawn for templateId="
+                        + template.getId() + " name='" + template.getName() + "' type=" + type
+                        + " dest=" + dest.getBlockX() + "," + dest.getBlockY() + "," + dest.getBlockZ());
+                continue;
+            }
+            // Copy common Citizens metadata after spawn so failed/invalid persisted data
+            // cannot block the clone from appearing in-world.
+            clone.data().setPersistent(net.citizensnpcs.api.npc.NPC.Metadata.NAMEPLATE_VISIBLE,
+                    template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.NAMEPLATE_VISIBLE, true));
+            clone.data().setPersistent(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED,
+                    template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED, true));
+            clone.data().setPersistent(ENV_AREA_CLONE_KEY, true);
+            spawned++;
+            plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templateId=" + template.getId()
+                    + " name='" + template.getName() + "' for building='" + building.id() + "'"
+                    + " source=" + npcLocation.getBlockX() + "," + npcLocation.getBlockY() + "," + npcLocation.getBlockZ()
+                    + " -> dest=" + dest.getBlockX() + "," + dest.getBlockY() + "," + dest.getBlockZ());
+        }
+
+        if (found == 0) {
+            plugin.getLogger().warning("[EnvironmentArea] No Citizens NPC templates found inside building source cuboid for '"
+                    + building.id() + "'. sourceBounds=[" + sourceCuboid.minX() + "," + sourceCuboid.minY() + "," + sourceCuboid.minZ()
+                    + "] to [" + sourceCuboid.maxX() + "," + sourceCuboid.maxY() + "," + sourceCuboid.maxZ() + "]");
+            return;
+        }
+        plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templates for building='" + building.id()
+                + "': found=" + found + ", spawned=" + spawned);
+    }
+
+    private boolean isInsideSelection(Location location, World expectedWorld, Cuboid selection) {
+        if (location == null || expectedWorld == null || selection == null) return false;
+        if (!expectedWorld.equals(location.getWorld())) return false;
+        int x = location.getBlockX();
+        int y = location.getBlockY();
+        int z = location.getBlockZ();
+        return x >= selection.minX() && x <= selection.maxX()
+                && y >= selection.minY() && y <= selection.maxY()
+                && z >= selection.minZ() && z <= selection.maxZ();
+    }
+
+    private net.citizensnpcs.api.npc.NPC cloneCitizensNpc(net.citizensnpcs.api.npc.NPC template,
+                                                           org.bukkit.entity.EntityType fallbackType) {
+        try {
+            java.lang.reflect.Method copyMethod = template.getClass().getMethod("copy");
+            Object copied = copyMethod.invoke(template);
+            if (copied instanceof net.citizensnpcs.api.npc.NPC copiedNpc) {
+                return copiedNpc;
+            }
+        } catch (Throwable ignored) {
+        }
+        return CitizensAPI.getNPCRegistry().createNPC(fallbackType, template.getName());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -1435,7 +1534,22 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         }
         animatedLeaderboardsByOwner.clear();
+        cleanupEnvironmentAreaCitizensClones();
         sessions.clear();
         lastValidLocations.clear();
+    }
+
+    private void cleanupEnvironmentAreaCitizensClones() {
+        int removed = 0;
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            if (!npc.data().get(ENV_AREA_CLONE_KEY, false)) {
+                continue;
+            }
+            CitizensAPI.getNPCRegistry().deregister(npc);
+            removed++;
+        }
+        if (removed > 0) {
+            plugin.getLogger().info("[EnvironmentArea] Cleaned up " + removed + " session Citizens clones.");
+        }
     }
 }
