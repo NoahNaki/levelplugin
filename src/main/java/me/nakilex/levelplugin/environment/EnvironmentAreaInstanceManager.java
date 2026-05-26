@@ -838,6 +838,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             pasteBuiltTemplate(session, building, template, area, true);
             removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
             built.add(slot);
+            if (slot == 5) {
+                setFarmBuildingLevel(scoped, 3);
+            } else if (slot == 4) {
+                setPalaceBuildingLevel(scoped, 10);
+            }
             added++;
         }
         saveBuiltSlots(scoped);
