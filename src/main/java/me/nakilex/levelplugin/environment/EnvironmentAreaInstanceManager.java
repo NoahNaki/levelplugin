@@ -11,7 +11,6 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.citizensnpcs.api.CitizensAPI;
-import net.citizensnpcs.api.util.MemoryDataKey;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameRule;
@@ -1129,10 +1128,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     ? template.getEntity().getType()
                     : org.bukkit.entity.EntityType.PLAYER;
             net.citizensnpcs.api.npc.NPC clone = CitizensAPI.getNPCRegistry().createNPC(type, template.getName());
-            MemoryDataKey key = new MemoryDataKey();
-            template.save(key);
-            clone.load(key);
             clone.spawn(dest);
+            if (!clone.isSpawned() || clone.getEntity() == null) {
+                plugin.getLogger().warning("[EnvironmentArea] Citizens clone failed to spawn for templateId="
+                        + template.getId() + " name='" + template.getName() + "' type=" + type
+                        + " dest=" + dest.getBlockX() + "," + dest.getBlockY() + "," + dest.getBlockZ());
+                continue;
+            }
+            // Copy common Citizens metadata after spawn so failed/invalid persisted data
+            // cannot block the clone from appearing in-world.
+            clone.data().setPersistent(net.citizensnpcs.api.npc.NPC.Metadata.NAMEPLATE_VISIBLE,
+                    template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.NAMEPLATE_VISIBLE, true));
+            clone.data().setPersistent(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED,
+                    template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED, true));
             spawned++;
             plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templateId=" + template.getId()
                     + " name='" + template.getName() + "' for building='" + building.id() + "'"
