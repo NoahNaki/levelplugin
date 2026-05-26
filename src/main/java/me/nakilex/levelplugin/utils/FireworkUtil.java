@@ -63,6 +63,44 @@ public final class FireworkUtil {
         }
     }
 
+
+
+    /**
+     * Spawn a burst of fireworks at random points inside an axis-aligned region.
+     *
+     * @param anchor world/location anchor used for world context
+     * @param minX minimum block x (inclusive)
+     * @param minY minimum block y (inclusive)
+     * @param minZ minimum block z (inclusive)
+     * @param maxX maximum block x (inclusive)
+     * @param maxY maximum block y (inclusive)
+     * @param maxZ maximum block z (inclusive)
+     * @param amount number of rockets to spawn
+     */
+    public static void burstWithinArea(Location anchor,
+                                       int minX, int minY, int minZ,
+                                       int maxX, int maxY, int maxZ,
+                                       int amount) {
+        if (anchor == null || anchor.getWorld() == null || amount <= 0) {
+            return;
+        }
+
+        int lowX = Math.min(minX, maxX);
+        int lowY = Math.min(minY, maxY);
+        int lowZ = Math.min(minZ, maxZ);
+        int highX = Math.max(minX, maxX);
+        int highY = Math.max(minY, maxY);
+        int highZ = Math.max(minZ, maxZ);
+
+        ThreadLocalRandom rand = ThreadLocalRandom.current();
+        for (int i = 0; i < amount; i++) {
+            int x = rand.nextInt(lowX, highX + 1);
+            int y = rand.nextInt(lowY, highY + 1);
+            int z = rand.nextInt(lowZ, highZ + 1);
+            launchFirework(new Location(anchor.getWorld(), x + 0.5, y + 0.5, z + 0.5));
+        }
+    }
+
     public static boolean isDecorative(Firework firework) {
         if (firework == null) {
             return false;

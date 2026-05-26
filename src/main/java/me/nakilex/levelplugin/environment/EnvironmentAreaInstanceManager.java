@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.dungeon.VoidWorldGenerator;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
+import me.nakilex.levelplugin.utils.FireworkUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
@@ -1082,6 +1083,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 }
                 if (index >= copies.size()) {
                     player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    FireworkUtil.burstWithinArea(destinationMarker,
+                            destinationArea.minX(), destinationArea.minY(), destinationArea.minZ(),
+                            destinationArea.maxX(), destinationArea.maxY(), destinationArea.maxZ(),
+                            8);
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                             "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
                     copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea);
