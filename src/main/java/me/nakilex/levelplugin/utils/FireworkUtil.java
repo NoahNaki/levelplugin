@@ -89,7 +89,7 @@ public final class FireworkUtil {
         int lowY = Math.min(minY, maxY);
         int lowZ = Math.min(minZ, maxZ);
         int highX = Math.max(minX, maxX);
-        int highY = Math.min(Math.max(minY, maxY), lowY + 2);
+        int highY = Math.min(Math.max(minY, maxY), lowY + 4);
         int highZ = Math.max(minZ, maxZ);
 
         ThreadLocalRandom rand = ThreadLocalRandom.current();
