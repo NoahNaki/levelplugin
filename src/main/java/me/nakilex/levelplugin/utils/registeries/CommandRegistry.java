@@ -119,6 +119,8 @@ import me.nakilex.levelplugin.commands.LevelPluginCommand;
 import me.nakilex.levelplugin.chat.ChatCommand;
 import me.nakilex.levelplugin.chat.EmotesCommand;
 import me.nakilex.levelplugin.chat.RollCommand;
+import me.nakilex.levelplugin.advancement.AdvancementModule;
+import me.nakilex.levelplugin.advancement.commands.AdvancementAdminCommand;
 import me.nakilex.levelplugin.server.ConnectCommand;
 import me.nakilex.levelplugin.server.HubCommand;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
@@ -499,6 +501,10 @@ public class CommandRegistry {
             plugin.getCommand("connect").setExecutor(connectCommand);
             plugin.getCommand("connect").setTabCompleter(connectCommand);
             plugin.getCommand("hub").setExecutor(new HubCommand(serverSelectionManager));
+
+        AdvancementAdminCommand advancementAdminCommand = new AdvancementAdminCommand(AdvancementModule.service());
+        plugin.getCommand("lpadvancement").setExecutor(advancementAdminCommand);
+        plugin.getCommand("lpadvancement").setTabCompleter(advancementAdminCommand);
         }
 
         ChatModerationCommand chatCmd = new ChatModerationCommand();
