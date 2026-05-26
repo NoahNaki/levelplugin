@@ -714,6 +714,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         EnvironmentAreaSession session = sessions.get(sessionOwner);
         BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
         if (session == null || building == null) return;
+        logBuildAttempt(player, building, slot, session, "attempt");
         UUID scoped = resolveProfileScopedId(player);
         java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
         if (slot == 4 && builtSlots.contains(slot)) {
@@ -740,6 +741,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
         int coins = plugin.getEconomyManager().getBalance(player);
         if (coins < BUILD_COST_COINS) {
+            logBuildAttempt(player, building, slot, session, "insufficient_coins balance=" + coins + " cost=" + BUILD_COST_COINS);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "You need " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>"
                             + ChatColor.RED + " to build this.");
@@ -747,6 +749,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         plugin.getEconomyManager().deductCoins(player, BUILD_COST_COINS);
+        logBuildAttempt(player, building, slot, session, "payment_accepted");
         playCoinPaymentVisual(player, destinationMarker, BUILD_COST_COINS);
         BukkitTask existing = activeBuildTasks.remove(sessionOwner);
         if (existing != null) {
@@ -761,6 +764,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     return;
                 }
                 buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
+                logBuildAttempt(player, building, slot, session, "build_started");
                 markBuiltForProfile(player, slot);
                 if (slot == 4) {
                     setPalaceBuildingLevel(resolveProfileScopedId(player), 1);
@@ -774,9 +778,28 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     refreshBuildHologram(session, slot);
                 }
                 activeBuildTasks.remove(sessionOwner);
+                logBuildAttempt(player, building, slot, session, "build_finished");
             }
         }.runTaskLater(plugin, PAYMENT_ANIMATION_TICKS);
         activeBuildTasks.put(sessionOwner, task);
+    }
+
+    private void logBuildAttempt(Player player, BuildingTemplate building, int slot, EnvironmentAreaSession session, String stage) {
+        if (player == null || building == null || session == null || !isBuildingDebugEnabled(building)) {
+            return;
+        }
+        plugin.getLogger().info("[EnvironmentArea][BuildDebug] stage=" + stage
+                + ", player=" + player.getName()
+                + ", building=" + building.id()
+                + ", slot=" + slot
+                + ", owner=" + session.ownerId()
+                + ", origin=" + session.originX() + "," + session.originY() + "," + session.originZ());
+    }
+
+    private boolean isBuildingDebugEnabled(BuildingTemplate building) {
+        return plugin.getCustomConfig().getBoolean("debug.environment", false)
+                && building != null
+                && "blacksmith".equalsIgnoreCase(building.id());
     }
 
     @EventHandler
