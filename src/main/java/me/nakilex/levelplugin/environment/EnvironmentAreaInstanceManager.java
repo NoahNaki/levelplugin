@@ -835,7 +835,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             CuboidTemplate template = session.buildingTemplates().get(slot);
             if (template == null) continue;
             WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
-            template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+            pasteBuiltTemplate(session, building, template, area, true);
             removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
             built.add(slot);
             added++;
@@ -938,8 +938,23 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             CuboidTemplate template = session.buildingTemplates().get(slot);
             if (building == null || template == null) continue;
             WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
-            template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+            pasteBuiltTemplate(session, building, template, area, false);
             removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
+        }
+    }
+
+
+    private void pasteBuiltTemplate(EnvironmentAreaSession session,
+                                    BuildingTemplate building,
+                                    CuboidTemplate template,
+                                    WorldCuboid area,
+                                    boolean copyNpcs) {
+        if (session == null || building == null || template == null || area == null || session.world() == null) {
+            return;
+        }
+        template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+        if (copyNpcs) {
+            copyCitizensNpcsIntoBuiltBuilding(session, building, area);
         }
     }
 
