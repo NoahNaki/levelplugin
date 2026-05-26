@@ -171,6 +171,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, PendingBuildAction> pendingBuildActions = new HashMap<>();
     private static final String COOP_CONFIRM_TITLE = "Confirm Co-op Join";
     private static final String BUILD_CONFIRM_TITLE = "Confirm Build Action";
+    private static final String ENV_AREA_CLONE_KEY = "levelplugin_env_area_clone";
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
@@ -1107,6 +1108,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         int found = 0;
         int spawned = 0;
         for (net.citizensnpcs.api.npc.NPC template : CitizensAPI.getNPCRegistry()) {
+            if (template.data().get(ENV_AREA_CLONE_KEY, false)) {
+                continue;
+            }
             Location npcLocation = template.isSpawned() && template.getEntity() != null
                     ? template.getEntity().getLocation()
                     : template.getStoredLocation();
@@ -1127,7 +1131,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             org.bukkit.entity.EntityType type = template.isSpawned() && template.getEntity() != null
                     ? template.getEntity().getType()
                     : org.bukkit.entity.EntityType.PLAYER;
-            net.citizensnpcs.api.npc.NPC clone = CitizensAPI.getNPCRegistry().createNPC(type, template.getName());
+            net.citizensnpcs.api.npc.NPC clone = cloneCitizensNpc(template, type);
             clone.spawn(dest);
             if (!clone.isSpawned() || clone.getEntity() == null) {
                 plugin.getLogger().warning("[EnvironmentArea] Citizens clone failed to spawn for templateId="
@@ -1141,6 +1145,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.NAMEPLATE_VISIBLE, true));
             clone.data().setPersistent(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED,
                     template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED, true));
+            clone.data().setPersistent(ENV_AREA_CLONE_KEY, true);
             spawned++;
             plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templateId=" + template.getId()
                     + " name='" + template.getName() + "' for building='" + building.id() + "'"
@@ -1167,6 +1172,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return x >= selection.minX() && x <= selection.maxX()
                 && y >= selection.minY() && y <= selection.maxY()
                 && z >= selection.minZ() && z <= selection.maxZ();
+    }
+
+    private net.citizensnpcs.api.npc.NPC cloneCitizensNpc(net.citizensnpcs.api.npc.NPC template,
+                                                           org.bukkit.entity.EntityType fallbackType) {
+        try {
+            java.lang.reflect.Method copyMethod = template.getClass().getMethod("copy");
+            Object copied = copyMethod.invoke(template);
+            if (copied instanceof net.citizensnpcs.api.npc.NPC copiedNpc) {
+                return copiedNpc;
+            }
+        } catch (Throwable ignored) {
+        }
+        return CitizensAPI.getNPCRegistry().createNPC(fallbackType, template.getName());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -1516,7 +1534,22 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         }
         animatedLeaderboardsByOwner.clear();
+        cleanupEnvironmentAreaCitizensClones();
         sessions.clear();
         lastValidLocations.clear();
+    }
+
+    private void cleanupEnvironmentAreaCitizensClones() {
+        int removed = 0;
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            if (!npc.data().get(ENV_AREA_CLONE_KEY, false)) {
+                continue;
+            }
+            CitizensAPI.getNPCRegistry().deregister(npc);
+            removed++;
+        }
+        if (removed > 0) {
+            plugin.getLogger().info("[EnvironmentArea] Cleaned up " + removed + " session Citizens clones.");
+        }
     }
 }
