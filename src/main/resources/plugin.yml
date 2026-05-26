@@ -444,6 +444,12 @@ commands:
     usage: /animatedlb <spawn|remove|reload|next>
     permission: levelplugin.animatedlb
 
+  lpadvancement:
+    description: Manage custom LevelPlugin advancements
+    usage: /lpadvancement <list|grant|reset> [player] [namespace:key]
+    permission: levelplugin.admin
+
 permissions:
   levelplugin.animatedlb:
     default: op
+
