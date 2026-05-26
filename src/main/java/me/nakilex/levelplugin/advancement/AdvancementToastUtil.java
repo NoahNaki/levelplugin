@@ -9,7 +9,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 
 import java.util.Locale;
-import java.util.Set;
+import java.util.Collection;
 import java.util.UUID;
 
 /** Emits a native Minecraft advancement toast by loading a temporary hidden advancement. */
@@ -34,7 +34,7 @@ public final class AdvancementToastUtil {
 
         String json = "{" +
                 "\"display\":{" +
-                "\"icon\":{\"item\":\"" + materialId + "\"}," +
+                "\"icon\":{\"id\":\"" + materialId + "\"}," +
                 "\"title\":\"" + title + "\"," +
                 "\"description\":\"" + description + "\"," +
                 "\"frame\":\"" + frame + "\"," +
@@ -43,14 +43,18 @@ public final class AdvancementToastUtil {
                 "\"criteria\":{\"impossible\":{\"trigger\":\"minecraft:impossible\"}}" +
                 "}";
 
-        org.bukkit.advancement.Advancement bukkitAdv = Bukkit.getUnsafe().loadAdvancement(tempKey, json);
-        if (bukkitAdv == null) return;
+        try {
+            org.bukkit.advancement.Advancement bukkitAdv = Bukkit.getUnsafe().loadAdvancement(tempKey, json);
+            if (bukkitAdv == null) return;
 
-        var progress = player.getAdvancementProgress(bukkitAdv);
-        Set<String> criteria = progress.getRemainingCriteria();
-        for (String c : criteria) progress.awardCriteria(c);
+            var progress = player.getAdvancementProgress(bukkitAdv);
+            Collection<String> criteria = progress.getRemainingCriteria();
+            for (String c : criteria) progress.awardCriteria(c);
 
-        Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> Bukkit.getUnsafe().removeAdvancement(tempKey), 40L);
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> Bukkit.getUnsafe().removeAdvancement(tempKey), 40L);
+        } catch (Exception ignored) {
+            // Never fail command execution due to a toast formatting/runtime issue.
+        }
     }
 
     private static String toMinecraftMaterial(Material material) {
