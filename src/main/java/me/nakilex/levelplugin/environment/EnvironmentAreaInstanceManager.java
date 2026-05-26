@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.citizensnpcs.api.CitizensAPI;
+import net.citizensnpcs.api.util.MemoryDataKey;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameRule;
@@ -1128,6 +1129,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     ? template.getEntity().getType()
                     : org.bukkit.entity.EntityType.PLAYER;
             net.citizensnpcs.api.npc.NPC clone = CitizensAPI.getNPCRegistry().createNPC(type, template.getName());
+            MemoryDataKey key = new MemoryDataKey();
+            template.save(key);
+            clone.load(key);
             clone.spawn(dest);
             spawned++;
             plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templateId=" + template.getId()
