@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.utils.NexoUtil;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.npc.system.trait.CurrentLocationTrait;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -161,9 +162,6 @@ public class BuildingStageManager {
         }
         list.clear();
         for (NPCSpawn spawn : st.npcs) {
-            NPC template = NpcApi.getRegistry().getById(spawn.id);
-            if (template == null) continue;
-            NPC clone = NpcApi.getRegistry().cloneNpc(template);
             Location loc = origin.clone().add(
                     spawn.x - st.ox + 0.5,
                     spawn.y - st.oy + NPC_SPAWN_Y_OFFSET,
@@ -171,11 +169,14 @@ public class BuildingStageManager {
             );
             loc.setYaw(spawn.yaw);
             loc.setPitch(spawn.pitch);
-            clone.getOrAddTrait(CurrentLocationTrait.class).setLocation(loc);
-            clone.spawn(loc);
-            if (clone.isSpawned()) {
-                clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
-                clone.getEntity().setGravity(false);
+            plugin.getLogger().info("[BuildingStageManager] Attempting to spawn stage NPC source=" + spawn.source
+                    + " id=" + spawn.id + " at " + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ()
+                    + " for building=" + building + " stage=" + stage + " viewer=" + viewer.getName());
+            NPC clone = spawnFromTemplate(spawn, loc);
+            if (clone == null) {
+                plugin.getLogger().warning("[BuildingStageManager] Failed to spawn stage NPC source=" + spawn.source
+                        + " id=" + spawn.id + " for building=" + building + " stage=" + stage);
+                continue;
             }
             list.add(clone);
         }
@@ -281,15 +282,58 @@ public class BuildingStageManager {
         int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
         for (NPC npc : NpcApi.getRegistry()) {
             Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
-            if (l == null || !l.getWorld().equals(p1.getWorld())) continue;
-            int x = l.getBlockX();
-            int y = l.getBlockY();
-            int z = l.getBlockZ();
-            if (x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
-                list.add(new NPCSpawn(npc.getId(), x - minX, y - minY, z - minZ, l.getYaw(), l.getPitch()));
+            if (isInsideBounds(l, p1.getWorld(), minX, maxX, minY, maxY, minZ, maxZ)) {
+                list.add(new NPCSpawn(npc.getId(), NpcSource.NAKI, l.getBlockX() - minX, l.getBlockY() - minY, l.getBlockZ() - minZ, l.getYaw(), l.getPitch()));
+                plugin.getLogger().info("[BuildingStageManager] Captured NAKI npc id=" + npc.getId() + " for stage selection.");
             }
         }
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
+            if (isInsideBounds(l, p1.getWorld(), minX, maxX, minY, maxY, minZ, maxZ)) {
+                list.add(new NPCSpawn(npc.getId(), NpcSource.CITIZENS, l.getBlockX() - minX, l.getBlockY() - minY, l.getBlockZ() - minZ, l.getYaw(), l.getPitch()));
+                plugin.getLogger().info("[BuildingStageManager] Captured Citizens npc id=" + npc.getId() + " for stage selection.");
+            }
+        }
+        plugin.getLogger().info("[BuildingStageManager] Captured total stage NPC templates=" + list.size());
         return list;
+    }
+
+
+    private NPC spawnFromTemplate(NPCSpawn spawn, Location loc) {
+        if (spawn.source == NpcSource.CITIZENS) {
+            net.citizensnpcs.api.npc.NPC template = CitizensAPI.getNPCRegistry().getById(spawn.id);
+            if (template == null) return null;
+            org.bukkit.entity.EntityType type = template.isSpawned() && template.getEntity() != null
+                    ? template.getEntity().getType()
+                    : org.bukkit.entity.EntityType.PLAYER;
+            NPC clone = NpcApi.getRegistry().createNpc(type, template.getName());
+            clone.setPersistent(false);
+            clone.getOrAddTrait(CurrentLocationTrait.class).setLocation(loc);
+            clone.spawn(loc);
+            if (clone.isSpawned()) {
+                clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+                clone.getEntity().setGravity(false);
+            }
+            return clone;
+        }
+        NPC template = NpcApi.getRegistry().getById(spawn.id);
+        if (template == null) return null;
+        NPC clone = NpcApi.getRegistry().cloneNpc(template);
+        clone.getOrAddTrait(CurrentLocationTrait.class).setLocation(loc);
+        clone.spawn(loc);
+        if (clone.isSpawned()) {
+            clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+            clone.getEntity().setGravity(false);
+        }
+        return clone;
+    }
+
+    private boolean isInsideBounds(Location l, World world, int minX, int maxX, int minY, int maxY, int minZ, int maxZ) {
+        if (l == null || world == null || !world.equals(l.getWorld())) return false;
+        int x = l.getBlockX();
+        int y = l.getBlockY();
+        int z = l.getBlockZ();
+        return x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
     }
 
     private List<BlockDef> captureBlocks(Location p1, Location p2) {
@@ -400,7 +444,8 @@ public class BuildingStageManager {
                     int dz = Integer.parseInt(parts[3]);
                     float yaw = Float.parseFloat(parts[4]);
                     float pitch = Float.parseFloat(parts[5]);
-                    npcList.add(new NPCSpawn(id, dx, dy, dz, yaw, pitch));
+                    NpcSource source = parts.length >= 7 ? NpcSource.fromKey(parts[6]) : NpcSource.NAKI;
+                    npcList.add(new NPCSpawn(id, source, dx, dy, dz, yaw, pitch));
                 } catch (Exception ignore) {
                 }
             }
@@ -506,7 +551,7 @@ public class BuildingStageManager {
                         config.set(base + "pos2.z", p2.getBlockZ());
                         List<String> npcLines = new ArrayList<>();
                         for (NPCSpawn npc : st.npcs) {
-                            npcLines.add(npc.id + ";" + npc.x + ";" + npc.y + ";" + npc.z + ";" + npc.yaw + ";" + npc.pitch);
+                            npcLines.add(npc.id + ";" + npc.x + ";" + npc.y + ";" + npc.z + ";" + npc.yaw + ";" + npc.pitch + ";" + npc.source.key);
                         }
                         config.set(base + "npcs", npcLines);
                         List<String> furnitureLines = new ArrayList<>();
@@ -556,13 +601,32 @@ public class BuildingStageManager {
         }
     }
 
+    public enum NpcSource {
+        NAKI("naki"),
+        CITIZENS("citizens");
+
+        private final String key;
+
+        NpcSource(String key) { this.key = key; }
+
+        public static NpcSource fromKey(String key) {
+            if (key == null) return NAKI;
+            for (NpcSource value : values()) {
+                if (value.key.equalsIgnoreCase(key)) return value;
+            }
+            return NAKI;
+        }
+    }
+
     /** NPC spawn position relative to stage origin. */
     public static class NPCSpawn {
         public final int id;
+        public final NpcSource source;
         public final int x, y, z;
         public final float yaw, pitch;
-        public NPCSpawn(int id, int x, int y, int z, float yaw, float pitch) {
+        public NPCSpawn(int id, NpcSource source, int x, int y, int z, float yaw, float pitch) {
             this.id = id;
+            this.source = source == null ? NpcSource.NAKI : source;
             this.x = x;
             this.y = y;
             this.z = z;
