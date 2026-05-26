@@ -82,6 +82,15 @@ public class BuildingStageManager {
                             Location pos1, Location pos2, Location standLoc,
                             Location origin, int priority) {
         List<NPCSpawn> npcs = captureNPCs(pos1, pos2);
+        if (isBlacksmith(building)) {
+            debug("Capture scan for " + building + " stage " + stage
+                    + " selection=[" + fmt(pos1) + " -> " + fmt(pos2) + "], origin=" + fmt(origin)
+                    + ", capturedNpcs=" + npcs.size());
+            for (NPCSpawn npc : npcs) {
+                debug("  captured npc source=" + npc.source + ", id=" + npc.id
+                        + ", rel=(" + npc.x + "," + npc.y + "," + npc.z + ") yaw=" + npc.yaw + " pitch=" + npc.pitch);
+            }
+        }
         List<BlockDef> blocks = captureBlocks(pos1, pos2);
 
         // Keep the original cuboid coordinates as the source template instead of
@@ -183,6 +192,14 @@ public class BuildingStageManager {
                 }
             }
             list.add(clone);
+            if (isBlacksmith(building)) {
+                debug("Spawned blacksmith stage npc source=" + spawn.source + ", id=" + spawn.id
+                        + ", anchorOrigin=" + fmt(origin) + ", stageOriginOffset=(" + st.ox + "," + st.oy + "," + st.oz + ")"
+                        + ", worldLoc=" + fmt(loc));
+            }
+        }
+        if (isBlacksmith(building)) {
+            debug("Spawn complete for blacksmith stage " + stage + ": spawned=" + list.size() + ", templateNpcs=" + st.npcs.size());
         }
 
         var furnMap = spawnedFurniture.computeIfAbsent(id, k -> new HashMap<>());
@@ -308,7 +325,7 @@ public class BuildingStageManager {
                     ? template.getEntity().getType()
                     : org.bukkit.entity.EntityType.PLAYER;
             net.citizensnpcs.api.npc.NPC clone = CitizensAPI.getNPCRegistry().createNPC(type, template.getName());
-            clone.copy();
+            copyCitizensNpcMetadata(template, clone);
             return clone;
         }
         NPC template = NpcApi.getRegistry().getById(spawn.id);
@@ -323,6 +340,29 @@ public class BuildingStageManager {
             if (citizensNpc.isSpawned()) citizensNpc.despawn();
             CitizensAPI.getNPCRegistry().deregister(citizensNpc);
         }
+    }
+
+    private void copyCitizensNpcMetadata(net.citizensnpcs.api.npc.NPC template, net.citizensnpcs.api.npc.NPC clone) {
+        if (template == null || clone == null) return;
+        // Preserve commonly used Citizens metadata so spawned copies behave similarly.
+        clone.data().setPersistent("nameplate-visible", template.data().get("nameplate-visible"));
+        clone.data().setPersistent("protected", template.data().get("protected"));
+        clone.data().setPersistent("lookclose", template.data().get("lookclose"));
+    }
+
+    private boolean isBlacksmith(String building) {
+        return building != null && building.equalsIgnoreCase("blacksmith");
+    }
+
+    private void debug(String message) {
+        if (plugin.getCustomConfig().getBoolean("debug.environment", false)) {
+            plugin.getLogger().info("[BuildingStageManager] " + message);
+        }
+    }
+
+    private String fmt(Location location) {
+        if (location == null || location.getWorld() == null) return "null";
+        return location.getWorld().getName() + "@" + location.getX() + "," + location.getY() + "," + location.getZ();
     }
 
     private List<BlockDef> captureBlocks(Location p1, Location p2) {
