@@ -202,9 +202,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         Cuboid resolvedMineArea = resolveKingdomTemplateCuboid(KINGDOM_MINE_AREA);
         getOrCaptureTemplate(source, "area:mine", resolvedMineArea);
         Map<Integer, CuboidTemplate> buildingTemplates = new HashMap<>();
+        Map<Integer, List<TemplateNpc>> buildingNpcs = new HashMap<>();
         for (BuildingTemplate building : BUILDINGS) {
+            Cuboid sourceCuboid = resolveKingdomTemplateCuboid(building.source());
             buildingTemplates.put(building.slot(),
-                    getOrCaptureTemplate(source, "building:" + building.id().toLowerCase(Locale.ROOT), building.source()));
+                    getOrCaptureTemplate(source, "building:" + building.id().toLowerCase(Locale.ROOT), sourceCuboid));
+            buildingNpcs.put(building.slot(), captureTemplateNpcs(source, sourceCuboid));
         }
 
         World world = recreateWorld(target.getUniqueId());
@@ -226,7 +229,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         removeAnimatedLeaderboard(target.getUniqueId());
 
         WorldCuboid border = createSessionBorder(world, originX, originY, originZ);
-        EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates, originX, originY, originZ, border);
+        EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates, buildingNpcs, originX, originY, originZ, border);
         sessions.put(target.getUniqueId(), session);
         spawnBuildHolograms(session);
         applySavedBuilds(target, session);
@@ -770,6 +773,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
                 logBuildAttempt(player, building, slot, session, "build_started");
                 logNpcStateForBuild(player, building, destinationArea, "post_build_area_scan");
+                spawnTemplateNpcs(player, session, building, destinationArea);
                 markBuiltForProfile(player, slot);
                 if (slot == 4) {
                     setPalaceBuildingLevel(resolveProfileScopedId(player), 1);
@@ -1014,7 +1018,44 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             if (building == null || template == null) continue;
             WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
             template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+            spawnTemplateNpcs(player, session, building, area);
             removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
+        }
+    }
+
+    private List<TemplateNpc> captureTemplateNpcs(World world, Cuboid cuboid) {
+        List<TemplateNpc> result = new ArrayList<>();
+        if (world == null || cuboid == null) return result;
+        int minX = Math.min(cuboid.minX(), cuboid.maxX());
+        int minY = Math.min(cuboid.minY(), cuboid.maxY());
+        int minZ = Math.min(cuboid.minZ(), cuboid.maxZ());
+        int maxX = Math.max(cuboid.minX(), cuboid.maxX());
+        int maxY = Math.max(cuboid.minY(), cuboid.maxY());
+        int maxZ = Math.max(cuboid.minZ(), cuboid.maxZ());
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            Location l = npc.isSpawned() && npc.getEntity() != null ? npc.getEntity().getLocation() : npc.getStoredLocation();
+            if (l == null || l.getWorld() == null || !l.getWorld().equals(world)) continue;
+            int x = l.getBlockX(), y = l.getBlockY(), z = l.getBlockZ();
+            if (x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
+                result.add(new TemplateNpc("citizens", npc.getId(), x - minX, y - minY, z - minZ, l.getYaw(), l.getPitch()));
+            }
+        }
+        return result;
+    }
+
+    private void spawnTemplateNpcs(Player player, EnvironmentAreaSession session, BuildingTemplate building, WorldCuboid area) {
+        if (player == null || session == null || building == null || area == null) return;
+        List<TemplateNpc> defs = session.buildingNpcs().getOrDefault(building.slot(), List.of());
+        for (TemplateNpc def : defs) {
+            if (!"citizens".equals(def.source())) continue;
+            net.citizensnpcs.api.npc.NPC template = CitizensAPI.getNPCRegistry().getById(def.id());
+            if (template == null) continue;
+            org.bukkit.entity.EntityType type = template.isSpawned() && template.getEntity() != null ? template.getEntity().getType() : org.bukkit.entity.EntityType.PLAYER;
+            net.citizensnpcs.api.npc.NPC clone = CitizensAPI.getNPCRegistry().createNPC(type, template.getName());
+            clone.copy();
+            Location loc = new Location(session.world(), area.minX() + def.dx() + 0.5, area.minY() + def.dy(), area.minZ() + def.dz() + 0.5, def.yaw(), def.pitch());
+            clone.spawn(loc);
+            plugin.getLogger().info("[EnvironmentArea][NpcDebug] spawned citizens npc id=" + def.id() + " for building=" + building.id() + " at " + fmtLoc(loc));
         }
     }
 
@@ -1443,14 +1484,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private record EnvironmentAreaSession(UUID ownerId,
                                           World world,
                                           Map<Integer, CuboidTemplate> buildingTemplates,
+                                          Map<Integer, List<TemplateNpc>> buildingNpcs,
                                           List<Entity> holograms,
                                           int originX,
                                           int originY,
                                           int originZ,
                                           WorldCuboid border) {
-        private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, CuboidTemplate> buildingTemplates,
+        private EnvironmentAreaSession(UUID ownerId, World world, Map<Integer, CuboidTemplate> buildingTemplates, Map<Integer, List<TemplateNpc>> buildingNpcs,
                                        int originX, int originY, int originZ, WorldCuboid border) {
-            this(ownerId, world, buildingTemplates, new ArrayList<>(), originX, originY, originZ, border);
+            this(ownerId, world, buildingTemplates, buildingNpcs, new ArrayList<>(), originX, originY, originZ, border);
         }
 
         private void removeHolograms() {
@@ -1462,6 +1504,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             holograms.clear();
         }
     }
+    private record TemplateNpc(String source, int id, int dx, int dy, int dz, float yaw, float pitch) {}
 
     private SlotOffset slotOffsetFor(UUID ownerId) {
         int hash = Math.abs(ownerId.hashCode());
