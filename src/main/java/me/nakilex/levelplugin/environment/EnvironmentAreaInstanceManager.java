@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.dungeon.VoidWorldGenerator;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
+import me.nakilex.levelplugin.utils.FireworkUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
@@ -834,9 +835,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             CuboidTemplate template = session.buildingTemplates().get(slot);
             if (template == null) continue;
             WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
-            template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+            pasteBuiltTemplate(session, building, template, area, true);
             removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
             built.add(slot);
+            if (slot == 5) {
+                setFarmBuildingLevel(scoped, 3);
+            } else if (slot == 4) {
+                setPalaceBuildingLevel(scoped, 10);
+            }
             added++;
         }
         saveBuiltSlots(scoped);
@@ -937,8 +943,23 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             CuboidTemplate template = session.buildingTemplates().get(slot);
             if (building == null || template == null) continue;
             WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
-            template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+            pasteBuiltTemplate(session, building, template, area, false);
             removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
+        }
+    }
+
+
+    private void pasteBuiltTemplate(EnvironmentAreaSession session,
+                                    BuildingTemplate building,
+                                    CuboidTemplate template,
+                                    WorldCuboid area,
+                                    boolean copyNpcs) {
+        if (session == null || building == null || template == null || area == null || session.world() == null) {
+            return;
+        }
+        template.paste(session.world(), area.minX(), area.minY(), area.minZ());
+        if (copyNpcs) {
+            copyCitizensNpcsIntoBuiltBuilding(session, building, area);
         }
     }
 
@@ -1082,6 +1103,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 }
                 if (index >= copies.size()) {
                     player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
+                    FireworkUtil.burstWithinArea(destinationMarker,
+                            destinationArea.minX(), destinationArea.minY(), destinationArea.minZ(),
+                            destinationArea.maxX(), destinationArea.maxY(), destinationArea.maxZ(),
+                            8);
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                             "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
                     copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea);

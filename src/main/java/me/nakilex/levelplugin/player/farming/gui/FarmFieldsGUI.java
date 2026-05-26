@@ -211,10 +211,12 @@ public final class FarmFieldsGUI implements Listener, CommandExecutor {
                     Block base = plot.world().getBlockAt(x, y, z);
                     if (base.getType() != Material.FARMLAND) continue;
                     Block cropBlock = base.getRelative(0, 1, 0);
-                    cropBlock.setType(crop.getBlockMaterial(), false);
-                    if (cropBlock.getBlockData() instanceof Ageable ageable) {
-                        ageable.setAge(0);
-                        cropBlock.setBlockData(ageable, false);
+                    if (cropBlock.getType() != crop.getBlockMaterial()) {
+                        cropBlock.setType(crop.getBlockMaterial(), false);
+                        if (cropBlock.getBlockData() instanceof Ageable ageable) {
+                            ageable.setAge(0);
+                            cropBlock.setBlockData(ageable, false);
+                        }
                     }
                     planted++;
                 }
