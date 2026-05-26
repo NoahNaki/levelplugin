@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.GameRule;
@@ -1082,10 +1083,78 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                             "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
+                    copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea);
                     cancel();
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void copyCitizensNpcsIntoBuiltBuilding(EnvironmentAreaSession session,
+                                                   BuildingTemplate building,
+                                                   WorldCuboid destinationArea) {
+        if (session == null || building == null || destinationArea == null) return;
+        World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
+        if (sourceWorld == null) {
+            plugin.getLogger().warning("[EnvironmentArea] Could not copy Citizens NPCs for building '" + building.id()
+                    + "': source world '" + SOURCE_WORLD + "' is unavailable.");
+            return;
+        }
+        Cuboid sourceCuboid = building.source();
+        int sourceMinX = sourceCuboid.minX();
+        int sourceMinY = sourceCuboid.minY();
+        int sourceMinZ = sourceCuboid.minZ();
+        int found = 0;
+        int spawned = 0;
+        for (net.citizensnpcs.api.npc.NPC template : CitizensAPI.getNPCRegistry()) {
+            Location npcLocation = template.isSpawned() && template.getEntity() != null
+                    ? template.getEntity().getLocation()
+                    : template.getStoredLocation();
+            if (!isInsideSelection(npcLocation, sourceWorld, sourceCuboid)) continue;
+            found++;
+
+            int relX = npcLocation.getBlockX() - sourceMinX;
+            int relY = npcLocation.getBlockY() - sourceMinY;
+            int relZ = npcLocation.getBlockZ() - sourceMinZ;
+            Location dest = new Location(
+                    session.world(),
+                    destinationArea.minX() + relX + 0.5,
+                    destinationArea.minY() + relY,
+                    destinationArea.minZ() + relZ + 0.5,
+                    npcLocation.getYaw(),
+                    npcLocation.getPitch());
+
+            org.bukkit.entity.EntityType type = template.isSpawned() && template.getEntity() != null
+                    ? template.getEntity().getType()
+                    : org.bukkit.entity.EntityType.PLAYER;
+            net.citizensnpcs.api.npc.NPC clone = CitizensAPI.getNPCRegistry().createNPC(type, template.getName());
+            clone.spawn(dest);
+            spawned++;
+            plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templateId=" + template.getId()
+                    + " name='" + template.getName() + "' for building='" + building.id() + "'"
+                    + " source=" + npcLocation.getBlockX() + "," + npcLocation.getBlockY() + "," + npcLocation.getBlockZ()
+                    + " -> dest=" + dest.getBlockX() + "," + dest.getBlockY() + "," + dest.getBlockZ());
+        }
+
+        if (found == 0) {
+            plugin.getLogger().warning("[EnvironmentArea] No Citizens NPC templates found inside building source cuboid for '"
+                    + building.id() + "'. sourceBounds=[" + sourceCuboid.minX() + "," + sourceCuboid.minY() + "," + sourceCuboid.minZ()
+                    + "] to [" + sourceCuboid.maxX() + "," + sourceCuboid.maxY() + "," + sourceCuboid.maxZ() + "]");
+            return;
+        }
+        plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templates for building='" + building.id()
+                + "': found=" + found + ", spawned=" + spawned);
+    }
+
+    private boolean isInsideSelection(Location location, World expectedWorld, Cuboid selection) {
+        if (location == null || expectedWorld == null || selection == null) return false;
+        if (!expectedWorld.equals(location.getWorld())) return false;
+        int x = location.getBlockX();
+        int y = location.getBlockY();
+        int z = location.getBlockZ();
+        return x >= selection.minX() && x <= selection.maxX()
+                && y >= selection.minY() && y <= selection.maxY()
+                && z >= selection.minZ() && z <= selection.maxZ();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
