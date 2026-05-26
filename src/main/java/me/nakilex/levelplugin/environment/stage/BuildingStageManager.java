@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.utils.NexoUtil;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.npc.system.trait.CurrentLocationTrait;
+import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -37,7 +38,7 @@ public class BuildingStageManager {
     private final Map<String, Map<Integer, BuildingStage>> stages = new HashMap<>();
     /** Map of town -> building -> placement offset */
     private final Map<String, Map<String, Placement>> placements = new HashMap<>();
-    private final Map<java.util.UUID, Map<String, List<NPC>>> spawnedNPCs = new HashMap<>();
+    private final Map<java.util.UUID, Map<String, List<Object>>> spawnedNPCs = new HashMap<>();
     private final Map<java.util.UUID, Map<String, List<ItemDisplay>>> spawnedFurniture = new HashMap<>();
     /** Folder containing FAWE schematics for each stage. */
     private final File schemFolder;
@@ -154,16 +155,12 @@ public class BuildingStageManager {
         UUID id = viewer.getUniqueId();
         var map = spawnedNPCs.computeIfAbsent(id, k -> new HashMap<>());
         String key = building.toLowerCase() + ":" + stage;
-        List<NPC> list = map.computeIfAbsent(key, k -> new ArrayList<>());
-        for (NPC npc : list) {
-            if (npc.isSpawned()) npc.despawn();
-            npc.destroy();
-        }
+        List<Object> list = map.computeIfAbsent(key, k -> new ArrayList<>());
+        for (Object npc : list) despawnSpawnedNpc(npc);
         list.clear();
         for (NPCSpawn spawn : st.npcs) {
-            NPC template = NpcApi.getRegistry().getById(spawn.id);
-            if (template == null) continue;
-            NPC clone = NpcApi.getRegistry().cloneNpc(template);
+            Object clone = cloneNpc(spawn);
+            if (clone == null) continue;
             Location loc = origin.clone().add(
                     spawn.x - st.ox + 0.5,
                     spawn.y - st.oy + NPC_SPAWN_Y_OFFSET,
@@ -171,11 +168,19 @@ public class BuildingStageManager {
             );
             loc.setYaw(spawn.yaw);
             loc.setPitch(spawn.pitch);
-            clone.getOrAddTrait(CurrentLocationTrait.class).setLocation(loc);
-            clone.spawn(loc);
-            if (clone.isSpawned()) {
-                clone.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
-                clone.getEntity().setGravity(false);
+            if (clone instanceof NPC levelNpc) {
+                levelNpc.getOrAddTrait(CurrentLocationTrait.class).setLocation(loc);
+                levelNpc.spawn(loc);
+                if (levelNpc.isSpawned()) {
+                    levelNpc.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+                    levelNpc.getEntity().setGravity(false);
+                }
+            } else if (clone instanceof net.citizensnpcs.api.npc.NPC citizensNpc) {
+                citizensNpc.spawn(loc);
+                if (citizensNpc.isSpawned()) {
+                    citizensNpc.getEntity().teleport(loc, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.PLUGIN);
+                    citizensNpc.getEntity().setGravity(false);
+                }
             }
             list.add(clone);
         }
@@ -216,12 +221,9 @@ public class BuildingStageManager {
         var map = spawnedNPCs.get(viewerId);
         if (map == null) return;
         String key = building.toLowerCase() + ":" + stage;
-        List<NPC> list = map.remove(key);
+        List<Object> list = map.remove(key);
         if (list != null) {
-            for (NPC npc : list) {
-                if (npc.isSpawned()) npc.despawn();
-                npc.destroy();
-            }
+            for (Object npc : list) despawnSpawnedNpc(npc);
         }
         if (map.isEmpty()) spawnedNPCs.remove(viewerId);
 
@@ -241,10 +243,7 @@ public class BuildingStageManager {
     public void despawnAll() {
         for (var map : spawnedNPCs.values()) {
             for (var list : map.values()) {
-                for (NPC npc : list) {
-                    if (npc.isSpawned()) npc.despawn();
-                    npc.destroy();
-                }
+                for (Object npc : list) despawnSpawnedNpc(npc);
             }
         }
         spawnedNPCs.clear();
@@ -264,7 +263,7 @@ public class BuildingStageManager {
         if (viewer == null) return;
         for (var map : spawnedNPCs.values()) {
             for (var list : map.values()) {
-                for (NPC npc : list) {
+                for (Object npc : list) {
                     // NPCs are now public; do nothing
                 }
             }
@@ -281,15 +280,49 @@ public class BuildingStageManager {
         int maxZ = Math.max(p1.getBlockZ(), p2.getBlockZ());
         for (NPC npc : NpcApi.getRegistry()) {
             Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
-            if (l == null || !l.getWorld().equals(p1.getWorld())) continue;
-            int x = l.getBlockX();
-            int y = l.getBlockY();
-            int z = l.getBlockZ();
-            if (x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
-                list.add(new NPCSpawn(npc.getId(), x - minX, y - minY, z - minZ, l.getYaw(), l.getPitch()));
-            }
+            captureNpcSpawn(list, p1.getWorld(), minX, minY, minZ, maxX, maxY, maxZ, "level", npc.getId(), l);
+        }
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            Location l = npc.isSpawned() ? npc.getEntity().getLocation() : npc.getStoredLocation();
+            captureNpcSpawn(list, p1.getWorld(), minX, minY, minZ, maxX, maxY, maxZ, "citizens", npc.getId(), l);
         }
         return list;
+    }
+
+    private void captureNpcSpawn(List<NPCSpawn> out, World world, int minX, int minY, int minZ,
+                                 int maxX, int maxY, int maxZ, String source, int id, Location loc) {
+        if (loc == null || loc.getWorld() == null || !loc.getWorld().equals(world)) return;
+        int x = loc.getBlockX();
+        int y = loc.getBlockY();
+        int z = loc.getBlockZ();
+        if (x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ) {
+            out.add(new NPCSpawn(source, id, x - minX, y - minY, z - minZ, loc.getYaw(), loc.getPitch()));
+        }
+    }
+
+    private Object cloneNpc(NPCSpawn spawn) {
+        if ("citizens".equalsIgnoreCase(spawn.source)) {
+            net.citizensnpcs.api.npc.NPC template = CitizensAPI.getNPCRegistry().getById(spawn.id);
+            if (template == null) return null;
+            org.bukkit.entity.EntityType type = template.isSpawned() && template.getEntity() != null
+                    ? template.getEntity().getType()
+                    : org.bukkit.entity.EntityType.PLAYER;
+            net.citizensnpcs.api.npc.NPC clone = CitizensAPI.getNPCRegistry().createNPC(type, template.getName());
+            clone.copy();
+            return clone;
+        }
+        NPC template = NpcApi.getRegistry().getById(spawn.id);
+        return template == null ? null : NpcApi.getRegistry().cloneNpc(template);
+    }
+
+    private void despawnSpawnedNpc(Object npc) {
+        if (npc instanceof NPC levelNpc) {
+            if (levelNpc.isSpawned()) levelNpc.despawn();
+            levelNpc.destroy();
+        } else if (npc instanceof net.citizensnpcs.api.npc.NPC citizensNpc) {
+            if (citizensNpc.isSpawned()) citizensNpc.despawn();
+            CitizensAPI.getNPCRegistry().deregister(citizensNpc);
+        }
     }
 
     private List<BlockDef> captureBlocks(Location p1, Location p2) {
@@ -394,13 +427,19 @@ public class BuildingStageManager {
                 String[] parts = s.split(";");
                 if (parts.length < 6) continue;
                 try {
-                    int id = Integer.parseInt(parts[0]);
-                    int dx = Integer.parseInt(parts[1]);
-                    int dy = Integer.parseInt(parts[2]);
-                    int dz = Integer.parseInt(parts[3]);
-                    float yaw = Float.parseFloat(parts[4]);
-                    float pitch = Float.parseFloat(parts[5]);
-                    npcList.add(new NPCSpawn(id, dx, dy, dz, yaw, pitch));
+                    int start = 0;
+                    String source = "level";
+                    if (!isInteger(parts[0])) {
+                        source = parts[0];
+                        start = 1;
+                    }
+                    int id = Integer.parseInt(parts[start]);
+                    int dx = Integer.parseInt(parts[start + 1]);
+                    int dy = Integer.parseInt(parts[start + 2]);
+                    int dz = Integer.parseInt(parts[start + 3]);
+                    float yaw = Float.parseFloat(parts[start + 4]);
+                    float pitch = Float.parseFloat(parts[start + 5]);
+                    npcList.add(new NPCSpawn(source, id, dx, dy, dz, yaw, pitch));
                 } catch (Exception ignore) {
                 }
             }
@@ -506,7 +545,7 @@ public class BuildingStageManager {
                         config.set(base + "pos2.z", p2.getBlockZ());
                         List<String> npcLines = new ArrayList<>();
                         for (NPCSpawn npc : st.npcs) {
-                            npcLines.add(npc.id + ";" + npc.x + ";" + npc.y + ";" + npc.z + ";" + npc.yaw + ";" + npc.pitch);
+                            npcLines.add(npc.source + ";" + npc.id + ";" + npc.x + ";" + npc.y + ";" + npc.z + ";" + npc.yaw + ";" + npc.pitch);
                         }
                         config.set(base + "npcs", npcLines);
                         List<String> furnitureLines = new ArrayList<>();
@@ -558,16 +597,28 @@ public class BuildingStageManager {
 
     /** NPC spawn position relative to stage origin. */
     public static class NPCSpawn {
+        public final String source;
         public final int id;
         public final int x, y, z;
         public final float yaw, pitch;
-        public NPCSpawn(int id, int x, int y, int z, float yaw, float pitch) {
+        public NPCSpawn(String source, int id, int x, int y, int z, float yaw, float pitch) {
+            this.source = source == null || source.isBlank() ? "level" : source;
             this.id = id;
             this.x = x;
             this.y = y;
             this.z = z;
             this.yaw = yaw;
             this.pitch = pitch;
+        }
+    }
+
+    private boolean isInteger(String value) {
+        if (value == null || value.isBlank()) return false;
+        try {
+            Integer.parseInt(value);
+            return true;
+        } catch (NumberFormatException ex) {
+            return false;
         }
     }
 
