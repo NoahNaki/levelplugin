@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.advancement.commands;
 
 import me.nakilex.levelplugin.advancement.AdvancementService;
+import me.nakilex.levelplugin.advancement.AdvancementToastUtil;
 import me.nakilex.levelplugin.advancement.model.Advancement;
 import me.nakilex.levelplugin.advancement.model.AdvancementKey;
 import me.nakilex.levelplugin.utils.ChatUtil;
@@ -38,6 +39,7 @@ public class AdvancementAdminCommand implements CommandExecutor, TabCompleter {
             service.setProgression(teamId, key, advancement.get().maxProgress());
             sender.sendMessage(ChatColor.GREEN + "Granted " + key + " to " + target.getName());
             target.sendMessage(ChatUtil.applyEmojis("&aAdvancement granted: &f" + key));
+            AdvancementToastUtil.showToast(target, advancement.get());
             return true;
         }
         if (args[0].equalsIgnoreCase("reset")) {
