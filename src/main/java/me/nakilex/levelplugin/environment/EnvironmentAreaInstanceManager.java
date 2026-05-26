@@ -6,6 +6,8 @@ import me.nakilex.levelplugin.animatedlb.LeaderboardDataProvider;
 import me.nakilex.levelplugin.animatedlb.MockLeaderboardDataProvider;
 import me.nakilex.levelplugin.animatedlb.PlayerStatsLeaderboardDataProvider;
 import me.nakilex.levelplugin.dungeon.VoidWorldGenerator;
+import me.nakilex.levelplugin.npc.system.NPC;
+import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
@@ -40,6 +42,7 @@ import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.FluidLevelChangeEvent;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import net.citizensnpcs.api.CitizensAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
@@ -739,6 +742,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (template == null) return;
         WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
+        logNpcStateForBuild(player, building, destinationArea, "pre_build_area_scan");
         int coins = plugin.getEconomyManager().getBalance(player);
         if (coins < BUILD_COST_COINS) {
             logBuildAttempt(player, building, slot, session, "insufficient_coins balance=" + coins + " cost=" + BUILD_COST_COINS);
@@ -765,6 +769,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 }
                 buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
                 logBuildAttempt(player, building, slot, session, "build_started");
+                logNpcStateForBuild(player, building, destinationArea, "post_build_area_scan");
                 markBuiltForProfile(player, slot);
                 if (slot == 4) {
                     setPalaceBuildingLevel(resolveProfileScopedId(player), 1);
@@ -800,6 +805,56 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return plugin.getCustomConfig().getBoolean("debug.environment", false)
                 && building != null
                 && "blacksmith".equalsIgnoreCase(building.id());
+    }
+
+    private void logNpcStateForBuild(Player player, BuildingTemplate building, WorldCuboid area, String stage) {
+        if (player == null || building == null || area == null || !isBuildingDebugEnabled(building)) return;
+        int levelCount = 0;
+        for (NPC npc : NpcApi.getRegistry()) {
+            Location loc = npc.isSpawned() && npc.getEntity() != null ? npc.getEntity().getLocation() : npc.getStoredLocation();
+            if (isInside(player.getWorld(), area, loc)) {
+                levelCount++;
+                plugin.getLogger().info("[EnvironmentArea][NpcDebug] stage=" + stage
+                        + ", source=level, id=" + npc.getId()
+                        + ", name=" + ChatColor.stripColor(npc.getName())
+                        + ", loc=" + fmtLoc(loc));
+            }
+        }
+        int citizensCount = 0;
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            Location loc = npc.isSpawned() && npc.getEntity() != null ? npc.getEntity().getLocation() : npc.getStoredLocation();
+            if (isInside(player.getWorld(), area, loc)) {
+                citizensCount++;
+                plugin.getLogger().info("[EnvironmentArea][NpcDebug] stage=" + stage
+                        + ", source=citizens, id=" + npc.getId()
+                        + ", name=" + ChatColor.stripColor(npc.getName())
+                        + ", loc=" + fmtLoc(loc));
+            }
+        }
+        plugin.getLogger().info("[EnvironmentArea][NpcDebug] stage=" + stage
+                + ", player=" + player.getName()
+                + ", building=" + building.id()
+                + ", area=" + area.x1() + "," + area.y1() + "," + area.z1() + " -> " + area.x2() + "," + area.y2() + "," + area.z2()
+                + ", levelNpcCount=" + levelCount + ", citizensNpcCount=" + citizensCount);
+    }
+
+    private boolean isInside(World world, WorldCuboid area, Location loc) {
+        if (world == null || area == null || loc == null || loc.getWorld() == null || !loc.getWorld().equals(world)) return false;
+        int x = loc.getBlockX();
+        int y = loc.getBlockY();
+        int z = loc.getBlockZ();
+        int minX = Math.min(area.x1(), area.x2());
+        int maxX = Math.max(area.x1(), area.x2());
+        int minY = Math.min(area.y1(), area.y2());
+        int maxY = Math.max(area.y1(), area.y2());
+        int minZ = Math.min(area.z1(), area.z2());
+        int maxZ = Math.max(area.z1(), area.z2());
+        return x >= minX && x <= maxX && y >= minY && y <= maxY && z >= minZ && z <= maxZ;
+    }
+
+    private String fmtLoc(Location loc) {
+        if (loc == null || loc.getWorld() == null) return "null";
+        return loc.getWorld().getName() + "@" + loc.getBlockX() + "," + loc.getBlockY() + "," + loc.getBlockZ();
     }
 
     @EventHandler
