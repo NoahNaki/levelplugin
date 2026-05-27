@@ -51,6 +51,7 @@ public class BlacksmithGUI implements Listener {
     private final ItemManager itemManager;
     private final Map<UUID, Inventory> openInventories = new HashMap<>();
     private final Map<UUID, BlacksmithMode> openModes = new HashMap<>();
+    private final Map<UUID, Integer> infoPageByPlayer = new HashMap<>();
     private final List<GuiWidget> widgets;
     private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
     private final EnvironmentAreaInstanceManager areaManager;
@@ -104,7 +105,12 @@ public class BlacksmithGUI implements Listener {
 
     private List<GuiWidget> buildWidgets() {
         List<GuiWidget> widgetList = new ArrayList<>();
-        widgetList.add(new ActionWidget(8, context -> createInfoItem(getMode(context.player())), null));
+        widgetList.add(new ActionWidget(8, context -> createInfoItem(context.player(), getMode(context.player())),
+                (click, context) -> {
+                    int current = infoPageByPlayer.getOrDefault(context.player().getUniqueId(), 1);
+                    infoPageByPlayer.put(context.player().getUniqueId(), current == 1 ? 2 : 1);
+                    context.inventory().setItem(8, createInfoItem(context.player(), getMode(context.player())));
+                }));
         widgetList.add(new ActionWidget(9, context -> createNavItem(getMode(context.player()), true),
                 (click, context) -> handleNavigation(context.player(), getMode(context.player()), true)));
         widgetList.add(new ActionWidget(17, context -> createNavItem(getMode(context.player()), false),
@@ -159,9 +165,22 @@ public class BlacksmithGUI implements Listener {
         return BlacksmithMode.UPGRADE;
     }
 
-    private ItemStack createInfoItem(BlacksmithMode mode) {
+    private ItemStack createInfoItem(Player player, BlacksmithMode mode) {
+        int page = infoPageByPlayer.getOrDefault(player.getUniqueId(), 1);
+        if (mode == BlacksmithMode.UPGRADE && page == 2) {
+            return GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information (2/2)", Arrays.asList(
+                    ChatColor.GRAY + "",
+                    ChatColor.GRAY + "Blacksmith level unlocks:",
+                    ChatColor.GRAY + "  Lv 1-2: " + ChatColor.WHITE + "Common, Uncommon",
+                    ChatColor.GRAY + "  Lv 3-5: " + ChatColor.WHITE + "Rare",
+                    ChatColor.GRAY + "  Lv 6-8: " + ChatColor.WHITE + "Epic",
+                    ChatColor.GRAY + "  Lv 9-10: " + ChatColor.WHITE + "Legendary",
+                    ChatColor.GRAY + "  Lv 11-12: " + ChatColor.WHITE + "Mythic",
+                    "",
+                    ChatColor.YELLOW + "Click " + ChatColor.GRAY + "to go back"));
+        }
         return switch (mode) {
-            case UPGRADE -> GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information", Arrays.asList(
+            case UPGRADE -> GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information (1/2)", Arrays.asList(
                     ChatColor.GRAY + "",
                     ChatColor.GRAY + "Upgrade Success Rates:",
                     ChatColor.GRAY + "",
@@ -172,7 +191,9 @@ public class BlacksmithGUI implements Listener {
                     ChatColor.GRAY + "  +4 ➜ +5: " + ChatColor.WHITE + "2%",
                     "",
                     ChatColor.GRAY + "Upgrade costs scale with " + ChatColor.AQUA + "rarity" + ChatColor.GRAY + " and",
-                    ChatColor.GRAY + "current upgrade " + ChatColor.AQUA + "tier" + ChatColor.GRAY + "."
+                    ChatColor.GRAY + "current upgrade " + ChatColor.AQUA + "tier" + ChatColor.GRAY + ".",
+                    "",
+                    ChatColor.YELLOW + "Click " + ChatColor.GRAY + "for rarity unlock levels"
             ));
             case REPAIR -> GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information", Arrays.asList(
                     ChatColor.GRAY + "",
@@ -665,5 +686,6 @@ public class BlacksmithGUI implements Listener {
         }
         openInventories.remove(player.getUniqueId());
         openModes.remove(player.getUniqueId());
+        infoPageByPlayer.remove(player.getUniqueId());
     }
 }
