@@ -88,14 +88,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new CoinVisual(10, Material.IRON_NUGGET, "iron_coin"),
             new CoinVisual(1, Material.COPPER_INGOT, "copper_coin")
     );
-    private static final List<PaymentVisual> BLACKSMITH_MATERIAL_VISUALS = List.of(
-            new PaymentVisual(16, Material.EMERALD, null),
-            new PaymentVisual(12, Material.DIAMOND, null),
-            new PaymentVisual(7, Material.GOLD_INGOT, null),
-            new PaymentVisual(4, Material.IRON_INGOT, null),
-            new PaymentVisual(2, Material.COAL, null),
-            new PaymentVisual(1, Material.COBBLESTONE, null)
-    );
 
     private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 330, -3145);
     private static final Cuboid KINGDOM_MINE_AREA = new Cuboid(3885, 81, -3502, 3774, -24, -3366);
@@ -173,7 +165,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, Integer> farmBuildingLevelByProfile = new HashMap<>();
     private final Map<UUID, Integer> palaceBuildingLevelByProfile = new HashMap<>();
     private final Map<UUID, Integer> blacksmithBuildingLevelByProfile = new HashMap<>();
-    private final Map<UUID, Integer> blacksmithInvestPointsByProfile = new HashMap<>();
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
     private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
     private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
@@ -592,9 +583,16 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         String clickAction = isBuilt ? "to level up" : "to build";
         Location marker = findMarker(session, building);
         String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
+        int nextLevel = owner != null ? resolveNextLevel(owner, building.slot()) : 1;
+        int currentLevel = owner != null ? resolveCurrentLevel(owner, building.slot()) : 0;
+        int cost = getUpgradeCostForSlot(building.slot());
+        String levelLine = isBuilt
+                ? ChatColor.GRAY + "Level: " + ChatColor.WHITE + currentLevel + ChatColor.GRAY + " -> " + ChatColor.WHITE + nextLevel
+                : ChatColor.GRAY + "Level: " + ChatColor.WHITE + "0 -> 1";
         return spawnClickableHologram(marker, tag, List.of(
                 ChatColor.GREEN + actionText + ChatColor.WHITE + building.displayName(),
-                ChatColor.GRAY + "Cost: " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>",
+                levelLine,
+                ChatColor.GRAY + "Cost: " + ChatColor.GOLD + cost + " <glyph:coins_icon>",
                 ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------",
                 " ",
                 ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + clickAction));
@@ -718,9 +716,21 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private int resolveNextLevel(Player player, int slot) {
+        if (slot == 2) return getBlacksmithBuildingLevel(player) + 1;
         if (slot == 4) return getPalaceBuildingLevel(player) + 1;
         if (slot == 5) return getFarmBuildingLevel(player) + 1;
         return 2;
+    }
+
+    private int resolveCurrentLevel(Player player, int slot) {
+        if (slot == 2) return getBlacksmithBuildingLevel(player);
+        if (slot == 4) return getPalaceBuildingLevel(player);
+        if (slot == 5) return getFarmBuildingLevel(player);
+        return loadBuiltSlots(resolveProfileScopedId(player)).contains(slot) ? 1 : 0;
+    }
+
+    private int getUpgradeCostForSlot(int slot) {
+        return BUILD_COST_COINS;
     }
 
     private void executeBuildAction(Player player, String tag, int slot) {
@@ -730,6 +740,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (session == null || building == null) return;
         UUID scoped = resolveProfileScopedId(player);
         java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
+        if (slot == 2 && builtSlots.contains(slot)) {
+            int upgraded = upgradeBlacksmithLevel(player, scoped);
+            if (upgraded > 0) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Blacksmith" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                if (upgraded >= 12) removeBuildHologram(session, tag);
+                else refreshBuildHologram(session, slot);
+            }
+            return;
+        }
         if (slot == 4 && builtSlots.contains(slot)) {
             int upgraded = upgradePalaceLevel(player, scoped);
             if (upgraded > 0) {
@@ -752,16 +771,17 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (template == null) return;
         WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
+        int cost = getUpgradeCostForSlot(slot);
         int coins = plugin.getEconomyManager().getBalance(player);
-        if (coins < BUILD_COST_COINS) {
+        if (coins < cost) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "You need " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>"
+                    "You need " + ChatColor.GOLD + cost + " <glyph:coins_icon>"
                             + ChatColor.RED + " to build this.");
             player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.8f, 0.7f);
             return;
         }
-        plugin.getEconomyManager().deductCoins(player, BUILD_COST_COINS);
-        playCoinPaymentVisual(player, destinationMarker, BUILD_COST_COINS);
+        plugin.getEconomyManager().deductCoins(player, cost);
+        playCoinPaymentVisual(player, destinationMarker, cost);
         BukkitTask existing = activeBuildTasks.remove(sessionOwner);
         if (existing != null) {
             existing.cancel();
@@ -778,6 +798,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 markBuiltForProfile(player, slot);
                 if (slot == 4) {
                     setPalaceBuildingLevel(resolveProfileScopedId(player), 1);
+                }
+                if (slot == 2) {
+                    setBlacksmithBuildingLevel(resolveProfileScopedId(player), 1);
                 }
                 if (slot != 5 && slot != 4) {
                     removeBuildHologram(session, tag);
@@ -853,6 +876,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 setFarmBuildingLevel(scoped, 3);
             } else if (slot == 4) {
                 setPalaceBuildingLevel(scoped, 10);
+            } else if (slot == 2) {
+                setBlacksmithBuildingLevel(scoped, 12);
             }
             added++;
         }
@@ -901,50 +926,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 id -> Math.max(1, plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.blacksmith-building-level", 1)));
     }
 
-    public int getBlacksmithPointsToNextLevel(Player player) {
-        if (player == null) return 0;
-        int level = getBlacksmithBuildingLevel(player);
-        if (level >= 12) {
-            return 0;
-        }
-        UUID scoped = resolveProfileScopedId(player);
-        int current = blacksmithInvestPointsByProfile.computeIfAbsent(scoped,
-                id -> Math.max(0, plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.blacksmith-invest-points", 0)));
-        return Math.max(0, requiredPointsForLevel(level) - current);
-    }
-
-    public int investBlacksmithMaterials(Player player, Location destinationMarker) {
-        if (player == null) return 0;
-        UUID scoped = resolveProfileScopedId(player);
-        int level = getBlacksmithBuildingLevel(player);
-        if (level >= 12) return 0;
-
-        int added = 0;
-        for (PaymentVisual visual : BLACKSMITH_MATERIAL_VISUALS) {
-            int count = countInInventory(player, visual.material());
-            if (count <= 0) continue;
-            removeFromInventory(player, visual.material(), count);
-            added += count * visual.value();
-        }
-        if (added <= 0) return 0;
-
-        int current = blacksmithInvestPointsByProfile.computeIfAbsent(scoped,
-                id -> Math.max(0, plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.blacksmith-invest-points", 0)));
-        current += added;
-        int newLevel = level;
-        while (newLevel < 12 && current >= requiredPointsForLevel(newLevel)) {
-            current -= requiredPointsForLevel(newLevel);
-            newLevel++;
-        }
-        blacksmithInvestPointsByProfile.put(scoped, current);
-        setBlacksmithBuildingLevel(scoped, newLevel);
-        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.blacksmith-invest-points", current);
-        plugin.getPlayerConfig().saveConfigFile();
-        if (destinationMarker != null) {
-            playPaymentVisual(player, destinationMarker, BLACKSMITH_MATERIAL_VISUALS, added, Sound.BLOCK_CHAIN_PLACE);
-        }
-        return added;
-    }
 
     private void setFarmBuildingLevel(UUID scoped, int level) {
         int clamped = Math.max(0, Math.min(3, level));
@@ -986,21 +967,23 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.blacksmith-building-level", clamped);
     }
 
-    private int requiredPointsForLevel(int level) {
-        return switch (level) {
-            case 1 -> 120;
-            case 2 -> 180;
-            case 3 -> 260;
-            case 4 -> 360;
-            case 5 -> 500;
-            case 6 -> 700;
-            case 7 -> 950;
-            case 8 -> 1250;
-            case 9 -> 1600;
-            case 10 -> 2000;
-            case 11 -> 2500;
-            default -> Integer.MAX_VALUE;
-        };
+    private int upgradeBlacksmithLevel(Player player, UUID scoped) {
+        int current = getBlacksmithBuildingLevel(player);
+        if (current >= 12) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Blacksmith is already at max level.");
+            return 0;
+        }
+        int cost = getUpgradeCostForSlot(2);
+        int coins = plugin.getEconomyManager().getBalance(player);
+        if (coins < cost) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "You need " + ChatColor.GOLD + cost + " <glyph:coins_icon>" + ChatColor.RED + " to upgrade the blacksmith.");
+            return 0;
+        }
+        plugin.getEconomyManager().deductCoins(player, cost);
+        setBlacksmithBuildingLevel(scoped, current + 1);
+        plugin.getPlayerConfig().saveConfigFile();
+        return current + 1;
     }
 
     private int upgradePalaceLevel(Player player, UUID scoped) {
@@ -1140,19 +1123,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return sequence;
     }
 
-    private int countInInventory(Player player, Material material) {
-        int total = 0;
-        for (ItemStack stack : player.getInventory().getContents()) {
-            if (stack == null || stack.getType() != material) continue;
-            total += stack.getAmount();
-        }
-        return total;
-    }
-
-    private void removeFromInventory(Player player, Material material, int amount) {
-        if (amount <= 0) return;
-        player.getInventory().removeItem(new ItemStack(material, amount));
-    }
 
     private void removeBuildHologram(EnvironmentAreaSession session, String tag) {
         if (session == null || tag == null || tag.isBlank()) {

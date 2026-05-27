@@ -113,9 +113,6 @@ public class BlacksmithGUI implements Listener {
             if (getMode(context.player()) == BlacksmithMode.REPAIR) {
                 handleRepairAllClick(context.player());
                 context.inventory().setItem(0, createRepairAllButton(calculateTotalRepairCost(context.player())));
-            } else if (getMode(context.player()) == BlacksmithMode.UPGRADE) {
-                handleInvestMaterialsClick(context.player());
-                context.inventory().setItem(0, createInvestMaterialsButton(context.player()));
             }
         }));
         widgetList.add(new ActionWidget(22, context -> createActionItem(context), (click, context) -> {
@@ -210,29 +207,10 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createRepairAllWidget(GuiContext context) {
-        return switch (getMode(context.player())) {
-            case REPAIR -> createRepairAllButton(calculateTotalRepairCost(context.player()));
-            case UPGRADE -> createInvestMaterialsButton(context.player());
-            default -> filler.clone();
-        };
-    }
-
-    private ItemStack createInvestMaterialsButton(Player player) {
-        int level = areaManager.getBlacksmithBuildingLevel(player);
-        int pointsToNext = areaManager.getBlacksmithPointsToNextLevel(player);
-        List<String> lore = new ArrayList<>();
-        lore.add(ChatColor.GRAY + "Invest mining materials");
-        lore.add(ChatColor.GRAY + "to level your blacksmith building.");
-        lore.add("");
-        lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + level + ChatColor.GRAY + " / 12");
-        lore.add(ChatColor.GRAY + "Upgradeable Rarity: " + ChatColor.WHITE + maxRarityNameForLevel(level));
-        if (level < 12) {
-            lore.add(ChatColor.GRAY + "Points to next level: " + ChatColor.WHITE + pointsToNext);
-            lore.addAll(me.nakilex.levelplugin.utils.TooltipUtil.clickInstructions("to invest all valid materials", null));
-        } else {
-            lore.add(ChatColor.GREEN + "Blacksmith is max level.");
+        if (getMode(context.player()) != BlacksmithMode.REPAIR) {
+            return filler.clone();
         }
-        return GuiUtil.createGuiItem(Material.BLAST_FURNACE, ChatColor.GOLD + "Invest Materials", lore);
+        return createRepairAllButton(calculateTotalRepairCost(context.player()));
     }
 
     private ItemStack createUpgradeButton(int upgradeCost, int successChance) {
@@ -612,23 +590,8 @@ public class BlacksmithGUI implements Listener {
 
     private void updateActionButton(Player player, Inventory gui, BlacksmithMode mode) {
         gui.setItem(22, resolveOperation(mode).createActionButton(player, gui));
-        if (mode == BlacksmithMode.UPGRADE || mode == BlacksmithMode.REPAIR) {
+        if (mode == BlacksmithMode.REPAIR) {
             gui.setItem(0, createRepairAllWidget(new GuiContext(player, gui)));
-        }
-    }
-
-    private void handleInvestMaterialsClick(Player player) {
-        int before = areaManager.getBlacksmithBuildingLevel(player);
-        int pointsAdded = areaManager.investBlacksmithMaterials(player, player.getLocation());
-        if (pointsAdded <= 0) {
-            send(player, MessageType.INFO, "You have no eligible mining materials to invest.");
-            return;
-        }
-        int after = areaManager.getBlacksmithBuildingLevel(player);
-        if (after > before) {
-            send(player, MessageType.SUCCESS, "Blacksmith level increased: " + before + " -> " + after + ".");
-        } else {
-            send(player, MessageType.SUCCESS, "Invested " + pointsAdded + " blacksmith points.");
         }
     }
 
