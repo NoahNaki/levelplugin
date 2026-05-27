@@ -643,6 +643,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             TextDisplay display = (TextDisplay) base.getWorld().spawnEntity(base.clone().add(0, offset, 0), EntityType.TEXT_DISPLAY);
             display.setBillboard(Display.Billboard.CENTER);
             display.setAlignment(TextDisplay.TextAlignment.LEFT);
+            display.setLineWidth(260);
             display.setShadowRadius(0f);
             display.setShadowStrength(0f);
             display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
