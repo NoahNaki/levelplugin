@@ -597,9 +597,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
         lines.add(ChatColor.AQUA + "Requirements:");
         for (Map.Entry<Material, Integer> entry : materialCosts.entrySet()) {
-            lines.add(ChatColor.RED + "✘ " + ChatColor.WHITE + entry.getValue() + " " + materialDisplay(entry.getKey()));
+            lines.add(ChatColor.RED + "✘ " + ChatColor.WHITE + entry.getValue() + ChatColor.DARK_GRAY + "x "
+                    + ChatColor.WHITE + materialDisplay(entry.getKey()));
         }
-        lines.add(ChatColor.RED + "✘ " + ChatColor.GOLD + cost + " <glyph:coins_icon>");
+        lines.add(ChatColor.RED + "✘ " + ChatColor.WHITE + cost + ChatColor.DARK_GRAY + "x " + ChatColor.GOLD + "<glyph:coins_icon>");
+        lines.add(" ");
         lines.add(ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + clickAction);
         return spawnClickableHologram(marker, tag, lines);
     }
@@ -640,6 +642,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         for (String line : lines) {
             TextDisplay display = (TextDisplay) base.getWorld().spawnEntity(base.clone().add(0, offset, 0), EntityType.TEXT_DISPLAY);
             display.setBillboard(Display.Billboard.CENTER);
+            display.setAlignment(TextDisplay.TextAlignment.LEFT);
             display.setShadowRadius(0f);
             display.setShadowStrength(0f);
             display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
@@ -649,6 +652,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             offset -= 0.25;
         }
         return entities;
+    }
+
+    private void playUpgradeCelebration(Player player, Location marker) {
+        if (player == null || marker == null) return;
+        player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
+        FireworkUtil.burstWithinArea(marker,
+                marker.getBlockX() - 2, marker.getBlockY() - 2, marker.getBlockZ() - 2,
+                marker.getBlockX() + 2, marker.getBlockY() + 3, marker.getBlockZ() + 2,
+                6);
     }
 
     private void handleInteract(Player player, Entity entity, Runnable cancelAction) {
@@ -766,6 +778,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             int upgraded = upgradeBlacksmithLevel(player, scoped);
             if (upgraded > 0) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Blacksmith" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                playUpgradeCelebration(player, findMarker(session, building));
                 if (upgraded >= 12) removeBuildHologram(session, tag);
                 else refreshBuildHologram(session, slot);
             }
@@ -775,6 +788,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             int upgraded = upgradePalaceLevel(player, scoped);
             if (upgraded > 0) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Palace" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                playUpgradeCelebration(player, findMarker(session, building));
                 if (upgraded >= 10) removeBuildHologram(session, tag);
                 else refreshBuildHologram(session, slot);
             }
@@ -784,6 +798,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             int upgraded = upgradeFarmLevel(player, scoped);
             if (upgraded > 0) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Farm" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                playUpgradeCelebration(player, findMarker(session, building));
                 if (upgraded >= 3) removeBuildHologram(session, tag);
                 else refreshBuildHologram(session, slot);
             }
