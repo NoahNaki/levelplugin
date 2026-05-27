@@ -636,9 +636,24 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private void spawnBuildHolograms(EnvironmentAreaSession session) {
+        purgeExistingHologramsForOwner(session);
         session.removeHolograms();
         for (BuildingTemplate building : BUILDINGS) {
             session.holograms().addAll(buildHologramEntitiesForSlot(session, building));
+        }
+    }
+
+    private void purgeExistingHologramsForOwner(EnvironmentAreaSession session) {
+        if (session == null || session.world() == null) return;
+        String ownerPrefix = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":";
+        for (Entity entity : session.world().getEntities()) {
+            if (entity == null || entity.isDead()) continue;
+            for (String tag : entity.getScoreboardTags()) {
+                if (tag != null && tag.startsWith(ownerPrefix)) {
+                    entity.remove();
+                    break;
+                }
+            }
         }
     }
 
@@ -683,7 +698,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         String clickAction = isBuilt ? "to level up" : "to build";
         int currentLevel = owner != null ? resolveCurrentLevel(owner, building.slot()) : 0;
         int nextLevel = isBuilt ? (owner != null ? resolveNextLevel(owner, building.slot()) : 1) : 1;
-        if (nextLevel <= currentLevel || nextLevel > maxLevelForSlot(building.slot())) {
+        if (isBuilt && (nextLevel <= currentLevel || nextLevel > maxLevelForSlot(building.slot()))) {
             return java.util.List.of(
                     ChatColor.GREEN + "" + ChatColor.BOLD + "BUILT " + ChatColor.WHITE + building.displayName().toUpperCase(Locale.ROOT),
                     ChatColor.GRAY + "Stage " + ChatColor.WHITE + currentLevel,
@@ -891,6 +906,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         UUID scoped = resolveProfileScopedId(player);
+        Long finishAt = getBuildFinishAt(scoped, slot);
+        if (finishAt != null && finishAt > System.currentTimeMillis()) {
+            long remaining = Math.max(0, (finishAt - System.currentTimeMillis()) / 1000L);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    ChatColor.WHITE + building.displayName() + ChatColor.GRAY + " is already upgrading (" +
+                            ChatColor.WHITE + SpeedUpScrollUtil.formatDuration(remaining) + ChatColor.GRAY + " remaining).");
+            refreshBuildHologram(session, slot);
+            return;
+        }
         java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
         if (builtSlots.contains(slot) && maxLevelForSlot(slot) <= 1) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
