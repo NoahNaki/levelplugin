@@ -636,8 +636,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private List<Entity> spawnClickableHologram(Location base, String tag, List<String> lines) {
         List<Entity> entities = new ArrayList<>();
-        // Use a fixed anchor instead of per-line or width-derived shifts.
-        // Width-derived anchors still create perceived centering with billboard text.
+        // Render all lines in a single TextDisplay so LEFT alignment applies to the whole block.
         final float sharedLeftAnchor = -0.40f;
         plugin.getLogger().info("[EnvironmentArea/HologramDebug] tag=" + tag
                 + " base=" + base.getBlockX() + "," + base.getBlockY() + "," + base.getBlockZ()
@@ -650,32 +649,35 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         });
         entities.add(clicker);
 
-        double offset = 0.0;
-        for (String line : lines) {
-            TextDisplay display = (TextDisplay) base.getWorld().spawnEntity(base.clone().add(0, offset, 0), EntityType.TEXT_DISPLAY);
-            display.setBillboard(Display.Billboard.CENTER);
-            display.setAlignment(TextDisplay.TextAlignment.LEFT);
-            display.setLineWidth(320);
+        String blockText = String.join("\n", lines);
+        TextDisplay display = (TextDisplay) base.getWorld().spawnEntity(base, EntityType.TEXT_DISPLAY);
+        display.setBillboard(Display.Billboard.CENTER);
+        display.setAlignment(TextDisplay.TextAlignment.LEFT);
+        display.setLineWidth(320);
+        display.setTransformation(new Transformation(
+                new Vector3f(sharedLeftAnchor, 0f, 0f),
+                new AxisAngle4f(),
+                new Vector3f(1f, 1f, 1f),
+                new AxisAngle4f()
+        ));
+        plugin.getLogger().info("[EnvironmentArea/HologramDebug] renderedAsSingleDisplay=true"
+                + " lines=" + lines.size()
+                + " chars=" + blockText.length());
+        for (int i = 0; i < lines.size(); i++) {
+            String line = lines.get(i);
             int linePixels = line == null ? 0 : me.nakilex.levelplugin.utils.ChatFormatter.pixelLength(line);
-            display.setTransformation(new Transformation(
-                    new Vector3f(sharedLeftAnchor, 0f, 0f),
-                    new AxisAngle4f(),
-                    new Vector3f(1f, 1f, 1f),
-                    new AxisAngle4f()
-            ));
             plugin.getLogger().info("[EnvironmentArea/HologramDebug] line='"
                     + (line == null ? "" : ChatColor.stripColor(line))
                     + "' pixels=" + linePixels
                     + " sharedLeftAnchor=" + String.format(java.util.Locale.US, "%.4f", sharedLeftAnchor)
-                    + " yOffset=" + String.format(java.util.Locale.US, "%.2f", offset));
-            display.setShadowRadius(0f);
-            display.setShadowStrength(0f);
-            display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
-            display.setText(line);
-            display.addScoreboardTag(tag);
-            entities.add(display);
-            offset -= 0.25;
+                    + " row=" + i);
         }
+        display.setShadowRadius(0f);
+        display.setShadowStrength(0f);
+        display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
+        display.setText(blockText);
+        display.addScoreboardTag(tag);
+        entities.add(display);
         return entities;
     }
 
