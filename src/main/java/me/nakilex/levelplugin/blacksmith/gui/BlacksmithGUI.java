@@ -168,6 +168,8 @@ public class BlacksmithGUI implements Listener {
     private ItemStack createInfoItem(Player player, BlacksmithMode mode) {
         int page = infoPageByPlayer.getOrDefault(player.getUniqueId(), 1);
         if (mode == BlacksmithMode.UPGRADE && page == 2) {
+            String box1 = ChatColor.DARK_GRAY + "■";
+            String box2 = ChatColor.GREEN + "■";
             return GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information (2/2)", Arrays.asList(
                     ChatColor.GRAY + "",
                     ChatColor.GRAY + "Blacksmith level unlocks:",
@@ -177,8 +179,10 @@ public class BlacksmithGUI implements Listener {
                     ChatColor.GRAY + "  Lv 9-10: " + ChatColor.WHITE + "Legendary",
                     ChatColor.GRAY + "  Lv 11-12: " + ChatColor.WHITE + "Mythic",
                     "",
-                    ChatColor.YELLOW + "Click " + ChatColor.GRAY + "to go back"));
+                    ChatColor.GREEN + "< " + box1 + " " + box2 + ChatColor.GREEN + " >"));
         }
+        String box1 = ChatColor.GREEN + "■";
+        String box2 = ChatColor.DARK_GRAY + "■";
         return switch (mode) {
             case UPGRADE -> GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information (1/2)", Arrays.asList(
                     ChatColor.GRAY + "",
@@ -193,7 +197,7 @@ public class BlacksmithGUI implements Listener {
                     ChatColor.GRAY + "Upgrade costs scale with " + ChatColor.AQUA + "rarity" + ChatColor.GRAY + " and",
                     ChatColor.GRAY + "current upgrade " + ChatColor.AQUA + "tier" + ChatColor.GRAY + ".",
                     "",
-                    ChatColor.YELLOW + "Click " + ChatColor.GRAY + "for rarity unlock levels"
+                    ChatColor.GREEN + "< " + box1 + " " + box2 + ChatColor.GREEN + " >"
             ));
             case REPAIR -> GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Information", Arrays.asList(
                     ChatColor.GRAY + "",

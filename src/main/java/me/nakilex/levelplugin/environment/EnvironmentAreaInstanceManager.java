@@ -584,9 +584,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         String clickAction = isBuilt ? "to level up" : "to build";
         Location marker = findMarker(session, building);
         String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
-        int nextLevel = owner != null ? resolveNextLevel(owner, building.slot()) : 1;
         int currentLevel = owner != null ? resolveCurrentLevel(owner, building.slot()) : 0;
-        int cost = getUpgradeCostForSlot(building.slot());
+        int nextLevel = isBuilt ? (owner != null ? resolveNextLevel(owner, building.slot()) : 1) : 1;
+        int cost = getUpgradeCostForSlotLevel(building.slot(), nextLevel);
         Map<Material, Integer> materialCosts = getMaterialCostsForSlotLevel(building.slot(), nextLevel);
         String levelLine = isBuilt
                 ? ChatColor.GRAY + "Level: " + ChatColor.WHITE + currentLevel + ChatColor.GRAY + " -> " + ChatColor.WHITE + nextLevel
@@ -724,11 +724,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private void openBuildConfirm(Player player, String tag, int slot, String buildingName, int nextLevel) {
         var inv = Bukkit.createInventory(null, 27, BUILD_CONFIRM_TITLE);
         String actionName = nextLevel <= 1 ? "Build " : "Level Up ";
+        int cost = getUpgradeCostForSlotLevel(slot, Math.max(1, nextLevel));
         inv.setItem(11, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm",
                 TooltipUtil.bulletList(
                         ChatColor.GRAY + actionName + ChatColor.WHITE + buildingName,
                         ChatColor.GRAY + "Target Level: " + ChatColor.WHITE + nextLevel,
-                        ChatColor.GRAY + "Cost: " + ChatColor.GOLD + BUILD_COST_COINS + " <glyph:coins_icon>")));
+                        ChatColor.GRAY + "Cost: " + ChatColor.GOLD + cost + " <glyph:coins_icon>")));
         inv.setItem(15, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         pendingBuildActions.put(player.getUniqueId(), new PendingBuildAction(tag, slot));
         player.openInventory(inv);
@@ -748,14 +749,21 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return loadBuiltSlots(resolveProfileScopedId(player)).contains(slot) ? 1 : 0;
     }
 
-    private int getUpgradeCostForSlot(int slot) {
-        return BUILD_COST_COINS;
+    private int getUpgradeCostForSlotLevel(int slot, int nextLevel) {
+        int level = Math.max(1, nextLevel);
+        int base = switch (slot) {
+            case 2 -> 350;
+            case 4 -> 500;
+            case 5 -> 300;
+            default -> 250;
+        };
+        return base + (level * level * 120);
     }
 
     private Map<Material, Integer> getMaterialCostsForSlotLevel(int slot, int nextLevel) {
         Map<Material, Integer> costs = new LinkedHashMap<>();
         int safeLevel = Math.max(1, nextLevel);
-        costs.put(Material.COBBLESTONE, 64 * safeLevel);
+        costs.put(Material.COBBLESTONE, 24 * safeLevel);
         if (slot == 2) {
             if (safeLevel >= 5) costs.put(Material.RAW_IRON, 48 * (safeLevel - 3));
             if (safeLevel >= 8) costs.put(Material.RAW_GOLD, 32 * (safeLevel - 6));
@@ -809,8 +817,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (template == null) return;
         WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
-        int cost = getUpgradeCostForSlot(slot);
         int nextLevel = resolveNextLevel(player, slot);
+        int cost = getUpgradeCostForSlotLevel(slot, nextLevel);
         Map<Material, Integer> materialCosts = getMaterialCostsForSlotLevel(slot, nextLevel);
         if (!EnvironmentManager.isDebugIgnoreBuildingMaterialCosts()) {
             for (Map.Entry<Material, Integer> entry : materialCosts.entrySet()) {
@@ -1034,7 +1042,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, "Blacksmith is already at max level.");
             return 0;
         }
-        int cost = getUpgradeCostForSlot(2);
+        int cost = getUpgradeCostForSlotLevel(2, current + 1);
         if (EnvironmentManager.isDebugIgnoreBuildingMaterialCosts()) {
             setBlacksmithBuildingLevel(scoped, current + 1);
             plugin.getPlayerConfig().saveConfigFile();
