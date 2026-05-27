@@ -636,6 +636,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private List<Entity> spawnClickableHologram(Location base, String tag, List<String> lines) {
         List<Entity> entities = new ArrayList<>();
+        int maxPixels = 0;
+        for (String line : lines) {
+            if (line == null) continue;
+            maxPixels = Math.max(maxPixels, me.nakilex.levelplugin.utils.ChatFormatter.pixelLength(line));
+        }
+        final float pixelsToTranslation = 0.0065f;
         Interaction clicker = base.getWorld().spawn(base.clone().add(0, -1.0, 0), Interaction.class, interaction -> {
             interaction.setInteractionWidth(4.5f);
             interaction.setInteractionHeight(5.5f);
@@ -649,8 +655,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             display.setBillboard(Display.Billboard.CENTER);
             display.setAlignment(TextDisplay.TextAlignment.LEFT);
             display.setLineWidth(320);
+            int linePixels = line == null ? 0 : me.nakilex.levelplugin.utils.ChatFormatter.pixelLength(line);
+            float xTranslation = -((maxPixels - linePixels) / 2.0f) * pixelsToTranslation;
             display.setTransformation(new Transformation(
-                    new Vector3f(-0.75f, 0f, 0f),
+                    new Vector3f(xTranslation, 0f, 0f),
                     new AxisAngle4f(),
                     new Vector3f(1f, 1f, 1f),
                     new AxisAngle4f()
