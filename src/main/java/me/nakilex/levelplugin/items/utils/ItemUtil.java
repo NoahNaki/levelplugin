@@ -1060,18 +1060,18 @@ public class ItemUtil {
         for (ItemStack stack : equip) {
             if (stack != null && stack.hasItemMeta()) {
                 CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(stack);
-                if (ci != null) items.add(ci);
+                if (ci != null && isEligibleForGearScore(player, ci)) items.add(ci);
             }
         }
         ItemStack main = player.getInventory().getItemInMainHand();
         if (main != null && main.hasItemMeta()) {
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(main);
-            if (ci != null) items.add(ci);
+            if (ci != null && isEligibleForGearScore(player, ci)) items.add(ci);
         }
         ItemStack off = player.getInventory().getItemInOffHand();
         if (off != null && off.hasItemMeta()) {
             CustomItem ci = ItemManager.getInstance().getCustomItemFromItemStack(off);
-            if (ci != null) items.add(ci);
+            if (ci != null && isEligibleForGearScore(player, ci)) items.add(ci);
         }
         int total = calculateTotalGearScore(items);
         StatsManager.PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
@@ -1084,5 +1084,19 @@ public class ItemUtil {
             }
         }
         return total;
+    }
+
+    private static boolean isEligibleForGearScore(Player player, CustomItem ci) {
+        if (player == null || ci == null || ci.isBroken()) return false;
+        if (LevelManager.getInstance().getLevel(player) < ci.getLevelRequirement()) return false;
+        String clsReqRaw = ci.getClassRequirement();
+        if (clsReqRaw == null || clsReqRaw.isBlank()) return true;
+        var reqClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(clsReqRaw);
+        if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.isClassSystemEnabled()
+                || reqClass == null
+                || reqClass == me.nakilex.levelplugin.player.classes.data.PlayerClass.VILLAGER) return true;
+        var playerClass = me.nakilex.levelplugin.player.attributes.managers.StatsManager
+                .getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+        return me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, reqClass);
     }
 }
