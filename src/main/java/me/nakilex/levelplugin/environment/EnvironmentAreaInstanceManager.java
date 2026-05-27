@@ -692,7 +692,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     ChatColor.GOLD + "" + ChatColor.BOLD + "UPGRADING " + ChatColor.WHITE + building.displayName().toUpperCase(Locale.ROOT),
                     ChatColor.YELLOW + "Time Remaining: " + ChatColor.WHITE + SpeedUpScrollUtil.formatDuration(remaining),
                     " ",
-                    ChatColor.WHITE + "Right Click " + ChatColor.GRAY + "with a Speed Up Scroll"
+                    ChatColor.WHITE + "Right Click " + ChatColor.GRAY + "to speed up"
             );
         }
         String actionText = isBuilt ? "Level Up " : "Build ";
@@ -917,6 +917,24 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         boolean isBuilt = isSlotBuilt(scoped, slot, currentLevel);
         Long finishAt = getBuildFinishAt(scoped, slot);
         if (finishAt != null && finishAt > System.currentTimeMillis()) {
+            ItemStack hand = player.getInventory().getItemInMainHand();
+            if (!SpeedUpScrollUtil.isSpeedUpScroll(hand)) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        ChatColor.WHITE + "Right click with a Speed Up Scroll" + ChatColor.GRAY + " to reduce build time.");
+                refreshBuildHologram(session, slot);
+                return;
+            }
+            int seconds = SpeedUpScrollUtil.getSeconds(hand);
+            if (seconds <= 0) {
+                refreshBuildHologram(session, slot);
+                return;
+            }
+            long updatedFinish = Math.max(System.currentTimeMillis(), finishAt - (seconds * 1000L));
+            setBuildFinishAt(scoped, slot, updatedFinish);
+            hand.setAmount(Math.max(0, hand.getAmount() - 1));
+            if (hand.getAmount() <= 0) {
+                player.getInventory().setItemInMainHand(null);
+            }
             refreshBuildHologram(session, slot);
             return;
         }
