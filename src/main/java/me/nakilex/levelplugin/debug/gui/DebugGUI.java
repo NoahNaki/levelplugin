@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.chat.games.ChatGameStatus;
 import me.nakilex.levelplugin.debug.DropDebugManager;
+import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.lootchests.managers.CooldownManager;
 import me.nakilex.levelplugin.mob.managers.PlayerToggleManager;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
@@ -51,6 +52,7 @@ public class DebugGUI implements Listener {
     private static final int FORCE_DROP_SLOT = 29;
     private static final int COIN_PICKUP_DEBUG_SLOT = 31;
     private static final int REWARD_BOMB_SLOT = 33;
+    private static final int BUILD_MATERIAL_BYPASS_SLOT = 35;
     private static final int[] CHAT_GAME_SLOTS = {28, 30, 32, 34, 22, 24};
 
     private final PlayerToggleManager mobDebugManager;
@@ -150,6 +152,12 @@ public class DebugGUI implements Listener {
                 }));
         widgetList.add(new ActionWidget(REWARD_BOMB_SLOT, context -> createRewardBombItem(),
                 (click, context) -> triggerRewardBomb(context.player(), context.inventory())));
+        widgetList.add(new ActionWidget(BUILD_MATERIAL_BYPASS_SLOT, context -> createBuildMaterialBypassItem(),
+                (click, context) -> {
+                    boolean enabled = EnvironmentManager.toggleDebugIgnoreBuildingMaterialCosts();
+                    context.inventory().setItem(BUILD_MATERIAL_BYPASS_SLOT, createBuildMaterialBypassItem());
+                    ToggleFeedbackUtil.sendToggle(context.player(), "Ignore building material costs", enabled);
+                }));
         return widgetList;
     }
 
@@ -225,6 +233,14 @@ public class DebugGUI implements Listener {
                 "§dReward Bomb",
                 "§7Spawn debug loot at your",
                 "§7targeted block (20 blocks).");
+    }
+
+    private ItemStack createBuildMaterialBypassItem() {
+        return GuiUtil.createToggleItem(
+                EnvironmentManager.isDebugIgnoreBuildingMaterialCosts(),
+                "§bIgnore Building Materials",
+                "§7Building upgrades skip material checks",
+                "§7and only require coin costs.");
     }
 
     private void triggerRewardBomb(Player player, Inventory inventory) {
