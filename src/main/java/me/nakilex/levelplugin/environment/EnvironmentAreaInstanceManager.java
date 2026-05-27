@@ -588,11 +588,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         int nextLevel = isBuilt ? (owner != null ? resolveNextLevel(owner, building.slot()) : 1) : 1;
         int cost = getUpgradeCostForSlotLevel(building.slot(), nextLevel);
         Map<Material, Integer> materialCosts = getMaterialCostsForSlotLevel(building.slot(), nextLevel);
-        String levelLine = isBuilt
-                ? ChatColor.GRAY + "Level: " + ChatColor.WHITE + currentLevel + ChatColor.GRAY + " -> " + ChatColor.WHITE + nextLevel
-                : ChatColor.GRAY + "Level: " + ChatColor.WHITE + "0 -> 1";
+        String levelLine = ChatColor.GOLD + "" + ChatColor.BOLD + "STAGE "
+                + ChatColor.YELLOW + currentLevel + " "
+                + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">"
+                + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + "> "
+                + ChatColor.GOLD + ChatColor.BOLD + "STAGE " + ChatColor.YELLOW + nextLevel;
         List<String> lines = new ArrayList<>();
-        lines.add(ChatColor.GREEN + actionText + ChatColor.WHITE + building.displayName());
+        lines.add(ChatColor.GREEN + "" + ChatColor.BOLD + actionText.toUpperCase(Locale.ROOT) + ChatColor.WHITE + building.displayName().toUpperCase(Locale.ROOT));
         lines.add(levelLine);
         lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
         lines.add(ChatColor.AQUA + "Requirements:");
@@ -641,7 +643,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         double offset = 0.0;
         for (String line : lines) {
             TextDisplay display = (TextDisplay) base.getWorld().spawnEntity(base.clone().add(0, offset, 0), EntityType.TEXT_DISPLAY);
-            display.setBillboard(Display.Billboard.CENTER);
+            display.setBillboard(Display.Billboard.FIXED);
             display.setAlignment(TextDisplay.TextAlignment.LEFT);
             display.setLineWidth(260);
             display.setShadowRadius(0f);
@@ -725,11 +727,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         var inv = Bukkit.createInventory(null, 27, BUILD_CONFIRM_TITLE);
         String actionName = nextLevel <= 1 ? "Build " : "Level Up ";
         int cost = getUpgradeCostForSlotLevel(slot, Math.max(1, nextLevel));
+        Map<Material, Integer> materialCosts = getMaterialCostsForSlotLevel(slot, Math.max(1, nextLevel));
+        List<String> lore = new ArrayList<>();
+        lore.addAll(TooltipUtil.bulletList(
+                ChatColor.GRAY + actionName + ChatColor.WHITE + buildingName,
+                ChatColor.GRAY + "Target Level: " + ChatColor.WHITE + nextLevel));
+        lore.add(ChatColor.AQUA + "Requirements:");
+        for (Map.Entry<Material, Integer> entry : materialCosts.entrySet()) {
+            lore.add(ChatColor.RED + "✘ " + ChatColor.WHITE + entry.getValue() + ChatColor.DARK_GRAY + "x "
+                    + ChatColor.WHITE + materialDisplay(entry.getKey()));
+        }
+        lore.add(ChatColor.RED + "✘ " + ChatColor.WHITE + cost + ChatColor.DARK_GRAY + "x " + ChatColor.GOLD + "<glyph:coins_icon>");
         inv.setItem(11, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("check", ChatColor.GREEN + "Confirm",
-                TooltipUtil.bulletList(
-                        ChatColor.GRAY + actionName + ChatColor.WHITE + buildingName,
-                        ChatColor.GRAY + "Target Level: " + ChatColor.WHITE + nextLevel,
-                        ChatColor.GRAY + "Cost: " + ChatColor.GOLD + cost + " <glyph:coins_icon>")));
+                lore));
         inv.setItem(15, me.nakilex.levelplugin.utils.GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel"));
         pendingBuildActions.put(player.getUniqueId(), new PendingBuildAction(tag, slot));
         player.openInventory(inv);
