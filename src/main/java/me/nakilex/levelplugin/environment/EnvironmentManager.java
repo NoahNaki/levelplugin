@@ -1011,10 +1011,12 @@ public class EnvironmentManager {
             }
         }
         int coinCost = (int) Math.round(nextStageData.coinCost * (1.0 - disc));
-        int balance = Main.getInstance().getEconomyManager().getBalance(player);
-        if (balance < coinCost) {
-            player.sendMessage(ChatColor.RED + "You need " + coinCost + " coins.");
-            return;
+        if (!bypassMaterials) {
+            int balance = Main.getInstance().getEconomyManager().getBalance(player);
+            if (balance < coinCost) {
+                player.sendMessage(ChatColor.RED + "You need " + coinCost + " coins.");
+                return;
+            }
         }
         // Deduct items
         if (!bypassMaterials) {
@@ -1023,7 +1025,7 @@ public class EnvironmentManager {
                 player.getInventory().removeItem(new org.bukkit.inventory.ItemStack(entry.getKey(), needed));
             }
         }
-        if (coinCost > 0) {
+        if (!bypassMaterials && coinCost > 0) {
             Main.getInstance().getEconomyManager().deductCoins(player, coinCost);
         }
         investBuilding(player, building, 1);

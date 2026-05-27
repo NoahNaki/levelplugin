@@ -772,16 +772,18 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         WorldCuboid destinationArea = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
         Location destinationMarker = destinationArea.centerTop(session.world(), 1.0);
         int cost = getUpgradeCostForSlot(slot);
-        int coins = plugin.getEconomyManager().getBalance(player);
-        if (coins < cost) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "You need " + ChatColor.GOLD + cost + " <glyph:coins_icon>"
-                            + ChatColor.RED + " to build this.");
-            player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.8f, 0.7f);
-            return;
+        if (!EnvironmentManager.isDebugIgnoreBuildingMaterialCosts()) {
+            int coins = plugin.getEconomyManager().getBalance(player);
+            if (coins < cost) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                        "You need " + ChatColor.GOLD + cost + " <glyph:coins_icon>"
+                                + ChatColor.RED + " to build this.");
+                player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_LAND, 0.8f, 0.7f);
+                return;
+            }
+            plugin.getEconomyManager().deductCoins(player, cost);
+            playCoinPaymentVisual(player, destinationMarker, cost);
         }
-        plugin.getEconomyManager().deductCoins(player, cost);
-        playCoinPaymentVisual(player, destinationMarker, cost);
         BukkitTask existing = activeBuildTasks.remove(sessionOwner);
         if (existing != null) {
             existing.cancel();
@@ -802,11 +804,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 if (slot == 2) {
                     setBlacksmithBuildingLevel(resolveProfileScopedId(player), 1);
                 }
-                if (slot != 5 && slot != 4) {
+                if (slot != 5 && slot != 4 && slot != 2) {
                     removeBuildHologram(session, tag);
                 } else {
                     if (slot == 5) {
                         setFarmBuildingLevel(resolveProfileScopedId(player), 1);
+                    }
+                    if (slot == 2) {
+                        setBlacksmithBuildingLevel(resolveProfileScopedId(player), 1);
                     }
                     refreshBuildHologram(session, slot);
                 }
@@ -943,6 +948,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return 0;
         }
         int cost = BUILD_COST_COINS;
+        if (EnvironmentManager.isDebugIgnoreBuildingMaterialCosts()) {
+            setFarmBuildingLevel(scoped, current + 1);
+            return current + 1;
+        }
         int coins = plugin.getEconomyManager().getBalance(player);
         if (coins < cost) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
@@ -974,6 +983,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return 0;
         }
         int cost = getUpgradeCostForSlot(2);
+        if (EnvironmentManager.isDebugIgnoreBuildingMaterialCosts()) {
+            setBlacksmithBuildingLevel(scoped, current + 1);
+            plugin.getPlayerConfig().saveConfigFile();
+            return current + 1;
+        }
         int coins = plugin.getEconomyManager().getBalance(player);
         if (coins < cost) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
@@ -993,6 +1007,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return 0;
         }
         int cost = BUILD_COST_COINS;
+        if (EnvironmentManager.isDebugIgnoreBuildingMaterialCosts()) {
+            setPalaceBuildingLevel(scoped, Math.max(1, current + 1));
+            return Math.max(1, current + 1);
+        }
         int coins = plugin.getEconomyManager().getBalance(player);
         if (coins < cost) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
