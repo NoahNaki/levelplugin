@@ -166,6 +166,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
+    private final Map<UUID, Map<Integer, Long>> buildFinishAtByProfile = new HashMap<>();
+    private BukkitTask buildTimerTask;
     private BukkitTask hologramRefreshTask;
     private final Map<String, List<String>> lastHologramLinesByTag = new HashMap<>();
     private final Map<UUID, AnimatedLeaderboard> animatedLeaderboardsByOwner = new HashMap<>();
@@ -189,6 +191,36 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
         startHologramRefreshTask();
+        startBuildTimerTask();
+    }
+
+    private void startBuildTimerTask() {
+        if (buildTimerTask != null) buildTimerTask.cancel();
+        buildTimerTask = new BukkitRunnable() {
+            @Override public void run() {
+                long now = System.currentTimeMillis();
+                for (EnvironmentAreaSession session : new ArrayList<>(sessions.values())) {
+                    Player owner = Bukkit.getPlayer(session.ownerId());
+                    if (owner == null || !owner.isOnline()) continue;
+                    UUID scoped = resolveProfileScopedId(owner);
+                    Map<Integer, Long> map = buildFinishAtByProfile.get(scoped);
+                    if (map == null || map.isEmpty()) continue;
+                    List<Integer> finished = new ArrayList<>();
+                    for (var e : map.entrySet()) {
+                        if (e.getValue() <= now) {
+                            int slot = e.getKey();
+                            markBuiltForProfile(owner, slot);
+                            if (slot == 5) setFarmBuildingLevel(scoped, Math.max(1, resolveCurrentLevel(owner, slot)));
+                            if (slot == 4) setPalaceBuildingLevel(scoped, Math.max(1, resolveCurrentLevel(owner, slot)));
+                            if (slot == 2) setBlacksmithBuildingLevel(scoped, Math.max(1, resolveCurrentLevel(owner, slot)));
+                            refreshBuildHologram(session, slot);
+                            finished.add(slot);
+                        }
+                    }
+                    finished.forEach(map::remove);
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     private void startHologramRefreshTask() {
@@ -633,10 +665,26 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         Player owner = Bukkit.getPlayer(session.ownerId());
         UUID scoped = owner != null ? resolveProfileScopedId(owner) : scopedProfileId(session.ownerId(), 0);
         boolean isBuilt = loadBuiltSlots(scoped).contains(building.slot());
+        Long finishAt = getBuildFinishAt(scoped, building.slot());
+        if (finishAt != null) {
+            long remaining = Math.max(0, (finishAt - System.currentTimeMillis()) / 1000L);
+            return java.util.List.of(
+                    ChatColor.GOLD + "" + ChatColor.BOLD + "UPGRADING " + ChatColor.WHITE + building.displayName().toUpperCase(Locale.ROOT),
+                    ChatColor.YELLOW + "Time Remaining: " + ChatColor.WHITE + SpeedUpScrollUtil.formatDuration(remaining),
+                    ChatColor.GRAY + "Right Click to speed up"
+            );
+        }
         String actionText = isBuilt ? "Level Up " : "Build ";
         String clickAction = isBuilt ? "to level up" : "to build";
         int currentLevel = owner != null ? resolveCurrentLevel(owner, building.slot()) : 0;
         int nextLevel = isBuilt ? (owner != null ? resolveNextLevel(owner, building.slot()) : 1) : 1;
+        if (nextLevel <= currentLevel || nextLevel > maxLevelForSlot(building.slot())) {
+            return java.util.List.of(
+                    ChatColor.GREEN + "" + ChatColor.BOLD + "BUILT " + ChatColor.WHITE + building.displayName().toUpperCase(Locale.ROOT),
+                    ChatColor.GRAY + "Stage " + ChatColor.WHITE + currentLevel,
+                    ChatColor.DARK_GRAY + "Max stage reached"
+            );
+        }
         int cost = getUpgradeCostForSlotLevel(building.slot(), nextLevel);
         Map<Material, Integer> materialCosts = getMaterialCostsForSlotLevel(building.slot(), nextLevel);
         boolean hasCoins = owner != null && plugin.getEconomyManager().getBalance(owner) >= cost;
@@ -896,6 +944,21 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return 1;
     }
 
+
+    private long computeBuildDurationMs(int slot, int level) {
+        long base = 2L * 60L * 1000L;
+        long scaled = (long) (base * Math.pow(1.8, Math.max(0, level - 1)));
+        return Math.min(8L * 60L * 60L * 1000L, scaled);
+    }
+
+    private void setBuildFinishAt(UUID scoped, int slot, long finishAtMs) {
+        buildFinishAtByProfile.computeIfAbsent(scoped, k -> new HashMap<>()).put(slot, finishAtMs);
+    }
+
+    private Long getBuildFinishAt(UUID scoped, int slot) {
+        Map<Integer, Long> map = buildFinishAtByProfile.get(scoped);
+        return map == null ? null : map.get(slot);
+    }
     private int getUpgradeCostForSlotLevel(int slot, int nextLevel) {
         int level = Math.max(1, nextLevel);
         int base = switch (slot) {
@@ -1004,7 +1067,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     return;
                 }
                 buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
-                markBuiltForProfile(player, slot);
+                long finishAt = System.currentTimeMillis() + computeBuildDurationMs(slot, nextLevel);
+                setBuildFinishAt(resolveProfileScopedId(player), slot, finishAt);
                 if (slot == 4) {
                     setPalaceBuildingLevel(resolveProfileScopedId(player), 1);
                 }
