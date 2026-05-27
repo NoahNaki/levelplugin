@@ -1058,10 +1058,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     public int getBlacksmithBuildingLevel(Player player) {
-        if (player == null) return 1;
+        if (player == null) return 0;
         UUID scoped = resolveProfileScopedId(player);
         return blacksmithBuildingLevelByProfile.computeIfAbsent(scoped,
-                id -> Math.max(1, plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.blacksmith-building-level", 1)));
+                id -> Math.max(0, plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.blacksmith-building-level", 0)));
     }
 
 
