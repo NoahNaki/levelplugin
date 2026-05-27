@@ -642,6 +642,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             maxPixels = Math.max(maxPixels, me.nakilex.levelplugin.utils.ChatFormatter.pixelLength(line));
         }
         final float pixelsToTranslation = 0.0065f;
+        plugin.getLogger().info("[EnvironmentArea/HologramDebug] tag=" + tag
+                + " base=" + base.getBlockX() + "," + base.getBlockY() + "," + base.getBlockZ()
+                + " lineCount=" + lines.size()
+                + " maxPixels=" + maxPixels
+                + " billboard=CENTER align=LEFT lineWidth=320 pxToTrans=" + pixelsToTranslation);
         Interaction clicker = base.getWorld().spawn(base.clone().add(0, -1.0, 0), Interaction.class, interaction -> {
             interaction.setInteractionWidth(4.5f);
             interaction.setInteractionHeight(5.5f);
@@ -663,6 +668,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     new Vector3f(1f, 1f, 1f),
                     new AxisAngle4f()
             ));
+            plugin.getLogger().info("[EnvironmentArea/HologramDebug] line='"
+                    + (line == null ? "" : ChatColor.stripColor(line))
+                    + "' pixels=" + linePixels
+                    + " xTranslation=" + String.format(java.util.Locale.US, "%.4f", xTranslation)
+                    + " yOffset=" + String.format(java.util.Locale.US, "%.2f", offset));
             display.setShadowRadius(0f);
             display.setShadowStrength(0f);
             display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
