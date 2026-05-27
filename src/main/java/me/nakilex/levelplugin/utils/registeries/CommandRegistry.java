@@ -125,6 +125,7 @@ import me.nakilex.levelplugin.server.ConnectCommand;
 import me.nakilex.levelplugin.server.HubCommand;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import org.bukkit.ChatColor;
+import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
@@ -383,6 +384,7 @@ public class CommandRegistry {
                 petManager);
         plugin.getCommand("debug").setExecutor(debugCmd);
         plugin.getCommand("debug").setTabCompleter(debugCmd);
+        Bukkit.getPluginManager().registerEvents(debugCmd, plugin);
         SpawnEntityModelCommand spawnEntityModelCommand = new SpawnEntityModelCommand(plugin);
         plugin.getCommand("se").setExecutor(spawnEntityModelCommand);
         plugin.getCommand("se").setTabCompleter(spawnEntityModelCommand);

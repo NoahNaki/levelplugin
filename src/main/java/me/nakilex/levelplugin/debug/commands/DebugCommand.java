@@ -35,6 +35,7 @@ import me.nakilex.levelplugin.pet.utils.PetPullSummaryUtil;
 import me.nakilex.levelplugin.mob.custom.CustomMobStatus;
 import me.nakilex.levelplugin.environment.EnvironmentManager;
 import me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager;
+import me.nakilex.levelplugin.environment.SpeedUpScrollUtil;
 import me.nakilex.levelplugin.guild.Guild;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager;
@@ -68,6 +69,9 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -87,10 +91,11 @@ import com.ticxo.modelengine.api.model.ModeledEntity;
  *   <li><code>siege</code> – toggles fast guild siege capture mode</li>
  * </ul>
  */
-public class DebugCommand implements TabExecutor {
+public class DebugCommand implements TabExecutor, Listener {
     private static final Set<UUID> INVENTORY_DEBUG_ENABLED = ConcurrentHashMap.newKeySet();
     private static final double MAX_COIN_PULL_RADIUS = 128.0;
     private static final List<String> LOOT_CHEST_ANIMATION_OPTIONS = List.of("idle", "idle_mouve", "idle_move", "opening", "opening_rare", "closing");
+    private static final String SPEEDUP_SCROLL_GUI_TITLE = "Speed Up Scrolls";
     private final Map<UUID, UUID> lootChestAnimationPreviewEntities = new ConcurrentHashMap<>();
     private final Map<UUID, EntityTextDisplay> npcModelNameDisplays = new ConcurrentHashMap<>();
     private final EnvironmentAreaInstanceManager environmentAreaInstanceManager;
@@ -240,6 +245,13 @@ public class DebugCommand implements TabExecutor {
                 EnvironmentAreaInstanceManager.setBuildSpeedPercent(speedPercent);
                 ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
                         "Build speed set to " + ChatColor.WHITE + EnvironmentAreaInstanceManager.getBuildSpeedPercent() + ChatColor.GREEN + "%.");
+                return true;
+            case "speedupscroll":
+                if (!(sender instanceof Player scrollPlayer)) {
+                    sender.sendMessage(ChatColor.RED + "Players only.");
+                    return true;
+                }
+                openSpeedUpScrollGui(scrollPlayer);
                 return true;
 
             case "expedition":
@@ -1278,7 +1290,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "buildmat", "buildspeed", "cityowner", "kingdommax", "area", "autocast",
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "buildmat", "buildspeed", "speedupscroll", "cityowner", "kingdommax", "area", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
                     "particle", "particlepath", "particlepreset", "inventorydebug", "farmgrowthspeed", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
@@ -1406,6 +1418,28 @@ public class DebugCommand implements TabExecutor {
             return getNpcIdSuggestions(args[1]);
         }
         return Collections.emptyList();
+    }
+
+    private void openSpeedUpScrollGui(Player player) {
+        var inv = Bukkit.createInventory(null, 27, SPEEDUP_SCROLL_GUI_TITLE);
+        inv.setItem(10, SpeedUpScrollUtil.create(SpeedUpScrollUtil.Tier.COMMON));
+        inv.setItem(12, SpeedUpScrollUtil.create(SpeedUpScrollUtil.Tier.UNCOMMON));
+        inv.setItem(14, SpeedUpScrollUtil.create(SpeedUpScrollUtil.Tier.RARE));
+        inv.setItem(16, SpeedUpScrollUtil.create(SpeedUpScrollUtil.Tier.EPIC));
+        player.openInventory(inv);
+    }
+
+    @EventHandler
+    public void onSpeedUpScrollGuiClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) return;
+        if (!SPEEDUP_SCROLL_GUI_TITLE.equals(event.getView().getTitle())) return;
+        event.setCancelled(true);
+        ItemStack clicked = event.getCurrentItem();
+        if (clicked == null || clicked.getType().isAir() || !SpeedUpScrollUtil.isSpeedUpScroll(clicked)) return;
+        if (!event.isRightClick()) return;
+        player.getInventory().addItem(clicked.clone()).values().forEach(overflow ->
+                player.getWorld().dropItemNaturally(player.getLocation(), overflow));
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Added " + ChatColor.WHITE + "Speed Up Scroll" + ChatColor.GREEN + ".");
     }
 
     private List<String> getNpcModelSuggestions(String input) {
