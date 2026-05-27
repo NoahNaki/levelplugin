@@ -636,8 +636,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private List<Entity> spawnClickableHologram(Location base, String tag, List<String> lines) {
         List<Entity> entities = new ArrayList<>();
-        // Render all lines in a single TextDisplay so LEFT alignment applies to the whole block.
         final float sharedLeftAnchor = -0.40f;
+        final double lineStep = 0.25d;
         plugin.getLogger().info("[EnvironmentArea/HologramDebug] tag=" + tag
                 + " base=" + base.getBlockX() + "," + base.getBlockY() + "," + base.getBlockZ()
                 + " lineCount=" + lines.size()
@@ -649,29 +649,67 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         });
         entities.add(clicker);
 
-        String blockText = String.join("\n", lines);
-        TextDisplay display = (TextDisplay) base.getWorld().spawnEntity(base, EntityType.TEXT_DISPLAY);
-        display.setBillboard(Display.Billboard.CENTER);
-        display.setAlignment(TextDisplay.TextAlignment.LEFT);
-        display.setLineWidth(320);
-        display.setTransformation(new Transformation(
-                new Vector3f(sharedLeftAnchor, 0f, 0f),
-                new AxisAngle4f(),
-                new Vector3f(1f, 1f, 1f),
-                new AxisAngle4f()
-        ));
-        plugin.getLogger().info("[EnvironmentArea/HologramDebug] renderedAsSingleDisplay=true"
-                + " lines=" + lines.size()
-                + " chars=" + blockText.length());
+        int requirementsHeaderIndex = -1;
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
-            int linePixels = line == null ? 0 : me.nakilex.levelplugin.utils.ChatFormatter.pixelLength(line);
-            plugin.getLogger().info("[EnvironmentArea/HologramDebug] line='"
-                    + (line == null ? "" : ChatColor.stripColor(line))
-                    + "' pixels=" + linePixels
-                    + " sharedLeftAnchor=" + String.format(java.util.Locale.US, "%.4f", sharedLeftAnchor)
-                    + " row=" + i);
+            if (line != null && ChatColor.stripColor(line).trim().equalsIgnoreCase("requirements:")) {
+                requirementsHeaderIndex = i;
+                break;
+            }
         }
+
+        int requirementsStartIndex = requirementsHeaderIndex + 1;
+        int requirementsEndIndex = requirementsStartIndex - 1;
+        for (int i = requirementsStartIndex; i < lines.size(); i++) {
+            String stripped = ChatColor.stripColor(lines.get(i) == null ? "" : lines.get(i)).trim();
+            if (stripped.isEmpty() || stripped.equalsIgnoreCase("right click to build")
+                    || stripped.equalsIgnoreCase("right click to level up")) {
+                break;
+            }
+            requirementsEndIndex = i;
+        }
+
+        entities.addAll(spawnHologramSegment(base, tag, lines, 0, requirementsStartIndex, 0, lineStep, false, sharedLeftAnchor));
+        if (requirementsStartIndex <= requirementsEndIndex) {
+            entities.addAll(spawnHologramSegment(base, tag, lines, requirementsStartIndex, requirementsEndIndex + 1, 0, lineStep, true, sharedLeftAnchor));
+        }
+        entities.addAll(spawnHologramSegment(base, tag, lines, requirementsEndIndex + 1, lines.size(), 0, lineStep, false, sharedLeftAnchor));
+        return entities;
+    }
+
+    private List<Entity> spawnHologramSegment(Location base,
+                                              String tag,
+                                              List<String> lines,
+                                              int startInclusive,
+                                              int endExclusive,
+                                              double baseOffset,
+                                              double lineStep,
+                                              boolean leftAligned,
+                                              float sharedLeftAnchor) {
+        List<Entity> entities = new ArrayList<>();
+        if (startInclusive >= endExclusive || startInclusive < 0 || endExclusive > lines.size()) {
+            return entities;
+        }
+        String blockText = String.join("\n", lines.subList(startInclusive, endExclusive));
+        TextDisplay display = (TextDisplay) base.getWorld().spawnEntity(
+                base.clone().add(0, -(startInclusive * lineStep) + baseOffset, 0),
+                EntityType.TEXT_DISPLAY
+        );
+        display.setBillboard(Display.Billboard.CENTER);
+        display.setAlignment(leftAligned ? TextDisplay.TextAlignment.LEFT : TextDisplay.TextAlignment.CENTER);
+        display.setLineWidth(320);
+        if (leftAligned) {
+            display.setTransformation(new Transformation(
+                    new Vector3f(sharedLeftAnchor, 0f, 0f),
+                    new AxisAngle4f(),
+                    new Vector3f(1f, 1f, 1f),
+                    new AxisAngle4f()
+            ));
+        }
+        plugin.getLogger().info("[EnvironmentArea/HologramDebug] segment start=" + startInclusive
+                + " end=" + endExclusive
+                + " leftAligned=" + leftAligned
+                + " lineCount=" + (endExclusive - startInclusive));
         display.setShadowRadius(0f);
         display.setShadowStrength(0f);
         display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
