@@ -671,7 +671,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return java.util.List.of(
                     ChatColor.GOLD + "" + ChatColor.BOLD + "UPGRADING " + ChatColor.WHITE + building.displayName().toUpperCase(Locale.ROOT),
                     ChatColor.YELLOW + "Time Remaining: " + ChatColor.WHITE + SpeedUpScrollUtil.formatDuration(remaining),
-                    ChatColor.GRAY + "Right Click to speed up"
+                    " ",
+                    ChatColor.WHITE + "Right Click " + ChatColor.GRAY + "to speed up"
             );
         }
         String actionText = isBuilt ? "Level Up " : "Build ";
@@ -707,7 +708,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         lines.add((hasCoins ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                 + ChatColor.WHITE + cost + ChatColor.DARK_GRAY + "x " + ChatColor.GOLD + "<glyph:coins_icon>");
         lines.add(" ");
-        lines.add(ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + clickAction);
+        lines.add(ChatColor.WHITE + "Right Click " + ChatColor.GRAY + clickAction);
         return lines;
     }
 
@@ -955,6 +956,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         buildFinishAtByProfile.computeIfAbsent(scoped, k -> new HashMap<>()).put(slot, finishAtMs);
     }
 
+    private void clearBuildFinishAt(UUID scoped, int slot) {
+        Map<Integer, Long> map = buildFinishAtByProfile.get(scoped);
+        if (map == null) return;
+        map.remove(slot);
+        if (map.isEmpty()) buildFinishAtByProfile.remove(scoped);
+    }
+
     private Long getBuildFinishAt(UUID scoped, int slot) {
         Map<Integer, Long> map = buildFinishAtByProfile.get(scoped);
         return map == null ? null : map.get(slot);
@@ -1066,24 +1074,29 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     cancel();
                     return;
                 }
-                buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
-                long finishAt = System.currentTimeMillis() + computeBuildDurationMs(slot, nextLevel);
-                setBuildFinishAt(resolveProfileScopedId(player), slot, finishAt);
-                if (slot == 4) {
-                    setPalaceBuildingLevel(resolveProfileScopedId(player), 1);
-                }
-                if (slot == 2) {
-                    setBlacksmithBuildingLevel(resolveProfileScopedId(player), 1);
-                }
+                long buildDurationMs = computeBuildDurationMs(slot, nextLevel);
+                long finishAt = System.currentTimeMillis() + buildDurationMs;
+                UUID profileScoped = resolveProfileScopedId(player);
+                setBuildFinishAt(profileScoped, slot, finishAt);
+                refreshBuildHologram(session, slot);
+                long totalTicks = Math.max(1L, Math.round((buildDurationMs / 1000.0) * 20.0));
+                buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker, totalTicks, () -> {
+                    markBuiltForProfile(player, slot);
+                    clearBuildFinishAt(profileScoped, slot);
+                    if (slot == 4) {
+                        setPalaceBuildingLevel(profileScoped, Math.max(1, nextLevel));
+                    }
+                    if (slot == 2) {
+                        setBlacksmithBuildingLevel(profileScoped, Math.max(1, nextLevel));
+                    }
+                    if (slot == 5) {
+                        setFarmBuildingLevel(profileScoped, Math.max(1, nextLevel));
+                    }
+                    refreshBuildHologram(session, slot);
+                });
                 if (slot != 5 && slot != 4 && slot != 2) {
                     removeBuildHologram(session, tag);
                 } else {
-                    if (slot == 5) {
-                        setFarmBuildingLevel(resolveProfileScopedId(player), 1);
-                    }
-                    if (slot == 2) {
-                        setBlacksmithBuildingLevel(resolveProfileScopedId(player), 1);
-                    }
                     refreshBuildHologram(session, slot);
                 }
                 activeBuildTasks.remove(sessionOwner);
@@ -1242,7 +1255,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private void setBlacksmithBuildingLevel(UUID scoped, int level) {
-        int clamped = Math.max(1, Math.min(12, level));
+        int clamped = Math.max(0, Math.min(12, level));
         blacksmithBuildingLevelByProfile.put(scoped, clamped);
         plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.blacksmith-building-level", clamped);
     }
@@ -1435,7 +1448,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                       BuildingTemplate building,
                                       CuboidTemplate template,
                                       WorldCuboid destinationArea,
-                                      Location destinationMarker) {
+                                      Location destinationMarker,
+                                      long totalTicks,
+                                      Runnable onComplete) {
         if (player == null || session == null || building == null || template == null
                 || destinationArea == null || destinationMarker == null) {
             return;
@@ -1450,7 +1465,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 + ", destMin=" + baseX + "," + baseY + "," + baseZ
                 + ", destMax=" + destinationArea.maxX() + "," + destinationArea.maxY() + "," + destinationArea.maxZ()
                 + ", blockCount=" + copies.size());
-        int animationTicks = scaledBuildAnimationTicks();
+        int animationTicks = scaledBuildAnimationTicks(totalTicks);
         int blocksPerTick = Math.max(1, copies.size() / animationTicks);
         new BukkitRunnable() {
             int index = 0;
@@ -1480,15 +1495,17 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                             "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
                     copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea);
+                    if (onComplete != null) onComplete.run();
                     cancel();
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
-    private static int scaledBuildAnimationTicks() {
+    private static int scaledBuildAnimationTicks(long baseTicks) {
         int speed = Math.max(MIN_BUILD_SPEED_PERCENT, Math.min(MAX_BUILD_SPEED_PERCENT, buildSpeedPercent));
-        return Math.max(1, (int) Math.round(BUILD_ANIMATION_TOTAL_TICKS * (100.0 / speed)));
+        long safeBaseTicks = Math.max(1L, baseTicks);
+        return Math.max(1, (int) Math.round(safeBaseTicks * (100.0 / speed)));
     }
 
     public static int getBuildSpeedPercent() {
