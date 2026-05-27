@@ -164,6 +164,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
     private BukkitTask hologramRefreshTask;
+    private final Map<String, List<String>> lastHologramLinesByTag = new HashMap<>();
     private final Map<UUID, AnimatedLeaderboard> animatedLeaderboardsByOwner = new HashMap<>();
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
@@ -196,7 +197,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             public void run() {
                 for (EnvironmentAreaSession session : new ArrayList<>(sessions.values())) {
                     if (session == null) continue;
+                    Player owner = Bukkit.getPlayer(session.ownerId());
+                    if (owner == null || !owner.isOnline() || !owner.getWorld().equals(session.world())) continue;
                     for (BuildingTemplate building : BUILDINGS) {
+                        Location marker = findMarker(session, building);
+                        if (marker == null || marker.distanceSquared(owner.getLocation()) > (28 * 28)) continue;
                         refreshBuildHologram(session, building.slot());
                     }
                 }
@@ -599,17 +604,39 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private List<Entity> buildHologramEntitiesForSlot(EnvironmentAreaSession session, BuildingTemplate building) {
+        Location marker = findMarker(session, building);
+        String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
+        List<String> lines = buildHologramLinesForSlot(session, building);
+        lastHologramLinesByTag.put(tag, new ArrayList<>(lines));
+        return spawnClickableHologram(marker, tag, lines);
+    }
+
+    private void refreshBuildHologram(EnvironmentAreaSession session, int slot) {
+        if (session == null) return;
+        BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
+        if (building == null) return;
+        String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot;
+        List<String> nextLines = buildHologramLinesForSlot(session, building);
+        List<String> previousLines = lastHologramLinesByTag.get(tag);
+        if (previousLines != null && previousLines.equals(nextLines)) {
+            return;
+        }
+        removeBuildHologram(session, tag);
+        session.holograms().addAll(spawnClickableHologram(findMarker(session, building), tag, nextLines));
+        lastHologramLinesByTag.put(tag, new ArrayList<>(nextLines));
+    }
+
+    private List<String> buildHologramLinesForSlot(EnvironmentAreaSession session, BuildingTemplate building) {
         Player owner = Bukkit.getPlayer(session.ownerId());
         UUID scoped = owner != null ? resolveProfileScopedId(owner) : scopedProfileId(session.ownerId(), 0);
         boolean isBuilt = loadBuiltSlots(scoped).contains(building.slot());
         String actionText = isBuilt ? "Level Up " : "Build ";
         String clickAction = isBuilt ? "to level up" : "to build";
-        Location marker = findMarker(session, building);
-        String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + building.slot();
         int currentLevel = owner != null ? resolveCurrentLevel(owner, building.slot()) : 0;
         int nextLevel = isBuilt ? (owner != null ? resolveNextLevel(owner, building.slot()) : 1) : 1;
         int cost = getUpgradeCostForSlotLevel(building.slot(), nextLevel);
         Map<Material, Integer> materialCosts = getMaterialCostsForSlotLevel(building.slot(), nextLevel);
+        boolean hasCoins = owner != null && plugin.getEconomyManager().getBalance(owner) >= cost;
         String levelLine = ChatColor.GOLD + "" + ChatColor.BOLD + "STAGE "
                 + ChatColor.YELLOW + currentLevel + " "
                 + ChatColor.GREEN + ">" + ChatColor.DARK_GREEN + ">"
@@ -621,22 +648,16 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         lines.add(ChatColor.DARK_GRAY + ChatColor.STRIKETHROUGH.toString() + "--------------------");
         lines.add(ChatColor.AQUA + "Requirements:");
         for (Map.Entry<Material, Integer> entry : materialCosts.entrySet()) {
-            lines.add(ChatColor.RED + "✘ " + ChatColor.WHITE + entry.getValue() + ChatColor.DARK_GRAY + "x "
+            boolean hasMaterial = owner != null && countInInventory(owner, entry.getKey()) >= entry.getValue();
+            lines.add((hasMaterial ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                    + ChatColor.WHITE + entry.getValue() + ChatColor.DARK_GRAY + "x "
                     + ChatColor.WHITE + materialDisplay(entry.getKey()));
         }
-        lines.add(ChatColor.RED + "✘ " + ChatColor.WHITE + cost + ChatColor.DARK_GRAY + "x " + ChatColor.GOLD + "<glyph:coins_icon>");
+        lines.add((hasCoins ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                + ChatColor.WHITE + cost + ChatColor.DARK_GRAY + "x " + ChatColor.GOLD + "<glyph:coins_icon>");
         lines.add(" ");
         lines.add(ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + clickAction);
-        return spawnClickableHologram(marker, tag, lines);
-    }
-
-    private void refreshBuildHologram(EnvironmentAreaSession session, int slot) {
-        if (session == null) return;
-        BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
-        if (building == null) return;
-        String tag = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot;
-        removeBuildHologram(session, tag);
-        session.holograms().addAll(buildHologramEntitiesForSlot(session, building));
+        return lines;
     }
 
     private Location findMarker(EnvironmentAreaSession session, BuildingTemplate building) {
@@ -1298,6 +1319,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (session == null || tag == null || tag.isBlank()) {
             return;
         }
+        lastHologramLinesByTag.remove(tag);
         session.holograms().removeIf(entity -> {
             if (entity == null || entity.isDead()) {
                 return true;
@@ -1816,6 +1838,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         cleanupEnvironmentAreaCitizensClones();
         sessions.clear();
         lastValidLocations.clear();
+        lastHologramLinesByTag.clear();
     }
 
     private void cleanupEnvironmentAreaCitizensClones() {
