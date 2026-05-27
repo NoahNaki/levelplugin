@@ -672,7 +672,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         entities.addAll(spawnHologramSegment(base, tag, lines, 0, requirementsStartIndex, 0, lineStep, false, sharedLeftAnchor));
         if (requirementsStartIndex <= requirementsEndIndex) {
             // Nudge requirement rows upward so they visually sit right under the "Requirements:" header.
-            entities.addAll(spawnHologramSegment(base, tag, lines, requirementsStartIndex, requirementsEndIndex + 1, 0.16d, lineStep, true, sharedLeftAnchor));
+            entities.addAll(spawnHologramSegment(base, tag, lines, requirementsStartIndex, requirementsEndIndex + 1, 0.30d, lineStep, true, sharedLeftAnchor));
         }
         entities.addAll(spawnHologramSegment(base, tag, lines, requirementsEndIndex + 1, lines.size(), 0, lineStep, false, sharedLeftAnchor));
         return entities;
