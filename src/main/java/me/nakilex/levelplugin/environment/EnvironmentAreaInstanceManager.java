@@ -697,6 +697,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         String actionText = isBuilt ? "Level Up " : "Build ";
         String clickAction = isBuilt ? "to level up" : "to build";
+        if (!isBuilt) {
+            currentLevel = 0;
+        }
         int nextLevel = isBuilt ? (owner != null ? resolveNextLevel(owner, building.slot()) : 1) : 1;
         if (isBuilt && (nextLevel <= currentLevel || nextLevel > maxLevelForSlot(building.slot()))) {
             return java.util.List.of(
@@ -732,7 +735,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private boolean isSlotBuilt(UUID scoped, int slot, int currentLevel) {
-        return loadBuiltSlots(scoped).contains(slot) || currentLevel > 0;
+        return loadBuiltSlots(scoped).contains(slot);
     }
 
     private Location findMarker(EnvironmentAreaSession session, BuildingTemplate building) {
