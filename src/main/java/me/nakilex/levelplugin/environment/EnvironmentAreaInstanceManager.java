@@ -1533,11 +1533,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private void showBuildingProgressToast(Player player, String buildingName, int level, Material icon, boolean leveledUp) {
         if (player == null || buildingName == null) return;
         String clean = buildingName.toLowerCase(Locale.ROOT).replace(' ', '_');
-        String verb = leveledUp ? "Upgraded " : "Built ";
+        String verb = leveledUp ? "Upgrade " : "Build ";
         AdvancementDisplay display = new AdvancementDisplay.Builder(icon == null ? Material.PAPER : icon)
                 .title(verb + buildingName)
-                .descriptionLine("Stage " + Math.max(1, level))
-                .frameType(leveledUp ? AdvancementDisplay.FrameType.GOAL : AdvancementDisplay.FrameType.TASK)
+                .descriptionLine("Level " + Math.max(1, level))
+                .frameType(AdvancementDisplay.FrameType.TASK)
                 .showToast(true)
                 .announceChat(false)
                 .build();
