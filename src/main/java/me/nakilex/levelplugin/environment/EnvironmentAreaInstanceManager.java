@@ -40,6 +40,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.block.BlockFromToEvent;
 import org.bukkit.event.block.FluidLevelChangeEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import net.kyori.adventure.text.Component;
@@ -86,6 +87,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new CoinVisual(100, Material.GOLD_NUGGET, "gold_coin"),
             new CoinVisual(10, Material.IRON_NUGGET, "iron_coin"),
             new CoinVisual(1, Material.COPPER_INGOT, "copper_coin")
+    );
+    private static final List<PaymentVisual> BLACKSMITH_MATERIAL_VISUALS = List.of(
+            new PaymentVisual(16, Material.EMERALD, null),
+            new PaymentVisual(12, Material.DIAMOND, null),
+            new PaymentVisual(7, Material.GOLD_INGOT, null),
+            new PaymentVisual(4, Material.IRON_INGOT, null),
+            new PaymentVisual(2, Material.COAL, null),
+            new PaymentVisual(1, Material.COBBLESTONE, null)
     );
 
     private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 330, -3145);
@@ -163,6 +172,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
     private final Map<UUID, Integer> farmBuildingLevelByProfile = new HashMap<>();
     private final Map<UUID, Integer> palaceBuildingLevelByProfile = new HashMap<>();
+    private final Map<UUID, Integer> blacksmithBuildingLevelByProfile = new HashMap<>();
+    private final Map<UUID, Integer> blacksmithInvestPointsByProfile = new HashMap<>();
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
     private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
     private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
@@ -883,6 +894,58 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 id -> plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.palace-building-level", 0));
     }
 
+    public int getBlacksmithBuildingLevel(Player player) {
+        if (player == null) return 1;
+        UUID scoped = resolveProfileScopedId(player);
+        return blacksmithBuildingLevelByProfile.computeIfAbsent(scoped,
+                id -> Math.max(1, plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.blacksmith-building-level", 1)));
+    }
+
+    public int getBlacksmithPointsToNextLevel(Player player) {
+        if (player == null) return 0;
+        int level = getBlacksmithBuildingLevel(player);
+        if (level >= 12) {
+            return 0;
+        }
+        UUID scoped = resolveProfileScopedId(player);
+        int current = blacksmithInvestPointsByProfile.computeIfAbsent(scoped,
+                id -> Math.max(0, plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.blacksmith-invest-points", 0)));
+        return Math.max(0, requiredPointsForLevel(level) - current);
+    }
+
+    public int investBlacksmithMaterials(Player player, Location destinationMarker) {
+        if (player == null) return 0;
+        UUID scoped = resolveProfileScopedId(player);
+        int level = getBlacksmithBuildingLevel(player);
+        if (level >= 12) return 0;
+
+        int added = 0;
+        for (PaymentVisual visual : BLACKSMITH_MATERIAL_VISUALS) {
+            int count = countInInventory(player, visual.material());
+            if (count <= 0) continue;
+            removeFromInventory(player, visual.material(), count);
+            added += count * visual.value();
+        }
+        if (added <= 0) return 0;
+
+        int current = blacksmithInvestPointsByProfile.computeIfAbsent(scoped,
+                id -> Math.max(0, plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.blacksmith-invest-points", 0)));
+        current += added;
+        int newLevel = level;
+        while (newLevel < 12 && current >= requiredPointsForLevel(newLevel)) {
+            current -= requiredPointsForLevel(newLevel);
+            newLevel++;
+        }
+        blacksmithInvestPointsByProfile.put(scoped, current);
+        setBlacksmithBuildingLevel(scoped, newLevel);
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.blacksmith-invest-points", current);
+        plugin.getPlayerConfig().saveConfigFile();
+        if (destinationMarker != null) {
+            playPaymentVisual(player, destinationMarker, BLACKSMITH_MATERIAL_VISUALS, added, Sound.BLOCK_CHAIN_PLACE);
+        }
+        return added;
+    }
+
     private void setFarmBuildingLevel(UUID scoped, int level) {
         int clamped = Math.max(0, Math.min(3, level));
         farmBuildingLevelByProfile.put(scoped, clamped);
@@ -915,6 +978,29 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         palaceBuildingLevelByProfile.put(scoped, clamped);
         plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.palace-building-level", clamped);
         plugin.getPlayerConfig().saveConfigFile();
+    }
+
+    private void setBlacksmithBuildingLevel(UUID scoped, int level) {
+        int clamped = Math.max(1, Math.min(12, level));
+        blacksmithBuildingLevelByProfile.put(scoped, clamped);
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.blacksmith-building-level", clamped);
+    }
+
+    private int requiredPointsForLevel(int level) {
+        return switch (level) {
+            case 1 -> 120;
+            case 2 -> 180;
+            case 3 -> 260;
+            case 4 -> 360;
+            case 5 -> 500;
+            case 6 -> 700;
+            case 7 -> 950;
+            case 8 -> 1250;
+            case 9 -> 1600;
+            case 10 -> 2000;
+            case 11 -> 2500;
+            default -> Integer.MAX_VALUE;
+        };
     }
 
     private int upgradePalaceLevel(Player player, UUID scoped) {
@@ -987,6 +1073,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private void playCoinPaymentVisual(Player player, Location destinationMarker, int amount) {
+        List<PaymentVisual> coinVisuals = PAYMENT_COIN_VISUALS.stream()
+                .map(v -> new PaymentVisual(v.value(), v.material(), v.modelId()))
+                .toList();
+        playPaymentVisual(player, destinationMarker, coinVisuals, amount, Sound.ENTITY_EXPERIENCE_ORB_PICKUP);
+    }
+
+    private void playPaymentVisual(Player player, Location destinationMarker, List<PaymentVisual> visuals, int amount, Sound pingSound) {
         if (player == null || destinationMarker == null || amount <= 0) {
             return;
         }
@@ -995,7 +1088,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         Location target = destinationMarker.clone().add(0.5, 1.0, 0.5);
-        List<CoinVisual> emissions = buildCoinVisualSequence(amount);
+        List<PaymentVisual> emissions = buildVisualSequence(amount, visuals);
         if (emissions.isEmpty()) {
             return;
         }
@@ -1008,34 +1101,36 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     return;
                 }
                 Location source = player.getLocation().clone().add(0.0, 1.1, 0.0);
-                CoinVisual visual = emissions.get(sent);
-                Item coin = world.dropItem(source, new org.bukkit.inventory.ItemStack(visual.material(), 1));
-                coin.setPickupDelay(Integer.MAX_VALUE);
-                coin.setCanMobPickup(false);
-                coin.setUnlimitedLifetime(false);
-                ModelEngineUtil.applyFirstAvailableModel(coin, java.util.List.of(visual.modelId()), plugin);
-                var vec = target.toVector().subtract(coin.getLocation().toVector());
+                PaymentVisual visual = emissions.get(sent);
+                Item drop = world.dropItem(source, new org.bukkit.inventory.ItemStack(visual.material(), 1));
+                drop.setPickupDelay(Integer.MAX_VALUE);
+                drop.setCanMobPickup(false);
+                drop.setUnlimitedLifetime(false);
+                if (visual.modelId() != null && !visual.modelId().isBlank()) {
+                    ModelEngineUtil.applyFirstAvailableModel(drop, java.util.List.of(visual.modelId()), plugin);
+                }
+                var vec = target.toVector().subtract(drop.getLocation().toVector());
                 if (vec.lengthSquared() > 0.001) {
-                    coin.setVelocity(vec.normalize().multiply(0.42));
+                    drop.setVelocity(vec.normalize().multiply(0.42));
                 }
                 Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                    if (coin.isValid()) {
-                        coin.remove();
+                    if (drop.isValid()) {
+                        drop.remove();
                     }
                 }, 12L);
-                world.playSound(target, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.45f, 1.5f + (sent * 0.01f));
+                world.playSound(target, pingSound, 0.45f, 1.5f + (sent * 0.01f));
                 sent++;
             }
         }.runTaskTimer(plugin, 0L, COIN_SEND_INTERVAL_TICKS);
     }
 
-    private List<CoinVisual> buildCoinVisualSequence(int amount) {
-        if (amount <= 0) {
+    private List<PaymentVisual> buildVisualSequence(int amount, List<PaymentVisual> visuals) {
+        if (amount <= 0 || visuals == null || visuals.isEmpty()) {
             return List.of();
         }
         int remaining = amount;
-        List<CoinVisual> sequence = new ArrayList<>();
-        for (CoinVisual visual : PAYMENT_COIN_VISUALS) {
+        List<PaymentVisual> sequence = new ArrayList<>();
+        for (PaymentVisual visual : visuals) {
             int count = remaining / visual.value();
             remaining %= visual.value();
             for (int i = 0; i < count; i++) {
@@ -1043,6 +1138,20 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         }
         return sequence;
+    }
+
+    private int countInInventory(Player player, Material material) {
+        int total = 0;
+        for (ItemStack stack : player.getInventory().getContents()) {
+            if (stack == null || stack.getType() != material) continue;
+            total += stack.getAmount();
+        }
+        return total;
+    }
+
+    private void removeFromInventory(Player player, Material material, int amount) {
+        if (amount <= 0) return;
+        player.getInventory().removeItem(new ItemStack(material, amount));
     }
 
     private void removeBuildHologram(EnvironmentAreaSession session, String tag) {
@@ -1485,6 +1594,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private record CoinVisual(int value, Material material, String modelId) { }
+    private record PaymentVisual(int value, Material material, String modelId) { }
 
     private record EnvironmentAreaSession(UUID ownerId,
                                           World world,

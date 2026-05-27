@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRerollManager;
+import me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.managers.ItemManager;
@@ -52,6 +53,7 @@ public class BlacksmithGUI implements Listener {
     private final Map<UUID, BlacksmithMode> openModes = new HashMap<>();
     private final List<GuiWidget> widgets;
     private final ItemStack filler = GuiUtil.createFiller(Material.GRAY_STAINED_GLASS_PANE);
+    private final EnvironmentAreaInstanceManager areaManager;
 
     private enum BlacksmithMode {
         UPGRADE,
@@ -66,6 +68,7 @@ public class BlacksmithGUI implements Listener {
         this.repairManager = repairManager;
         this.itemManager = itemManager;
         this.rerollManager = new ItemRerollManager();
+        this.areaManager = EnvironmentAreaInstanceManager.getInstance(Main.getInstance());
         this.widgets = buildWidgets();
     }
 
@@ -110,6 +113,9 @@ public class BlacksmithGUI implements Listener {
             if (getMode(context.player()) == BlacksmithMode.REPAIR) {
                 handleRepairAllClick(context.player());
                 context.inventory().setItem(0, createRepairAllButton(calculateTotalRepairCost(context.player())));
+            } else if (getMode(context.player()) == BlacksmithMode.UPGRADE) {
+                handleInvestMaterialsClick(context.player());
+                context.inventory().setItem(0, createInvestMaterialsButton(context.player()));
             }
         }));
         widgetList.add(new ActionWidget(22, context -> createActionItem(context), (click, context) -> {
@@ -204,10 +210,29 @@ public class BlacksmithGUI implements Listener {
     }
 
     private ItemStack createRepairAllWidget(GuiContext context) {
-        if (getMode(context.player()) != BlacksmithMode.REPAIR) {
-            return filler.clone();
+        return switch (getMode(context.player())) {
+            case REPAIR -> createRepairAllButton(calculateTotalRepairCost(context.player()));
+            case UPGRADE -> createInvestMaterialsButton(context.player());
+            default -> filler.clone();
+        };
+    }
+
+    private ItemStack createInvestMaterialsButton(Player player) {
+        int level = areaManager.getBlacksmithBuildingLevel(player);
+        int pointsToNext = areaManager.getBlacksmithPointsToNextLevel(player);
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "Invest mining materials");
+        lore.add(ChatColor.GRAY + "to level your blacksmith building.");
+        lore.add("");
+        lore.add(ChatColor.GRAY + "Level: " + ChatColor.WHITE + level + ChatColor.GRAY + " / 12");
+        lore.add(ChatColor.GRAY + "Upgradeable Rarity: " + ChatColor.WHITE + maxRarityNameForLevel(level));
+        if (level < 12) {
+            lore.add(ChatColor.GRAY + "Points to next level: " + ChatColor.WHITE + pointsToNext);
+            lore.addAll(me.nakilex.levelplugin.utils.TooltipUtil.clickInstructions("to invest all valid materials", null));
+        } else {
+            lore.add(ChatColor.GREEN + "Blacksmith is max level.");
         }
-        return createRepairAllButton(calculateTotalRepairCost(context.player()));
+        return GuiUtil.createGuiItem(Material.BLAST_FURNACE, ChatColor.GOLD + "Invest Materials", lore);
     }
 
     private ItemStack createUpgradeButton(int upgradeCost, int successChance) {
@@ -405,6 +430,11 @@ public class BlacksmithGUI implements Listener {
                     CustomItem ci = itemManager.getCustomItemFromItemStack(current);
                     if (ci == null) return createUpgradeButton(0, 0);
                     if (ci.getUpgradeLevel() >= 5) return createUpgradeButton(-1, 0);
+                    if (!canUpgradeByRarity(player, ci)) {
+                        return GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "Blacksmith Level Too Low",
+                                List.of(ChatColor.GRAY + "Current: " + ChatColor.WHITE + areaManager.getBlacksmithBuildingLevel(player),
+                                        ChatColor.GRAY + "Required: " + ChatColor.WHITE + requiredLevelForRarity(ci.getRarity())));
+                    }
                     int cost = TownPerkManager.getInstance().applyDiscount(
                             GuildManager.getInstance().getGuild(player.getUniqueId()),
                             TownPerk.BLACKSMITH_DISCOUNT,
@@ -420,6 +450,11 @@ public class BlacksmithGUI implements Listener {
                     if (ci == null) return;
                     if (ci.getUpgradeLevel() >= 5) {
                         send(player, MessageType.ERROR, "Item has reached the maximum upgrade level.");
+                        return;
+                    }
+                    if (!canUpgradeByRarity(player, ci)) {
+                        send(player, MessageType.ERROR, "Your blacksmith level is too low for this rarity. Need level "
+                                + requiredLevelForRarity(ci.getRarity()) + ".");
                         return;
                     }
                     int cost = TownPerkManager.getInstance().applyDiscount(
@@ -577,6 +612,49 @@ public class BlacksmithGUI implements Listener {
 
     private void updateActionButton(Player player, Inventory gui, BlacksmithMode mode) {
         gui.setItem(22, resolveOperation(mode).createActionButton(player, gui));
+        if (mode == BlacksmithMode.UPGRADE || mode == BlacksmithMode.REPAIR) {
+            gui.setItem(0, createRepairAllWidget(new GuiContext(player, gui)));
+        }
+    }
+
+    private void handleInvestMaterialsClick(Player player) {
+        int before = areaManager.getBlacksmithBuildingLevel(player);
+        int pointsAdded = areaManager.investBlacksmithMaterials(player, player.getLocation());
+        if (pointsAdded <= 0) {
+            send(player, MessageType.INFO, "You have no eligible mining materials to invest.");
+            return;
+        }
+        int after = areaManager.getBlacksmithBuildingLevel(player);
+        if (after > before) {
+            send(player, MessageType.SUCCESS, "Blacksmith level increased: " + before + " -> " + after + ".");
+        } else {
+            send(player, MessageType.SUCCESS, "Invested " + pointsAdded + " blacksmith points.");
+        }
+    }
+
+    private boolean canUpgradeByRarity(Player player, CustomItem item) {
+        int level = areaManager.getBlacksmithBuildingLevel(player);
+        return level >= requiredLevelForRarity(item.getRarity());
+    }
+
+    private int requiredLevelForRarity(me.nakilex.levelplugin.items.data.ItemRarity rarity) {
+        if (rarity == null) return 1;
+        return switch (rarity) {
+            case COMMON, UNCOMMON -> 1;
+            case RARE -> 3;
+            case EPIC -> 6;
+            case LEGENDARY -> 9;
+            case MYTHIC -> 11;
+            default -> 1;
+        };
+    }
+
+    private String maxRarityNameForLevel(int level) {
+        if (level >= 11) return "Mythic";
+        if (level >= 9) return "Legendary";
+        if (level >= 6) return "Epic";
+        if (level >= 3) return "Rare";
+        return "Uncommon";
     }
 
     private StatType materialToStat(Material mat) {
