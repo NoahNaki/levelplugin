@@ -636,17 +636,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private List<Entity> spawnClickableHologram(Location base, String tag, List<String> lines) {
         List<Entity> entities = new ArrayList<>();
-        int maxPixels = 0;
-        for (String line : lines) {
-            if (line == null) continue;
-            maxPixels = Math.max(maxPixels, me.nakilex.levelplugin.utils.ChatFormatter.pixelLength(line));
-        }
-        final float pixelsToTranslation = 0.0065f;
+        // Use a fixed anchor instead of per-line or width-derived shifts.
+        // Width-derived anchors still create perceived centering with billboard text.
+        final float sharedLeftAnchor = -0.40f;
         plugin.getLogger().info("[EnvironmentArea/HologramDebug] tag=" + tag
                 + " base=" + base.getBlockX() + "," + base.getBlockY() + "," + base.getBlockZ()
                 + " lineCount=" + lines.size()
-                + " maxPixels=" + maxPixels
-                + " billboard=CENTER align=LEFT lineWidth=320 pxToTrans=" + pixelsToTranslation);
+                + " billboard=CENTER align=LEFT lineWidth=320 fixedLeftAnchor=" + sharedLeftAnchor);
         Interaction clicker = base.getWorld().spawn(base.clone().add(0, -1.0, 0), Interaction.class, interaction -> {
             interaction.setInteractionWidth(4.5f);
             interaction.setInteractionHeight(5.5f);
@@ -661,9 +657,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             display.setAlignment(TextDisplay.TextAlignment.LEFT);
             display.setLineWidth(320);
             int linePixels = line == null ? 0 : me.nakilex.levelplugin.utils.ChatFormatter.pixelLength(line);
-            float xTranslation = -((maxPixels - linePixels) / 2.0f) * pixelsToTranslation;
             display.setTransformation(new Transformation(
-                    new Vector3f(xTranslation, 0f, 0f),
+                    new Vector3f(sharedLeftAnchor, 0f, 0f),
                     new AxisAngle4f(),
                     new Vector3f(1f, 1f, 1f),
                     new AxisAngle4f()
@@ -671,7 +666,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             plugin.getLogger().info("[EnvironmentArea/HologramDebug] line='"
                     + (line == null ? "" : ChatColor.stripColor(line))
                     + "' pixels=" + linePixels
-                    + " xTranslation=" + String.format(java.util.Locale.US, "%.4f", xTranslation)
+                    + " sharedLeftAnchor=" + String.format(java.util.Locale.US, "%.4f", sharedLeftAnchor)
                     + " yOffset=" + String.format(java.util.Locale.US, "%.2f", offset));
             display.setShadowRadius(0f);
             display.setShadowStrength(0f);
