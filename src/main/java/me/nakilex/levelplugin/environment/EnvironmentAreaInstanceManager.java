@@ -683,7 +683,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private List<String> buildHologramLinesForSlot(EnvironmentAreaSession session, BuildingTemplate building) {
         Player owner = Bukkit.getPlayer(session.ownerId());
         UUID scoped = owner != null ? resolveProfileScopedId(owner) : scopedProfileId(session.ownerId(), 0);
-        boolean isBuilt = loadBuiltSlots(scoped).contains(building.slot());
+        int currentLevel = owner != null ? resolveCurrentLevel(owner, building.slot()) : 0;
+        boolean isBuilt = isSlotBuilt(scoped, building.slot(), currentLevel);
         Long finishAt = getBuildFinishAt(scoped, building.slot());
         if (finishAt != null) {
             long remaining = Math.max(0, (finishAt - System.currentTimeMillis()) / 1000L);
@@ -691,12 +692,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     ChatColor.GOLD + "" + ChatColor.BOLD + "UPGRADING " + ChatColor.WHITE + building.displayName().toUpperCase(Locale.ROOT),
                     ChatColor.YELLOW + "Time Remaining: " + ChatColor.WHITE + SpeedUpScrollUtil.formatDuration(remaining),
                     " ",
-                    ChatColor.WHITE + "Right Click " + ChatColor.GRAY + "to speed up"
+                    ChatColor.WHITE + "Right Click " + ChatColor.GRAY + "with a Speed Up Scroll"
             );
         }
         String actionText = isBuilt ? "Level Up " : "Build ";
         String clickAction = isBuilt ? "to level up" : "to build";
-        int currentLevel = owner != null ? resolveCurrentLevel(owner, building.slot()) : 0;
         int nextLevel = isBuilt ? (owner != null ? resolveNextLevel(owner, building.slot()) : 1) : 1;
         if (isBuilt && (nextLevel <= currentLevel || nextLevel > maxLevelForSlot(building.slot()))) {
             return java.util.List.of(
@@ -729,6 +729,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         lines.add(" ");
         lines.add(ChatColor.WHITE + "Right Click " + ChatColor.GRAY + clickAction);
         return lines;
+    }
+
+    private boolean isSlotBuilt(UUID scoped, int slot, int currentLevel) {
+        return loadBuiltSlots(scoped).contains(slot) || currentLevel > 0;
     }
 
     private Location findMarker(EnvironmentAreaSession session, BuildingTemplate building) {
@@ -906,22 +910,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         UUID scoped = resolveProfileScopedId(player);
+        int currentLevel = resolveCurrentLevel(player, slot);
+        boolean isBuilt = isSlotBuilt(scoped, slot, currentLevel);
         Long finishAt = getBuildFinishAt(scoped, slot);
         if (finishAt != null && finishAt > System.currentTimeMillis()) {
-            long remaining = Math.max(0, (finishAt - System.currentTimeMillis()) / 1000L);
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    ChatColor.WHITE + building.displayName() + ChatColor.GRAY + " is already upgrading (" +
-                            ChatColor.WHITE + SpeedUpScrollUtil.formatDuration(remaining) + ChatColor.GRAY + " remaining).");
             refreshBuildHologram(session, slot);
             return;
         }
-        java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
-        if (builtSlots.contains(slot) && maxLevelForSlot(slot) <= 1) {
+        if (isBuilt && maxLevelForSlot(slot) <= 1) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     building.displayName() + " is already built.");
             return;
         }
-        int nextLevel = builtSlots.contains(slot) ? resolveNextLevel(player, slot) : 1;
+        int nextLevel = isBuilt ? resolveNextLevel(player, slot) : 1;
         if (nextLevel > maxLevelForSlot(slot)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     building.displayName() + " is already at max level.");
