@@ -11,6 +11,10 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.FireworkUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.advancement.AdvancementToastUtil;
+import me.nakilex.levelplugin.advancement.model.AdvancementDisplay;
+import me.nakilex.levelplugin.advancement.model.AdvancementKey;
+import me.nakilex.levelplugin.advancement.model.BaseAdvancement;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -1004,7 +1008,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (slot == 2 && builtSlots.contains(slot)) {
             int upgraded = upgradeBlacksmithLevel(player, scoped);
             if (upgraded > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Blacksmith" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                showBuildingProgressToast(player, "Blacksmith", upgraded, Material.ANVIL, true);
                 playUpgradeCelebration(player, findMarker(session, building));
                 if (upgraded >= 12) removeBuildHologram(session, tag);
                 else refreshBuildHologram(session, slot);
@@ -1014,7 +1018,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (slot == 4 && builtSlots.contains(slot)) {
             int upgraded = upgradePalaceLevel(player, scoped);
             if (upgraded > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Palace" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                showBuildingProgressToast(player, "Palace", upgraded, Material.STONE_BRICKS, true);
                 playUpgradeCelebration(player, findMarker(session, building));
                 if (upgraded >= 10) removeBuildHologram(session, tag);
                 else refreshBuildHologram(session, slot);
@@ -1024,7 +1028,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (slot == 5 && builtSlots.contains(slot)) {
             int upgraded = upgradeFarmLevel(player, scoped);
             if (upgraded > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Farm" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                showBuildingProgressToast(player, "Farm", upgraded, Material.HAY_BLOCK, true);
                 playUpgradeCelebration(player, findMarker(session, building));
                 if (upgraded >= 3) removeBuildHologram(session, tag);
                 else refreshBuildHologram(session, slot);
@@ -1492,14 +1496,34 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                             destinationArea.minX(), destinationArea.minY(), destinationArea.minZ(),
                             destinationArea.maxX(), destinationArea.maxY(), destinationArea.maxZ(),
                             8);
-                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                            "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
+                    int currentLevel = resolveCurrentLevel(player, building.slot());
+                    showBuildingProgressToast(player, building.displayName(), currentLevel, building.marker(), currentLevel > 1);
                     copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea);
                     if (onComplete != null) onComplete.run();
                     cancel();
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void showBuildingProgressToast(Player player, String buildingName, int level, Material icon, boolean leveledUp) {
+        if (player == null || buildingName == null) return;
+        String clean = buildingName.toLowerCase(Locale.ROOT).replace(' ', '_');
+        String verb = leveledUp ? "Upgraded " : "Built ";
+        AdvancementDisplay display = new AdvancementDisplay.Builder(icon == null ? Material.PAPER : icon)
+                .title(verb + buildingName)
+                .descriptionLine("Stage " + Math.max(1, level))
+                .frameType(leveledUp ? AdvancementDisplay.FrameType.GOAL : AdvancementDisplay.FrameType.TASK)
+                .showToast(true)
+                .announceChat(false)
+                .build();
+        BaseAdvancement toastAdvancement = new BaseAdvancement(
+                new AdvancementKey("kingdom_build", clean + "_stage_" + Math.max(1, level)),
+                display,
+                1,
+                null
+        );
+        AdvancementToastUtil.showToast(player, toastAdvancement);
     }
 
     private static int scaledBuildAnimationTicks(long baseTicks) {
