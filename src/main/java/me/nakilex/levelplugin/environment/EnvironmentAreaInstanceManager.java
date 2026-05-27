@@ -43,9 +43,12 @@ import org.bukkit.event.block.FluidLevelChangeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Transformation;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
+import org.joml.AxisAngle4f;
+import org.joml.Vector3f;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -643,9 +646,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         double offset = 0.0;
         for (String line : lines) {
             TextDisplay display = (TextDisplay) base.getWorld().spawnEntity(base.clone().add(0, offset, 0), EntityType.TEXT_DISPLAY);
-            display.setBillboard(Display.Billboard.FIXED);
+            display.setBillboard(Display.Billboard.CENTER);
             display.setAlignment(TextDisplay.TextAlignment.LEFT);
-            display.setLineWidth(260);
+            display.setLineWidth(320);
+            display.setTransformation(new Transformation(
+                    new Vector3f(-0.75f, 0f, 0f),
+                    new AxisAngle4f(),
+                    new Vector3f(1f, 1f, 1f),
+                    new AxisAngle4f()
+            ));
             display.setShadowRadius(0f);
             display.setShadowStrength(0f);
             display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
