@@ -150,7 +150,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|" + statUsage + ">");
             }
             return true;
         }
@@ -218,6 +218,28 @@ public class DebugCommand implements TabExecutor {
                 boolean bypass = EnvironmentManager.toggleDebugIgnoreBuildingMaterialCosts();
                 sender.sendMessage(ChatColor.YELLOW + "Building material requirement bypass "
                         + (bypass ? ChatColor.GREEN + "enabled" : ChatColor.RED + "disabled") + ChatColor.YELLOW + ".");
+                return true;
+            case "buildspeed":
+                if (args.length < 2) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                            "Build speed: " + ChatColor.WHITE + EnvironmentAreaInstanceManager.getBuildSpeedPercent()
+                                    + ChatColor.GRAY + "% (100% is default). Usage: /debug buildspeed <1-100>");
+                    return true;
+                }
+                int speedPercent;
+                try {
+                    speedPercent = Integer.parseInt(args[1]);
+                } catch (NumberFormatException ex) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Build speed must be a number from 1-100.");
+                    return true;
+                }
+                if (speedPercent < 1 || speedPercent > 100) {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Build speed must be between 1 and 100.");
+                    return true;
+                }
+                EnvironmentAreaInstanceManager.setBuildSpeedPercent(speedPercent);
+                ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
+                        "Build speed set to " + ChatColor.WHITE + EnvironmentAreaInstanceManager.getBuildSpeedPercent() + ChatColor.GREEN + "%.");
                 return true;
 
             case "expedition":
@@ -966,7 +988,7 @@ public class DebugCommand implements TabExecutor {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -1256,7 +1278,7 @@ public class DebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "buildmat", "cityowner", "kingdommax", "area", "autocast",
+            List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "buildmat", "buildspeed", "cityowner", "kingdommax", "area", "autocast",
                     "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
                     "particle", "particlepath", "particlepreset", "inventorydebug", "farmgrowthspeed", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
@@ -1283,6 +1305,10 @@ public class DebugCommand implements TabExecutor {
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("coinpull")) {
             return List.of("5", "10", "20", "32", "64").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("buildspeed")) {
+            return List.of("25", "50", "75", "100").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("gemdungeonsweep")) {

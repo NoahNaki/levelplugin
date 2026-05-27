@@ -86,6 +86,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
     private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
+    private static final int MIN_BUILD_SPEED_PERCENT = 1;
+    private static final int MAX_BUILD_SPEED_PERCENT = 100;
+    private static int buildSpeedPercent = 100;
     private static final long COIN_SEND_INTERVAL_TICKS = 2L;
     private static final List<CoinVisual> PAYMENT_COIN_VISUALS = List.of(
             new CoinVisual(100, Material.GOLD_NUGGET, "gold_coin"),
@@ -836,7 +839,17 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         UUID scoped = resolveProfileScopedId(player);
         java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
+        if (builtSlots.contains(slot) && maxLevelForSlot(slot) <= 1) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    building.displayName() + " is already built.");
+            return;
+        }
         int nextLevel = builtSlots.contains(slot) ? resolveNextLevel(player, slot) : 1;
+        if (nextLevel > maxLevelForSlot(slot)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    building.displayName() + " is already at max level.");
+            return;
+        }
         openBuildConfirm(player, tag, slot, building.displayName(), nextLevel);
     }
 
@@ -866,7 +879,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (slot == 2) return getBlacksmithBuildingLevel(player) + 1;
         if (slot == 4) return getPalaceBuildingLevel(player) + 1;
         if (slot == 5) return getFarmBuildingLevel(player) + 1;
-        return 2;
+        return 1;
     }
 
     private int resolveCurrentLevel(Player player, int slot) {
@@ -874,6 +887,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (slot == 4) return getPalaceBuildingLevel(player);
         if (slot == 5) return getFarmBuildingLevel(player);
         return loadBuiltSlots(resolveProfileScopedId(player)).contains(slot) ? 1 : 0;
+    }
+
+    private int maxLevelForSlot(int slot) {
+        if (slot == 2) return 12;
+        if (slot == 4) return 10;
+        if (slot == 5) return 3;
+        return 1;
     }
 
     private int getUpgradeCostForSlotLevel(int slot, int nextLevel) {
@@ -1366,7 +1386,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 + ", destMin=" + baseX + "," + baseY + "," + baseZ
                 + ", destMax=" + destinationArea.maxX() + "," + destinationArea.maxY() + "," + destinationArea.maxZ()
                 + ", blockCount=" + copies.size());
-        int blocksPerTick = Math.max(1, copies.size() / Math.max(1, BUILD_ANIMATION_TOTAL_TICKS));
+        int animationTicks = scaledBuildAnimationTicks();
+        int blocksPerTick = Math.max(1, copies.size() / animationTicks);
         new BukkitRunnable() {
             int index = 0;
 
@@ -1399,6 +1420,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private static int scaledBuildAnimationTicks() {
+        int speed = Math.max(MIN_BUILD_SPEED_PERCENT, Math.min(MAX_BUILD_SPEED_PERCENT, buildSpeedPercent));
+        return Math.max(1, (int) Math.round(BUILD_ANIMATION_TOTAL_TICKS * (100.0 / speed)));
+    }
+
+    public static int getBuildSpeedPercent() {
+        return buildSpeedPercent;
+    }
+
+    public static void setBuildSpeedPercent(int speedPercent) {
+        buildSpeedPercent = Math.max(MIN_BUILD_SPEED_PERCENT, Math.min(MAX_BUILD_SPEED_PERCENT, speedPercent));
     }
 
     private void copyCitizensNpcsIntoBuiltBuilding(EnvironmentAreaSession session,
