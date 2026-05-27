@@ -163,6 +163,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
+    private BukkitTask hologramRefreshTask;
     private final Map<UUID, AnimatedLeaderboard> animatedLeaderboardsByOwner = new HashMap<>();
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
@@ -183,6 +184,24 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
+        startHologramRefreshTask();
+    }
+
+    private void startHologramRefreshTask() {
+        if (hologramRefreshTask != null) {
+            hologramRefreshTask.cancel();
+        }
+        hologramRefreshTask = new BukkitRunnable() {
+            @Override
+            public void run() {
+                for (EnvironmentAreaSession session : new ArrayList<>(sessions.values())) {
+                    if (session == null) continue;
+                    for (BuildingTemplate building : BUILDINGS) {
+                        refreshBuildHologram(session, building.slot());
+                    }
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 40L);
     }
 
     public static EnvironmentAreaInstanceManager getInstance(Main plugin) {
@@ -1773,6 +1792,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     public void shutdown() {
+        if (hologramRefreshTask != null) {
+            hologramRefreshTask.cancel();
+            hologramRefreshTask = null;
+        }
         for (BukkitTask task : new ArrayList<>(activeBuildTasks.values())) {
             if (task != null) {
                 task.cancel();
