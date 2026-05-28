@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
@@ -54,6 +55,7 @@ public class WieldStyleDebugManager implements Listener {
     private final NamespacedKey debugHandleKey;
     private final Map<UUID, WieldSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, BukkitTask> randomSwingTasks = new ConcurrentHashMap<>();
+    private final Set<UUID> inputDebugPlayers = ConcurrentHashMap.newKeySet();
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
@@ -109,6 +111,7 @@ public class WieldStyleDebugManager implements Listener {
 
     public void disable(UUID playerId) {
         stopRandomTesting(playerId);
+        inputDebugPlayers.remove(playerId);
         WieldSession session = sessions.remove(playerId);
         if (session == null) {
             return;
@@ -147,6 +150,24 @@ public class WieldStyleDebugManager implements Listener {
 
     public boolean isRandomTestingEnabled(Player player) {
         return randomSwingTasks.containsKey(player.getUniqueId());
+    }
+
+    public boolean isInputDebugEnabled(Player player) {
+        return inputDebugPlayers.contains(player.getUniqueId());
+    }
+
+    public boolean toggleInputDebug(Player player) {
+        UUID playerId = player.getUniqueId();
+        if (!inputDebugPlayers.add(playerId)) {
+            inputDebugPlayers.remove(playerId);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Wield input debugging disabled.");
+            return false;
+        }
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Wield input debugging enabled. Click attempts will be logged to console.");
+        debugInput(player, "debug-toggle", "enabled");
+        return true;
     }
 
     public void toggleRandomTesting(Player player) {
@@ -299,37 +320,46 @@ public class WieldStyleDebugManager implements Listener {
                 + ", " + config.describe();
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onSwing(PlayerAnimationEvent event) {
         if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) {
             return;
         }
-        triggerSwing(event.getPlayer());
+        triggerSwing(event.getPlayer(), "animation", false);
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler
     public void onInteract(PlayerInteractEvent event) {
         Action action = event.getAction();
         if (action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK) {
             return;
         }
-        triggerSwing(event.getPlayer());
+        triggerSwing(event.getPlayer(), "interact:" + action.name().toLowerCase(Locale.ROOT), event.isCancelled());
     }
 
-    private void triggerSwing(Player player) {
+    private void triggerSwing(Player player, String source, boolean eventCancelled) {
         WieldSession session = sessions.get(player.getUniqueId());
         if (session == null) {
+            debugInput(player, source, "ignored=no-active-session, cancelled=" + eventCancelled);
             return;
         }
         long now = player.getWorld().getFullTime();
-        if (session.lastInputTick == now || now < session.nextAllowedSwingTick) {
+        if (session.lastInputTick == now) {
+            debugInput(player, source, "ignored=duplicate-same-tick, cancelled=" + eventCancelled);
+            return;
+        }
+        if (now < session.nextAllowedSwingTick) {
+            debugInput(player, source, "ignored=cooldown, remainingTicks=" + (session.nextAllowedSwingTick - now)
+                    + ", cancelled=" + eventCancelled);
             return;
         }
         session.lastInputTick = now;
-        startSwing(player, session, false, nextComboConfig(session));
+        WieldStylePreset preset = nextComboPreset(session);
+        debugInput(player, source, "accepted, preset=" + preset.id() + ", cancelled=" + eventCancelled);
+        startSwing(player, session, false, preset.config(), source);
     }
 
-    private WieldStyleConfig nextComboConfig(WieldSession session) {
+    private WieldStylePreset nextComboPreset(WieldSession session) {
         WieldStylePreset[] combo = {
                 WieldStylePreset.BASIC_ATTACK,
                 WieldStylePreset.BASIC_ATTACK_TWO,
@@ -338,7 +368,30 @@ public class WieldStyleDebugManager implements Listener {
         };
         WieldStylePreset preset = combo[session.comboIndex % combo.length];
         session.comboIndex = (session.comboIndex + 1) % combo.length;
-        return preset.config();
+        return preset;
+    }
+
+    private void debugInput(Player player, String source, String outcome) {
+        if (!isInputDebugEnabled(player)) {
+            return;
+        }
+        WieldSession session = sessions.get(player.getUniqueId());
+        long now = player.getWorld().getFullTime();
+        String state = session == null
+                ? "session=none"
+                : "session=active"
+                + ", swinging=" + session.swinging
+                + ", swingTask=" + (session.swingTask != null)
+                + ", displayValid=" + (session.display != null && !session.display.isDead())
+                + ", tick=" + now
+                + ", lastInputTick=" + session.lastInputTick
+                + ", nextAllowedSwingTick=" + session.nextAllowedSwingTick
+                + ", cooldownRemaining=" + Math.max(0L, session.nextAllowedSwingTick - now)
+                + ", comboIndex=" + session.comboIndex;
+        plugin.getLogger().info(() -> "[WieldStyleDebugInput] player=" + player.getName()
+                + ", source=" + source
+                + ", " + outcome
+                + ", " + state);
     }
 
     @EventHandler
@@ -392,20 +445,25 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     private void startSwing(Player player, WieldSession session, boolean force) {
-        startSwing(player, session, force, config.copy());
+        startSwing(player, session, force, config.copy(), force ? "force" : "manual");
     }
 
-    private void startSwing(Player player, WieldSession session, boolean force, WieldStyleConfig activeConfig) {
+    private void startSwing(Player player, WieldSession session, boolean force, WieldStyleConfig activeConfig, String source) {
         long now = player.getWorld().getFullTime();
         if (!force && now < session.nextAllowedSwingTick) {
+            debugInput(player, source, "start-blocked=cooldown, remainingTicks=" + (session.nextAllowedSwingTick - now));
             return;
         }
+        boolean cancelledPreviousTask = session.swingTask != null;
         if (session.swingTask != null) {
             session.swingTask.cancel();
         }
         session.swinging = true;
         session.nextAllowedSwingTick = now + activeConfig.cooldownTicks();
         session.display.setInterpolationDuration(Math.max(0, activeConfig.interpolationDuration()));
+        debugInput(player, source, "started, cancelledPreviousTask=" + cancelledPreviousTask
+                + ", cooldownTicks=" + activeConfig.cooldownTicks()
+                + ", swingTicks=" + activeConfig.swingTicks());
         session.swingTask = new BukkitRunnable() {
             private int tick = 0;
             private Pose returnStartPose;
@@ -439,6 +497,7 @@ public class WieldStyleDebugManager implements Listener {
                     session.swinging = false;
                     session.swingTask = null;
                     moveDisplay(session, idlePose(online, config));
+                    debugInput(online, source, "completed-return-to-idle");
                     cancel();
                 }
             }

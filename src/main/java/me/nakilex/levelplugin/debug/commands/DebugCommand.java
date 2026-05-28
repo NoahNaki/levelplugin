@@ -1266,7 +1266,7 @@ public class DebugCommand implements TabExecutor, Listener {
         }
         if (args.length < 2) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Usage: /debug wield <toggle|once|clear|handle|gui|random|preset <name>|material <material>|nexo <id|none>|status>");
+                    "Usage: /debug wield <toggle|once|clear|handle|gui|random|debug|preset <name>|material <material>|nexo <id|none>|status>");
             return;
         }
 
@@ -1281,11 +1281,13 @@ public class DebugCommand implements TabExecutor, Listener {
             case "handle" -> wieldStyleDebugManager.giveDebugHandle(player);
             case "gui" -> wieldStyleDebugGUI.open(player);
             case "random" -> wieldStyleDebugManager.toggleRandomTesting(player);
+            case "debug" -> wieldStyleDebugManager.toggleInputDebug(player);
             case "preset" -> handleWieldPreset(player, args);
             case "status" -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "Wield debug: " + wieldStyleDebugManager.describeSettings()
                             + ", enabled=" + wieldStyleDebugManager.isEnabled(player)
-                            + ", random=" + wieldStyleDebugManager.isRandomTestingEnabled(player));
+                            + ", random=" + wieldStyleDebugManager.isRandomTestingEnabled(player)
+                            + ", inputDebug=" + wieldStyleDebugManager.isInputDebugEnabled(player));
             case "material" -> {
                 if (args.length < 3) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
@@ -1316,7 +1318,7 @@ public class DebugCommand implements TabExecutor, Listener {
                                 ? "none" : wieldStyleDebugManager.getDefaultNexoModelId()) + ".");
             }
             default -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Unknown wield debug action. Use toggle, once, clear, handle, gui, random, preset, material, nexo, or status.");
+                    "Unknown wield debug action. Use toggle, once, clear, handle, gui, random, debug, preset, material, nexo, or status.");
         }
     }
 
@@ -1404,7 +1406,7 @@ public class DebugCommand implements TabExecutor, Listener {
                     .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("wield")) {
-            return List.of("toggle", "once", "clear", "handle", "gui", "random", "preset", "material", "nexo", "status").stream()
+            return List.of("toggle", "once", "clear", "handle", "gui", "random", "debug", "preset", "material", "nexo", "status").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("preset")) {
