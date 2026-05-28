@@ -1434,10 +1434,12 @@ public class DebugCommand implements TabExecutor, Listener {
         if (!(event.getWhoClicked() instanceof Player player)) return;
         if (!SPEEDUP_SCROLL_GUI_TITLE.equals(event.getView().getTitle())) return;
         event.setCancelled(true);
+        if (event.getRawSlot() < 0 || event.getRawSlot() >= event.getView().getTopInventory().getSize()) return;
         ItemStack clicked = event.getCurrentItem();
         if (clicked == null || clicked.getType().isAir() || !SpeedUpScrollUtil.isSpeedUpScroll(clicked)) return;
-        if (!event.isRightClick()) return;
-        player.getInventory().addItem(clicked.clone()).values().forEach(overflow ->
+        ItemStack grant = clicked.clone();
+        grant.setAmount(1);
+        player.getInventory().addItem(grant).values().forEach(overflow ->
                 player.getWorld().dropItemNaturally(player.getLocation(), overflow));
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Added " + ChatColor.WHITE + "Speed Up Scroll" + ChatColor.GREEN + ".");
     }

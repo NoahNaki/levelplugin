@@ -39,8 +39,9 @@ public final class SpeedUpScrollUtil {
         meta.setDisplayName(tier.rarity.getColor() + "Speed Up Scroll");
         List<String> lore = new ArrayList<>();
         lore.addAll(TooltipUtil.bulletList(
-                ChatColor.GRAY + "Skips " + ChatColor.WHITE + formatDuration(tier.seconds) + ChatColor.GRAY + " of build time.",
-                ChatColor.YELLOW + "Hold in hand and right-click build hologram"));
+                "Skips " + ChatColor.WHITE + formatDuration(tier.seconds) + ChatColor.GRAY + " of build time."));
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to claim one", "to claim one"));
         lore.add(TooltipUtil.rarityGlyphLine(tier.rarity, "scroll"));
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
