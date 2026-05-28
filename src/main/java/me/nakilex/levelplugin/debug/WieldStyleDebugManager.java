@@ -443,8 +443,7 @@ public class WieldStyleDebugManager implements Listener {
                 .add(basis.up().multiply(config.idleUpOffset()));
         location.setYaw(player.getLocation().getYaw() + (float) config.idleYawOffset());
         location.setPitch((float) config.idlePitch());
-        return new Pose(location, config.idleLeftRotation(), config.idleRightRotation(),
-                config.idleRollRotation(), (float) config.scale());
+        return new Pose(location, config.idleLeftRotation(), config.idleRightRotation(), (float) config.scale());
     }
 
     private Pose swingPose(Player player, double progress, WieldStyleConfig config) {
@@ -462,7 +461,6 @@ public class WieldStyleDebugManager implements Listener {
         return new Pose(location,
                 config.swingLeftRotationStart() + (config.swingLeftRotationSweep() * progress),
                 config.swingRightRotationStart() + (config.swingRightRotationSweep() * progress),
-                config.swingRollRotation(),
                 (float) config.scale());
     }
 
@@ -476,14 +474,11 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     private void applyTransformation(ItemDisplay display, Pose pose) {
-        AxisAngle4f rightRotation = Math.abs(pose.rollRotationDegrees()) > 0.001
-                ? new AxisAngle4f((float) Math.toRadians(pose.rollRotationDegrees()), 0f, 0f, 1f)
-                : new AxisAngle4f((float) Math.toRadians(pose.rightRotationDegrees()), 0f, 1f, 0f);
         display.setTransformation(new Transformation(
                 new Vector3f(),
                 new AxisAngle4f((float) Math.toRadians(pose.leftRotationDegrees()), 1f, 0f, 0f),
                 new Vector3f(pose.scale(), pose.scale(), pose.scale()),
-                rightRotation
+                new AxisAngle4f((float) Math.toRadians(pose.rightRotationDegrees()), 0f, 1f, 0f)
         ));
     }
 
@@ -501,8 +496,7 @@ public class WieldStyleDebugManager implements Listener {
                 .toList();
     }
 
-    private record Pose(Location location, double leftRotationDegrees, double rightRotationDegrees,
-                        double rollRotationDegrees, float scale) {
+    private record Pose(Location location, double leftRotationDegrees, double rightRotationDegrees, float scale) {
     }
 
     private record Basis(Vector forward, Vector right, Vector up) {
@@ -554,15 +548,14 @@ public class WieldStyleDebugManager implements Listener {
                         55.0, 155.0, 0.64, 0.56, -0.10, 1.08, 0.24,
                         52.0, -72.0, -18.0, 38.0, -16.0, 36.0, -122.0, 58.0)),
         HORIZONTAL_CUT("horizontal_cut", "Horizontal Cut",
-                "Simple right-to-left slash with the blade rolled sideways and no end-pose twist.",
-                new WieldStyleConfig(16, 12, 1, 0.82,
-                        1.12, 0.34, -0.28, 162.0, -12.0, 0.0, 0.0,
-                        0.0, 180.0, 0.95,
-                        0.0, -0.05, 1.25,
-                        0.25, 145.0, 0.0,
-                        -12.0, 0.0, 0.0,
-                        0.0, 0.0, 0.0,
-                        90.0, 90.0)),
+                "Overhead slash motion reused from a side angle for a horizontal cut.",
+                new WieldStyleConfig(16, 17, 1, 0.82,
+                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        0.0, 180.0, 0.9877825861829582,
+                        0.15980664918631562, 0.036862218691507104, 1.2711515689082424,
+                        0.4006004088814077, -41.38846296298364, 48.91458472939911,
+                        -53.61977811440525, 81.38337452682886, -66.83012338117723,
+                        132.66759822330394, 99.1515139506437, -30.49929654416185)),
         OVERHEAD_SLASH("overhead_slash", "Overhead Slash",
                 "High-to-low chop for heavier weapons.",
                 new WieldStyleConfig(16, 17, 1, 0.82,
@@ -668,7 +661,6 @@ public class WieldStyleDebugManager implements Listener {
         private double idlePitch;
         private double idleLeftRotation;
         private double idleRightRotation;
-        private double idleRollRotation;
         private double swingAngleStart;
         private double swingAngleSweep;
         private double swingSideRadius;
@@ -684,7 +676,6 @@ public class WieldStyleDebugManager implements Listener {
         private double swingLeftRotationSweep;
         private double swingRightRotationStart;
         private double swingRightRotationSweep;
-        private double swingRollRotation;
 
         public WieldStyleConfig(int cooldownTicks, int swingTicks, int interpolationDuration, double scale,
                                 double idleDistance, double idleRightOffset, double idleUpOffset,
@@ -695,25 +686,6 @@ public class WieldStyleDebugManager implements Listener {
                                 double swingYawSweep, double swingPitchStart, double swingPitchSweep,
                                 double swingLeftRotationStart, double swingLeftRotationSweep,
                                 double swingRightRotationStart, double swingRightRotationSweep) {
-            this(cooldownTicks, swingTicks, interpolationDuration, scale,
-                    idleDistance, idleRightOffset, idleUpOffset, idleYawOffset, idlePitch,
-                    idleLeftRotation, idleRightRotation, swingAngleStart, swingAngleSweep,
-                    swingSideRadius, swingUpRadius, swingUpOffset, swingForwardBase, swingForwardPeak,
-                    swingYawStart, swingYawSweep, swingPitchStart, swingPitchSweep,
-                    swingLeftRotationStart, swingLeftRotationSweep, swingRightRotationStart, swingRightRotationSweep,
-                    0.0, 0.0);
-        }
-
-        public WieldStyleConfig(int cooldownTicks, int swingTicks, int interpolationDuration, double scale,
-                                double idleDistance, double idleRightOffset, double idleUpOffset,
-                                double idleYawOffset, double idlePitch, double idleLeftRotation,
-                                double idleRightRotation, double swingAngleStart, double swingAngleSweep,
-                                double swingSideRadius, double swingUpRadius, double swingUpOffset,
-                                double swingForwardBase, double swingForwardPeak, double swingYawStart,
-                                double swingYawSweep, double swingPitchStart, double swingPitchSweep,
-                                double swingLeftRotationStart, double swingLeftRotationSweep,
-                                double swingRightRotationStart, double swingRightRotationSweep,
-                                double idleRollRotation, double swingRollRotation) {
             this.cooldownTicks = Math.max(1, cooldownTicks);
             this.swingTicks = Math.max(2, swingTicks);
             this.interpolationDuration = Math.max(0, interpolationDuration);
@@ -725,7 +697,6 @@ public class WieldStyleDebugManager implements Listener {
             this.idlePitch = idlePitch;
             this.idleLeftRotation = idleLeftRotation;
             this.idleRightRotation = idleRightRotation;
-            this.idleRollRotation = idleRollRotation;
             this.swingAngleStart = swingAngleStart;
             this.swingAngleSweep = swingAngleSweep;
             this.swingSideRadius = swingSideRadius;
@@ -741,7 +712,6 @@ public class WieldStyleDebugManager implements Listener {
             this.swingLeftRotationSweep = swingLeftRotationSweep;
             this.swingRightRotationStart = swingRightRotationStart;
             this.swingRightRotationSweep = swingRightRotationSweep;
-            this.swingRollRotation = swingRollRotation;
         }
 
         public static WieldStyleConfig defaultConfig() {
@@ -758,7 +728,7 @@ public class WieldStyleDebugManager implements Listener {
                     swingSideRadius, swingUpRadius, swingUpOffset, swingForwardBase,
                     swingForwardPeak, swingYawStart, swingYawSweep, swingPitchStart,
                     swingPitchSweep, swingLeftRotationStart, swingLeftRotationSweep,
-                    swingRightRotationStart, swingRightRotationSweep, idleRollRotation, swingRollRotation);
+                    swingRightRotationStart, swingRightRotationSweep);
         }
 
         public void randomizeSwingValues(ThreadLocalRandom random) {
@@ -796,7 +766,6 @@ public class WieldStyleDebugManager implements Listener {
                     + ", idlePitch=" + idlePitch
                     + ", idleLeftRotation=" + idleLeftRotation
                     + ", idleRightRotation=" + idleRightRotation
-                    + ", idleRollRotation=" + idleRollRotation
                     + ", swingAngleStart=" + swingAngleStart
                     + ", swingAngleSweep=" + swingAngleSweep
                     + ", swingSideRadius=" + swingSideRadius
@@ -811,8 +780,7 @@ public class WieldStyleDebugManager implements Listener {
                     + ", swingLeftRotationStart=" + swingLeftRotationStart
                     + ", swingLeftRotationSweep=" + swingLeftRotationSweep
                     + ", swingRightRotationStart=" + swingRightRotationStart
-                    + ", swingRightRotationSweep=" + swingRightRotationSweep
-                    + ", swingRollRotation=" + swingRollRotation;
+                    + ", swingRightRotationSweep=" + swingRightRotationSweep;
         }
 
         public int cooldownTicks() { return cooldownTicks; }
@@ -837,8 +805,6 @@ public class WieldStyleDebugManager implements Listener {
         public void setIdleLeftRotation(double idleLeftRotation) { this.idleLeftRotation = idleLeftRotation; }
         public double idleRightRotation() { return idleRightRotation; }
         public void setIdleRightRotation(double idleRightRotation) { this.idleRightRotation = idleRightRotation; }
-        public double idleRollRotation() { return idleRollRotation; }
-        public void setIdleRollRotation(double idleRollRotation) { this.idleRollRotation = idleRollRotation; }
         public double swingAngleStart() { return swingAngleStart; }
         public void setSwingAngleStart(double swingAngleStart) { this.swingAngleStart = swingAngleStart; }
         public double swingAngleSweep() { return swingAngleSweep; }
@@ -869,7 +835,5 @@ public class WieldStyleDebugManager implements Listener {
         public void setSwingRightRotationStart(double swingRightRotationStart) { this.swingRightRotationStart = swingRightRotationStart; }
         public double swingRightRotationSweep() { return swingRightRotationSweep; }
         public void setSwingRightRotationSweep(double swingRightRotationSweep) { this.swingRightRotationSweep = swingRightRotationSweep; }
-        public double swingRollRotation() { return swingRollRotation; }
-        public void setSwingRollRotation(double swingRollRotation) { this.swingRollRotation = swingRollRotation; }
     }
 }
