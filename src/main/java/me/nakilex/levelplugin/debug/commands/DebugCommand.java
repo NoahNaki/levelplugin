@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.WieldStyleDebugManager;
+import me.nakilex.levelplugin.debug.gui.WieldStyleDebugGUI;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.gui.StrongholdAssetDebugGUI;
 import me.nakilex.levelplugin.debug.gui.StrongholdTemplateDebugGUI;
@@ -116,6 +117,7 @@ public class DebugCommand implements TabExecutor, Listener {
     private final QuestManager questManager;
     private final ArcSlashDebugManager arcSlashDebugManager;
     private final WieldStyleDebugManager wieldStyleDebugManager;
+    private final WieldStyleDebugGUI wieldStyleDebugGUI;
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
 
@@ -131,6 +133,7 @@ public class DebugCommand implements TabExecutor, Listener {
                         QuestManager questManager,
                         ArcSlashDebugManager arcSlashDebugManager,
                         WieldStyleDebugManager wieldStyleDebugManager,
+                        WieldStyleDebugGUI wieldStyleDebugGUI,
                         ArcSlashDebugGUI arcSlashDebugGUI,
                         PetManager petManager) {
         this.mobDebugManager = mobDebugManager;
@@ -145,6 +148,7 @@ public class DebugCommand implements TabExecutor, Listener {
         this.questManager = questManager;
         this.arcSlashDebugManager = arcSlashDebugManager;
         this.wieldStyleDebugManager = wieldStyleDebugManager;
+        this.wieldStyleDebugGUI = wieldStyleDebugGUI;
         this.arcSlashDebugGUI = arcSlashDebugGUI;
         this.petManager = petManager;
         this.environmentAreaInstanceManager = EnvironmentAreaInstanceManager.getInstance(Main.getInstance());
@@ -1261,7 +1265,7 @@ public class DebugCommand implements TabExecutor, Listener {
         }
         if (args.length < 2) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Usage: /debug wield <toggle|once|clear|handle|material <material>|nexo <id|none>|cooldown <ticks>|swingticks <ticks>|status>");
+                    "Usage: /debug wield <toggle|once|clear|handle|gui|material <material>|nexo <id|none>|cooldown <ticks>|swingticks <ticks>|status>");
             return;
         }
 
@@ -1274,6 +1278,7 @@ public class DebugCommand implements TabExecutor, Listener {
                         "Cleared all custom wield debug displays.");
             }
             case "handle" -> wieldStyleDebugManager.giveDebugHandle(player);
+            case "gui" -> wieldStyleDebugGUI.open(player);
             case "status" -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "Wield debug: " + wieldStyleDebugManager.describeSettings()
                             + ", enabled=" + wieldStyleDebugManager.isEnabled(player));
@@ -1321,7 +1326,7 @@ public class DebugCommand implements TabExecutor, Listener {
                         "Wield preview swing length set to " + ticks + " ticks.");
             }
             default -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Unknown wield debug action. Use toggle, once, clear, handle, material, nexo, cooldown, swingticks, or status.");
+                    "Unknown wield debug action. Use toggle, once, clear, handle, gui, material, nexo, cooldown, swingticks, or status.");
         }
     }
 
@@ -1412,7 +1417,7 @@ public class DebugCommand implements TabExecutor, Listener {
                     .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("wield")) {
-            return List.of("toggle", "once", "clear", "handle", "material", "nexo", "cooldown", "swingticks", "status").stream()
+            return List.of("toggle", "once", "clear", "handle", "gui", "material", "nexo", "cooldown", "swingticks", "status").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("material")) {

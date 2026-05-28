@@ -40,26 +40,17 @@ import org.joml.Vector3f;
  *
  * <p>The manager intentionally keeps the visual weapon separate from combat
  * logic: a lightweight {@link ItemDisplay} follows the player's view while
- * enabled, then left-clicking animates it through a slash arc. This gives us a
- * reusable place to tune the presentation before wiring it into real weapon
- * hit windows and damage rules.</p>
+ * enabled, then left-clicking animates it through a slash arc. All pose values
+ * are held in a runtime config so the debug GUI can tune the swing in game.</p>
  */
 public class WieldStyleDebugManager implements Listener {
-    private static final int DEFAULT_COOLDOWN_TICKS = 12;
-    private static final int DEFAULT_SWING_TICKS = 8;
-    private static final double IDLE_DISTANCE = 1.05;
-    private static final double IDLE_RIGHT_OFFSET = 0.42;
-    private static final double IDLE_UP_OFFSET = -0.38;
-    private static final float DISPLAY_SCALE = 0.75f;
-
     private final Main plugin;
     private final NamespacedKey debugHandleKey;
     private final Map<UUID, WieldSession> sessions = new ConcurrentHashMap<>();
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
-    private int cooldownTicks = DEFAULT_COOLDOWN_TICKS;
-    private int swingTicks = DEFAULT_SWING_TICKS;
+    private WieldStyleConfig config = WieldStyleConfig.defaultConfig();
 
     public WieldStyleDebugManager(Main plugin) {
         this.plugin = plugin;
@@ -92,7 +83,7 @@ public class WieldStyleDebugManager implements Listener {
                     return;
                 }
                 if (!session.swinging) {
-                    moveDisplay(session, idlePose(online));
+                    moveDisplay(session, idlePose(online, config));
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
@@ -195,26 +186,51 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public void setCooldownTicks(int cooldownTicks) {
-        this.cooldownTicks = Math.max(1, cooldownTicks);
+        WieldStyleConfig copy = config();
+        copy.setCooldownTicks(cooldownTicks);
+        applyConfig(copy);
     }
 
     public int getCooldownTicks() {
-        return cooldownTicks;
+        return config.cooldownTicks();
     }
 
     public void setSwingTicks(int swingTicks) {
-        this.swingTicks = Math.max(2, swingTicks);
+        WieldStyleConfig copy = config();
+        copy.setSwingTicks(swingTicks);
+        applyConfig(copy);
     }
 
     public int getSwingTicks() {
-        return swingTicks;
+        return config.swingTicks();
+    }
+
+    public WieldStyleConfig config() {
+        return config.copy();
+    }
+
+    public void applyConfig(WieldStyleConfig config) {
+        this.config = config.copy();
+        for (WieldSession session : sessions.values()) {
+            Player player = plugin.getServer().getPlayer(session.playerId);
+            if (player != null && player.isOnline() && !session.swinging) {
+                moveDisplay(session, idlePose(player, this.config));
+            }
+        }
+    }
+
+    public void resetConfig() {
+        applyConfig(WieldStyleConfig.defaultConfig());
+    }
+
+    public void logConfig(WieldStyleConfig config) {
+        plugin.getLogger().info(() -> "[WieldStyleDebug] " + config.describe());
     }
 
     public String describeSettings() {
         return "material=" + defaultMaterial
                 + ", nexo=" + (defaultNexoModelId == null ? "none" : defaultNexoModelId)
-                + ", cooldownTicks=" + cooldownTicks
-                + ", swingTicks=" + swingTicks;
+                + ", " + config.describe();
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -264,7 +280,7 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     private ItemDisplay spawnDisplay(Player player, ItemStack item) {
-        Pose pose = idlePose(player);
+        Pose pose = idlePose(player, config);
         World world = player.getWorld();
         return world.spawn(pose.location(), ItemDisplay.class, display -> {
             display.setItemStack(item);
@@ -274,13 +290,14 @@ public class WieldStyleDebugManager implements Listener {
             display.setPersistent(false);
             display.setSilent(true);
             display.setInterpolationDelay(0);
-            display.setInterpolationDuration(1);
+            display.setInterpolationDuration(Math.max(0, config.interpolationDuration()));
             applyTransformation(display, pose);
         });
     }
 
     private void startSwing(Player player, WieldSession session, boolean force) {
         long now = player.getWorld().getFullTime();
+        WieldStyleConfig activeConfig = config.copy();
         if (!force && now < session.nextAllowedSwingTick) {
             long remaining = session.nextAllowedSwingTick - now;
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
@@ -291,7 +308,8 @@ public class WieldStyleDebugManager implements Listener {
             session.swingTask.cancel();
         }
         session.swinging = true;
-        session.nextAllowedSwingTick = now + cooldownTicks;
+        session.nextAllowedSwingTick = now + activeConfig.cooldownTicks();
+        session.display.setInterpolationDuration(Math.max(0, activeConfig.interpolationDuration()));
         session.swingTask = new BukkitRunnable() {
             private int tick = 0;
 
@@ -303,47 +321,46 @@ public class WieldStyleDebugManager implements Listener {
                     cancel();
                     return;
                 }
-                int total = Math.max(2, swingTicks);
+                int total = Math.max(2, activeConfig.swingTicks());
                 double progress = Math.min(1.0, tick / (double) (total - 1));
-                moveDisplay(session, swingPose(online, easeOut(progress)));
+                moveDisplay(session, swingPose(online, easeOut(progress), activeConfig));
                 tick++;
                 if (tick >= total) {
                     session.swinging = false;
-                    moveDisplay(session, idlePose(online));
+                    moveDisplay(session, idlePose(online, config));
                     cancel();
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
-    private Pose idlePose(Player player) {
+    private Pose idlePose(Player player, WieldStyleConfig config) {
         Basis basis = Basis.from(player);
         Location location = player.getEyeLocation().clone()
-                .add(basis.forward().multiply(IDLE_DISTANCE))
-                .add(basis.right().multiply(IDLE_RIGHT_OFFSET))
-                .add(basis.up().multiply(IDLE_UP_OFFSET));
-        location.setYaw(player.getLocation().getYaw() - 35.0f);
-        location.setPitch(-8.0f);
-        return new Pose(location, 0.0, -35.0, 35.0, DISPLAY_SCALE);
+                .add(basis.forward().multiply(config.idleDistance()))
+                .add(basis.right().multiply(config.idleRightOffset()))
+                .add(basis.up().multiply(config.idleUpOffset()));
+        location.setYaw(player.getLocation().getYaw() + (float) config.idleYawOffset());
+        location.setPitch((float) config.idlePitch());
+        return new Pose(location, config.idleLeftRotation(), config.idleRightRotation(), (float) (float) config.scale());
     }
 
-    private Pose swingPose(Player player, double progress) {
+    private Pose swingPose(Player player, double progress, WieldStyleConfig config) {
         Basis basis = Basis.from(player);
-        double angle = Math.toRadians(-85.0 + (190.0 * progress));
-        double side = Math.cos(angle) * 0.72;
-        double up = Math.sin(angle) * 0.62 - 0.16;
-        double forwardDistance = 1.0 + Math.sin(progress * Math.PI) * 0.55;
+        double angle = Math.toRadians(config.swingAngleStart() + (config.swingAngleSweep() * progress));
+        double side = Math.cos(angle) * config.swingSideRadius();
+        double up = Math.sin(angle) * config.swingUpRadius() + config.swingUpOffset();
+        double forwardDistance = config.swingForwardBase() + Math.sin(progress * Math.PI) * config.swingForwardPeak();
         Location location = player.getEyeLocation().clone()
                 .add(basis.forward().multiply(forwardDistance))
                 .add(basis.right().multiply(side))
                 .add(basis.up().multiply(up));
-        location.setYaw(player.getLocation().getYaw() + (float) (-115.0 + (230.0 * progress)));
-        location.setPitch((float) (-30.0 + (80.0 * progress)));
+        location.setYaw(player.getLocation().getYaw() + (float) (config.swingYawStart() + (config.swingYawSweep() * progress)));
+        location.setPitch((float) (config.swingPitchStart() + (config.swingPitchSweep() * progress)));
         return new Pose(location,
-                -35.0 + (95.0 * progress),
-                -80.0 + (160.0 * progress),
-                95.0 - (190.0 * progress),
-                DISPLAY_SCALE);
+                config.swingLeftRotationStart() + (config.swingLeftRotationSweep() * progress),
+                config.swingRightRotationStart() + (config.swingRightRotationSweep() * progress),
+                (float) config.scale());
     }
 
     private void moveDisplay(WieldSession session, Pose pose) {
@@ -351,6 +368,7 @@ public class WieldStyleDebugManager implements Listener {
             return;
         }
         session.display.teleport(pose.location());
+        session.display.setInterpolationDuration(Math.max(0, config.interpolationDuration()));
         applyTransformation(session.display, pose);
     }
 
@@ -377,8 +395,7 @@ public class WieldStyleDebugManager implements Listener {
                 .toList();
     }
 
-    private record Pose(Location location, double leftRotationDegrees, double yawOffsetDegrees,
-                        double rightRotationDegrees, float scale) {
+    private record Pose(Location location, double leftRotationDegrees, double rightRotationDegrees, float scale) {
     }
 
     private record Basis(Vector forward, Vector right, Vector up) {
@@ -405,5 +422,170 @@ public class WieldStyleDebugManager implements Listener {
             this.display = display;
             this.visualItem = visualItem;
         }
+    }
+
+    public static class WieldStyleConfig {
+        private int cooldownTicks;
+        private int swingTicks;
+        private int interpolationDuration;
+        private double scale;
+        private double idleDistance;
+        private double idleRightOffset;
+        private double idleUpOffset;
+        private double idleYawOffset;
+        private double idlePitch;
+        private double idleLeftRotation;
+        private double idleRightRotation;
+        private double swingAngleStart;
+        private double swingAngleSweep;
+        private double swingSideRadius;
+        private double swingUpRadius;
+        private double swingUpOffset;
+        private double swingForwardBase;
+        private double swingForwardPeak;
+        private double swingYawStart;
+        private double swingYawSweep;
+        private double swingPitchStart;
+        private double swingPitchSweep;
+        private double swingLeftRotationStart;
+        private double swingLeftRotationSweep;
+        private double swingRightRotationStart;
+        private double swingRightRotationSweep;
+
+        public WieldStyleConfig(int cooldownTicks, int swingTicks, int interpolationDuration, double scale,
+                                double idleDistance, double idleRightOffset, double idleUpOffset,
+                                double idleYawOffset, double idlePitch, double idleLeftRotation,
+                                double idleRightRotation, double swingAngleStart, double swingAngleSweep,
+                                double swingSideRadius, double swingUpRadius, double swingUpOffset,
+                                double swingForwardBase, double swingForwardPeak, double swingYawStart,
+                                double swingYawSweep, double swingPitchStart, double swingPitchSweep,
+                                double swingLeftRotationStart, double swingLeftRotationSweep,
+                                double swingRightRotationStart, double swingRightRotationSweep) {
+            this.cooldownTicks = Math.max(1, cooldownTicks);
+            this.swingTicks = Math.max(2, swingTicks);
+            this.interpolationDuration = Math.max(0, interpolationDuration);
+            this.scale = scale;
+            this.idleDistance = idleDistance;
+            this.idleRightOffset = idleRightOffset;
+            this.idleUpOffset = idleUpOffset;
+            this.idleYawOffset = idleYawOffset;
+            this.idlePitch = idlePitch;
+            this.idleLeftRotation = idleLeftRotation;
+            this.idleRightRotation = idleRightRotation;
+            this.swingAngleStart = swingAngleStart;
+            this.swingAngleSweep = swingAngleSweep;
+            this.swingSideRadius = swingSideRadius;
+            this.swingUpRadius = swingUpRadius;
+            this.swingUpOffset = swingUpOffset;
+            this.swingForwardBase = swingForwardBase;
+            this.swingForwardPeak = swingForwardPeak;
+            this.swingYawStart = swingYawStart;
+            this.swingYawSweep = swingYawSweep;
+            this.swingPitchStart = swingPitchStart;
+            this.swingPitchSweep = swingPitchSweep;
+            this.swingLeftRotationStart = swingLeftRotationStart;
+            this.swingLeftRotationSweep = swingLeftRotationSweep;
+            this.swingRightRotationStart = swingRightRotationStart;
+            this.swingRightRotationSweep = swingRightRotationSweep;
+        }
+
+        public static WieldStyleConfig defaultConfig() {
+            return new WieldStyleConfig(12, 8, 1, 0.75,
+                    1.05, 0.42, -0.38, -35.0, -8.0, 0.0, 35.0,
+                    -85.0, 190.0, 0.72, 0.62, -0.16, 1.0, 0.55,
+                    -115.0, 230.0, -30.0, 80.0, -35.0, 95.0, 95.0, -190.0);
+        }
+
+        public WieldStyleConfig copy() {
+            return new WieldStyleConfig(cooldownTicks, swingTicks, interpolationDuration, scale,
+                    idleDistance, idleRightOffset, idleUpOffset, idleYawOffset, idlePitch,
+                    idleLeftRotation, idleRightRotation, swingAngleStart, swingAngleSweep,
+                    swingSideRadius, swingUpRadius, swingUpOffset, swingForwardBase,
+                    swingForwardPeak, swingYawStart, swingYawSweep, swingPitchStart,
+                    swingPitchSweep, swingLeftRotationStart, swingLeftRotationSweep,
+                    swingRightRotationStart, swingRightRotationSweep);
+        }
+
+        public String describe() {
+            return "cooldownTicks=" + cooldownTicks
+                    + ", swingTicks=" + swingTicks
+                    + ", interpolationDuration=" + interpolationDuration
+                    + ", scale=" + scale
+                    + ", idleDistance=" + idleDistance
+                    + ", idleRightOffset=" + idleRightOffset
+                    + ", idleUpOffset=" + idleUpOffset
+                    + ", idleYawOffset=" + idleYawOffset
+                    + ", idlePitch=" + idlePitch
+                    + ", idleLeftRotation=" + idleLeftRotation
+                    + ", idleRightRotation=" + idleRightRotation
+                    + ", swingAngleStart=" + swingAngleStart
+                    + ", swingAngleSweep=" + swingAngleSweep
+                    + ", swingSideRadius=" + swingSideRadius
+                    + ", swingUpRadius=" + swingUpRadius
+                    + ", swingUpOffset=" + swingUpOffset
+                    + ", swingForwardBase=" + swingForwardBase
+                    + ", swingForwardPeak=" + swingForwardPeak
+                    + ", swingYawStart=" + swingYawStart
+                    + ", swingYawSweep=" + swingYawSweep
+                    + ", swingPitchStart=" + swingPitchStart
+                    + ", swingPitchSweep=" + swingPitchSweep
+                    + ", swingLeftRotationStart=" + swingLeftRotationStart
+                    + ", swingLeftRotationSweep=" + swingLeftRotationSweep
+                    + ", swingRightRotationStart=" + swingRightRotationStart
+                    + ", swingRightRotationSweep=" + swingRightRotationSweep;
+        }
+
+        public int cooldownTicks() { return cooldownTicks; }
+        public void setCooldownTicks(int cooldownTicks) { this.cooldownTicks = Math.max(1, cooldownTicks); }
+        public int swingTicks() { return swingTicks; }
+        public void setSwingTicks(int swingTicks) { this.swingTicks = Math.max(2, swingTicks); }
+        public int interpolationDuration() { return interpolationDuration; }
+        public void setInterpolationDuration(int interpolationDuration) { this.interpolationDuration = Math.max(0, interpolationDuration); }
+        public double scale() { return scale; }
+        public void setScale(double scale) { this.scale = scale; }
+        public double idleDistance() { return idleDistance; }
+        public void setIdleDistance(double idleDistance) { this.idleDistance = idleDistance; }
+        public double idleRightOffset() { return idleRightOffset; }
+        public void setIdleRightOffset(double idleRightOffset) { this.idleRightOffset = idleRightOffset; }
+        public double idleUpOffset() { return idleUpOffset; }
+        public void setIdleUpOffset(double idleUpOffset) { this.idleUpOffset = idleUpOffset; }
+        public double idleYawOffset() { return idleYawOffset; }
+        public void setIdleYawOffset(double idleYawOffset) { this.idleYawOffset = idleYawOffset; }
+        public double idlePitch() { return idlePitch; }
+        public void setIdlePitch(double idlePitch) { this.idlePitch = idlePitch; }
+        public double idleLeftRotation() { return idleLeftRotation; }
+        public void setIdleLeftRotation(double idleLeftRotation) { this.idleLeftRotation = idleLeftRotation; }
+        public double idleRightRotation() { return idleRightRotation; }
+        public void setIdleRightRotation(double idleRightRotation) { this.idleRightRotation = idleRightRotation; }
+        public double swingAngleStart() { return swingAngleStart; }
+        public void setSwingAngleStart(double swingAngleStart) { this.swingAngleStart = swingAngleStart; }
+        public double swingAngleSweep() { return swingAngleSweep; }
+        public void setSwingAngleSweep(double swingAngleSweep) { this.swingAngleSweep = swingAngleSweep; }
+        public double swingSideRadius() { return swingSideRadius; }
+        public void setSwingSideRadius(double swingSideRadius) { this.swingSideRadius = swingSideRadius; }
+        public double swingUpRadius() { return swingUpRadius; }
+        public void setSwingUpRadius(double swingUpRadius) { this.swingUpRadius = swingUpRadius; }
+        public double swingUpOffset() { return swingUpOffset; }
+        public void setSwingUpOffset(double swingUpOffset) { this.swingUpOffset = swingUpOffset; }
+        public double swingForwardBase() { return swingForwardBase; }
+        public void setSwingForwardBase(double swingForwardBase) { this.swingForwardBase = swingForwardBase; }
+        public double swingForwardPeak() { return swingForwardPeak; }
+        public void setSwingForwardPeak(double swingForwardPeak) { this.swingForwardPeak = swingForwardPeak; }
+        public double swingYawStart() { return swingYawStart; }
+        public void setSwingYawStart(double swingYawStart) { this.swingYawStart = swingYawStart; }
+        public double swingYawSweep() { return swingYawSweep; }
+        public void setSwingYawSweep(double swingYawSweep) { this.swingYawSweep = swingYawSweep; }
+        public double swingPitchStart() { return swingPitchStart; }
+        public void setSwingPitchStart(double swingPitchStart) { this.swingPitchStart = swingPitchStart; }
+        public double swingPitchSweep() { return swingPitchSweep; }
+        public void setSwingPitchSweep(double swingPitchSweep) { this.swingPitchSweep = swingPitchSweep; }
+        public double swingLeftRotationStart() { return swingLeftRotationStart; }
+        public void setSwingLeftRotationStart(double swingLeftRotationStart) { this.swingLeftRotationStart = swingLeftRotationStart; }
+        public double swingLeftRotationSweep() { return swingLeftRotationSweep; }
+        public void setSwingLeftRotationSweep(double swingLeftRotationSweep) { this.swingLeftRotationSweep = swingLeftRotationSweep; }
+        public double swingRightRotationStart() { return swingRightRotationStart; }
+        public void setSwingRightRotationStart(double swingRightRotationStart) { this.swingRightRotationStart = swingRightRotationStart; }
+        public double swingRightRotationSweep() { return swingRightRotationSweep; }
+        public void setSwingRightRotationSweep(double swingRightRotationSweep) { this.swingRightRotationSweep = swingRightRotationSweep; }
     }
 }

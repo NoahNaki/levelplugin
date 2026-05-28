@@ -195,6 +195,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.debug.DropDebugManager dropDebugManager;
     private me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager;
     private me.nakilex.levelplugin.debug.WieldStyleDebugManager wieldStyleDebugManager;
+    private me.nakilex.levelplugin.debug.gui.WieldStyleDebugGUI wieldStyleDebugGUI;
     private me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI;
     private me.nakilex.levelplugin.debug.BeaconEntityDebugManager beaconEntityDebugManager;
     private DpsDummyManager dpsDummyManager;
@@ -597,6 +598,7 @@ public class PluginBootstrap {
                 lootChestManager.getCooldownManager());
         arcSlashDebugManager = new me.nakilex.levelplugin.debug.ArcSlashDebugManager(plugin);
         wieldStyleDebugManager = new me.nakilex.levelplugin.debug.WieldStyleDebugManager(plugin);
+        wieldStyleDebugGUI = new me.nakilex.levelplugin.debug.gui.WieldStyleDebugGUI(wieldStyleDebugManager);
         arcSlashDebugGUI = new me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI(arcSlashDebugManager);
         petSettingsGUI = new me.nakilex.levelplugin.pet.gui.PetSettingsGUI(petManager);
         petGUI = new me.nakilex.levelplugin.pet.gui.PetGUI(petManager, petSettingsGUI);
@@ -663,6 +665,7 @@ public class PluginBootstrap {
             customMobManager,
             arcSlashDebugManager,
             wieldStyleDebugManager,
+            wieldStyleDebugGUI,
             arcSlashDebugGUI
         );
         plugin.getCommand("pweather").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalWeatherCommand(playerEnvironmentService));
@@ -791,6 +794,7 @@ public class PluginBootstrap {
             customMobManager,
             arcSlashDebugManager,
             wieldStyleDebugManager,
+            wieldStyleDebugGUI,
             arcSlashDebugGUI
         );
         plugin.getServer().getPluginManager().registerEvents(
