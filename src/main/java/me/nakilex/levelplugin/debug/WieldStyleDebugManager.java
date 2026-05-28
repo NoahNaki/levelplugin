@@ -48,6 +48,7 @@ import org.joml.Vector3f;
  */
 public class WieldStyleDebugManager implements Listener {
     private static final long RANDOM_SWING_INTERVAL_TICKS = 40L;
+    private static final int RETURN_TO_IDLE_TICKS = 20;
 
     private final Main plugin;
     private final NamespacedKey debugHandleKey;
@@ -56,7 +57,8 @@ public class WieldStyleDebugManager implements Listener {
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
-    private WieldStyleConfig config = WieldStyleConfig.defaultConfig();
+    private WieldStylePreset activePreset = WieldStylePreset.OVERHEAD_SLASH;
+    private WieldStyleConfig config = activePreset.config();
 
     public WieldStyleDebugManager(Main plugin) {
         this.plugin = plugin;
@@ -243,6 +245,7 @@ public class WieldStyleDebugManager implements Listener {
 
     public void applyConfig(WieldStyleConfig config) {
         this.config = config.copy();
+        this.activePreset = null;
         for (WieldSession session : sessions.values()) {
             Player player = plugin.getServer().getPlayer(session.playerId);
             if (player != null && player.isOnline() && !session.swinging) {
@@ -252,7 +255,33 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public void resetConfig() {
-        applyConfig(WieldStyleConfig.defaultConfig());
+        applyPreset(WieldStylePreset.OVERHEAD_SLASH);
+    }
+
+    public WieldStylePreset activePreset() {
+        return activePreset;
+    }
+
+    public WieldStylePreset applyPreset(WieldStylePreset preset) {
+        WieldStylePreset safePreset = preset == null ? WieldStylePreset.OVERHEAD_SLASH : preset;
+        activePreset = safePreset;
+        this.config = safePreset.config();
+        for (WieldSession session : sessions.values()) {
+            Player player = plugin.getServer().getPlayer(session.playerId);
+            if (player != null && player.isOnline() && !session.swinging) {
+                moveDisplay(session, idlePose(player, this.config));
+            }
+        }
+        return safePreset;
+    }
+
+    public WieldStylePreset applyPreset(String name) {
+        WieldStylePreset preset = WieldStylePreset.fromString(name);
+        return preset == null ? null : applyPreset(preset);
+    }
+
+    public List<String> presetSuggestions(String prefix) {
+        return WieldStylePreset.suggestions(prefix);
     }
 
     public void logConfig(WieldStyleConfig config) {
@@ -266,6 +295,7 @@ public class WieldStyleDebugManager implements Listener {
     public String describeSettings() {
         return "material=" + defaultMaterial
                 + ", nexo=" + (defaultNexoModelId == null ? "none" : defaultNexoModelId)
+                + ", preset=" + (activePreset == null ? "custom" : activePreset.id())
                 + ", " + config.describe();
     }
 
@@ -366,6 +396,7 @@ public class WieldStyleDebugManager implements Listener {
         session.display.setInterpolationDuration(Math.max(0, activeConfig.interpolationDuration()));
         session.swingTask = new BukkitRunnable() {
             private int tick = 0;
+            private Pose returnStartPose;
 
             @Override
             public void run() {
@@ -375,11 +406,24 @@ public class WieldStyleDebugManager implements Listener {
                     cancel();
                     return;
                 }
-                int total = Math.max(2, activeConfig.swingTicks());
-                double progress = Math.min(1.0, tick / (double) (total - 1));
-                moveDisplay(session, swingPose(online, easeOut(progress), activeConfig));
+                int swingTotal = Math.max(2, activeConfig.swingTicks());
+                if (tick < swingTotal) {
+                    double progress = Math.min(1.0, tick / (double) (swingTotal - 1));
+                    Pose pose = swingPose(online, easeOut(progress), activeConfig);
+                    moveDisplay(session, pose);
+                    returnStartPose = pose;
+                    tick++;
+                    return;
+                }
+
+                int returnTick = tick - swingTotal;
+                int returnTotal = Math.max(2, RETURN_TO_IDLE_TICKS);
+                double returnProgress = Math.min(1.0, returnTick / (double) (returnTotal - 1));
+                Pose idle = idlePose(online, config);
+                moveDisplay(session, interpolatePose(returnStartPose == null ? idle : returnStartPose,
+                        idle, easeOut(returnProgress)));
                 tick++;
-                if (tick >= total) {
+                if (returnTick + 1 >= returnTotal) {
                     session.swinging = false;
                     session.swingTask = null;
                     moveDisplay(session, idlePose(online, config));
@@ -416,6 +460,28 @@ public class WieldStyleDebugManager implements Listener {
                 config.swingLeftRotationStart() + (config.swingLeftRotationSweep() * progress),
                 config.swingRightRotationStart() + (config.swingRightRotationSweep() * progress),
                 (float) config.scale());
+    }
+
+    private Pose interpolatePose(Pose from, Pose to, double progress) {
+        Location location = from.location().clone();
+        location.setX(lerp(from.location().getX(), to.location().getX(), progress));
+        location.setY(lerp(from.location().getY(), to.location().getY(), progress));
+        location.setZ(lerp(from.location().getZ(), to.location().getZ(), progress));
+        location.setYaw((float) lerpAngle(from.location().getYaw(), to.location().getYaw(), progress));
+        location.setPitch((float) lerp(from.location().getPitch(), to.location().getPitch(), progress));
+        return new Pose(location,
+                lerp(from.leftRotationDegrees(), to.leftRotationDegrees(), progress),
+                lerp(from.rightRotationDegrees(), to.rightRotationDegrees(), progress),
+                (float) lerp(from.scale(), to.scale(), progress));
+    }
+
+    private double lerp(double from, double to, double progress) {
+        return from + ((to - from) * progress);
+    }
+
+    private double lerpAngle(double from, double to, double progress) {
+        double delta = ((to - from + 540.0) % 360.0) - 180.0;
+        return from + (delta * progress);
     }
 
     private void moveDisplay(WieldSession session, Pose pose) {
@@ -480,6 +546,76 @@ public class WieldStyleDebugManager implements Listener {
         }
     }
 
+
+    public enum WieldStylePreset {
+        OVERHEAD_SLASH("overhead_slash", "Overhead Slash",
+                new WieldStyleConfig(16, 17, 1, 0.82,
+                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        106.78813936115861, -186.6909558808558, 0.15980664918631562,
+                        0.9877825861829582, 0.036862218691507104, 1.2711515689082424,
+                        0.4006004088814077, -41.38846296298364, 48.91458472939911,
+                        -53.61977811440525, 81.38337452682886, -66.83012338117723,
+                        132.66759822330394, 99.1515139506437, -30.49929654416185)),
+        BEYBLADE_SWIRL("beyblade_swirl", "Beyblade Swirl",
+                new WieldStyleConfig(16, 17, 1, 0.82,
+                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        149.69386305872723, -171.96775775595756, 1.1393345553474903,
+                        0.8506799627353459, -0.36832261979426884, 1.2973677239379766,
+                        0.4424320994105332, 5.7231808755518045, 185.31289826600295,
+                        -35.89715186429072, 190.9657973506081, -97.00310424138125,
+                        -423.9848043587916, -1.5009839314438977, 372.082944972278)),
+        COOL_SWEEP("cool_sweep", "Cool Sweep",
+                new WieldStyleConfig(16, 17, 1, 0.82,
+                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        55.01033770127748, -298.06188822354045, 0.9024002861771805,
+                        0.6039956910541824, 0.06503697955364385, 1.1567669547934205,
+                        0.4147886779934885, 124.46899839538139, -83.92384491011171,
+                        -22.865147709861816, 210.69150810349333, 125.24722177342,
+                        -177.45824996471913, 60.07567107365088, 161.6478692857686));
+
+        private final String id;
+        private final String displayName;
+        private final WieldStyleConfig config;
+
+        WieldStylePreset(String id, String displayName, WieldStyleConfig config) {
+            this.id = id;
+            this.displayName = displayName;
+            this.config = config;
+        }
+
+        public String id() {
+            return id;
+        }
+
+        public String displayName() {
+            return displayName;
+        }
+
+        public WieldStyleConfig config() {
+            return config.copy();
+        }
+
+        public static WieldStylePreset fromString(String input) {
+            if (input == null || input.isBlank()) {
+                return null;
+            }
+            String normalized = input.toLowerCase(Locale.ROOT);
+            for (WieldStylePreset preset : values()) {
+                if (preset.id.equals(normalized) || preset.name().equalsIgnoreCase(input)) {
+                    return preset;
+                }
+            }
+            return null;
+        }
+
+        public static List<String> suggestions(String prefix) {
+            String normalized = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
+            return java.util.Arrays.stream(values())
+                    .map(WieldStylePreset::id)
+                    .filter(id -> id.startsWith(normalized))
+                    .toList();
+        }
+    }
 
     public static class WieldStyleConfig {
         private int cooldownTicks;
@@ -547,13 +683,7 @@ public class WieldStyleDebugManager implements Listener {
         }
 
         public static WieldStyleConfig defaultConfig() {
-            return new WieldStyleConfig(16, 17, 1, 0.82,
-                    1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
-                    106.78813936115861, -186.6909558808558, 0.15980664918631562,
-                    0.9877825861829582, 0.036862218691507104, 1.2711515689082424,
-                    0.4006004088814077, -41.38846296298364, 48.91458472939911,
-                    -53.61977811440525, 81.38337452682886, -66.83012338117723,
-                    132.66759822330394, 99.1515139506437, -30.49929654416185);
+            return WieldStylePreset.OVERHEAD_SLASH.config();
         }
 
         public WieldStyleConfig copy() {

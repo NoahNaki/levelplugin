@@ -21,6 +21,7 @@ import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.WieldStyleDebugManager;
+import me.nakilex.levelplugin.debug.WieldStyleDebugManager.WieldStylePreset;
 import me.nakilex.levelplugin.debug.gui.WieldStyleDebugGUI;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.gui.StrongholdAssetDebugGUI;
@@ -1265,7 +1266,7 @@ public class DebugCommand implements TabExecutor, Listener {
         }
         if (args.length < 2) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Usage: /debug wield <toggle|once|clear|handle|gui|random|material <material>|nexo <id|none>|status>");
+                    "Usage: /debug wield <toggle|once|clear|handle|gui|random|preset <name>|material <material>|nexo <id|none>|status>");
             return;
         }
 
@@ -1280,6 +1281,7 @@ public class DebugCommand implements TabExecutor, Listener {
             case "handle" -> wieldStyleDebugManager.giveDebugHandle(player);
             case "gui" -> wieldStyleDebugGUI.open(player);
             case "random" -> wieldStyleDebugManager.toggleRandomTesting(player);
+            case "preset" -> handleWieldPreset(player, args);
             case "status" -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "Wield debug: " + wieldStyleDebugManager.describeSettings()
                             + ", enabled=" + wieldStyleDebugManager.isEnabled(player)
@@ -1314,8 +1316,26 @@ public class DebugCommand implements TabExecutor, Listener {
                                 ? "none" : wieldStyleDebugManager.getDefaultNexoModelId()) + ".");
             }
             default -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Unknown wield debug action. Use toggle, once, clear, handle, gui, random, material, nexo, or status.");
+                    "Unknown wield debug action. Use toggle, once, clear, handle, gui, random, preset, material, nexo, or status.");
         }
+    }
+
+    private void handleWieldPreset(Player player, String[] args) {
+        if (args.length < 3) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Usage: /debug wield preset <" + String.join("|", WieldStylePreset.suggestions("")) + ">");
+            return;
+        }
+        WieldStylePreset preset = wieldStyleDebugManager.applyPreset(args[2]);
+        if (preset == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Unknown wield preset. Available: " + String.join(", ", WieldStylePreset.suggestions("")));
+            return;
+        }
+        wieldStyleDebugManager.playOnce(player);
+        wieldStyleDebugManager.logConfig(wieldStyleDebugManager.config());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Applied wield preset " + preset.displayName() + " and logged settings.");
     }
 
     private void handleChatGameToggle(CommandSender sender, String[] args) {
@@ -1384,9 +1404,11 @@ public class DebugCommand implements TabExecutor, Listener {
                     .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("wield")) {
-            return List.of("toggle", "once", "clear", "handle", "gui", "random", "material", "nexo", "status").stream()
+            return List.of("toggle", "once", "clear", "handle", "gui", "random", "preset", "material", "nexo", "status").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("preset")) {
+            return wieldStyleDebugManager.presetSuggestions(args[2]);
         } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("material")) {
             return wieldStyleDebugManager.materialSuggestions(args[2]);
         } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("nexo")) {
