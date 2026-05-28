@@ -1265,7 +1265,7 @@ public class DebugCommand implements TabExecutor, Listener {
         }
         if (args.length < 2) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Usage: /debug wield <toggle|once|clear|handle|gui|material <material>|nexo <id|none>|cooldown <ticks>|swingticks <ticks>|status>");
+                    "Usage: /debug wield <toggle|once|clear|handle|gui|random|material <material>|nexo <id|none>|cooldown <ticks>|swingticks <ticks>|status>");
             return;
         }
 
@@ -1279,9 +1279,11 @@ public class DebugCommand implements TabExecutor, Listener {
             }
             case "handle" -> wieldStyleDebugManager.giveDebugHandle(player);
             case "gui" -> wieldStyleDebugGUI.open(player);
+            case "random" -> wieldStyleDebugManager.toggleRandomTesting(player);
             case "status" -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "Wield debug: " + wieldStyleDebugManager.describeSettings()
-                            + ", enabled=" + wieldStyleDebugManager.isEnabled(player));
+                            + ", enabled=" + wieldStyleDebugManager.isEnabled(player)
+                            + ", random=" + wieldStyleDebugManager.isRandomTestingEnabled(player));
             case "material" -> {
                 if (args.length < 3) {
                     ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
@@ -1326,7 +1328,7 @@ public class DebugCommand implements TabExecutor, Listener {
                         "Wield preview swing length set to " + ticks + " ticks.");
             }
             default -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Unknown wield debug action. Use toggle, once, clear, handle, gui, material, nexo, cooldown, swingticks, or status.");
+                    "Unknown wield debug action. Use toggle, once, clear, handle, gui, random, material, nexo, cooldown, swingticks, or status.");
         }
     }
 
@@ -1417,7 +1419,7 @@ public class DebugCommand implements TabExecutor, Listener {
                     .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("wield")) {
-            return List.of("toggle", "once", "clear", "handle", "gui", "material", "nexo", "cooldown", "swingticks", "status").stream()
+            return List.of("toggle", "once", "clear", "handle", "gui", "random", "material", "nexo", "cooldown", "swingticks", "status").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("material")) {

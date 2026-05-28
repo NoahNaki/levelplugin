@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -114,7 +113,7 @@ public class WieldStyleDebugGUI implements Listener {
         widgetList.add(new ActionWidget(RANDOMIZE_SLOT,
                 context -> createRandomizeItem(),
                 (click, context) -> {
-                    randomizeSwingValues(getConfig(context));
+                    wieldStyleDebugManager.randomizeSwingConfig(getConfig(context));
                     wieldStyleDebugManager.applyConfig(getConfig(context));
                     wieldStyleDebugManager.playOnce(context.player());
                     ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
@@ -166,17 +165,6 @@ public class WieldStyleDebugGUI implements Listener {
             workingConfigs.put(context.player().getUniqueId(), config);
         }
         return config;
-    }
-
-    private void randomizeSwingValues(WieldStyleConfig config) {
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        for (WieldParam param : WieldParam.values()) {
-            if (!param.randomizedBySwingButton()) {
-                continue;
-            }
-            double value = random.nextDouble(param.min(), param.max());
-            param.apply(config, value);
-        }
     }
 
     private void handleWidgetClick(InventoryClickEvent event, Player player) {
@@ -359,6 +347,5 @@ public class WieldStyleDebugGUI implements Listener {
         void apply(WieldStyleConfig config, double value) { setter.accept(config, value); }
         String formatValue(WieldStyleConfig config) { return formatDecimal(value(config)); }
         String formatStep() { return formatDecimal(step); }
-        boolean randomizedBySwingButton() { return this == SWING_TICKS || ordinal() >= ARC_START.ordinal(); }
     }
 }

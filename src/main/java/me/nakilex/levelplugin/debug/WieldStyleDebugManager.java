@@ -6,6 +6,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -46,9 +47,12 @@ import org.joml.Vector3f;
  * are held in a runtime config so the debug GUI can tune the swing in game.</p>
  */
 public class WieldStyleDebugManager implements Listener {
+    private static final long RANDOM_SWING_INTERVAL_TICKS = 40L;
+
     private final Main plugin;
     private final NamespacedKey debugHandleKey;
     private final Map<UUID, WieldSession> sessions = new ConcurrentHashMap<>();
+    private final Map<UUID, BukkitTask> randomSwingTasks = new ConcurrentHashMap<>();
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
@@ -102,6 +106,7 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public void disable(UUID playerId) {
+        stopRandomTesting(playerId);
         WieldSession session = sessions.remove(playerId);
         if (session == null) {
             return;
@@ -133,6 +138,51 @@ public class WieldStyleDebugManager implements Listener {
         for (UUID id : ids) {
             disable(id);
         }
+        for (UUID id : new ArrayList<>(randomSwingTasks.keySet())) {
+            stopRandomTesting(id);
+        }
+    }
+
+    public boolean isRandomTestingEnabled(Player player) {
+        return randomSwingTasks.containsKey(player.getUniqueId());
+    }
+
+    public void toggleRandomTesting(Player player) {
+        UUID playerId = player.getUniqueId();
+        if (stopRandomTesting(playerId)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Random wield swing testing disabled.");
+            return;
+        }
+        enable(player, createVisualItem(player));
+        BukkitTask task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                Player online = plugin.getServer().getPlayer(playerId);
+                if (online == null || !online.isOnline()) {
+                    stopRandomTesting(playerId);
+                    cancel();
+                    return;
+                }
+                WieldStyleConfig randomConfig = config();
+                randomizeSwingConfig(randomConfig);
+                applyConfig(randomConfig);
+                logConfig(randomConfig);
+                playOnce(online);
+            }
+        }.runTaskTimer(plugin, 0L, RANDOM_SWING_INTERVAL_TICKS);
+        randomSwingTasks.put(playerId, task);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Random wield swing testing enabled. A randomized swing will play every 2 seconds and log to console.");
+    }
+
+    private boolean stopRandomTesting(UUID playerId) {
+        BukkitTask task = randomSwingTasks.remove(playerId);
+        if (task == null) {
+            return false;
+        }
+        task.cancel();
+        return true;
     }
 
     public ItemStack createDebugHandle() {
@@ -227,6 +277,10 @@ public class WieldStyleDebugManager implements Listener {
 
     public void logConfig(WieldStyleConfig config) {
         plugin.getLogger().info(() -> "[WieldStyleDebug] " + config.describe());
+    }
+
+    public void randomizeSwingConfig(WieldStyleConfig config) {
+        config.randomizeSwingValues(ThreadLocalRandom.current());
     }
 
     public String describeSettings() {
@@ -526,6 +580,29 @@ public class WieldStyleDebugManager implements Listener {
                     swingForwardPeak, swingYawStart, swingYawSweep, swingPitchStart,
                     swingPitchSweep, swingLeftRotationStart, swingLeftRotationSweep,
                     swingRightRotationStart, swingRightRotationSweep);
+        }
+
+        public void randomizeSwingValues(ThreadLocalRandom random) {
+            setSwingTicks(random.nextInt(2, 81));
+            setSwingAngleStart(randomRange(random, -360.0, 360.0));
+            setSwingAngleSweep(randomRange(random, -720.0, 720.0));
+            setSwingSideRadius(randomRange(random, -4.0, 4.0));
+            setSwingUpRadius(randomRange(random, -4.0, 4.0));
+            setSwingUpOffset(randomRange(random, -4.0, 4.0));
+            setSwingForwardBase(randomRange(random, -2.0, 6.0));
+            setSwingForwardPeak(randomRange(random, -2.0, 6.0));
+            setSwingYawStart(randomRange(random, -360.0, 360.0));
+            setSwingYawSweep(randomRange(random, -720.0, 720.0));
+            setSwingPitchStart(randomRange(random, -180.0, 180.0));
+            setSwingPitchSweep(randomRange(random, -360.0, 360.0));
+            setSwingLeftRotationStart(randomRange(random, -360.0, 360.0));
+            setSwingLeftRotationSweep(randomRange(random, -720.0, 720.0));
+            setSwingRightRotationStart(randomRange(random, -360.0, 360.0));
+            setSwingRightRotationSweep(randomRange(random, -720.0, 720.0));
+        }
+
+        private static double randomRange(ThreadLocalRandom random, double min, double max) {
+            return random.nextDouble(min, max);
         }
 
         public String describe() {
