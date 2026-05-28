@@ -105,7 +105,7 @@ public class WieldStyleDebugGUI implements Listener {
                 context -> GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Reset Defaults",
                         TooltipUtil.bulletList("Reset every runtime pose and swing value.")),
                 (click, context) -> {
-                    WieldStylePreset preset = wieldStyleDebugManager.applyPreset(WieldStylePreset.COMPACT_DIAGONAL_SLASH);
+                    WieldStylePreset preset = wieldStyleDebugManager.applyPreset(WieldStylePreset.OVERHEAD_SLASH);
                     workingConfigs.put(context.player().getUniqueId(), wieldStyleDebugManager.config());
                     ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
                             "Wield style settings reset to " + preset.displayName() + ".");
@@ -235,9 +235,9 @@ public class WieldStyleDebugGUI implements Listener {
             meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Randomize Swing");
             List<String> lore = new ArrayList<>();
             lore.addAll(TooltipUtil.bulletList(
-                    "Randomizes only swing animation values.",
-                    "Idle pose, material, scale, interpolation, and cooldown stay unchanged.",
-                    "Automatically plays a test swing after randomizing."));
+                    "Uses the active preset as the animation basis.",
+                    "Only swing ticks randomize, between 10 and 20.",
+                    "All path and rotation values stay unchanged."));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);

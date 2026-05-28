@@ -56,7 +56,7 @@ public class WieldStyleDebugManager implements Listener {
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
-    private WieldStylePreset activePreset = WieldStylePreset.COMPACT_DIAGONAL_SLASH;
+    private WieldStylePreset activePreset = WieldStylePreset.OVERHEAD_SLASH;
     private WieldStyleConfig config = activePreset.config();
 
     public WieldStyleDebugManager(Main plugin) {
@@ -273,7 +273,7 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public void resetConfig() {
-        applyPreset(WieldStylePreset.COMPACT_DIAGONAL_SLASH);
+        applyPreset(WieldStylePreset.OVERHEAD_SLASH);
     }
 
     public WieldStylePreset activePreset() {
@@ -281,7 +281,7 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public WieldStylePreset applyPreset(WieldStylePreset preset) {
-        WieldStylePreset safePreset = preset == null ? WieldStylePreset.COMPACT_DIAGONAL_SLASH : preset;
+        WieldStylePreset safePreset = preset == null ? WieldStylePreset.OVERHEAD_SLASH : preset;
         activePreset = safePreset;
         applyConfig(safePreset.config());
         return safePreset;
@@ -708,26 +708,7 @@ public class WieldStyleDebugManager implements Listener {
         }
 
         public void randomizeSwingValues(ThreadLocalRandom random) {
-            setSwingTicks(random.nextInt(2, 81));
-            setSwingAngleStart(randomRange(random, -360.0, 360.0));
-            setSwingAngleSweep(randomRange(random, -720.0, 720.0));
-            setSwingSideRadius(randomRange(random, -4.0, 4.0));
-            setSwingUpRadius(randomRange(random, -4.0, 4.0));
-            setSwingUpOffset(randomRange(random, -4.0, 4.0));
-            setSwingForwardBase(randomRange(random, -2.0, 6.0));
-            setSwingForwardPeak(randomRange(random, -2.0, 6.0));
-            setSwingYawStart(randomRange(random, -360.0, 360.0));
-            setSwingYawSweep(randomRange(random, -720.0, 720.0));
-            setSwingPitchStart(randomRange(random, -180.0, 180.0));
-            setSwingPitchSweep(randomRange(random, -360.0, 360.0));
-            setSwingLeftRotationStart(randomRange(random, -360.0, 360.0));
-            setSwingLeftRotationSweep(randomRange(random, -720.0, 720.0));
-            setSwingRightRotationStart(randomRange(random, -360.0, 360.0));
-            setSwingRightRotationSweep(randomRange(random, -720.0, 720.0));
-        }
-
-        private static double randomRange(ThreadLocalRandom random, double min, double max) {
-            return random.nextDouble(min, max);
+            setSwingTicks(random.nextInt(10, 21));
         }
 
         public String describe() {
