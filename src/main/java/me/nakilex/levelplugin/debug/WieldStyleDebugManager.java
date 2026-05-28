@@ -21,8 +21,10 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerAnimationType;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -238,11 +240,29 @@ public class WieldStyleDebugManager implements Listener {
         if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) {
             return;
         }
-        WieldSession session = sessions.get(event.getPlayer().getUniqueId());
+        triggerSwing(event.getPlayer());
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onInteract(PlayerInteractEvent event) {
+        Action action = event.getAction();
+        if (action != Action.LEFT_CLICK_AIR && action != Action.LEFT_CLICK_BLOCK) {
+            return;
+        }
+        triggerSwing(event.getPlayer());
+    }
+
+    private void triggerSwing(Player player) {
+        WieldSession session = sessions.get(player.getUniqueId());
         if (session == null) {
             return;
         }
-        startSwing(event.getPlayer(), session, false);
+        long now = player.getWorld().getFullTime();
+        if (session.lastInputTick == now) {
+            return;
+        }
+        session.lastInputTick = now;
+        startSwing(player, session, false);
     }
 
     @EventHandler
@@ -327,6 +347,7 @@ public class WieldStyleDebugManager implements Listener {
                 tick++;
                 if (tick >= total) {
                     session.swinging = false;
+                    session.swingTask = null;
                     moveDisplay(session, idlePose(online, config));
                     cancel();
                 }
@@ -416,6 +437,7 @@ public class WieldStyleDebugManager implements Listener {
         private BukkitTask swingTask;
         private boolean swinging;
         private long nextAllowedSwingTick;
+        private long lastInputTick = -1L;
 
         private WieldSession(UUID playerId, ItemDisplay display, ItemStack visualItem) {
             this.playerId = playerId;

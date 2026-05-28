@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -38,6 +39,7 @@ public class WieldStyleDebugGUI implements Listener {
     private static final int GUI_SIZE = 54;
     private static final int ENABLE_SLOT = 45;
     private static final int RESET_SLOT = 46;
+    private static final int RANDOMIZE_SLOT = 47;
     private static final int TEST_SLOT = 48;
     private static final int SAVE_SLOT = 49;
     private static final int CLOSE_SLOT = 50;
@@ -109,6 +111,16 @@ public class WieldStyleDebugGUI implements Listener {
                             "Wield style settings reset to defaults.");
                     context.player().openInventory(buildInventory(context.player()));
                 }));
+        widgetList.add(new ActionWidget(RANDOMIZE_SLOT,
+                context -> createRandomizeItem(),
+                (click, context) -> {
+                    randomizeSwingValues(getConfig(context));
+                    wieldStyleDebugManager.applyConfig(getConfig(context));
+                    wieldStyleDebugManager.playOnce(context.player());
+                    ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
+                            "Randomized swing animation values and played a test slash.");
+                    context.player().openInventory(buildInventory(context.player()));
+                }));
         widgetList.add(new ActionWidget(TEST_SLOT,
                 context -> GuiUtil.getNexoItem("play", ChatColor.AQUA + "Test Swing",
                         TooltipUtil.bulletList("Apply the current values and play one slash immediately.")),
@@ -156,6 +168,17 @@ public class WieldStyleDebugGUI implements Listener {
         return config;
     }
 
+    private void randomizeSwingValues(WieldStyleConfig config) {
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        for (WieldParam param : WieldParam.values()) {
+            if (!param.randomizedBySwingButton()) {
+                continue;
+            }
+            double value = random.nextDouble(param.min(), param.max());
+            param.apply(config, value);
+        }
+    }
+
     private void handleWidgetClick(InventoryClickEvent event, Player player) {
         int slot = event.getRawSlot();
         GuiWidget widget = widgets.stream()
@@ -198,6 +221,23 @@ public class WieldStyleDebugGUI implements Listener {
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions("to increase", "to decrease"));
             lore.addAll(TooltipUtil.sneakClickInstructions("to increase x5", "to decrease x5"));
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createRandomizeItem() {
+        ItemStack item = new ItemStack(Material.ENDER_CHEST);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Randomize Swing");
+            List<String> lore = new ArrayList<>();
+            lore.addAll(TooltipUtil.bulletList(
+                    "Randomizes only swing animation values.",
+                    "Idle pose, material, scale, interpolation, and cooldown stay unchanged.",
+                    "Automatically plays a test swing after randomizing."));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
@@ -319,5 +359,6 @@ public class WieldStyleDebugGUI implements Listener {
         void apply(WieldStyleConfig config, double value) { setter.accept(config, value); }
         String formatValue(WieldStyleConfig config) { return formatDecimal(value(config)); }
         String formatStep() { return formatDecimal(step); }
+        boolean randomizedBySwingButton() { return this == SWING_TICKS || ordinal() >= ARC_START.ordinal(); }
     }
 }
