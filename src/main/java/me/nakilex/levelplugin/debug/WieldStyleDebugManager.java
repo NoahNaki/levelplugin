@@ -6,7 +6,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ThreadLocalRandom;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -47,17 +46,13 @@ import org.joml.Vector3f;
  * are held in a runtime config so the debug GUI can tune the swing in game.</p>
  */
 public class WieldStyleDebugManager implements Listener {
-    private static final long RANDOM_SWING_INTERVAL_TICKS = 40L;
-
     private final Main plugin;
     private final NamespacedKey debugHandleKey;
     private final Map<UUID, WieldSession> sessions = new ConcurrentHashMap<>();
-    private final Map<UUID, BukkitTask> randomSwingTasks = new ConcurrentHashMap<>();
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
-    private WieldStylePreset activePreset = WieldStylePreset.OVERHEAD_SLASH;
-    private WieldStyleConfig config = activePreset.config();
+    private WieldStyleConfig config = WieldStyleConfig.defaultConfig();
 
     public WieldStyleDebugManager(Main plugin) {
         this.plugin = plugin;
@@ -107,7 +102,6 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public void disable(UUID playerId) {
-        stopRandomTesting(playerId);
         WieldSession session = sessions.remove(playerId);
         if (session == null) {
             return;
@@ -139,51 +133,6 @@ public class WieldStyleDebugManager implements Listener {
         for (UUID id : ids) {
             disable(id);
         }
-        for (UUID id : new ArrayList<>(randomSwingTasks.keySet())) {
-            stopRandomTesting(id);
-        }
-    }
-
-    public boolean isRandomTestingEnabled(Player player) {
-        return randomSwingTasks.containsKey(player.getUniqueId());
-    }
-
-    public void toggleRandomTesting(Player player) {
-        UUID playerId = player.getUniqueId();
-        if (stopRandomTesting(playerId)) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Random wield swing testing disabled.");
-            return;
-        }
-        enable(player, createVisualItem(player));
-        BukkitTask task = new BukkitRunnable() {
-            @Override
-            public void run() {
-                Player online = plugin.getServer().getPlayer(playerId);
-                if (online == null || !online.isOnline()) {
-                    stopRandomTesting(playerId);
-                    cancel();
-                    return;
-                }
-                WieldStyleConfig randomConfig = activePreset.config();
-                randomizeSwingConfig(randomConfig);
-                applyConfig(randomConfig);
-                logConfig(randomConfig);
-                playOnce(online);
-            }
-        }.runTaskTimer(plugin, 0L, RANDOM_SWING_INTERVAL_TICKS);
-        randomSwingTasks.put(playerId, task);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Random wield swing testing enabled. A randomized swing will play every 2 seconds and log to console.");
-    }
-
-    private boolean stopRandomTesting(UUID playerId) {
-        BukkitTask task = randomSwingTasks.remove(playerId);
-        if (task == null) {
-            return false;
-        }
-        task.cancel();
-        return true;
     }
 
     public ItemStack createDebugHandle() {
@@ -238,26 +187,6 @@ public class WieldStyleDebugManager implements Listener {
         return defaultNexoModelId;
     }
 
-    public void setCooldownTicks(int cooldownTicks) {
-        WieldStyleConfig copy = config();
-        copy.setCooldownTicks(cooldownTicks);
-        applyConfig(copy);
-    }
-
-    public int getCooldownTicks() {
-        return config.cooldownTicks();
-    }
-
-    public void setSwingTicks(int swingTicks) {
-        WieldStyleConfig copy = config();
-        copy.setSwingTicks(swingTicks);
-        applyConfig(copy);
-    }
-
-    public int getSwingTicks() {
-        return config.swingTicks();
-    }
-
     public WieldStyleConfig config() {
         return config.copy();
     }
@@ -273,45 +202,16 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public void resetConfig() {
-        applyPreset(WieldStylePreset.OVERHEAD_SLASH);
-    }
-
-    public WieldStylePreset activePreset() {
-        return activePreset;
-    }
-
-    public WieldStylePreset applyPreset(WieldStylePreset preset) {
-        WieldStylePreset safePreset = preset == null ? WieldStylePreset.OVERHEAD_SLASH : preset;
-        activePreset = safePreset;
-        applyConfig(safePreset.config());
-        return safePreset;
-    }
-
-    public WieldStylePreset applyPreset(String name) {
-        WieldStylePreset preset = WieldStylePreset.fromString(name);
-        return applyPreset(preset == null ? activePreset : preset);
-    }
-
-    public WieldStylePreset applyNextPreset(int direction) {
-        return applyPreset(activePreset.relative(direction));
-    }
-
-    public List<String> presetSuggestions(String prefix) {
-        return WieldStylePreset.suggestions(prefix);
+        applyConfig(WieldStyleConfig.defaultConfig());
     }
 
     public void logConfig(WieldStyleConfig config) {
         plugin.getLogger().info(() -> "[WieldStyleDebug] " + config.describe());
     }
 
-    public void randomizeSwingConfig(WieldStyleConfig config) {
-        config.randomizeSwingValues(ThreadLocalRandom.current());
-    }
-
     public String describeSettings() {
         return "material=" + defaultMaterial
                 + ", nexo=" + (defaultNexoModelId == null ? "none" : defaultNexoModelId)
-                + ", preset=" + activePreset.id()
                 + ", " + config.describe();
     }
 
@@ -527,128 +427,6 @@ public class WieldStyleDebugManager implements Listener {
     }
 
 
-    public enum WieldStylePreset {
-        COMPACT_DIAGONAL_SLASH("compact_diagonal_slash", "Compact Diagonal Slash",
-                "Logged diagonal slash preset with a tighter side/up/forward radius.",
-                new WieldStyleConfig(13, 27, 1, 0.75,
-                        1.1, 0.38, -0.34, -25.0, -6.0, -4.0, 80.0,
-                        145.4499543227431, -380.8752464785158, -1.15, 0.48, -1.25, 1.75, 0.85,
-                        315.6740869951584, 256.9218267732739, -98.2675636003412, 208.78945940749134,
-                        -257.6486823365941, 667.5503535958458, 96.63660285774324, 440.7803504474682)),
-        ROGUE_DIAGONAL_OUTWARD("rogue_diagonal_outward", "Rogue Diagonal Outward",
-                "Blade points away from the player and cuts down a diagonal line.",
-                new WieldStyleConfig(12, 8, 1, 0.75,
-                        1.05, 0.42, -0.38, -30.0, -8.0, -12.0, 70.0,
-                        125.0, -155.0, 0.66, 0.58, -0.12, 1.08, 0.26,
-                        -55.0, 70.0, -22.0, 42.0, -18.0, 38.0, 122.0, -58.0)),
-        ROGUE_DIAGONAL_REVERSE("rogue_diagonal_reverse", "Rogue Diagonal Reverse",
-                "Backhand diagonal slash with the blade still carried outward.",
-                new WieldStyleConfig(12, 8, 1, 0.75,
-                        1.02, -0.38, -0.36, 30.0, -8.0, -10.0, -70.0,
-                        55.0, 155.0, 0.64, 0.56, -0.10, 1.08, 0.24,
-                        52.0, -72.0, -18.0, 38.0, -16.0, 36.0, -122.0, 58.0)),
-        HORIZONTAL_CUT("horizontal_cut", "Horizontal Cut",
-                "Overhead slash motion reused from a side angle for a horizontal cut.",
-                new WieldStyleConfig(16, 17, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
-                        0.0, 180.0, 0.9877825861829582,
-                        0.15980664918631562, 0.036862218691507104, 1.2711515689082424,
-                        0.4006004088814077, -41.38846296298364, 48.91458472939911,
-                        -53.61977811440525, 81.38337452682886, -66.83012338117723,
-                        132.66759822330394, 99.1515139506437, -30.49929654416185)),
-        OVERHEAD_SLASH("overhead_slash", "Overhead Slash",
-                "High-to-low chop for heavier weapons.",
-                new WieldStyleConfig(16, 17, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
-                        106.78813936115861, -186.6909558808558, 0.15980664918631562,
-                        0.9877825861829582, 0.036862218691507104, 1.2711515689082424,
-                        0.4006004088814077, -41.38846296298364, 48.91458472939911,
-                        -53.61977811440525, 81.38337452682886, -66.83012338117723,
-                        132.66759822330394, 99.1515139506437, -30.49929654416185)),
-        OVERHEAD_SLASH_FAST("overhead_slash_fast", "Overhead Slash Fast",
-                "Faster overhead variant with a sharper downward chop.",
-                new WieldStyleConfig(16, 11, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
-                        122.69805286283032, -219.79276734727617, 0.09941444397651734,
-                        0.7782469006587427, -0.02179501157733743, 1.345426382453776,
-                        0.28529788167312564, -41.51715369264876, 77.53952611707317,
-                        -53.1975348914812, 51.391897452131516, -43.84932730689409,
-                        146.43582895968382, 88.22229430075258, 12.096337079361504)),
-        OVERHEAD_SLASH_TALL("overhead_slash_tall", "Overhead Slash Tall",
-                "Taller overhead variant with a larger rise before the blade drops.",
-                new WieldStyleConfig(16, 16, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
-                        111.75131052236503, -170.18217274118342, 0.19185369339891759,
-                        1.2285472519736524, 0.04685218055089024, 1.2713424468915178,
-                        0.40709861031553646, -28.116648465865232, 33.131035246395484,
-                        -46.96594649453628, 59.823057138114095, -82.74728973163121,
-                        148.25992300801448, 118.79815482426172, -41.431821027602865)),
-        STAB("stab", "Forward Stab",
-                "Short thrust forward instead of a broad cut.",
-                new WieldStyleConfig(10, 6, 1, 0.72,
-                        1.00, 0.34, -0.36, -12.0, -5.0, 0.0, 80.0,
-                        0.0, 20.0, 0.08, 0.06, -0.24, 0.92, 0.95,
-                        -12.0, 18.0, -6.0, 8.0, 0.0, 8.0, 92.0, -10.0));
-
-        private final String id;
-        private final String displayName;
-        private final String description;
-        private final WieldStyleConfig config;
-
-        WieldStylePreset(String id, String displayName, String description, WieldStyleConfig config) {
-            this.id = id;
-            this.displayName = displayName;
-            this.description = description;
-            this.config = config;
-        }
-
-        public String id() {
-            return id;
-        }
-
-        public String displayName() {
-            return displayName;
-        }
-
-        public String description() {
-            return description;
-        }
-
-        public WieldStyleConfig config() {
-            return config.copy();
-        }
-
-        public WieldStylePreset relative(int direction) {
-            WieldStylePreset[] values = values();
-            int next = (ordinal() + direction) % values.length;
-            if (next < 0) {
-                next += values.length;
-            }
-            return values[next];
-        }
-
-        public static WieldStylePreset fromString(String input) {
-            if (input == null || input.isBlank()) {
-                return null;
-            }
-            String normalized = input.toLowerCase(Locale.ROOT);
-            for (WieldStylePreset preset : values()) {
-                if (preset.id.equals(normalized) || preset.name().equalsIgnoreCase(input)) {
-                    return preset;
-                }
-            }
-            return null;
-        }
-
-        public static List<String> suggestions(String prefix) {
-            String normalized = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
-            return java.util.Arrays.stream(values())
-                    .map(WieldStylePreset::id)
-                    .filter(id -> id.startsWith(normalized))
-                    .toList();
-        }
-    }
-
     public static class WieldStyleConfig {
         private int cooldownTicks;
         private int swingTicks;
@@ -715,10 +493,13 @@ public class WieldStyleDebugManager implements Listener {
         }
 
         public static WieldStyleConfig defaultConfig() {
-            return new WieldStyleConfig(12, 8, 1, 0.75,
-                    1.05, 0.42, -0.38, -35.0, -8.0, 0.0, 35.0,
-                    -85.0, 190.0, 0.72, 0.62, -0.16, 1.0, 0.55,
-                    -115.0, 230.0, -30.0, 80.0, -35.0, 95.0, 95.0, -190.0);
+            return new WieldStyleConfig(16, 17, 1, 0.82,
+                    1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                    0.0, 180.0, 0.9877825861829582, 0.15980664918631562,
+                    0.036862218691507104, 1.2711515689082424, 0.4006004088814077,
+                    -41.38846296298364, 48.91458472939911, -53.61977811440525,
+                    81.38337452682886, -66.83012338117723, 132.66759822330394,
+                    99.1515139506437, -30.49929654416185);
         }
 
         public WieldStyleConfig copy() {
@@ -729,29 +510,6 @@ public class WieldStyleDebugManager implements Listener {
                     swingForwardPeak, swingYawStart, swingYawSweep, swingPitchStart,
                     swingPitchSweep, swingLeftRotationStart, swingLeftRotationSweep,
                     swingRightRotationStart, swingRightRotationSweep);
-        }
-
-        public void randomizeSwingValues(ThreadLocalRandom random) {
-            setSwingTicks(random.nextInt(10, 21));
-            setSwingAngleStart(jitter(random, swingAngleStart, 25.0));
-            setSwingAngleSweep(jitter(random, swingAngleSweep, 45.0));
-            setSwingSideRadius(jitter(random, swingSideRadius, 0.15));
-            setSwingUpRadius(jitter(random, swingUpRadius, 0.25));
-            setSwingUpOffset(jitter(random, swingUpOffset, 0.15));
-            setSwingForwardBase(jitter(random, swingForwardBase, 0.20));
-            setSwingForwardPeak(jitter(random, swingForwardPeak, 0.18));
-            setSwingYawStart(jitter(random, swingYawStart, 20.0));
-            setSwingYawSweep(jitter(random, swingYawSweep, 30.0));
-            setSwingPitchStart(jitter(random, swingPitchStart, 25.0));
-            setSwingPitchSweep(jitter(random, swingPitchSweep, 35.0));
-            setSwingLeftRotationStart(jitter(random, swingLeftRotationStart, 30.0));
-            setSwingLeftRotationSweep(jitter(random, swingLeftRotationSweep, 45.0));
-            setSwingRightRotationStart(jitter(random, swingRightRotationStart, 30.0));
-            setSwingRightRotationSweep(jitter(random, swingRightRotationSweep, 45.0));
-        }
-
-        private static double jitter(ThreadLocalRandom random, double base, double radius) {
-            return base + random.nextDouble(-radius, radius);
         }
 
         public String describe() {

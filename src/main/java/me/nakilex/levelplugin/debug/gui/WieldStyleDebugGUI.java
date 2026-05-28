@@ -11,7 +11,6 @@ import java.util.function.Function;
 
 import me.nakilex.levelplugin.debug.WieldStyleDebugManager;
 import me.nakilex.levelplugin.debug.WieldStyleDebugManager.WieldStyleConfig;
-import me.nakilex.levelplugin.debug.WieldStyleDebugManager.WieldStylePreset;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -39,12 +38,10 @@ public class WieldStyleDebugGUI implements Listener {
     private static final int GUI_SIZE = 54;
     private static final int ENABLE_SLOT = 45;
     private static final int RESET_SLOT = 46;
-    private static final int RANDOMIZE_SLOT = 47;
-    private static final int TEST_SLOT = 48;
-    private static final int SAVE_SLOT = 49;
-    private static final int CLOSE_SLOT = 50;
-    private static final int PRESET_SLOT = 51;
-    private static final int INFO_SLOT = 52;
+    private static final int TEST_SLOT = 47;
+    private static final int SAVE_SLOT = 48;
+    private static final int CLOSE_SLOT = 49;
+    private static final int INFO_SLOT = 50;
 
     private final WieldStyleDebugManager wieldStyleDebugManager;
     private final Map<UUID, WieldStyleConfig> workingConfigs = new HashMap<>();
@@ -105,20 +102,10 @@ public class WieldStyleDebugGUI implements Listener {
                 context -> GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Reset Defaults",
                         TooltipUtil.bulletList("Reset every runtime pose and swing value.")),
                 (click, context) -> {
-                    WieldStylePreset preset = wieldStyleDebugManager.applyPreset(WieldStylePreset.OVERHEAD_SLASH);
+                    wieldStyleDebugManager.resetConfig();
                     workingConfigs.put(context.player().getUniqueId(), wieldStyleDebugManager.config());
                     ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
-                            "Wield style settings reset to " + preset.displayName() + ".");
-                    context.player().openInventory(buildInventory(context.player()));
-                }));
-        widgetList.add(new ActionWidget(RANDOMIZE_SLOT,
-                context -> createRandomizeItem(),
-                (click, context) -> {
-                    wieldStyleDebugManager.randomizeSwingConfig(getConfig(context));
-                    wieldStyleDebugManager.applyConfig(getConfig(context));
-                    wieldStyleDebugManager.playOnce(context.player());
-                    ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
-                            "Randomized swing animation values and played a test slash.");
+                            "Wield style settings reset to the manual horizontal baseline.");
                     context.player().openInventory(buildInventory(context.player()));
                 }));
         widgetList.add(new ActionWidget(TEST_SLOT,
@@ -143,17 +130,6 @@ public class WieldStyleDebugGUI implements Listener {
         widgetList.add(new ActionWidget(CLOSE_SLOT,
                 context -> GuiUtil.getNexoItem("cross", ChatColor.RED + "Close"),
                 (click, context) -> context.player().closeInventory()));
-        widgetList.add(new ActionWidget(PRESET_SLOT,
-                context -> createPresetItem(),
-                (click, context) -> {
-                    int direction = click.isRightClick() ? -1 : 1;
-                    WieldStylePreset preset = wieldStyleDebugManager.applyNextPreset(direction);
-                    workingConfigs.put(context.player().getUniqueId(), wieldStyleDebugManager.config());
-                    wieldStyleDebugManager.playOnce(context.player());
-                    ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
-                            "Applied wield preset " + preset.displayName() + ".");
-                    context.player().openInventory(buildInventory(context.player()));
-                }));
         widgetList.add(new ActionWidget(INFO_SLOT,
                 context -> createInfoItem(context.player()),
                 null));
@@ -221,42 +197,6 @@ public class WieldStyleDebugGUI implements Listener {
             lore.add(" ");
             lore.addAll(TooltipUtil.clickInstructions("to increase", "to decrease"));
             lore.addAll(TooltipUtil.sneakClickInstructions("to increase x5", "to decrease x5"));
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
-    private ItemStack createRandomizeItem() {
-        ItemStack item = new ItemStack(Material.ENDER_CHEST);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Randomize Swing");
-            List<String> lore = new ArrayList<>();
-            lore.addAll(TooltipUtil.bulletList(
-                    "Uses the active preset as the animation basis.",
-                    "Swing ticks randomize between 10 and 20.",
-                    "Path and rotation values get small random nudges."));
-            meta.setLore(lore);
-            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            item.setItemMeta(meta);
-        }
-        return item;
-    }
-
-    private ItemStack createPresetItem() {
-        WieldStylePreset preset = wieldStyleDebugManager.activePreset();
-        ItemStack item = new ItemStack(Material.NETHER_STAR);
-        ItemMeta meta = item.getItemMeta();
-        if (meta != null) {
-            meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Preset: " + preset.displayName());
-            List<String> lore = new ArrayList<>();
-            lore.addAll(TooltipUtil.bulletList(
-                    preset.description(),
-                    "Left-click next preset.",
-                    "Right-click previous preset.",
-                    "Preset commands: /debug wield preset <name>."));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
