@@ -56,7 +56,7 @@ public class WieldStyleDebugManager implements Listener {
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
-    private WieldStylePreset activePreset = WieldStylePreset.ROGUE_DIAGONAL_OUTWARD;
+    private WieldStylePreset activePreset = WieldStylePreset.COMPACT_DIAGONAL_SLASH;
     private WieldStyleConfig config = activePreset.config();
 
     public WieldStyleDebugManager(Main plugin) {
@@ -273,7 +273,7 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public void resetConfig() {
-        applyPreset(WieldStylePreset.ROGUE_DIAGONAL_OUTWARD);
+        applyPreset(WieldStylePreset.COMPACT_DIAGONAL_SLASH);
     }
 
     public WieldStylePreset activePreset() {
@@ -281,7 +281,7 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public WieldStylePreset applyPreset(WieldStylePreset preset) {
-        WieldStylePreset safePreset = preset == null ? WieldStylePreset.ROGUE_DIAGONAL_OUTWARD : preset;
+        WieldStylePreset safePreset = preset == null ? WieldStylePreset.COMPACT_DIAGONAL_SLASH : preset;
         activePreset = safePreset;
         applyConfig(safePreset.config());
         return safePreset;
@@ -528,6 +528,13 @@ public class WieldStyleDebugManager implements Listener {
 
 
     public enum WieldStylePreset {
+        COMPACT_DIAGONAL_SLASH("compact_diagonal_slash", "Compact Diagonal Slash",
+                "Logged diagonal slash preset with a tighter side/up/forward radius.",
+                new WieldStyleConfig(13, 27, 1, 0.75,
+                        1.1, 0.38, -0.34, -25.0, -6.0, -4.0, 80.0,
+                        145.4499543227431, -380.8752464785158, -1.15, 0.48, -1.25, 1.75, 0.85,
+                        315.6740869951584, 256.9218267732739, -98.2675636003412, 208.78945940749134,
+                        -257.6486823365941, 667.5503535958458, 96.63660285774324, 440.7803504474682)),
         ROGUE_DIAGONAL_OUTWARD("rogue_diagonal_outward", "Rogue Diagonal Outward",
                 "Blade points away from the player and cuts down a diagonal line.",
                 new WieldStyleConfig(12, 8, 1, 0.75,

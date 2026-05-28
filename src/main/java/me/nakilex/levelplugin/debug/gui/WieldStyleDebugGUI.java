@@ -105,7 +105,7 @@ public class WieldStyleDebugGUI implements Listener {
                 context -> GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Reset Defaults",
                         TooltipUtil.bulletList("Reset every runtime pose and swing value.")),
                 (click, context) -> {
-                    WieldStylePreset preset = wieldStyleDebugManager.applyPreset(WieldStylePreset.ROGUE_DIAGONAL_OUTWARD);
+                    WieldStylePreset preset = wieldStyleDebugManager.applyPreset(WieldStylePreset.COMPACT_DIAGONAL_SLASH);
                     workingConfigs.put(context.player().getUniqueId(), wieldStyleDebugManager.config());
                     ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
                             "Wield style settings reset to " + preset.displayName() + ".");
