@@ -313,6 +313,8 @@ public class WieldStyleDebugGUI implements Listener {
                 WieldStyleConfig::idleLeftRotation, WieldStyleConfig::setIdleLeftRotation),
         IDLE_RIGHT_ROT(22, Material.IRON_NUGGET, "Idle Right Rotation", "Idle transformation right Y rotation.", 2.0, -180.0, 180.0,
                 WieldStyleConfig::idleRightRotation, WieldStyleConfig::setIdleRightRotation),
+        IDLE_ROLL_ROT(26, Material.IRON_INGOT, "Idle Roll Rotation", "Idle roll that turns the blade left/right on screen.", 2.0, -180.0, 180.0,
+                WieldStyleConfig::idleRollRotation, WieldStyleConfig::setIdleRollRotation),
         ARC_START(23, Material.BLAZE_ROD, "Arc Start Angle", "Starting angle for the swing position arc.", 2.0, -360.0, 360.0,
                 WieldStyleConfig::swingAngleStart, WieldStyleConfig::setSwingAngleStart),
         ARC_SWEEP(24, Material.BLAZE_POWDER, "Arc Sweep", "How many degrees the position arc travels.", 2.0, -720.0, 720.0,
@@ -342,7 +344,9 @@ public class WieldStyleDebugGUI implements Listener {
         RIGHT_ROT_START(40, Material.IRON_NUGGET, "Right Rot Start", "Starting transformation right Y rotation.", 2.0, -360.0, 360.0,
                 WieldStyleConfig::swingRightRotationStart, WieldStyleConfig::setSwingRightRotationStart),
         RIGHT_ROT_SWEEP(41, Material.IRON_NUGGET, "Right Rot Sweep", "Right Y rotation added across the slash.", 2.0, -720.0, 720.0,
-                WieldStyleConfig::swingRightRotationSweep, WieldStyleConfig::setSwingRightRotationSweep);
+                WieldStyleConfig::swingRightRotationSweep, WieldStyleConfig::setSwingRightRotationSweep),
+        SWING_ROLL_ROT(42, Material.IRON_INGOT, "Swing Roll Rotation", "Fixed roll that turns the blade left/right during the slash.", 2.0, -180.0, 180.0,
+                WieldStyleConfig::swingRollRotation, WieldStyleConfig::setSwingRollRotation);
 
         private final int slot;
         private final Material material;
