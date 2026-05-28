@@ -47,9 +47,12 @@ import org.joml.Vector3f;
  * are held in a runtime config so the debug GUI can tune the swing in game.</p>
  */
 public class WieldStyleDebugManager implements Listener {
+    private static final long RANDOM_SWING_INTERVAL_TICKS = 40L;
+
     private final Main plugin;
     private final NamespacedKey debugHandleKey;
     private final Map<UUID, WieldSession> sessions = new ConcurrentHashMap<>();
+    private final Map<UUID, BukkitTask> randomSwingTasks = new ConcurrentHashMap<>();
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
@@ -103,6 +106,7 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public void disable(UUID playerId) {
+        stopRandomTesting(playerId);
         WieldSession session = sessions.remove(playerId);
         if (session == null) {
             return;
@@ -134,6 +138,51 @@ public class WieldStyleDebugManager implements Listener {
         for (UUID id : ids) {
             disable(id);
         }
+        for (UUID id : new ArrayList<>(randomSwingTasks.keySet())) {
+            stopRandomTesting(id);
+        }
+    }
+
+    public boolean isRandomTestingEnabled(Player player) {
+        return randomSwingTasks.containsKey(player.getUniqueId());
+    }
+
+    public void toggleRandomTesting(Player player) {
+        UUID playerId = player.getUniqueId();
+        if (stopRandomTesting(playerId)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Random wield swing testing disabled.");
+            return;
+        }
+        enable(player, createVisualItem(player));
+        BukkitTask task = new BukkitRunnable() {
+            @Override
+            public void run() {
+                Player online = plugin.getServer().getPlayer(playerId);
+                if (online == null || !online.isOnline()) {
+                    stopRandomTesting(playerId);
+                    cancel();
+                    return;
+                }
+                WieldStyleConfig randomConfig = WieldStyleConfig.defaultConfig();
+                randomizeSwingConfig(randomConfig);
+                applyConfig(randomConfig);
+                logConfig(randomConfig);
+                playOnce(online);
+            }
+        }.runTaskTimer(plugin, 0L, RANDOM_SWING_INTERVAL_TICKS);
+        randomSwingTasks.put(playerId, task);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Random wield swing testing enabled. A randomized swing will play every 2 seconds and log to console.");
+    }
+
+    private boolean stopRandomTesting(UUID playerId) {
+        BukkitTask task = randomSwingTasks.remove(playerId);
+        if (task == null) {
+            return false;
+        }
+        task.cancel();
+        return true;
     }
 
     public ItemStack createDebugHandle() {
