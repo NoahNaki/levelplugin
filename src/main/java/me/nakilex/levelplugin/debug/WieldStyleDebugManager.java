@@ -322,11 +322,23 @@ public class WieldStyleDebugManager implements Listener {
             return;
         }
         long now = player.getWorld().getFullTime();
-        if (session.lastInputTick == now) {
+        if (session.lastInputTick == now || session.swinging || now < session.nextAllowedSwingTick) {
             return;
         }
         session.lastInputTick = now;
-        startSwing(player, session, false);
+        startSwing(player, session, false, nextComboConfig(session));
+    }
+
+    private WieldStyleConfig nextComboConfig(WieldSession session) {
+        WieldStylePreset[] combo = {
+                WieldStylePreset.BASIC_ATTACK,
+                WieldStylePreset.BASIC_ATTACK_TWO,
+                WieldStylePreset.OVERHEAD_SLASH,
+                WieldStylePreset.COOL_SWEEP
+        };
+        WieldStylePreset preset = combo[session.comboIndex % combo.length];
+        session.comboIndex = (session.comboIndex + 1) % combo.length;
+        return preset.config();
     }
 
     @EventHandler
@@ -380,12 +392,12 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     private void startSwing(Player player, WieldSession session, boolean force) {
+        startSwing(player, session, force, config.copy());
+    }
+
+    private void startSwing(Player player, WieldSession session, boolean force, WieldStyleConfig activeConfig) {
         long now = player.getWorld().getFullTime();
-        WieldStyleConfig activeConfig = config.copy();
-        if (!force && now < session.nextAllowedSwingTick) {
-            long remaining = session.nextAllowedSwingTick - now;
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Wield preview cooling down for " + remaining + " tick(s).");
+        if (!force && (session.swinging || now < session.nextAllowedSwingTick)) {
             return;
         }
         if (session.swingTask != null) {
@@ -536,6 +548,7 @@ public class WieldStyleDebugManager implements Listener {
         private BukkitTask followTask;
         private BukkitTask swingTask;
         private boolean swinging;
+        private int comboIndex;
         private long nextAllowedSwingTick;
         private long lastInputTick = -1L;
 
@@ -571,7 +584,39 @@ public class WieldStyleDebugManager implements Listener {
                         0.6039956910541824, 0.06503697955364385, 1.1567669547934205,
                         0.4147886779934885, 124.46899839538139, -83.92384491011171,
                         -22.865147709861816, 210.69150810349333, 125.24722177342,
-                        -177.45824996471913, 60.07567107365088, 161.6478692857686));
+                        -177.45824996471913, 60.07567107365088, 161.6478692857686)),
+        COOL_SWIRL("cool_swirl", "Cool Swirl",
+                new WieldStyleConfig(16, 17, 1, 0.82,
+                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        -123.2797945004859, -326.88824337384665, -1.2929481246029473,
+                        1.0850175545906546, -0.07845679609481981, 1.3829925186475112,
+                        0.2843594103411882, 100.41132146621277, -139.45950615941555,
+                        -19.099799951032765, 202.27736608788462, 171.37924907810157,
+                        -433.8053333171781, 134.99582825105335, -268.5415701430878)),
+        PARRY_TYPE("parry_type", "Parry Type",
+                new WieldStyleConfig(16, 17, 1, 0.82,
+                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        -157.70547416035907, 391.3088240022212, 0.8931485413847031,
+                        -0.8684853539984333, 0.2650746358058361, 1.2321292243985533,
+                        0.36050623086962186, 23.51300724555844, -155.64026598650247,
+                        -97.81968552087531, -198.02284776870925, -36.72350683795469,
+                        -497.9896943862577, -37.62978480829449, -447.6378094901502)),
+        BASIC_ATTACK("basic_attack", "Basic Attack",
+                new WieldStyleConfig(16, 17, 1, 0.82,
+                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        -7.597476350519571, -396.6678009578013, -1.002474704638901,
+                        -0.10955255504269501, -0.49299159608471477, 1.1246103768763687,
+                        0.43023693341752944, -34.03258465878355, 105.8781397276856,
+                        -26.468320533805482, 111.74781919098103, -77.1466018303899,
+                        258.9278522064494, 74.59162027705167, -280.6300726398954)),
+        BASIC_ATTACK_TWO("basic_attack_2", "Basic Attack 2",
+                new WieldStyleConfig(16, 17, 1, 0.82,
+                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        -85.68423014032777, -202.81888790329361, 1.2802284526314247,
+                        -0.5111532543229289, -0.07972367059891083, 1.179850083916887,
+                        0.5010660807049536, 4.879281831669914, 165.93664880282688,
+                        71.18506108827745, 72.11240325338264, 155.02853975191795,
+                        -406.01305010724536, 187.880697581937, 52.44780271370257));
 
         private final String id;
         private final String displayName;
