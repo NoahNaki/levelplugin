@@ -157,6 +157,7 @@ public class ListenerRegistry {
                                         SpellSummonManager spellSummonManager,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
+                                        me.nakilex.levelplugin.debug.WieldStyleDebugManager wieldStyleDebugManager,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
 
 
@@ -309,6 +310,7 @@ public class ListenerRegistry {
         pm.registerEvents(new SpellCastListener(plugin), plugin);
         pm.registerEvents(new SpellInputDebugListener(), plugin);
         pm.registerEvents(arcSlashDebugManager, plugin);
+        pm.registerEvents(wieldStyleDebugManager, plugin);
         pm.registerEvents(arcSlashDebugGUI, plugin);
         pm.registerEvents(settingsGUI, plugin);
         pm.registerEvents(spellKeybindGUI, plugin);
