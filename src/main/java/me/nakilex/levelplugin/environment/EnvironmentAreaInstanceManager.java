@@ -11,6 +11,10 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.FireworkUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
+import me.nakilex.levelplugin.advancement.AdvancementToastUtil;
+import me.nakilex.levelplugin.advancement.model.AdvancementDisplay;
+import me.nakilex.levelplugin.advancement.model.AdvancementKey;
+import me.nakilex.levelplugin.advancement.model.BaseAdvancement;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -86,6 +90,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
     private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
+    private static final int MIN_BUILD_SPEED_PERCENT = 1;
+    private static final int MAX_BUILD_SPEED_PERCENT = 100;
+    private static int buildSpeedPercent = 100;
     private static final long COIN_SEND_INTERVAL_TICKS = 2L;
     private static final List<CoinVisual> PAYMENT_COIN_VISUALS = List.of(
             new CoinVisual(100, Material.GOLD_NUGGET, "gold_coin"),
@@ -163,6 +170,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
+    private final Map<UUID, Map<Integer, Long>> buildFinishAtByProfile = new HashMap<>();
+    private BukkitTask buildTimerTask;
     private BukkitTask hologramRefreshTask;
     private final Map<String, List<String>> lastHologramLinesByTag = new HashMap<>();
     private final Map<UUID, AnimatedLeaderboard> animatedLeaderboardsByOwner = new HashMap<>();
@@ -186,6 +195,36 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         this.plugin = plugin;
         Bukkit.getPluginManager().registerEvents(this, plugin);
         startHologramRefreshTask();
+        startBuildTimerTask();
+    }
+
+    private void startBuildTimerTask() {
+        if (buildTimerTask != null) buildTimerTask.cancel();
+        buildTimerTask = new BukkitRunnable() {
+            @Override public void run() {
+                long now = System.currentTimeMillis();
+                for (EnvironmentAreaSession session : new ArrayList<>(sessions.values())) {
+                    Player owner = Bukkit.getPlayer(session.ownerId());
+                    if (owner == null || !owner.isOnline()) continue;
+                    UUID scoped = resolveProfileScopedId(owner);
+                    Map<Integer, Long> map = buildFinishAtByProfile.get(scoped);
+                    if (map == null || map.isEmpty()) continue;
+                    List<Integer> finished = new ArrayList<>();
+                    for (var e : map.entrySet()) {
+                        if (e.getValue() <= now) {
+                            int slot = e.getKey();
+                            markBuiltForProfile(owner, slot);
+                            if (slot == 5) setFarmBuildingLevel(scoped, Math.max(1, resolveCurrentLevel(owner, slot)));
+                            if (slot == 4) setPalaceBuildingLevel(scoped, Math.max(1, resolveCurrentLevel(owner, slot)));
+                            if (slot == 2) setBlacksmithBuildingLevel(scoped, Math.max(1, resolveCurrentLevel(owner, slot)));
+                            refreshBuildHologram(session, slot);
+                            finished.add(slot);
+                        }
+                    }
+                    finished.forEach(map::remove);
+                }
+            }
+        }.runTaskTimer(plugin, 20L, 20L);
     }
 
     private void startHologramRefreshTask() {
@@ -597,9 +636,24 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private void spawnBuildHolograms(EnvironmentAreaSession session) {
+        purgeExistingHologramsForOwner(session);
         session.removeHolograms();
         for (BuildingTemplate building : BUILDINGS) {
             session.holograms().addAll(buildHologramEntitiesForSlot(session, building));
+        }
+    }
+
+    private void purgeExistingHologramsForOwner(EnvironmentAreaSession session) {
+        if (session == null || session.world() == null) return;
+        String ownerPrefix = HOLOGRAM_TAG_PREFIX + session.ownerId() + ":";
+        for (Entity entity : session.world().getEntities()) {
+            if (entity == null || entity.isDead()) continue;
+            for (String tag : entity.getScoreboardTags()) {
+                if (tag != null && tag.startsWith(ownerPrefix)) {
+                    entity.remove();
+                    break;
+                }
+            }
         }
     }
 
@@ -629,11 +683,31 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private List<String> buildHologramLinesForSlot(EnvironmentAreaSession session, BuildingTemplate building) {
         Player owner = Bukkit.getPlayer(session.ownerId());
         UUID scoped = owner != null ? resolveProfileScopedId(owner) : scopedProfileId(session.ownerId(), 0);
-        boolean isBuilt = loadBuiltSlots(scoped).contains(building.slot());
+        int currentLevel = owner != null ? resolveCurrentLevel(owner, building.slot()) : 0;
+        boolean isBuilt = isSlotBuilt(scoped, building.slot(), currentLevel);
+        Long finishAt = getBuildFinishAt(scoped, building.slot());
+        if (finishAt != null) {
+            long remaining = Math.max(0, (finishAt - System.currentTimeMillis()) / 1000L);
+            return java.util.List.of(
+                    ChatColor.GOLD + "" + ChatColor.BOLD + "UPGRADING " + ChatColor.WHITE + building.displayName().toUpperCase(Locale.ROOT),
+                    ChatColor.YELLOW + "Time Remaining: " + ChatColor.WHITE + SpeedUpScrollUtil.formatDuration(remaining),
+                    " ",
+                    ChatColor.WHITE + "Right Click " + ChatColor.GRAY + "to speed up"
+            );
+        }
         String actionText = isBuilt ? "Level Up " : "Build ";
         String clickAction = isBuilt ? "to level up" : "to build";
-        int currentLevel = owner != null ? resolveCurrentLevel(owner, building.slot()) : 0;
+        if (!isBuilt) {
+            currentLevel = 0;
+        }
         int nextLevel = isBuilt ? (owner != null ? resolveNextLevel(owner, building.slot()) : 1) : 1;
+        if (isBuilt && (nextLevel <= currentLevel || nextLevel > maxLevelForSlot(building.slot()))) {
+            return java.util.List.of(
+                    ChatColor.GREEN + "" + ChatColor.BOLD + "BUILT " + ChatColor.WHITE + building.displayName().toUpperCase(Locale.ROOT),
+                    ChatColor.GRAY + "Stage " + ChatColor.WHITE + currentLevel,
+                    ChatColor.DARK_GRAY + "Max stage reached"
+            );
+        }
         int cost = getUpgradeCostForSlotLevel(building.slot(), nextLevel);
         Map<Material, Integer> materialCosts = getMaterialCostsForSlotLevel(building.slot(), nextLevel);
         boolean hasCoins = owner != null && plugin.getEconomyManager().getBalance(owner) >= cost;
@@ -656,8 +730,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         lines.add((hasCoins ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                 + ChatColor.WHITE + cost + ChatColor.DARK_GRAY + "x " + ChatColor.GOLD + "<glyph:coins_icon>");
         lines.add(" ");
-        lines.add(ChatColor.YELLOW + "Right Click " + ChatColor.GRAY + clickAction);
+        lines.add(ChatColor.WHITE + "Right Click " + ChatColor.GRAY + clickAction);
         return lines;
+    }
+
+    private boolean isSlotBuilt(UUID scoped, int slot, int currentLevel) {
+        return loadBuiltSlots(scoped).contains(slot);
     }
 
     private Location findMarker(EnvironmentAreaSession session, BuildingTemplate building) {
@@ -835,8 +913,42 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         UUID scoped = resolveProfileScopedId(player);
-        java.util.Set<Integer> builtSlots = loadBuiltSlots(scoped);
-        int nextLevel = builtSlots.contains(slot) ? resolveNextLevel(player, slot) : 1;
+        int currentLevel = resolveCurrentLevel(player, slot);
+        boolean isBuilt = isSlotBuilt(scoped, slot, currentLevel);
+        Long finishAt = getBuildFinishAt(scoped, slot);
+        if (finishAt != null && finishAt > System.currentTimeMillis()) {
+            ItemStack hand = player.getInventory().getItemInMainHand();
+            if (!SpeedUpScrollUtil.isSpeedUpScroll(hand)) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        ChatColor.WHITE + "Right click with a Speed Up Scroll" + ChatColor.GRAY + " to reduce build time.");
+                refreshBuildHologram(session, slot);
+                return;
+            }
+            int seconds = SpeedUpScrollUtil.getSeconds(hand);
+            if (seconds <= 0) {
+                refreshBuildHologram(session, slot);
+                return;
+            }
+            long updatedFinish = Math.max(System.currentTimeMillis(), finishAt - (seconds * 1000L));
+            setBuildFinishAt(scoped, slot, updatedFinish);
+            hand.setAmount(Math.max(0, hand.getAmount() - 1));
+            if (hand.getAmount() <= 0) {
+                player.getInventory().setItemInMainHand(null);
+            }
+            refreshBuildHologram(session, slot);
+            return;
+        }
+        if (isBuilt && maxLevelForSlot(slot) <= 1) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    building.displayName() + " is already built.");
+            return;
+        }
+        int nextLevel = isBuilt ? resolveNextLevel(player, slot) : 1;
+        if (nextLevel > maxLevelForSlot(slot)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    building.displayName() + " is already at max level.");
+            return;
+        }
         openBuildConfirm(player, tag, slot, building.displayName(), nextLevel);
     }
 
@@ -866,7 +978,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (slot == 2) return getBlacksmithBuildingLevel(player) + 1;
         if (slot == 4) return getPalaceBuildingLevel(player) + 1;
         if (slot == 5) return getFarmBuildingLevel(player) + 1;
-        return 2;
+        return 1;
     }
 
     private int resolveCurrentLevel(Player player, int slot) {
@@ -876,6 +988,35 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return loadBuiltSlots(resolveProfileScopedId(player)).contains(slot) ? 1 : 0;
     }
 
+    private int maxLevelForSlot(int slot) {
+        if (slot == 2) return 12;
+        if (slot == 4) return 10;
+        if (slot == 5) return 3;
+        return 1;
+    }
+
+
+    private long computeBuildDurationMs(int slot, int level) {
+        long base = 2L * 60L * 1000L;
+        long scaled = (long) (base * Math.pow(1.8, Math.max(0, level - 1)));
+        return Math.min(8L * 60L * 60L * 1000L, scaled);
+    }
+
+    private void setBuildFinishAt(UUID scoped, int slot, long finishAtMs) {
+        buildFinishAtByProfile.computeIfAbsent(scoped, k -> new HashMap<>()).put(slot, finishAtMs);
+    }
+
+    private void clearBuildFinishAt(UUID scoped, int slot) {
+        Map<Integer, Long> map = buildFinishAtByProfile.get(scoped);
+        if (map == null) return;
+        map.remove(slot);
+        if (map.isEmpty()) buildFinishAtByProfile.remove(scoped);
+    }
+
+    private Long getBuildFinishAt(UUID scoped, int slot) {
+        Map<Integer, Long> map = buildFinishAtByProfile.get(scoped);
+        return map == null ? null : map.get(slot);
+    }
     private int getUpgradeCostForSlotLevel(int slot, int nextLevel) {
         int level = Math.max(1, nextLevel);
         int base = switch (slot) {
@@ -913,7 +1054,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (slot == 2 && builtSlots.contains(slot)) {
             int upgraded = upgradeBlacksmithLevel(player, scoped);
             if (upgraded > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Blacksmith" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                showBuildingProgressToast(player, "Blacksmith", upgraded, Material.ANVIL, true);
                 playUpgradeCelebration(player, findMarker(session, building));
                 if (upgraded >= 12) removeBuildHologram(session, tag);
                 else refreshBuildHologram(session, slot);
@@ -923,7 +1064,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (slot == 4 && builtSlots.contains(slot)) {
             int upgraded = upgradePalaceLevel(player, scoped);
             if (upgraded > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Palace" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                showBuildingProgressToast(player, "Palace", upgraded, Material.STONE_BRICKS, true);
                 playUpgradeCelebration(player, findMarker(session, building));
                 if (upgraded >= 10) removeBuildHologram(session, tag);
                 else refreshBuildHologram(session, slot);
@@ -933,7 +1074,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (slot == 5 && builtSlots.contains(slot)) {
             int upgraded = upgradeFarmLevel(player, scoped);
             if (upgraded > 0) {
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Level Up " + ChatColor.WHITE + "Farm" + ChatColor.GREEN + " -> " + ChatColor.WHITE + upgraded);
+                showBuildingProgressToast(player, "Farm", upgraded, Material.HAY_BLOCK, true);
                 playUpgradeCelebration(player, findMarker(session, building));
                 if (upgraded >= 3) removeBuildHologram(session, tag);
                 else refreshBuildHologram(session, slot);
@@ -983,23 +1124,29 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     cancel();
                     return;
                 }
-                buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker);
-                markBuiltForProfile(player, slot);
-                if (slot == 4) {
-                    setPalaceBuildingLevel(resolveProfileScopedId(player), 1);
-                }
-                if (slot == 2) {
-                    setBlacksmithBuildingLevel(resolveProfileScopedId(player), 1);
-                }
+                long buildDurationMs = computeBuildDurationMs(slot, nextLevel);
+                long finishAt = System.currentTimeMillis() + buildDurationMs;
+                UUID profileScoped = resolveProfileScopedId(player);
+                setBuildFinishAt(profileScoped, slot, finishAt);
+                refreshBuildHologram(session, slot);
+                long totalTicks = Math.max(1L, Math.round((buildDurationMs / 1000.0) * 20.0));
+                buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker, totalTicks, () -> {
+                    markBuiltForProfile(player, slot);
+                    clearBuildFinishAt(profileScoped, slot);
+                    if (slot == 4) {
+                        setPalaceBuildingLevel(profileScoped, Math.max(1, nextLevel));
+                    }
+                    if (slot == 2) {
+                        setBlacksmithBuildingLevel(profileScoped, Math.max(1, nextLevel));
+                    }
+                    if (slot == 5) {
+                        setFarmBuildingLevel(profileScoped, Math.max(1, nextLevel));
+                    }
+                    refreshBuildHologram(session, slot);
+                });
                 if (slot != 5 && slot != 4 && slot != 2) {
                     removeBuildHologram(session, tag);
                 } else {
-                    if (slot == 5) {
-                        setFarmBuildingLevel(resolveProfileScopedId(player), 1);
-                    }
-                    if (slot == 2) {
-                        setBlacksmithBuildingLevel(resolveProfileScopedId(player), 1);
-                    }
                     refreshBuildHologram(session, slot);
                 }
                 activeBuildTasks.remove(sessionOwner);
@@ -1158,7 +1305,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private void setBlacksmithBuildingLevel(UUID scoped, int level) {
-        int clamped = Math.max(1, Math.min(12, level));
+        int clamped = Math.max(0, Math.min(12, level));
         blacksmithBuildingLevelByProfile.put(scoped, clamped);
         plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.blacksmith-building-level", clamped);
     }
@@ -1351,7 +1498,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                       BuildingTemplate building,
                                       CuboidTemplate template,
                                       WorldCuboid destinationArea,
-                                      Location destinationMarker) {
+                                      Location destinationMarker,
+                                      long totalTicks,
+                                      Runnable onComplete) {
         if (player == null || session == null || building == null || template == null
                 || destinationArea == null || destinationMarker == null) {
             return;
@@ -1366,7 +1515,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 + ", destMin=" + baseX + "," + baseY + "," + baseZ
                 + ", destMax=" + destinationArea.maxX() + "," + destinationArea.maxY() + "," + destinationArea.maxZ()
                 + ", blockCount=" + copies.size());
-        int blocksPerTick = Math.max(1, copies.size() / Math.max(1, BUILD_ANIMATION_TOTAL_TICKS));
+        int animationTicks = scaledBuildAnimationTicks(totalTicks);
+        int blocksPerTick = Math.max(1, copies.size() / animationTicks);
         new BukkitRunnable() {
             int index = 0;
 
@@ -1392,13 +1542,48 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                             destinationArea.minX(), destinationArea.minY(), destinationArea.minZ(),
                             destinationArea.maxX(), destinationArea.maxY(), destinationArea.maxZ(),
                             8);
-                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                            "Built " + ChatColor.WHITE + building.displayName() + ChatColor.GREEN + ".");
+                    int currentLevel = resolveCurrentLevel(player, building.slot());
+                    showBuildingProgressToast(player, building.displayName(), currentLevel, building.marker(), currentLevel > 1);
                     copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea);
+                    if (onComplete != null) onComplete.run();
                     cancel();
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private void showBuildingProgressToast(Player player, String buildingName, int level, Material icon, boolean leveledUp) {
+        if (player == null || buildingName == null) return;
+        String clean = buildingName.toLowerCase(Locale.ROOT).replace(' ', '_');
+        String verb = leveledUp ? "Upgrade " : "Build ";
+        AdvancementDisplay display = new AdvancementDisplay.Builder(icon == null ? Material.PAPER : icon)
+                .title(verb + buildingName)
+                .descriptionLine("Level " + Math.max(1, level))
+                .frameType(AdvancementDisplay.FrameType.TASK)
+                .showToast(true)
+                .announceChat(false)
+                .build();
+        BaseAdvancement toastAdvancement = new BaseAdvancement(
+                new AdvancementKey("kingdom_build", clean + "_stage_" + Math.max(1, level)),
+                display,
+                1,
+                null
+        );
+        AdvancementToastUtil.showToast(player, toastAdvancement);
+    }
+
+    private static int scaledBuildAnimationTicks(long baseTicks) {
+        int speed = Math.max(MIN_BUILD_SPEED_PERCENT, Math.min(MAX_BUILD_SPEED_PERCENT, buildSpeedPercent));
+        long safeBaseTicks = Math.max(1L, baseTicks);
+        return Math.max(1, (int) Math.round(safeBaseTicks * (100.0 / speed)));
+    }
+
+    public static int getBuildSpeedPercent() {
+        return buildSpeedPercent;
+    }
+
+    public static void setBuildSpeedPercent(int speedPercent) {
+        buildSpeedPercent = Math.max(MIN_BUILD_SPEED_PERCENT, Math.min(MAX_BUILD_SPEED_PERCENT, speedPercent));
     }
 
     private void copyCitizensNpcsIntoBuiltBuilding(EnvironmentAreaSession session,

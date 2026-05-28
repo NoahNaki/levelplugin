@@ -1,50 +1,51 @@
+---
 stages:
   blacksmith:
     '1':
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs: []
       schematic: blacksmith_1.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 7
+        "y": 7
         z: 122
     '2':
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
       upgrade_cost:
         coins: 2000
@@ -55,26 +56,26 @@ stages:
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
       upgrade_cost:
         coins: 2600
@@ -85,26 +86,26 @@ stages:
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
       upgrade_cost:
         coins: 3300
@@ -115,26 +116,26 @@ stages:
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
       upgrade_cost:
         coins: 4100
@@ -145,26 +146,26 @@ stages:
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
       upgrade_cost:
         coins: 5000
@@ -175,26 +176,26 @@ stages:
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
       upgrade_cost:
         coins: 6000
@@ -205,26 +206,26 @@ stages:
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
       upgrade_cost:
         coins: 7200
@@ -235,26 +236,26 @@ stages:
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
       upgrade_cost:
         coins: 8600
@@ -265,26 +266,26 @@ stages:
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
       upgrade_cost:
         coins: 10200
@@ -295,26 +296,26 @@ stages:
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
       upgrade_cost:
         coins: 12000
@@ -325,687 +326,56 @@ stages:
       world: flatland
       pos1:
         x: 4814
-        y: -61
+        "y": -61
         z: -1356
       pos2:
         x: 4597
-        y: 116
+        "y": 116
         z: -1145
       npcs:
-        - 637;111;8;126;-7.654175;88.799995
-        - 1508;75;8;128;-7.654175;88.799995
+      - 637;111;8;126;-7.654175;88.799995
+      - 1508;75;8;128;-7.654175;88.799995
       furniture:
-        - altar;72;8;128;NORTH
+      - altar;72;8;128;NORTH
       schematic: blacksmith_2.schem
       holo:
         x: 105
-        y: 9
+        "y": 9
         z: 123
       priority: 10
       origin:
         x: 104
-        y: 8
+        "y": 8
         z: 122
-  fountain:
-    '1':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: fountain_1.schem
-      holo:
-        x: 130
-        y: 8
-        z: 100
-      priority: 10
-      origin:
-        x: 129
-        y: 6
-        z: 99
-    '2':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: fountain_2.schem
-      holo:
-        x: 130
-        y: 8
-        z: 100
-      priority: 10
-      origin:
-        x: 129
-        y: 6
-        z: 99
-      upgrade_cost:
-        coins: 500
-        materials:
-          raw_iron: 50
-          coal: 50
-  library:
-    '1':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: library_1.schem
-      holo:
-        x: 131
-        y: 8
-        z: 116
-      priority: 10
-      origin:
-        x: 130
-        y: 6
-        z: 115
-    '2':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs:
-        - 638;150;8;99;-7.654175;88.799995
-      schematic: library_2.schem
-      holo:
-        x: 131
-        y: 8
-        z: 116
-      priority: 10
-      origin:
-        x: 130
-        y: 6
-        z: 115
-      upgrade_cost:
-        coins: 2000
-        materials:
-          raw_iron: 300
-          coal: 300
-  housing:
-    '1':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: housing_1.schem
-      holo:
-        x: 90
-        y: 3
-        z: 48
-      priority: 0
-      origin:
-        x: 89
-        y: 2
-        z: 47
-    '2':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs:
-        - 639;83;3;48;-7.654175;88.799995
-        - 1737;41;3;36;-7.654175;88.799995
-        - 1420;36;3;42;-7.654175;88.799995
-      schematic: housing_2.schem
-      holo:
-        x: 90
-        y: 3
-        z: 48
-      priority: 10
-      origin:
-        x: 89
-        y: 2
-        z: 47
-      upgrade_cost:
-        coins: 1000
-        materials:
-          raw_iron: 200
-          coal: 200
-  enchanter:
-    '1':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: enchanter_1.schem
-      holo:
-        x: 102
-        y: 9
-        z: 71
-      priority: 0
-      origin:
-        x: 101
-        y: 7
-        z: 70
-    '2':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs:
-        - 1118;105;8;84;-7.654175;88.799995
-      schematic: enchanter_2.schem
-      holo:
-        x: 102
-        y: 9
-        z: 71
-      priority: 10
-      origin:
-        x: 101
-        y: 7
-        z: 70
-      upgrade_cost:
-        coins: 500
-        materials:
-          raw_iron: 50
-          coal: 50
-  city_center:
-    '1':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      #- 658;58;8;85;-7.654175;88.799995
-      schematic: city_center_1.schem
-      holo:
-        x: 91
-        y: 8
-        z: 72
-      priority: 10
-      origin:
-        x: 90
-        y: 6
-        z: 71
-    '2':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: city_center_2.schem
-      holo:
-        x: 91
-        y: 8
-        z: 72
-      priority: 10
-      origin:
-        x: 90
-        y: 6
-        z: 71
-      upgrade_cost:
-        coins: 1000
-        materials:
-          raw_iron: 200
-          coal: 200
-  more_housing:
-    '1':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: more_housing_1.schem
-      holo:
-        x: 102
-        y: 3
-        z: 48
-      priority: 0
-      origin:
-        x: 101
-        y: 2
-        z: 47
-    '2':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs:
-        - 671;158;3;41;-7.654175;88.799995
-      schematic: more_housing_2.schem
-      holo:
-        x: 102
-        y: 3
-        z: 48
-      priority: 10
-      origin:
-        x: 101
-        y: 2
-        z: 47
-      upgrade_cost:
-        coins: 1000
-        materials:
-          raw_iron: 200
-          coal: 200
-  foundation:
-    '1':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: foundation_1.schem
-      holo:
-        x: 88
-        y: 9
-        z: 102
-      priority: 0
-      origin:
-        x: 87
-        y: 8
-        z: 101
-    '2':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: foundation_2.schem
-      holo:
-        x: 88
-        y: 9
-        z: 102
-      priority: 2
-      origin:
-        x: 87
-        y: 8
-        z: 101
-      upgrade_cost:
-        coins: 5000
-        materials:
-          raw_iron: 200
-          coal: 200
-    '3':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: foundation_3.schem
-      holo:
-        x: 88
-        y: 9
-        z: 102
-      priority: 3
-      origin:
-        x: 87
-        y: 8
-        z: 101
-      upgrade_cost:
-        coins: 10000
-        materials:
-          raw_iron: 300
-          coal: 300
-    '4':
-      world: flatland
-      pos1:
-        x: 4814
-        y: -61
-        z: -1356
-      pos2:
-        x: 4597
-        y: 116
-        z: -1145
-      npcs: []
-      schematic: foundation_4.schem
-      holo:
-        x: 88
-        y: 9
-        z: 102
-      priority: 4
-      origin:
-        x: 87
-        y: 8
-        z: 101
-      upgrade_cost:
-        coins: 20000
-        materials:
-          raw_iron: 500
-          coal: 500
   farm:
     '1':
       world: finished
       pos1:
         x: 3796
-        y: -18
+        "y": -18
         z: -3059
       pos2:
         x: 3753
-        y: 79
+        "y": 79
         z: -2996
       npcs: []
       schematic: farm_1.schem
       holo:
         x: 3795
-        y: -3
+        "y": -3
         z: -3032
       priority: 10
       origin:
         x: 3794
-        y: -4
+        "y": -4
         z: -3033
-  house:
-    '1':
-      world: finished
-      pos1:
-        x: 3810
-        y: -11
-        z: -3003
-      pos2:
-        x: 3838
-        y: 31
-        z: -3035
-      npcs: []
-      schematic: house_1.schem
-      holo:
-        x: 3822
-        y: -3
-        z: -3004
-      priority: 10
-      origin:
-        x: 3821
-        y: -4
-        z: -3005
-  house_2:
-    '1':
-      world: finished
-      pos1:
-        x: 3856
-        y: -10
-        z: -2961
-      pos2:
-        x: 3819
-        y: 29
-        z: -3000
-      npcs: []
-      schematic: house_2_1.schem
-      holo:
-        x: 3825
-        y: -2
-        z: -2986
-      priority: 10
-      origin:
-        x: 3824
-        y: -3
-        z: -2987
-  house_3:
-    '1':
-      world: finished
-      pos1:
-        x: 3755
-        y: -8
-        z: -2842
-      pos2:
-        x: 3717
-        y: 67
-        z: -2884
-      npcs: []
-      schematic: house_3_1.schem
-      holo:
-        x: 3757
-        y: 2
-        z: -2875
-      priority: 10
-      origin:
-        x: 3756
-        y: 1
-        z: -2876
-  house_4:
-    '1':
-      world: finished
-      pos1:
-        x: 3782
-        y: -2
-        z: -2862
-      pos2:
-        x: 3812
-        y: 33
-        z: -2900
-      npcs: []
-      schematic: house_4_1.schem
-      holo:
-        x: 3799
-        y: 1
-        z: -2897
-      priority: 10
-      origin:
-        x: 3798
-        y: 0
-        z: -2898
-  house_5:
-    '1':
-      world: finished
-      pos1:
-        x: 3813
-        y: 31
-        z: -2909
-      pos2:
-        x: 3849
-        y: -3
-        z: -2872
-      npcs: []
-      schematic: house_5_1.schem
-      holo:
-        x: 3832
-        y: -1
-        z: -2887
-      priority: 10
-      origin:
-        x: 3831
-        y: -2
-        z: -2888
-  house_6:
-    '1':
-      world: finished
-      pos1:
-        x: 3790
-        y: 21
-        z: -2797
-      pos2:
-        x: 3745
-        y: -41
-        z: -2757
-      npcs: []
-      schematic: house_6_1.schem
-      holo:
-        x: 3759
-        y: -8
-        z: -2817
-      priority: 10
-      origin:
-        x: 3758
-        y: -9
-        z: -2818
-  house_7:
-    '1':
-      world: finished
-      pos1:
-        x: 3765
-        y: 20
-        z: -2841
-      pos2:
-        x: 3729
-        y: -16
-        z: -2812
-      npcs: []
-      schematic: house_7_1.schem
-      holo:
-        x: 3753
-        y: -2
-        z: -2842
-      priority: 10
-      origin:
-        x: 3752
-        y: -3
-        z: -2843
-  house_8:
-    '1':
-      world: finished
-      pos1:
-        x: 3742
-        y: -13
-        z: -2996
-      pos2:
-        x: 3775
-        y: 38
-        z: -2937
-      npcs: []
-      schematic: house_8_1.schem
-      holo:
-        x: 3780
-        y: 0
-        z: -2975
-      priority: 10
-      origin:
-        x: 3779
-        y: -1
-        z: -2976
 links:
   town:
     blacksmith:
       x: 9
-      y: 0
+      "y": 0
       z: 11
-    fountain:
-      x: 34
-      y: 0
-      z: -12
-    library:
-      x: 35
-      y: 0
-      z: 4
-    housing:
-      x: -6
-      y: 0
-      z: -64
-    more_housing:
-      x: 6
-      y: 0
-      z: -64
-    city_center:
-      x: -5
-      y: 0
-      z: -40
-    enchanter:
-      x: 6
-      y: 0
-      z: -41
-    foundation:
-      x: -8
-      y: 0
-      z: -10
     farm:
       x: 0
-      y: 0
-      z: 0
-    house:
-      x: 0
-      y: 0
-      z: 0
-    house_2:
-      x: 0
-      y: 0
-      z: 0
-    house_3:
-      x: 0
-      y: 0
-      z: 0
-    house_4:
-      x: 0
-      y: 0
-      z: 0
-    house_5:
-      x: 0
-      y: 0
-      z: 0
-    house_6:
-      x: 0
-      y: 0
-      z: 0
-    house_7:
-      x: 0
-      y: 0
-      z: 0
-    house_8:
-      x: 0
-      y: 0
+      "y": 0
       z: 0
