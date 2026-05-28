@@ -56,7 +56,8 @@ public class WieldStyleDebugManager implements Listener {
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
-    private WieldStyleConfig config = WieldStyleConfig.defaultConfig();
+    private WieldStylePreset activePreset = WieldStylePreset.ROGUE_DIAGONAL_OUTWARD;
+    private WieldStyleConfig config = activePreset.config();
 
     public WieldStyleDebugManager(Main plugin) {
         this.plugin = plugin;
@@ -164,7 +165,7 @@ public class WieldStyleDebugManager implements Listener {
                     cancel();
                     return;
                 }
-                WieldStyleConfig randomConfig = config();
+                        WieldStyleConfig randomConfig = activePreset.config();
                 randomizeSwingConfig(randomConfig);
                 applyConfig(randomConfig);
                 logConfig(randomConfig);
@@ -272,7 +273,31 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public void resetConfig() {
-        applyConfig(WieldStyleConfig.defaultConfig());
+        applyPreset(WieldStylePreset.ROGUE_DIAGONAL_OUTWARD);
+    }
+
+    public WieldStylePreset activePreset() {
+        return activePreset;
+    }
+
+    public WieldStylePreset applyPreset(WieldStylePreset preset) {
+        WieldStylePreset safePreset = preset == null ? WieldStylePreset.ROGUE_DIAGONAL_OUTWARD : preset;
+        activePreset = safePreset;
+        applyConfig(safePreset.config());
+        return safePreset;
+    }
+
+    public WieldStylePreset applyPreset(String name) {
+        WieldStylePreset preset = WieldStylePreset.fromString(name);
+        return applyPreset(preset == null ? activePreset : preset);
+    }
+
+    public WieldStylePreset applyNextPreset(int direction) {
+        return applyPreset(activePreset.relative(direction));
+    }
+
+    public List<String> presetSuggestions(String prefix) {
+        return WieldStylePreset.suggestions(prefix);
     }
 
     public void logConfig(WieldStyleConfig config) {
@@ -286,6 +311,7 @@ public class WieldStyleDebugManager implements Listener {
     public String describeSettings() {
         return "material=" + defaultMaterial
                 + ", nexo=" + (defaultNexoModelId == null ? "none" : defaultNexoModelId)
+                + ", preset=" + activePreset.id()
                 + ", " + config.describe();
     }
 
@@ -497,6 +523,98 @@ public class WieldStyleDebugManager implements Listener {
             this.playerId = playerId;
             this.display = display;
             this.visualItem = visualItem;
+        }
+    }
+
+
+    public enum WieldStylePreset {
+        ROGUE_DIAGONAL_OUTWARD("rogue_diagonal_outward", "Rogue Diagonal Outward",
+                "Blade points away from the player and cuts down a diagonal line.",
+                new WieldStyleConfig(12, 8, 1, 0.75,
+                        1.05, 0.42, -0.38, -30.0, -8.0, -12.0, 70.0,
+                        125.0, -155.0, 0.66, 0.58, -0.12, 1.08, 0.26,
+                        -55.0, 70.0, -22.0, 42.0, -18.0, 38.0, 122.0, -58.0)),
+        ROGUE_DIAGONAL_REVERSE("rogue_diagonal_reverse", "Rogue Diagonal Reverse",
+                "Backhand diagonal slash with the blade still carried outward.",
+                new WieldStyleConfig(12, 8, 1, 0.75,
+                        1.02, -0.38, -0.36, 30.0, -8.0, -10.0, -70.0,
+                        55.0, 155.0, 0.64, 0.56, -0.10, 1.08, 0.24,
+                        52.0, -72.0, -18.0, 38.0, -16.0, 36.0, -122.0, 58.0)),
+        HORIZONTAL_CUT("horizontal_cut", "Horizontal Cut",
+                "Flat readable cut across the center of the screen.",
+                new WieldStyleConfig(13, 9, 1, 0.75,
+                        1.10, 0.38, -0.34, -25.0, -6.0, -4.0, 80.0,
+                        180.0, -180.0, 0.85, 0.18, -0.20, 1.08, 0.18,
+                        -70.0, 140.0, -8.0, 12.0, -8.0, 16.0, 110.0, -90.0)),
+        OVERHEAD_SLASH("overhead_slash", "Overhead Slash",
+                "High-to-low chop for heavier weapons.",
+                new WieldStyleConfig(16, 11, 1, 0.82,
+                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        90.0, -170.0, 0.30, 0.95, 0.08, 1.15, 0.34,
+                        -28.0, 52.0, -48.0, 88.0, -58.0, 108.0, 85.0, -65.0)),
+        STAB("stab", "Forward Stab",
+                "Short thrust forward instead of a broad cut.",
+                new WieldStyleConfig(10, 6, 1, 0.72,
+                        1.00, 0.34, -0.36, -12.0, -5.0, 0.0, 80.0,
+                        0.0, 20.0, 0.08, 0.06, -0.24, 0.92, 0.95,
+                        -12.0, 18.0, -6.0, 8.0, 0.0, 8.0, 92.0, -10.0));
+
+        private final String id;
+        private final String displayName;
+        private final String description;
+        private final WieldStyleConfig config;
+
+        WieldStylePreset(String id, String displayName, String description, WieldStyleConfig config) {
+            this.id = id;
+            this.displayName = displayName;
+            this.description = description;
+            this.config = config;
+        }
+
+        public String id() {
+            return id;
+        }
+
+        public String displayName() {
+            return displayName;
+        }
+
+        public String description() {
+            return description;
+        }
+
+        public WieldStyleConfig config() {
+            return config.copy();
+        }
+
+        public WieldStylePreset relative(int direction) {
+            WieldStylePreset[] values = values();
+            int next = (ordinal() + direction) % values.length;
+            if (next < 0) {
+                next += values.length;
+            }
+            return values[next];
+        }
+
+        public static WieldStylePreset fromString(String input) {
+            if (input == null || input.isBlank()) {
+                return null;
+            }
+            String normalized = input.toLowerCase(Locale.ROOT);
+            for (WieldStylePreset preset : values()) {
+                if (preset.id.equals(normalized) || preset.name().equalsIgnoreCase(input)) {
+                    return preset;
+                }
+            }
+            return null;
+        }
+
+        public static List<String> suggestions(String prefix) {
+            String normalized = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
+            return java.util.Arrays.stream(values())
+                    .map(WieldStylePreset::id)
+                    .filter(id -> id.startsWith(normalized))
+                    .toList();
         }
     }
 

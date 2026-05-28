@@ -11,6 +11,7 @@ import java.util.function.Function;
 
 import me.nakilex.levelplugin.debug.WieldStyleDebugManager;
 import me.nakilex.levelplugin.debug.WieldStyleDebugManager.WieldStyleConfig;
+import me.nakilex.levelplugin.debug.WieldStyleDebugManager.WieldStylePreset;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -42,6 +43,7 @@ public class WieldStyleDebugGUI implements Listener {
     private static final int TEST_SLOT = 48;
     private static final int SAVE_SLOT = 49;
     private static final int CLOSE_SLOT = 50;
+    private static final int PRESET_SLOT = 51;
     private static final int INFO_SLOT = 52;
 
     private final WieldStyleDebugManager wieldStyleDebugManager;
@@ -103,11 +105,10 @@ public class WieldStyleDebugGUI implements Listener {
                 context -> GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Reset Defaults",
                         TooltipUtil.bulletList("Reset every runtime pose and swing value.")),
                 (click, context) -> {
-                    WieldStyleConfig reset = WieldStyleConfig.defaultConfig();
-                    workingConfigs.put(context.player().getUniqueId(), reset);
-                    wieldStyleDebugManager.applyConfig(reset);
+                    WieldStylePreset preset = wieldStyleDebugManager.applyPreset(WieldStylePreset.ROGUE_DIAGONAL_OUTWARD);
+                    workingConfigs.put(context.player().getUniqueId(), wieldStyleDebugManager.config());
                     ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
-                            "Wield style settings reset to defaults.");
+                            "Wield style settings reset to " + preset.displayName() + ".");
                     context.player().openInventory(buildInventory(context.player()));
                 }));
         widgetList.add(new ActionWidget(RANDOMIZE_SLOT,
@@ -142,6 +143,17 @@ public class WieldStyleDebugGUI implements Listener {
         widgetList.add(new ActionWidget(CLOSE_SLOT,
                 context -> GuiUtil.getNexoItem("cross", ChatColor.RED + "Close"),
                 (click, context) -> context.player().closeInventory()));
+        widgetList.add(new ActionWidget(PRESET_SLOT,
+                context -> createPresetItem(),
+                (click, context) -> {
+                    int direction = click.isRightClick() ? -1 : 1;
+                    WieldStylePreset preset = wieldStyleDebugManager.applyNextPreset(direction);
+                    workingConfigs.put(context.player().getUniqueId(), wieldStyleDebugManager.config());
+                    wieldStyleDebugManager.playOnce(context.player());
+                    ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
+                            "Applied wield preset " + preset.displayName() + ".");
+                    context.player().openInventory(buildInventory(context.player()));
+                }));
         widgetList.add(new ActionWidget(INFO_SLOT,
                 context -> createInfoItem(context.player()),
                 null));
@@ -226,6 +238,25 @@ public class WieldStyleDebugGUI implements Listener {
                     "Randomizes only swing animation values.",
                     "Idle pose, material, scale, interpolation, and cooldown stay unchanged.",
                     "Automatically plays a test swing after randomizing."));
+            meta.setLore(lore);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
+    private ItemStack createPresetItem() {
+        WieldStylePreset preset = wieldStyleDebugManager.activePreset();
+        ItemStack item = new ItemStack(Material.NETHER_STAR);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Preset: " + preset.displayName());
+            List<String> lore = new ArrayList<>();
+            lore.addAll(TooltipUtil.bulletList(
+                    preset.description(),
+                    "Left-click next preset.",
+                    "Right-click previous preset.",
+                    "Preset commands: /debug wield preset <name>."));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
