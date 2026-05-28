@@ -322,7 +322,7 @@ public class WieldStyleDebugManager implements Listener {
             return;
         }
         long now = player.getWorld().getFullTime();
-        if (session.lastInputTick == now || session.swinging || now < session.nextAllowedSwingTick) {
+        if (session.lastInputTick == now || now < session.nextAllowedSwingTick) {
             return;
         }
         session.lastInputTick = now;
@@ -397,7 +397,7 @@ public class WieldStyleDebugManager implements Listener {
 
     private void startSwing(Player player, WieldSession session, boolean force, WieldStyleConfig activeConfig) {
         long now = player.getWorld().getFullTime();
-        if (!force && (session.swinging || now < session.nextAllowedSwingTick)) {
+        if (!force && now < session.nextAllowedSwingTick) {
             return;
         }
         if (session.swingTask != null) {
