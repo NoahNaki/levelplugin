@@ -165,7 +165,7 @@ public class WieldStyleDebugManager implements Listener {
                     cancel();
                     return;
                 }
-                        WieldStyleConfig randomConfig = activePreset.config();
+                WieldStyleConfig randomConfig = activePreset.config();
                 randomizeSwingConfig(randomConfig);
                 applyConfig(randomConfig);
                 logConfig(randomConfig);
@@ -709,6 +709,25 @@ public class WieldStyleDebugManager implements Listener {
 
         public void randomizeSwingValues(ThreadLocalRandom random) {
             setSwingTicks(random.nextInt(10, 21));
+            setSwingAngleStart(jitter(random, swingAngleStart, 25.0));
+            setSwingAngleSweep(jitter(random, swingAngleSweep, 45.0));
+            setSwingSideRadius(jitter(random, swingSideRadius, 0.15));
+            setSwingUpRadius(jitter(random, swingUpRadius, 0.25));
+            setSwingUpOffset(jitter(random, swingUpOffset, 0.15));
+            setSwingForwardBase(jitter(random, swingForwardBase, 0.20));
+            setSwingForwardPeak(jitter(random, swingForwardPeak, 0.18));
+            setSwingYawStart(jitter(random, swingYawStart, 20.0));
+            setSwingYawSweep(jitter(random, swingYawSweep, 30.0));
+            setSwingPitchStart(jitter(random, swingPitchStart, 25.0));
+            setSwingPitchSweep(jitter(random, swingPitchSweep, 35.0));
+            setSwingLeftRotationStart(jitter(random, swingLeftRotationStart, 30.0));
+            setSwingLeftRotationSweep(jitter(random, swingLeftRotationSweep, 45.0));
+            setSwingRightRotationStart(jitter(random, swingRightRotationStart, 30.0));
+            setSwingRightRotationSweep(jitter(random, swingRightRotationSweep, 45.0));
+        }
+
+        private static double jitter(ThreadLocalRandom random, double base, double radius) {
+            return base + random.nextDouble(-radius, radius);
         }
 
         public String describe() {

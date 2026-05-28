@@ -236,8 +236,8 @@ public class WieldStyleDebugGUI implements Listener {
             List<String> lore = new ArrayList<>();
             lore.addAll(TooltipUtil.bulletList(
                     "Uses the active preset as the animation basis.",
-                    "Only swing ticks randomize, between 10 and 20.",
-                    "All path and rotation values stay unchanged."));
+                    "Swing ticks randomize between 10 and 20.",
+                    "Path and rotation values get small random nudges."));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
