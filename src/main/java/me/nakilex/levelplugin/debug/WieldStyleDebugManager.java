@@ -6,6 +6,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
@@ -207,6 +208,10 @@ public class WieldStyleDebugManager implements Listener {
 
     public void logConfig(WieldStyleConfig config) {
         plugin.getLogger().info(() -> "[WieldStyleDebug] " + config.describe());
+    }
+
+    public void randomizeSwingConfig(WieldStyleConfig config) {
+        config.randomizeSwingValues(ThreadLocalRandom.current());
     }
 
     public String describeSettings() {
@@ -510,6 +515,29 @@ public class WieldStyleDebugManager implements Listener {
                     swingForwardPeak, swingYawStart, swingYawSweep, swingPitchStart,
                     swingPitchSweep, swingLeftRotationStart, swingLeftRotationSweep,
                     swingRightRotationStart, swingRightRotationSweep);
+        }
+
+        public void randomizeSwingValues(ThreadLocalRandom random) {
+            WieldStyleConfig baseline = defaultConfig();
+            setSwingAngleStart(random.nextDouble(-180.0, 180.0));
+            setSwingAngleSweep(random.nextDouble(-420.0, 420.0));
+            setSwingSideRadius(random.nextDouble(-1.45, 1.45));
+            setSwingUpRadius(random.nextDouble(-1.45, 1.45));
+            setSwingUpOffset(random.nextDouble(-0.65, 0.65));
+            setSwingForwardBase(jitter(random, baseline.swingForwardBase, 0.16));
+            setSwingForwardPeak(jitter(random, baseline.swingForwardPeak, 0.12));
+            setSwingYawStart(random.nextDouble(-180.0, 180.0));
+            setSwingYawSweep(random.nextDouble(-260.0, 260.0));
+            setSwingPitchStart(random.nextDouble(-110.0, 80.0));
+            setSwingPitchSweep(random.nextDouble(-220.0, 220.0));
+            setSwingLeftRotationStart(random.nextDouble(-220.0, 220.0));
+            setSwingLeftRotationSweep(random.nextDouble(-520.0, 520.0));
+            setSwingRightRotationStart(random.nextDouble(-220.0, 220.0));
+            setSwingRightRotationSweep(random.nextDouble(-520.0, 520.0));
+        }
+
+        private static double jitter(ThreadLocalRandom random, double base, double radius) {
+            return base + random.nextDouble(-radius, radius);
         }
 
         public String describe() {

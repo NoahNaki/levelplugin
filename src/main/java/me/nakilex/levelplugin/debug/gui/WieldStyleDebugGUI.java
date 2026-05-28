@@ -38,10 +38,11 @@ public class WieldStyleDebugGUI implements Listener {
     private static final int GUI_SIZE = 54;
     private static final int ENABLE_SLOT = 45;
     private static final int RESET_SLOT = 46;
-    private static final int TEST_SLOT = 47;
-    private static final int SAVE_SLOT = 48;
-    private static final int CLOSE_SLOT = 49;
-    private static final int INFO_SLOT = 50;
+    private static final int RANDOMIZE_SLOT = 47;
+    private static final int TEST_SLOT = 48;
+    private static final int SAVE_SLOT = 49;
+    private static final int CLOSE_SLOT = 50;
+    private static final int INFO_SLOT = 51;
 
     private final WieldStyleDebugManager wieldStyleDebugManager;
     private final Map<UUID, WieldStyleConfig> workingConfigs = new HashMap<>();
@@ -106,6 +107,17 @@ public class WieldStyleDebugGUI implements Listener {
                     workingConfigs.put(context.player().getUniqueId(), wieldStyleDebugManager.config());
                     ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
                             "Wield style settings reset to the overhead baseline.");
+                    context.player().openInventory(buildInventory(context.player()));
+                }));
+        widgetList.add(new ActionWidget(RANDOMIZE_SLOT,
+                context -> createRandomizeItem(),
+                (click, context) -> {
+                    WieldStyleConfig config = getConfig(context);
+                    wieldStyleDebugManager.randomizeSwingConfig(config);
+                    wieldStyleDebugManager.applyConfig(config);
+                    wieldStyleDebugManager.playOnce(context.player());
+                    ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
+                            "Randomized swing values without changing weapon size or swing ticks.");
                     context.player().openInventory(buildInventory(context.player()));
                 }));
         widgetList.add(new ActionWidget(TEST_SLOT,
@@ -204,6 +216,21 @@ public class WieldStyleDebugGUI implements Listener {
         return item;
     }
 
+    private ItemStack createRandomizeItem() {
+        ItemStack item = new ItemStack(Material.ENDER_CHEST);
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Randomize Swing");
+            meta.setLore(TooltipUtil.bulletList(
+                    "Randomizes the big swing shape/rotation values.",
+                    "Weapon scale and swing ticks stay unchanged.",
+                    "Forward Base/Peak only get small nudges."));
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     private ItemStack createInfoItem(Player player) {
         ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Editor Notes");
         ItemMeta meta = info.getItemMeta();
@@ -231,39 +258,35 @@ public class WieldStyleDebugGUI implements Listener {
     }
 
     private enum WieldParam {
-        SWING_TICKS(10, Material.REPEATER, "Swing Ticks", "Total duration of the slash animation.", 1.0, 2.0, 80.0,
-                WieldStyleConfig::swingTicks, (config, value) -> config.setSwingTicks(value.intValue())),
-        SCALE(11, Material.AMETHYST_SHARD, "Weapon Scale", "Visual size of the ItemDisplay weapon.", 0.05, 0.10, 3.0,
-                WieldStyleConfig::scale, WieldStyleConfig::setScale),
-        ARC_START(12, Material.BLAZE_ROD, "Arc Start Angle", "Where around the swing circle the weapon starts.", 5.0, -360.0, 360.0,
+        ARC_START(10, Material.BLAZE_ROD, "Arc Start Angle", "Where around the swing circle the weapon starts.", 5.0, -360.0, 360.0,
                 WieldStyleConfig::swingAngleStart, WieldStyleConfig::setSwingAngleStart),
-        ARC_SWEEP(13, Material.BLAZE_POWDER, "Arc Sweep", "How far around the swing circle the weapon travels.", 5.0, -720.0, 720.0,
+        ARC_SWEEP(11, Material.BLAZE_POWDER, "Arc Sweep", "How far around the swing circle the weapon travels.", 5.0, -720.0, 720.0,
                 WieldStyleConfig::swingAngleSweep, WieldStyleConfig::setSwingAngleSweep),
-        SIDE_RADIUS(14, Material.SHIELD, "Side Radius", "How wide the swing moves left and right.", 0.05, -4.0, 4.0,
+        SIDE_RADIUS(12, Material.SHIELD, "Side Radius", "How wide the swing moves left and right.", 0.05, -4.0, 4.0,
                 WieldStyleConfig::swingSideRadius, WieldStyleConfig::setSwingSideRadius),
-        UP_RADIUS(15, Material.ELYTRA, "Up Radius", "How tall the swing moves up and down.", 0.05, -4.0, 4.0,
+        UP_RADIUS(13, Material.ELYTRA, "Up Radius", "How tall the swing moves up and down.", 0.05, -4.0, 4.0,
                 WieldStyleConfig::swingUpRadius, WieldStyleConfig::setSwingUpRadius),
-        UP_OFFSET(16, Material.FEATHER, "Swing Up Offset", "Moves the whole swing higher or lower.", 0.05, -4.0, 4.0,
+        UP_OFFSET(14, Material.FEATHER, "Swing Up Offset", "Moves the whole swing higher or lower.", 0.05, -4.0, 4.0,
                 WieldStyleConfig::swingUpOffset, WieldStyleConfig::setSwingUpOffset),
-        FORWARD_BASE(19, Material.ENDER_EYE, "Forward Base", "How far in front of the player the swing sits.", 0.05, -2.0, 6.0,
+        FORWARD_BASE(15, Material.ENDER_EYE, "Forward Base", "How far in front of the player the swing sits.", 0.05, -2.0, 6.0,
                 WieldStyleConfig::swingForwardBase, WieldStyleConfig::setSwingForwardBase),
-        FORWARD_PEAK(20, Material.FIREWORK_ROCKET, "Forward Peak", "Extra forward push at the middle of the swing.", 0.05, -2.0, 6.0,
+        FORWARD_PEAK(16, Material.FIREWORK_ROCKET, "Forward Peak", "Extra forward push at the middle of the swing.", 0.05, -2.0, 6.0,
                 WieldStyleConfig::swingForwardPeak, WieldStyleConfig::setSwingForwardPeak),
-        SWING_YAW_START(21, Material.COMPASS, "Yaw Start", "Which side direction the weapon faces at swing start.", 5.0, -360.0, 360.0,
+        SWING_YAW_START(19, Material.COMPASS, "Yaw Start", "Which side direction the weapon faces at swing start.", 5.0, -360.0, 360.0,
                 WieldStyleConfig::swingYawStart, WieldStyleConfig::setSwingYawStart),
-        SWING_YAW_SWEEP(22, Material.COMPASS, "Yaw Sweep", "How much the weapon turns left/right during the swing.", 5.0, -720.0, 720.0,
+        SWING_YAW_SWEEP(20, Material.COMPASS, "Yaw Sweep", "How much the weapon turns left/right during the swing.", 5.0, -720.0, 720.0,
                 WieldStyleConfig::swingYawSweep, WieldStyleConfig::setSwingYawSweep),
-        SWING_PITCH_START(23, Material.COMPASS, "Pitch Start", "How far up/down the weapon points at swing start.", 5.0, -180.0, 180.0,
+        SWING_PITCH_START(21, Material.COMPASS, "Pitch Start", "How far up/down the weapon points at swing start.", 5.0, -180.0, 180.0,
                 WieldStyleConfig::swingPitchStart, WieldStyleConfig::setSwingPitchStart),
-        SWING_PITCH_SWEEP(24, Material.COMPASS, "Pitch Sweep", "How much the weapon tips up/down during the swing.", 5.0, -360.0, 360.0,
+        SWING_PITCH_SWEEP(22, Material.COMPASS, "Pitch Sweep", "How much the weapon tips up/down during the swing.", 5.0, -360.0, 360.0,
                 WieldStyleConfig::swingPitchSweep, WieldStyleConfig::setSwingPitchSweep),
-        LEFT_ROT_START(25, Material.IRON_BARS, "Left Rot Start", "Main X-axis model rotation at swing start.", 5.0, -360.0, 360.0,
+        LEFT_ROT_START(23, Material.IRON_BARS, "Left Rot Start", "Main X-axis model rotation at swing start.", 5.0, -360.0, 360.0,
                 WieldStyleConfig::swingLeftRotationStart, WieldStyleConfig::setSwingLeftRotationStart),
-        LEFT_ROT_SWEEP(28, Material.IRON_BARS, "Left Rot Sweep", "How much the X-axis model rotation changes.", 5.0, -720.0, 720.0,
+        LEFT_ROT_SWEEP(24, Material.IRON_BARS, "Left Rot Sweep", "How much the X-axis model rotation changes.", 5.0, -720.0, 720.0,
                 WieldStyleConfig::swingLeftRotationSweep, WieldStyleConfig::setSwingLeftRotationSweep),
-        RIGHT_ROT_START(29, Material.IRON_NUGGET, "Right Rot Start", "Main Y-axis model rotation at swing start.", 5.0, -360.0, 360.0,
+        RIGHT_ROT_START(25, Material.IRON_NUGGET, "Right Rot Start", "Main Y-axis model rotation at swing start.", 5.0, -360.0, 360.0,
                 WieldStyleConfig::swingRightRotationStart, WieldStyleConfig::setSwingRightRotationStart),
-        RIGHT_ROT_SWEEP(30, Material.IRON_NUGGET, "Right Rot Sweep", "How much the Y-axis model rotation changes.", 5.0, -720.0, 720.0,
+        RIGHT_ROT_SWEEP(28, Material.IRON_NUGGET, "Right Rot Sweep", "How much the Y-axis model rotation changes.", 5.0, -720.0, 720.0,
                 WieldStyleConfig::swingRightRotationSweep, WieldStyleConfig::setSwingRightRotationSweep);
         private final int slot;
         private final Material material;
