@@ -2296,6 +2296,8 @@ public class StrongholdRunManager implements Listener {
                         new UpgradeChoice(UpgradeType.STAT, "Swiftfoot", "Temporary Agility boost (+2%) for this run only.", null, null, StatsManager.StatType.AGI, 2),
                         new UpgradeChoice(UpgradeType.STAT, "Arcane Focus", "Temporary Intelligence boost (+2%) for this run only.", null, null, StatsManager.StatType.INT, 2),
                         new UpgradeChoice(UpgradeType.STAT, "Vital Reserve", "Temporary Vitality boost (+2%) for this run only.", null, null, StatsManager.StatType.VIT, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Iron Will", "Temporary Will boost (+2%) for this run only.", null, null, StatsManager.StatType.WIL, 2),
+                        new UpgradeChoice(UpgradeType.STAT, "Refined Technique", "Temporary Technique boost (+2%) for this run only.", null, null, StatsManager.StatType.TEC, 2),
                         new UpgradeChoice(UpgradeType.GLOBAL_COOLDOWN, "Arcane Tempo", "Reduce all loadout skill cooldowns globally by 10%.", null, null, null, 0)
                 ));
                 while (!statCandidates.isEmpty() && rolled.size() < count) {

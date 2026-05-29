@@ -98,7 +98,9 @@ public class LifeSkillRewardManager {
                 coinReward(24, skillName, 1800)
         ));
 
-        List<StatType> statCycle = List.of(StatType.VIT, StatType.STR, StatType.AGI, StatType.DEX, StatType.INT);
+        List<StatType> statCycle = List.of(
+                StatType.VIT, StatType.STR, StatType.AGI, StatType.DEX,
+                StatType.INT, StatType.WIL, StatType.TEC);
         String[] gifts = {"blossom_bundle", "heroic_token", "adventurers_feast"};
         int statIndex = 0;
         int giftIndex = 0;

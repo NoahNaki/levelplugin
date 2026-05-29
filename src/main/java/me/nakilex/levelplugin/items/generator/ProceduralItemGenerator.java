@@ -148,17 +148,19 @@ public class ProceduralItemGenerator {
             agi   = scaleStat(level, rarity, 1.0);
             intel = scaleStat(level, rarity, 1.0);
             dex   = scaleStat(level, rarity, 1.0);
-            wil = 0;
-            tec = 0;
+            wil = scaleStat(level, rarity, 1.0);
+            tec = scaleStat(level, rarity, 1.0);
 
             // Give the armor a random dominant stat for variety
-            int choice = random.nextInt(5); // str, agi, intel, dex, def
+            int choice = random.nextInt(7); // str, agi, intel, dex, def, wil, tec
             switch (choice) {
                 case 0 -> str  = (int) Math.round(str  * (1 + DOMINANT_BONUS));
                 case 1 -> agi  = (int) Math.round(agi  * (1 + DOMINANT_BONUS));
                 case 2 -> intel= (int) Math.round(intel* (1 + DOMINANT_BONUS));
                 case 3 -> dex  = (int) Math.round(dex  * (1 + DOMINANT_BONUS));
                 case 4 -> def  = (int) Math.round(def  * (1 + DOMINANT_BONUS));
+                case 5 -> wil  = (int) Math.round(wil  * (1 + DOMINANT_BONUS));
+                case 6 -> tec  = (int) Math.round(tec  * (1 + DOMINANT_BONUS));
             }
 
             int total = hp + def + str + agi + intel + dex + wil + tec;
@@ -170,8 +172,8 @@ public class ProceduralItemGenerator {
             agi = allocation.get(ArmorBiasUtil.ArmorStat.AGI);
             intel = allocation.get(ArmorBiasUtil.ArmorStat.INT);
             dex = allocation.get(ArmorBiasUtil.ArmorStat.DEX);
-            wil = 0;
-            tec = 0;
+            wil = allocation.get(ArmorBiasUtil.ArmorStat.WIL);
+            tec = allocation.get(ArmorBiasUtil.ArmorStat.TEC);
         } else {
             def = 0;
             switch (clazz) {
@@ -180,32 +182,32 @@ public class ProceduralItemGenerator {
                     agi = scaleStat(level, rarity, 1.0);
                     dex = scaleStat(level, rarity, 1.0);
                     intel = scaleStat(level, rarity, 1.0);
-                    wil = 0;
-                    tec = 0;
+                    wil = scaleStat(level, rarity, 0.75);
+                    tec = scaleStat(level, rarity, 1.25);
                 }
                 case "ROGUE", "ARCHER" -> {
                     dex = scaleStat(level, rarity, 2.0);
                     agi = scaleStat(level, rarity, 1.0);
                     str = scaleStat(level, rarity, 1.0);
                     intel = scaleStat(level, rarity, 1.0);
-                    wil = 0;
-                    tec = 0;
+                    wil = scaleStat(level, rarity, 0.75);
+                    tec = scaleStat(level, rarity, 1.25);
                 }
                 case "MAGE" -> {
                     intel = scaleStat(level, rarity, 2.0);
                     agi = scaleStat(level, rarity, 1.0);
                     dex = scaleStat(level, rarity, 1.0);
                     str = scaleStat(level, rarity, 1.0);
-                    wil = 0;
-                    tec = 0;
+                    wil = scaleStat(level, rarity, 1.5);
+                    tec = scaleStat(level, rarity, 0.75);
                 }
                 default -> {
                     str = scaleStat(level, rarity, 1.0);
                     agi = scaleStat(level, rarity, 1.0);
                     dex = scaleStat(level, rarity, 1.0);
                     intel = scaleStat(level, rarity, 1.0);
-                    wil = 0;
-                    tec = 0;
+                    wil = scaleStat(level, rarity, 0.75);
+                    tec = scaleStat(level, rarity, 1.25);
                 }
             }
         }
