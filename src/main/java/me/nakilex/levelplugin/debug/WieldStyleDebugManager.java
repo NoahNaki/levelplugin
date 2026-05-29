@@ -74,6 +74,10 @@ public class WieldStyleDebugManager implements Listener {
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
+    private HandVisibilityMode handVisibilityMode = HandVisibilityMode.NORMAL;
+    private Material handCloakMaterial = Material.LIGHT_GRAY_DYE;
+    private String handCloakNexoModelId;
+    private boolean randomizeSwingParticles;
     private WieldStylePreset activePreset = WieldStylePreset.OVERHEAD_SLASH;
     private WieldStyleConfig config = activePreset.config();
 
@@ -119,6 +123,7 @@ public class WieldStyleDebugManager implements Listener {
         ItemStack item = sanitizeVisualItem(visualItem);
         ItemDisplay display = spawnDisplay(player, item);
         WieldSession session = new WieldSession(player.getUniqueId(), display, item);
+        applyHandVisibility(player, session);
         session.followTask = new BukkitRunnable() {
             @Override
             public void run() {
@@ -160,6 +165,7 @@ public class WieldStyleDebugManager implements Listener {
         if (session.display != null && !session.display.isDead()) {
             session.display.remove();
         }
+        restoreHandVisibility(session);
     }
 
     public void playOnce(Player player) {
@@ -244,7 +250,7 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public ItemStack createDebugHandle() {
-        ItemStack stack = new ItemStack(Material.LIGHT_GRAY_DYE);
+        ItemStack stack = new ItemStack(handCloakMaterial);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Debug Wield Handle");
@@ -252,14 +258,17 @@ public class WieldStyleDebugManager implements Listener {
             lore.add(ChatColor.GRAY + "Use this while /debug wield is enabled.");
             lore.addAll(TooltipUtil.bulletList(
                     "The real weapon is rendered as an ItemDisplay.",
-                    "A resource-pack invisible model can replace this later.",
-                    "Vanilla first-person hand rendering is not fully packet-hideable."));
+                    "Enable hand cloak mode to place this placeholder in-hand while previewing.",
+                    "A resource-pack invisible model can make this placeholder visually disappear."));
             lore.add("");
             lore.addAll(TooltipUtil.clickInstructions("to play a slash preview", null));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
             meta.getPersistentDataContainer().set(debugHandleKey, PersistentDataType.BYTE, (byte) 1);
             stack.setItemMeta(meta);
+        }
+        if (handCloakNexoModelId != null) {
+            ItemUtil.applyNexoModel(stack, handCloakNexoModelId);
         }
         return stack;
     }
@@ -293,6 +302,45 @@ public class WieldStyleDebugManager implements Listener {
 
     public String getDefaultNexoModelId() {
         return defaultNexoModelId;
+    }
+
+    public HandVisibilityMode getHandVisibilityMode() {
+        return handVisibilityMode;
+    }
+
+    public HandVisibilityMode setHandVisibilityMode(HandVisibilityMode mode) {
+        HandVisibilityMode safeMode = mode == null ? HandVisibilityMode.NORMAL : mode;
+        this.handVisibilityMode = safeMode;
+        refreshHandVisibility();
+        return safeMode;
+    }
+
+    public boolean isRandomizeSwingParticles() {
+        return randomizeSwingParticles;
+    }
+
+    public void setRandomizeSwingParticles(boolean randomizeSwingParticles) {
+        this.randomizeSwingParticles = randomizeSwingParticles;
+    }
+
+    public void setHandCloakMaterial(Material material) {
+        this.handCloakMaterial = material == null || material.isAir() ? Material.LIGHT_GRAY_DYE : material;
+        refreshHandVisibility();
+    }
+
+    public Material getHandCloakMaterial() {
+        return handCloakMaterial;
+    }
+
+    public void setHandCloakNexoModelId(String handCloakNexoModelId) {
+        this.handCloakNexoModelId = handCloakNexoModelId == null || handCloakNexoModelId.isBlank()
+                ? null
+                : handCloakNexoModelId.trim();
+        refreshHandVisibility();
+    }
+
+    public String getHandCloakNexoModelId() {
+        return handCloakNexoModelId;
     }
 
     public WieldStyleConfig config() {
@@ -351,6 +399,10 @@ public class WieldStyleDebugManager implements Listener {
     public String describeSettings() {
         return "material=" + defaultMaterial
                 + ", nexo=" + (defaultNexoModelId == null ? "none" : defaultNexoModelId)
+                + ", handMode=" + handVisibilityMode.id()
+                + ", handCloakMaterial=" + handCloakMaterial
+                + ", handCloakNexo=" + (handCloakNexoModelId == null ? "none" : handCloakNexoModelId)
+                + ", randomizeParticles=" + randomizeSwingParticles
                 + ", preset=" + (activePreset == null ? "custom" : activePreset.id())
                 + ", " + config.describe();
     }
@@ -497,10 +549,13 @@ public class WieldStyleDebugManager implements Listener {
         session.swinging = true;
         session.nextAllowedSwingTick = now + activeConfig.cooldownTicks();
         session.display.setInterpolationDuration(Math.max(0, activeConfig.interpolationDuration()));
+        SwingParticleSelection particleSelection = selectSwingParticles();
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.15f);
+        logSwingParticles(player, source, particleSelection);
         debugInput(player, source, "started, cancelledPreviousTask=" + cancelledPreviousTask
                 + ", cooldownTicks=" + activeConfig.cooldownTicks()
-                + ", swingTicks=" + activeConfig.swingTicks());
+                + ", swingTicks=" + activeConfig.swingTicks()
+                + ", particles=" + particleSelection.describe());
         session.swingTask = new BukkitRunnable() {
             private final Set<UUID> hitTargets = new HashSet<>();
             private int tick = 0;
@@ -519,7 +574,7 @@ public class WieldStyleDebugManager implements Listener {
                     double progress = Math.min(1.0, tick / (double) (swingTotal - 1));
                     Pose pose = swingPose(online, easeOut(progress), activeConfig);
                     moveDisplay(session, pose);
-                    playSwingTrail(pose);
+                    playSwingTrail(pose, particleSelection);
                     damageSwingTargets(online, pose, hitTargets);
                     returnStartPose = pose;
                     tick++;
@@ -604,10 +659,26 @@ public class WieldStyleDebugManager implements Listener {
         applyTransformation(session.display, pose);
     }
 
-    private void playSwingTrail(Pose pose) {
+    private void playSwingTrail(Pose pose, SwingParticleSelection selection) {
         Location location = pose.location();
-        location.getWorld().spawnParticle(Particle.CRIT, location, 5, 0.08, 0.08, 0.08, 0.02);
-        location.getWorld().spawnParticle(Particle.SWEEP_ATTACK, location, 1, 0.0, 0.0, 0.0, 0.0);
+        selection.spawn(location);
+    }
+
+    private SwingParticleSelection selectSwingParticles() {
+        if (!randomizeSwingParticles) {
+            return SwingParticleSelection.fixed();
+        }
+        SwingParticlePreset[] presets = SwingParticlePreset.values();
+        return SwingParticleSelection.randomized(presets[ThreadLocalRandom.current().nextInt(presets.length)]);
+    }
+
+    private void logSwingParticles(Player player, String source, SwingParticleSelection selection) {
+        if (!selection.randomized()) {
+            return;
+        }
+        plugin.getLogger().info(() -> "[WieldStyleDebugParticles] player=" + player.getName()
+                + ", source=" + source
+                + ", " + selection.describe());
     }
 
     private void damageSwingTargets(Player player, Pose pose, Set<UUID> hitTargets) {
@@ -648,6 +719,51 @@ public class WieldStyleDebugManager implements Listener {
         ));
     }
 
+    private void refreshHandVisibility() {
+        for (WieldSession session : sessions.values()) {
+            Player player = plugin.getServer().getPlayer(session.playerId);
+            if (player != null && player.isOnline()) {
+                restoreHandVisibility(session);
+                applyHandVisibility(player, session);
+            }
+        }
+    }
+
+    private void applyHandVisibility(Player player, WieldSession session) {
+        if (handVisibilityMode != HandVisibilityMode.CLOAK_WITH_DEBUG_HANDLE || session.handCloaked) {
+            return;
+        }
+        int slot = player.getInventory().getHeldItemSlot();
+        ItemStack current = player.getInventory().getItem(slot);
+        session.cloakedSlot = slot;
+        session.originalHandItem = current == null ? null : current.clone();
+        session.handCloaked = true;
+        player.getInventory().setItem(slot, createDebugHandle());
+        player.updateInventory();
+    }
+
+    private void restoreHandVisibility(WieldSession session) {
+        if (!session.handCloaked) {
+            return;
+        }
+        Player player = plugin.getServer().getPlayer(session.playerId);
+        if (player != null && player.isOnline()) {
+            ItemStack current = player.getInventory().getItem(session.cloakedSlot);
+            if (isDebugHandle(current)) {
+                player.getInventory().setItem(session.cloakedSlot, session.originalHandItem);
+            } else if (session.originalHandItem != null && !session.originalHandItem.getType().isAir()) {
+                Map<Integer, ItemStack> leftovers = player.getInventory().addItem(session.originalHandItem);
+                for (ItemStack leftover : leftovers.values()) {
+                    player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+                }
+            }
+            player.updateInventory();
+        }
+        session.originalHandItem = null;
+        session.handCloaked = false;
+        session.cloakedSlot = -1;
+    }
+
     private double easeOut(double progress) {
         double clamped = Math.max(0.0, Math.min(1.0, progress));
         return 1.0 - Math.pow(1.0 - clamped, 3.0);
@@ -682,6 +798,9 @@ public class WieldStyleDebugManager implements Listener {
         private BukkitTask followTask;
         private BukkitTask swingTask;
         private boolean swinging;
+        private boolean handCloaked;
+        private int cloakedSlot = -1;
+        private ItemStack originalHandItem;
         private int comboIndex;
         private long nextAllowedSwingTick;
         private long lastInputTick = -1L;
@@ -693,6 +812,82 @@ public class WieldStyleDebugManager implements Listener {
         }
     }
 
+
+    public enum HandVisibilityMode {
+        NORMAL("normal", "Normal Hand"),
+        CLOAK_WITH_DEBUG_HANDLE("cloak", "Cloak With Debug Handle");
+
+        private final String id;
+        private final String displayName;
+
+        HandVisibilityMode(String id, String displayName) {
+            this.id = id;
+            this.displayName = displayName;
+        }
+
+        public String id() { return id; }
+        public String displayName() { return displayName; }
+
+        public static HandVisibilityMode fromString(String input) {
+            if (input == null) {
+                return null;
+            }
+            String normalized = input.toLowerCase(Locale.ROOT);
+            for (HandVisibilityMode mode : values()) {
+                if (mode.id.equals(normalized) || mode.name().equalsIgnoreCase(input)) {
+                    return mode;
+                }
+            }
+            return null;
+        }
+    }
+
+    private enum SwingParticlePreset {
+        CRIT_SWEEP("crit_sweep", Particle.CRIT, 5, Particle.SWEEP_ATTACK, 1, 0.02),
+        ENCHANTED_SWEEP("enchanted_sweep", Particle.ENCHANT, 8, Particle.SWEEP_ATTACK, 1, 0.03),
+        SPARK_CRIT("spark_crit", Particle.ELECTRIC_SPARK, 5, Particle.CRIT, 4, 0.02),
+        WAXING_SWEEP("waxing_sweep", Particle.WAX_ON, 6, Particle.SWEEP_ATTACK, 1, 0.01),
+        GLOW_SPARK("glow_spark", Particle.GLOW, 5, Particle.ELECTRIC_SPARK, 4, 0.02);
+
+        private final String id;
+        private final Particle primary;
+        private final int primaryCount;
+        private final Particle secondary;
+        private final int secondaryCount;
+        private final double speed;
+
+        SwingParticlePreset(String id, Particle primary, int primaryCount, Particle secondary, int secondaryCount, double speed) {
+            this.id = id;
+            this.primary = primary;
+            this.primaryCount = primaryCount;
+            this.secondary = secondary;
+            this.secondaryCount = secondaryCount;
+            this.speed = speed;
+        }
+    }
+
+    private record SwingParticleSelection(String id, Particle primary, int primaryCount, Particle secondary,
+                                          int secondaryCount, double speed, boolean randomized) {
+        private static SwingParticleSelection fixed() {
+            return new SwingParticleSelection("fixed", Particle.CRIT, 5, Particle.SWEEP_ATTACK, 1, 0.02, false);
+        }
+
+        private static SwingParticleSelection randomized(SwingParticlePreset preset) {
+            return new SwingParticleSelection(preset.id, preset.primary, preset.primaryCount, preset.secondary,
+                    preset.secondaryCount, preset.speed, true);
+        }
+
+        private void spawn(Location location) {
+            location.getWorld().spawnParticle(primary, location, primaryCount, 0.08, 0.08, 0.08, speed);
+            location.getWorld().spawnParticle(secondary, location, secondaryCount, 0.0, 0.0, 0.0, 0.0);
+        }
+
+        private String describe() {
+            return "particlePreset=" + id
+                    + ", primary=" + primary.name() + "x" + primaryCount
+                    + ", secondary=" + secondary.name() + "x" + secondaryCount;
+        }
+    }
 
     public enum WieldStylePreset {
         OVERHEAD_SLASH("overhead_slash", "Overhead Slash",

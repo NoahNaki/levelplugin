@@ -43,6 +43,8 @@ public class WieldStyleDebugGUI implements Listener {
     private static final int SAVE_SLOT = 49;
     private static final int CLOSE_SLOT = 50;
     private static final int INFO_SLOT = 51;
+    private static final int HAND_CLOAK_SLOT = 52;
+    private static final int PARTICLE_RANDOM_SLOT = 53;
 
     private final WieldStyleDebugManager wieldStyleDebugManager;
     private final Map<UUID, WieldStyleConfig> workingConfigs = new HashMap<>();
@@ -145,6 +147,35 @@ public class WieldStyleDebugGUI implements Listener {
         widgetList.add(new ActionWidget(INFO_SLOT,
                 context -> createInfoItem(context.player()),
                 null));
+        widgetList.add(new ActionWidget(HAND_CLOAK_SLOT,
+                context -> GuiUtil.getNexoItem("invisible", ChatColor.LIGHT_PURPLE + "Toggle Hand Cloak",
+                        TooltipUtil.bulletList(
+                                "Simulates hiding the vanilla hand by swapping your held item",
+                                "with the debug handle while the wield preview is active.",
+                                "Current: " + wieldStyleDebugManager.getHandVisibilityMode().displayName())),
+                (click, context) -> {
+                    WieldStyleDebugManager.HandVisibilityMode next =
+                            wieldStyleDebugManager.getHandVisibilityMode() == WieldStyleDebugManager.HandVisibilityMode.NORMAL
+                                    ? WieldStyleDebugManager.HandVisibilityMode.CLOAK_WITH_DEBUG_HANDLE
+                                    : WieldStyleDebugManager.HandVisibilityMode.NORMAL;
+                    wieldStyleDebugManager.setHandVisibilityMode(next);
+                    ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
+                            "Wield hand cloak mode set to " + next.displayName() + ".");
+                    context.player().openInventory(buildInventory(context.player()));
+                }));
+        widgetList.add(new ActionWidget(PARTICLE_RANDOM_SLOT,
+                context -> GuiUtil.getNexoItem("random", ChatColor.GOLD + "Toggle Random Particles",
+                        TooltipUtil.bulletList(
+                                "Randomizes the swing trail particle preset per swing.",
+                                "Console logs include the selected particle names.",
+                                "Current: " + (wieldStyleDebugManager.isRandomizeSwingParticles() ? "randomized" : "fixed"))),
+                (click, context) -> {
+                    boolean next = !wieldStyleDebugManager.isRandomizeSwingParticles();
+                    wieldStyleDebugManager.setRandomizeSwingParticles(next);
+                    ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
+                            "Wield swing particles set to " + (next ? "randomized" : "fixed") + ".");
+                    context.player().openInventory(buildInventory(context.player()));
+                }));
         return widgetList;
     }
 
@@ -240,7 +271,9 @@ public class WieldStyleDebugGUI implements Listener {
                     "Left-click increases, right-click decreases.",
                     "Sneak-click changes by five steps.",
                     "Changes apply live to idle preview; Test Swing plays the arc.",
-                    "Preview: " + (wieldStyleDebugManager.isEnabled(player) ? "enabled" : "disabled")
+                    "Preview: " + (wieldStyleDebugManager.isEnabled(player) ? "enabled" : "disabled"),
+                    "Hand cloak: " + wieldStyleDebugManager.getHandVisibilityMode().displayName(),
+                    "Swing particles: " + (wieldStyleDebugManager.isRandomizeSwingParticles() ? "randomized" : "fixed")
             );
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
