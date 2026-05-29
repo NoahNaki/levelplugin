@@ -73,6 +73,8 @@ public class WieldStyleDebugManager implements Listener {
     private static final double BASE_ANIMATION_ATTACK_SPEED = 0.8D;
     private static final double SWING_ATTACK_SPEED_WEIGHT = 0.45D;
     private static final double RETURN_ATTACK_SPEED_WEIGHT = 1.0D;
+    private static final double DEFAULT_IDLE_DISTANCE = 0.76D;
+    private static final double DEFAULT_IDLE_RIGHT_OFFSET = 0.62D;
     private static final int MIN_SWING_TICKS = 8;
     private static final int MAX_SWING_TICKS = 24;
     private static final int MIN_RETURN_TO_IDLE_TICKS = 6;
@@ -981,7 +983,7 @@ public class WieldStyleDebugManager implements Listener {
     public enum WieldStylePreset {
         OVERHEAD_SLASH("overhead_slash", "Overhead Slash",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        0.88, 0.48, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         106.78813936115861, -186.6909558808558, 0.15980664918631562,
                         0.9877825861829582, 0.036862218691507104, 1.2711515689082424,
                         0.4006004088814077, -41.38846296298364, 48.91458472939911,
@@ -989,7 +991,7 @@ public class WieldStyleDebugManager implements Listener {
                         132.66759822330394, 99.1515139506437, -30.49929654416185)),
         BEYBLADE_SWIRL("beyblade_swirl", "Beyblade Swirl",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        0.88, 0.48, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         149.69386305872723, -171.96775775595756, 1.1393345553474903,
                         0.8506799627353459, -0.36832261979426884, 1.2973677239379766,
                         0.4424320994105332, 5.7231808755518045, 185.31289826600295,
@@ -997,7 +999,7 @@ public class WieldStyleDebugManager implements Listener {
                         -423.9848043587916, -1.5009839314438977, 372.082944972278)),
         COOL_SWEEP("cool_sweep", "Cool Sweep",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        0.88, 0.48, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         55.01033770127748, -298.06188822354045, 0.9024002861771805,
                         0.6039956910541824, 0.06503697955364385, 1.1567669547934205,
                         0.4147886779934885, 124.46899839538139, -83.92384491011171,
@@ -1005,7 +1007,7 @@ public class WieldStyleDebugManager implements Listener {
                         -177.45824996471913, 60.07567107365088, 161.6478692857686)),
         COOL_SWIRL("cool_swirl", "Cool Swirl",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        0.88, 0.48, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         -123.2797945004859, -326.88824337384665, -1.2929481246029473,
                         1.0850175545906546, -0.07845679609481981, 1.3829925186475112,
                         0.2843594103411882, 100.41132146621277, -139.45950615941555,
@@ -1013,7 +1015,7 @@ public class WieldStyleDebugManager implements Listener {
                         -433.8053333171781, 134.99582825105335, -268.5415701430878)),
         PARRY_TYPE("parry_type", "Parry Type",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        0.88, 0.48, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         -157.70547416035907, 391.3088240022212, 0.8931485413847031,
                         -0.8684853539984333, 0.2650746358058361, 1.2321292243985533,
                         0.36050623086962186, 23.51300724555844, -155.64026598650247,
@@ -1021,7 +1023,7 @@ public class WieldStyleDebugManager implements Listener {
                         -497.9896943862577, -37.62978480829449, -447.6378094901502)),
         BASIC_ATTACK("basic_attack", "Basic Attack",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        0.88, 0.48, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         -7.597476350519571, -396.6678009578013, -1.002474704638901,
                         -0.10955255504269501, -0.49299159608471477, 1.1246103768763687,
                         0.43023693341752944, -34.03258465878355, 105.8781397276856,
@@ -1029,7 +1031,7 @@ public class WieldStyleDebugManager implements Listener {
                         258.9278522064494, 74.59162027705167, -280.6300726398954)),
         BASIC_ATTACK_TWO("basic_attack_2", "Basic Attack 2",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        0.88, 0.48, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         -85.68423014032777, -202.81888790329361, 1.2802284526314247,
                         -0.5111532543229289, -0.07972367059891083, 1.179850083916887,
                         0.5010660807049536, 4.879281831669914, 165.93664880282688,
@@ -1037,7 +1039,7 @@ public class WieldStyleDebugManager implements Listener {
                         -406.01305010724536, 187.880697581937, 52.44780271370257)),
         HORIZONTAL_SLASH("horizontal_slash", "Horizontal Slash",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        0.88, 0.48, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         99.10203154985236, 289.83607866228397, -1.5018903566121915,
                         0.1904062981563185, -0.5539701381859183, 1.3438135165695648,
                         0.43818404742518, -242.37929775792298, -92.41844422327281,
