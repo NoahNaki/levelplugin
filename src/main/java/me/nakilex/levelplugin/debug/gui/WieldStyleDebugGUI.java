@@ -44,7 +44,7 @@ public class WieldStyleDebugGUI implements Listener {
     private static final int CLOSE_SLOT = 50;
     private static final int INFO_SLOT = 51;
     private static final int HAND_CLOAK_SLOT = 52;
-    private static final int PARTICLE_RANDOM_SLOT = 53;
+    private static final int PARTICLE_STATUS_SLOT = 53;
 
     private final WieldStyleDebugManager wieldStyleDebugManager;
     private final Map<UUID, WieldStyleConfig> workingConfigs = new HashMap<>();
@@ -163,20 +163,14 @@ public class WieldStyleDebugGUI implements Listener {
                             "Wield hand cloak mode set to " + next.displayName() + ".");
                     context.player().openInventory(buildInventory(context.player()));
                 }));
-        widgetList.add(new ActionWidget(PARTICLE_RANDOM_SLOT,
-                context -> GuiUtil.getNexoItem("random", ChatColor.GOLD + "Toggle Random Particles",
+        widgetList.add(new ActionWidget(PARTICLE_STATUS_SLOT,
+                context -> GuiUtil.getNexoItem("random", ChatColor.GOLD + "Forward Slash Particles",
                         TooltipUtil.bulletList(
-                                "Randomizes the swing trail particle preset per swing.",
-                                "Console logs include the selected particle names.",
-                                "Fixed default: glow_spark (GLOW + ELECTRIC_SPARK).",
-                                "Current: " + (wieldStyleDebugManager.isRandomizeSwingParticles() ? "randomized" : "fixed glow_spark"))),
-                (click, context) -> {
-                    boolean next = !wieldStyleDebugManager.isRandomizeSwingParticles();
-                    wieldStyleDebugManager.setRandomizeSwingParticles(next);
-                    ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
-                            "Wield swing particles set to " + (next ? "randomized" : "fixed") + ".");
-                    context.player().openInventory(buildInventory(context.player()));
-                }));
+                                "Weapon trail particles are disabled to reduce clutter.",
+                                "Only the forward-traveling slash projectile renders particles.",
+                                "Projectile particle source: arc slash preset.")),
+                (click, context) -> ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
+                        "Weapon trail particles are disabled; only the forward arc-slash projectile renders particles.")));
         return widgetList;
     }
 
@@ -274,7 +268,8 @@ public class WieldStyleDebugGUI implements Listener {
                     "Changes apply live to idle preview; Test Swing plays the arc.",
                     "Preview: " + (wieldStyleDebugManager.isEnabled(player) ? "enabled" : "disabled"),
                     "Hand cloak: " + wieldStyleDebugManager.getHandVisibilityMode().displayName(),
-                    "Swing particles: " + (wieldStyleDebugManager.isRandomizeSwingParticles() ? "randomized" : "fixed glow_spark")
+                    "Weapon trail particles: disabled",
+                    "Forward particles: arc slash preset"
             );
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);

@@ -307,12 +307,15 @@ public final class ArcSlashCombatUtil {
         return direction.normalize();
     }
 
+    public static Particle swordPathSlashParticle() {
+        return ARC_PRESET.particle();
+    }
+
     private static void spawnSwordPathSlashParticles(Location point) {
         if (point == null || point.getWorld() == null) {
             return;
         }
-        point.getWorld().spawnParticle(Particle.GLOW, point, 1, 0.02, 0.02, 0.02, 0.0);
-        point.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, point, 1, 0.015, 0.015, 0.015, 0.0);
+        point.getWorld().spawnParticle(swordPathSlashParticle(), point, 1, 0.02, 0.02, 0.02, 0.0);
     }
 
     public static void strikeForward(Player caster,

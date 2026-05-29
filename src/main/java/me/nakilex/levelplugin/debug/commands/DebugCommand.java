@@ -1267,7 +1267,7 @@ public class DebugCommand implements TabExecutor, Listener {
         }
         if (args.length < 2) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Usage: /debug wield <toggle|once|clear|handle|gui|random|debug|preset <name>|material <material>|nexo <id|none>|hand <normal|cloak|material|nexo|status>|particles <fixed|random|status>|status>");
+                    "Usage: /debug wield <toggle|once|clear|handle|gui|random|debug|preset <name>|material <material>|nexo <id|none>|hand <normal|cloak|material|nexo|status>|particles <status>|status>");
             return;
         }
 
@@ -1380,25 +1380,18 @@ public class DebugCommand implements TabExecutor, Listener {
     private void handleWieldParticles(Player player, String[] args) {
         if (args.length < 3) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Usage: /debug wield particles <fixed|random|status>");
+                    "Usage: /debug wield particles <status>");
             return;
         }
         switch (args[2].toLowerCase()) {
-            case "fixed" -> {
-                wieldStyleDebugManager.setRandomizeSwingParticles(false);
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Wield swing particles set to fixed magical GLOW + ELECTRIC_SPARK.");
-            }
-            case "random" -> {
-                wieldStyleDebugManager.setRandomizeSwingParticles(true);
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Wield swing particles set to randomized. Each swing logs the selected particles.");
+            case "fixed", "random" -> {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "Weapon trail particles are disabled; only the forward arc-slash particle projectile is rendered.");
             }
             case "status" -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
-                    "Wield swing particles are "
-                            + (wieldStyleDebugManager.isRandomizeSwingParticles() ? "randomized" : "fixed") + ".");
+                    "Weapon trail particles are disabled; the forward projectile uses the arc slash particle.");
             default -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Unknown wield particle action. Use fixed, random, or status.");
+                    "Unknown wield particle action. Use status.");
         }
     }
 
@@ -1508,7 +1501,7 @@ public class DebugCommand implements TabExecutor, Listener {
                     .filter(opt -> opt.startsWith(args[3].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("particles")) {
-            return List.of("fixed", "random", "status").stream()
+            return List.of("status").stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("spellpull")) {

@@ -88,7 +88,6 @@ public class WieldStyleDebugManager implements Listener {
     private HandVisibilityMode handVisibilityMode = HandVisibilityMode.NORMAL;
     private Material handCloakMaterial = Material.LIGHT_GRAY_DYE;
     private String handCloakNexoModelId;
-    private boolean randomizeSwingParticles;
     private WieldStylePreset activePreset = WieldStylePreset.OVERHEAD_SLASH;
     private WieldStyleConfig config = activePreset.config();
 
@@ -351,14 +350,6 @@ public class WieldStyleDebugManager implements Listener {
         return safeMode;
     }
 
-    public boolean isRandomizeSwingParticles() {
-        return randomizeSwingParticles;
-    }
-
-    public void setRandomizeSwingParticles(boolean randomizeSwingParticles) {
-        this.randomizeSwingParticles = randomizeSwingParticles;
-    }
-
     public void setHandCloakMaterial(Material material) {
         this.handCloakMaterial = material == null || material.isAir() ? Material.LIGHT_GRAY_DYE : material;
         refreshHandVisibility();
@@ -438,7 +429,8 @@ public class WieldStyleDebugManager implements Listener {
                 + ", handMode=" + handVisibilityMode.id()
                 + ", handCloakMaterial=" + handCloakMaterial
                 + ", handCloakNexo=" + (handCloakNexoModelId == null ? "none" : handCloakNexoModelId)
-                + ", randomizeParticles=" + randomizeSwingParticles
+                + ", weaponTrailParticles=disabled"
+                + ", forwardParticle=" + ArcSlashCombatUtil.swordPathSlashParticle()
                 + ", preset=" + (activePreset == null ? "custom" : activePreset.id())
                 + ", " + config.describe();
     }
@@ -609,13 +601,12 @@ public class WieldStyleDebugManager implements Listener {
         session.swinging = true;
         session.nextAllowedSwingTick = now + activeConfig.cooldownTicks();
         session.display.setInterpolationDuration(Math.max(0, activeConfig.interpolationDuration()));
-        SwingParticleSelection particleSelection = selectSwingParticles();
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.15f);
-        logSwingParticles(player, source, particleSelection);
         debugInput(player, source, "started, cancelledPreviousTask=" + cancelledPreviousTask
                 + ", cooldownTicks=" + activeConfig.cooldownTicks()
                 + ", swingTicks=" + activeConfig.swingTicks()
-                + ", particles=" + particleSelection.describe());
+                + ", weaponTrailParticles=disabled"
+                + ", forwardParticle=" + ArcSlashCombatUtil.swordPathSlashParticle());
         session.swingTask = new BukkitRunnable() {
             private final Set<UUID> hitTargets = new HashSet<>();
             private final Set<UUID> slashHitTargets = new HashSet<>();
@@ -635,7 +626,6 @@ public class WieldStyleDebugManager implements Listener {
                     double progress = Math.min(1.0, tick / (double) (swingTotal - 1));
                     Pose pose = swingPose(online, easeOut(progress), activeConfig);
                     moveDisplay(session, pose);
-                    playSwingTrail(pose, particleSelection);
                     launchSwordPathSlash(online, pose.location(), slashHitTargets);
                     damageSwingTargets(online, pose, hitTargets);
                     returnStartPose = pose;
@@ -721,11 +711,6 @@ public class WieldStyleDebugManager implements Listener {
         applyTransformation(session.display, pose);
     }
 
-    private void playSwingTrail(Pose pose, SwingParticleSelection selection) {
-        Location location = pose.location();
-        selection.spawn(location);
-    }
-
     private void launchSwordPathSlash(Player player, Location swordLocation, Set<UUID> hitTargets) {
         if (swordLocation == null || swordLocation.getWorld() == null) {
             return;
@@ -738,23 +723,6 @@ public class WieldStyleDebugManager implements Listener {
         double damage = playerAttackDamage(player) * SWORD_PATH_SLASH_DAMAGE_MULTIPLIER;
         ArcSlashCombatUtil.launchSwordPathSlashPoint(player, swordLocation, forward, damage,
                 SWORD_PATH_SLASH_RADIUS, SWORD_PATH_SLASH_TRAVEL_DISTANCE, SWORD_PATH_SLASH_TRAVEL_TICKS, hitTargets);
-    }
-
-    private SwingParticleSelection selectSwingParticles() {
-        if (!randomizeSwingParticles) {
-            return SwingParticleSelection.fixed();
-        }
-        SwingParticlePreset[] presets = SwingParticlePreset.values();
-        return SwingParticleSelection.randomized(presets[ThreadLocalRandom.current().nextInt(presets.length)]);
-    }
-
-    private void logSwingParticles(Player player, String source, SwingParticleSelection selection) {
-        if (!selection.randomized()) {
-            return;
-        }
-        plugin.getLogger().info(() -> "[WieldStyleDebugParticles] player=" + player.getName()
-                + ", source=" + source
-                + ", " + selection.describe());
     }
 
     private void damageSwingTargets(Player player, Pose pose, Set<UUID> hitTargets) {
@@ -944,59 +912,6 @@ public class WieldStyleDebugManager implements Listener {
                 }
             }
             return null;
-        }
-    }
-
-    private enum SwingParticlePreset {
-        GLOW_SPARK("glow_spark", Particle.GLOW, 5, Particle.ELECTRIC_SPARK, 4, 0.02),
-        CRIT_ENCHANT("crit_enchant", Particle.CRIT, 5, Particle.ENCHANT, 6, 0.02),
-        ENCHANT_GLOW("enchant_glow", Particle.ENCHANT, 8, Particle.GLOW, 4, 0.03),
-        SPARK_CRIT("spark_crit", Particle.ELECTRIC_SPARK, 5, Particle.CRIT, 4, 0.02),
-        WAXING_SPARK("waxing_spark", Particle.WAX_ON, 6, Particle.ELECTRIC_SPARK, 3, 0.01);
-
-        private static final SwingParticlePreset DEFAULT = GLOW_SPARK;
-
-        private final String id;
-        private final Particle primary;
-        private final int primaryCount;
-        private final Particle secondary;
-        private final int secondaryCount;
-        private final double speed;
-
-        SwingParticlePreset(String id, Particle primary, int primaryCount, Particle secondary, int secondaryCount, double speed) {
-            this.id = id;
-            this.primary = primary;
-            this.primaryCount = primaryCount;
-            this.secondary = secondary;
-            this.secondaryCount = secondaryCount;
-            this.speed = speed;
-        }
-    }
-
-    private record SwingParticleSelection(String id, Particle primary, int primaryCount, Particle secondary,
-                                          int secondaryCount, double speed, boolean randomized) {
-        private static SwingParticleSelection fixed() {
-            return fromPreset(SwingParticlePreset.DEFAULT, false);
-        }
-
-        private static SwingParticleSelection randomized(SwingParticlePreset preset) {
-            return fromPreset(preset, true);
-        }
-
-        private static SwingParticleSelection fromPreset(SwingParticlePreset preset, boolean randomized) {
-            return new SwingParticleSelection(preset.id, preset.primary, preset.primaryCount, preset.secondary,
-                    preset.secondaryCount, preset.speed, randomized);
-        }
-
-        private void spawn(Location location) {
-            location.getWorld().spawnParticle(primary, location, primaryCount, 0.08, 0.08, 0.08, speed);
-            location.getWorld().spawnParticle(secondary, location, secondaryCount, 0.0, 0.0, 0.0, 0.0);
-        }
-
-        private String describe() {
-            return "particlePreset=" + id
-                    + ", primary=" + primary.name() + "x" + primaryCount
-                    + ", secondary=" + secondary.name() + "x" + secondaryCount;
         }
     }
 
