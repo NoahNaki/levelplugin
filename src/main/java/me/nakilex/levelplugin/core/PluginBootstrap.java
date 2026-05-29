@@ -957,6 +957,7 @@ public class PluginBootstrap {
         if (serverSelectionManager != null) serverSelectionManager.shutdown();
         if (cursorMenuManager != null) cursorMenuManager.shutdown();
         if (blockGlowUtil != null) blockGlowUtil.shutdown();
+        if (wieldStyleDebugManager != null) wieldStyleDebugManager.shutdown();
         if (worldManager != null) {
             me.nakilex.levelplugin.debug.StrongholdDebugGenerator.cleanupGeneratedWorlds(plugin);
         }

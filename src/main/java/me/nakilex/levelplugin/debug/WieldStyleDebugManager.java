@@ -56,6 +56,8 @@ public class WieldStyleDebugManager implements Listener {
     private final Map<UUID, WieldSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, BukkitTask> randomSwingTasks = new ConcurrentHashMap<>();
     private final Set<UUID> inputDebugPlayers = ConcurrentHashMap.newKeySet();
+    private BukkitTask tickTask;
+    private long tickCounter;
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
@@ -65,6 +67,26 @@ public class WieldStyleDebugManager implements Listener {
     public WieldStyleDebugManager(Main plugin) {
         this.plugin = plugin;
         this.debugHandleKey = new NamespacedKey(plugin, "debug_wield_handle");
+        restartTickTask();
+    }
+
+    public void shutdown() {
+        if (tickTask != null) {
+            tickTask.cancel();
+            tickTask = null;
+        }
+        clearAll();
+    }
+
+    private void restartTickTask() {
+        if (tickTask != null) {
+            tickTask.cancel();
+        }
+        tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> tickCounter++, 1L, 1L);
+    }
+
+    private long currentTick() {
+        return tickCounter;
     }
 
     public boolean isEnabled(Player player) {
@@ -343,7 +365,7 @@ public class WieldStyleDebugManager implements Listener {
             debugInput(player, source, "ignored=no-active-session, cancelled=" + eventCancelled);
             return;
         }
-        long now = player.getWorld().getFullTime();
+        long now = currentTick();
         if (session.lastInputTick == now) {
             debugInput(player, source, "ignored=duplicate-same-tick, cancelled=" + eventCancelled);
             return;
@@ -376,14 +398,14 @@ public class WieldStyleDebugManager implements Listener {
             return;
         }
         WieldSession session = sessions.get(player.getUniqueId());
-        long now = player.getWorld().getFullTime();
+        long now = currentTick();
         String state = session == null
                 ? "session=none"
                 : "session=active"
                 + ", swinging=" + session.swinging
                 + ", swingTask=" + (session.swingTask != null)
                 + ", displayValid=" + (session.display != null && !session.display.isDead())
-                + ", tick=" + now
+                + ", serverTick=" + now
                 + ", lastInputTick=" + session.lastInputTick
                 + ", nextAllowedSwingTick=" + session.nextAllowedSwingTick
                 + ", cooldownRemaining=" + Math.max(0L, session.nextAllowedSwingTick - now)
@@ -449,7 +471,7 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     private void startSwing(Player player, WieldSession session, boolean force, WieldStyleConfig activeConfig, String source) {
-        long now = player.getWorld().getFullTime();
+        long now = currentTick();
         if (!force && now < session.nextAllowedSwingTick) {
             debugInput(player, source, "start-blocked=cooldown, remainingTicks=" + (session.nextAllowedSwingTick - now));
             return;
