@@ -156,19 +156,16 @@ public final class ArcSlashCombatUtil {
         if (localShape.isEmpty()) {
             return;
         }
-        Vector direction = forward == null ? caster.getLocation().getDirection() : forward.clone();
-        direction.setY(0.0);
-        if (direction.lengthSquared() <= 0.0001) {
-            direction = caster.getLocation().getDirection().setY(0.0);
-        }
-        if (direction.lengthSquared() <= 0.0001) {
+        Vector travelDirection = resolveHorizontalDirection(caster, forward);
+        if (travelDirection == null) {
             return;
         }
-        direction.normalize();
-        final Vector travelDirection = direction;
         Vector right = new Vector(0, 1, 0).crossProduct(travelDirection).normalize();
         Vector up = new Vector(0, 1, 0);
         Location origin = averageLocation(swordPath);
+        if (origin == null) {
+            return;
+        }
         int safeTicks = Math.max(1, travelTicks);
         double safeTravel = Math.max(0.1, travelDistance);
         double safeRadius = Math.max(0.35, damageRadius);
@@ -193,10 +190,58 @@ public final class ArcSlashCombatUtil {
                     if (point.getWorld() == null) {
                         continue;
                     }
-                    point.getWorld().spawnParticle(Particle.GLOW, point, 1, 0.02, 0.02, 0.02, 0.0);
-                    point.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, point, 1, 0.015, 0.015, 0.015, 0.0);
+                    spawnSwordPathSlashParticles(point);
                     applyCollisionDamage(caster, point, safeRadius, damage, hitTargets, 0.35);
                 }
+                tick++;
+                if (tick >= safeTicks) {
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    public static void launchSwordPathSlashPoint(Player caster,
+                                                 Location swordPoint,
+                                                 Vector forward,
+                                                 double damage,
+                                                 double damageRadius,
+                                                 double travelDistance,
+                                                 int travelTicks,
+                                                 Set<java.util.UUID> hitTargets) {
+        if (caster == null || swordPoint == null || swordPoint.getWorld() == null || damage <= 0.0) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            return;
+        }
+        Vector travelDirection = resolveHorizontalDirection(caster, forward);
+        if (travelDirection == null) {
+            return;
+        }
+        Location origin = swordPoint.clone();
+        int safeTicks = Math.max(1, travelTicks);
+        double safeTravel = Math.max(0.1, travelDistance);
+        double safeRadius = Math.max(0.35, damageRadius);
+        Set<java.util.UUID> activeHitTargets = hitTargets == null ? new HashSet<>() : hitTargets;
+
+        new BukkitRunnable() {
+            private int tick;
+            private Location previousPoint = origin.clone();
+
+            @Override
+            public void run() {
+                if (!caster.isOnline()) {
+                    cancel();
+                    return;
+                }
+                double progress = safeTicks <= 1 ? 1.0 : tick / (double) (safeTicks - 1);
+                Location point = origin.clone().add(travelDirection.clone().multiply(safeTravel * progress));
+                spawnSwordPathSlashParticles(point);
+                applyCollisionDamage(caster, point, safeRadius, damage, activeHitTargets, 0.35);
+                applySegmentCollisionDamage(caster, previousPoint, point, safeRadius, damage, activeHitTargets);
+                previousPoint = point;
                 tick++;
                 if (tick >= safeTicks) {
                     cancel();
@@ -245,6 +290,29 @@ public final class ArcSlashCombatUtil {
             count++;
         }
         return count == 0 ? null : new Location(first.getWorld(), x / count, y / count, z / count);
+    }
+
+    private static Vector resolveHorizontalDirection(Player caster, Vector forward) {
+        if (caster == null) {
+            return null;
+        }
+        Vector direction = forward == null ? caster.getLocation().getDirection() : forward.clone();
+        direction.setY(0.0);
+        if (direction.lengthSquared() <= 0.0001) {
+            direction = caster.getLocation().getDirection().setY(0.0);
+        }
+        if (direction.lengthSquared() <= 0.0001) {
+            return null;
+        }
+        return direction.normalize();
+    }
+
+    private static void spawnSwordPathSlashParticles(Location point) {
+        if (point == null || point.getWorld() == null) {
+            return;
+        }
+        point.getWorld().spawnParticle(Particle.GLOW, point, 1, 0.02, 0.02, 0.02, 0.0);
+        point.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, point, 1, 0.015, 0.015, 0.015, 0.0);
     }
 
     public static void strikeForward(Player caster,

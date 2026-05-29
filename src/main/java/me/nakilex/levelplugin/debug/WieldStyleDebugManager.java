@@ -618,9 +618,9 @@ public class WieldStyleDebugManager implements Listener {
                 + ", particles=" + particleSelection.describe());
         session.swingTask = new BukkitRunnable() {
             private final Set<UUID> hitTargets = new HashSet<>();
+            private final Set<UUID> slashHitTargets = new HashSet<>();
             private int tick = 0;
             private Pose returnStartPose;
-            private final List<Location> swordPath = new ArrayList<>();
 
             @Override
             public void run() {
@@ -635,16 +635,12 @@ public class WieldStyleDebugManager implements Listener {
                     double progress = Math.min(1.0, tick / (double) (swingTotal - 1));
                     Pose pose = swingPose(online, easeOut(progress), activeConfig);
                     moveDisplay(session, pose);
-                    swordPath.add(pose.location().clone());
                     playSwingTrail(pose, particleSelection);
+                    launchSwordPathSlash(online, pose.location(), slashHitTargets);
                     damageSwingTargets(online, pose, hitTargets);
                     returnStartPose = pose;
                     tick++;
                     return;
-                }
-
-                if (tick == swingTotal) {
-                    launchSwordPathSlash(online, swordPath);
                 }
 
                 int returnTick = tick - swingTotal;
@@ -730,8 +726,8 @@ public class WieldStyleDebugManager implements Listener {
         selection.spawn(location);
     }
 
-    private void launchSwordPathSlash(Player player, List<Location> swordPath) {
-        if (swordPath == null || swordPath.size() < 2) {
+    private void launchSwordPathSlash(Player player, Location swordLocation, Set<UUID> hitTargets) {
+        if (swordLocation == null || swordLocation.getWorld() == null) {
             return;
         }
         Vector forward = player.getLocation().getDirection().setY(0.0);
@@ -740,8 +736,8 @@ public class WieldStyleDebugManager implements Listener {
         }
         forward.normalize();
         double damage = playerAttackDamage(player) * SWORD_PATH_SLASH_DAMAGE_MULTIPLIER;
-        ArcSlashCombatUtil.launchSwordPathSlash(player, swordPath, forward, damage,
-                SWORD_PATH_SLASH_RADIUS, SWORD_PATH_SLASH_TRAVEL_DISTANCE, SWORD_PATH_SLASH_TRAVEL_TICKS);
+        ArcSlashCombatUtil.launchSwordPathSlashPoint(player, swordLocation, forward, damage,
+                SWORD_PATH_SLASH_RADIUS, SWORD_PATH_SLASH_TRAVEL_DISTANCE, SWORD_PATH_SLASH_TRAVEL_TICKS, hitTargets);
     }
 
     private SwingParticleSelection selectSwingParticles() {
