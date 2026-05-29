@@ -117,7 +117,7 @@ public class WieldStyleDebugGUI implements Listener {
                     wieldStyleDebugManager.applyConfig(config);
                     wieldStyleDebugManager.playOnce(context.player());
                     ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
-                            "Randomized swing values without changing weapon size or swing ticks.");
+                            "Randomized small horizontal-slash variations without changing weapon size or swing ticks.");
                     context.player().openInventory(buildInventory(context.player()));
                 }));
         widgetList.add(new ActionWidget(TEST_SLOT,
@@ -222,9 +222,9 @@ public class WieldStyleDebugGUI implements Listener {
         if (meta != null) {
             meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Randomize Swing");
             meta.setLore(TooltipUtil.bulletList(
-                    "Randomizes the big swing shape/rotation values.",
+                    "Makes small variations of the horizontal slash preset.",
                     "Weapon scale and swing ticks stay unchanged.",
-                    "Forward Base/Peak only get small nudges."));
+                    "Forward Base/Peak only get tiny nudges."));
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             item.setItemMeta(meta);
         }

@@ -697,7 +697,15 @@ public class WieldStyleDebugManager implements Listener {
                         -0.5111532543229289, -0.07972367059891083, 1.179850083916887,
                         0.5010660807049536, 4.879281831669914, 165.93664880282688,
                         71.18506108827745, 72.11240325338264, 155.02853975191795,
-                        -406.01305010724536, 187.880697581937, 52.44780271370257));
+                        -406.01305010724536, 187.880697581937, 52.44780271370257)),
+        HORIZONTAL_SLASH("horizontal_slash", "Horizontal Slash",
+                new WieldStyleConfig(16, 17, 1, 0.82,
+                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        107.31430466731575, 256.21725634659435, -1.3957143565347,
+                        0.2494978117191653, -0.45385151312779304, 1.3654522266504672,
+                        0.47968886574028236, -257.5833908646365, -103.99355332936875,
+                        -180.0, 4.523226173149709, -11.787335414423495,
+                        373.94624250109575, 111.0100161511391, -282.823982305912));
 
         private final String id;
         private final String displayName;
@@ -823,22 +831,22 @@ public class WieldStyleDebugManager implements Listener {
         }
 
         public void randomizeSwingValues(ThreadLocalRandom random) {
-            WieldStyleConfig baseline = defaultConfig();
-            setSwingAngleStart(random.nextDouble(-180.0, 180.0));
-            setSwingAngleSweep(random.nextDouble(-420.0, 420.0));
-            setSwingSideRadius(random.nextDouble(-1.45, 1.45));
-            setSwingUpRadius(random.nextDouble(-1.45, 1.45));
-            setSwingUpOffset(random.nextDouble(-0.65, 0.65));
-            setSwingForwardBase(jitter(random, baseline.swingForwardBase, 0.16));
-            setSwingForwardPeak(jitter(random, baseline.swingForwardPeak, 0.12));
-            setSwingYawStart(random.nextDouble(-180.0, 180.0));
-            setSwingYawSweep(random.nextDouble(-260.0, 260.0));
-            setSwingPitchStart(random.nextDouble(-110.0, 80.0));
-            setSwingPitchSweep(random.nextDouble(-220.0, 220.0));
-            setSwingLeftRotationStart(random.nextDouble(-220.0, 220.0));
-            setSwingLeftRotationSweep(random.nextDouble(-520.0, 520.0));
-            setSwingRightRotationStart(random.nextDouble(-220.0, 220.0));
-            setSwingRightRotationSweep(random.nextDouble(-520.0, 520.0));
+            WieldStyleConfig baseline = WieldStylePreset.HORIZONTAL_SLASH.config();
+            setSwingAngleStart(jitter(random, baseline.swingAngleStart, 18.0));
+            setSwingAngleSweep(jitter(random, baseline.swingAngleSweep, 35.0));
+            setSwingSideRadius(jitter(random, baseline.swingSideRadius, 0.18));
+            setSwingUpRadius(jitter(random, baseline.swingUpRadius, 0.14));
+            setSwingUpOffset(jitter(random, baseline.swingUpOffset, 0.12));
+            setSwingForwardBase(jitter(random, baseline.swingForwardBase, 0.08));
+            setSwingForwardPeak(jitter(random, baseline.swingForwardPeak, 0.06));
+            setSwingYawStart(jitter(random, baseline.swingYawStart, 24.0));
+            setSwingYawSweep(jitter(random, baseline.swingYawSweep, 24.0));
+            setSwingPitchStart(jitter(random, baseline.swingPitchStart, 8.0));
+            setSwingPitchSweep(jitter(random, baseline.swingPitchSweep, 12.0));
+            setSwingLeftRotationStart(jitter(random, baseline.swingLeftRotationStart, 28.0));
+            setSwingLeftRotationSweep(jitter(random, baseline.swingLeftRotationSweep, 35.0));
+            setSwingRightRotationStart(jitter(random, baseline.swingRightRotationStart, 28.0));
+            setSwingRightRotationSweep(jitter(random, baseline.swingRightRotationSweep, 35.0));
         }
 
         private static double jitter(ThreadLocalRandom random, double base, double radius) {
