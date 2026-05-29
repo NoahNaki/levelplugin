@@ -73,7 +73,7 @@ public class WieldStyleDebugManager implements Listener {
     private static final double BASE_ANIMATION_ATTACK_SPEED = 0.8D;
     private static final double SWING_ATTACK_SPEED_WEIGHT = 0.45D;
     private static final double RETURN_ATTACK_SPEED_WEIGHT = 1.0D;
-    private static final double DEFAULT_IDLE_DISTANCE = 0.76D;
+    private static final double DEFAULT_IDLE_DISTANCE = 0.68D;
     private static final double DEFAULT_IDLE_RIGHT_OFFSET = 0.62D;
     private static final int MIN_SWING_TICKS = 8;
     private static final int MAX_SWING_TICKS = 24;
@@ -81,7 +81,7 @@ public class WieldStyleDebugManager implements Listener {
     private static final int MAX_RETURN_TO_IDLE_TICKS = 36;
     private static final double SWING_HIT_RADIUS = 1.15D;
     private static final double SWING_DAMAGE_BASE_FALLBACK = 1.0D;
-    private static final String AUTO_HAND_MODEL_NEXO_ID = "knight_assortment-key";
+    private static final String TRANSPARENT_HAND_MODEL_NEXO_ID = "transparent_model";
     private static final double SWORD_PATH_SLASH_DAMAGE_MULTIPLIER = 0.30D;
     private static final double SWORD_PATH_SLASH_RADIUS = 0.65D;
     private static final double SWORD_PATH_SLASH_TRAVEL_DISTANCE = 6.0D;
@@ -99,7 +99,7 @@ public class WieldStyleDebugManager implements Listener {
     private String defaultNexoModelId;
     private HandVisibilityMode handVisibilityMode = HandVisibilityMode.NORMAL;
     private Material handCloakMaterial = Material.LIGHT_GRAY_DYE;
-    private String handCloakNexoModelId;
+    private String handCloakNexoModelId = TRANSPARENT_HAND_MODEL_NEXO_ID;
     private WieldStylePreset activePreset = WieldStylePreset.OVERHEAD_SLASH;
     private WieldStyleConfig config = activePreset.config();
 
@@ -306,7 +306,7 @@ public class WieldStyleDebugManager implements Listener {
             lore.addAll(TooltipUtil.bulletList(
                     "The real weapon is rendered as an ItemDisplay.",
                     "Enable hand cloak mode to place this placeholder in-hand while previewing.",
-                    "A resource-pack invisible model can make this placeholder visually disappear."));
+                    "The transparent_model mask keeps the real hand item hidden."));
             lore.add("");
             lore.addAll(TooltipUtil.clickInstructions("to play a slash preview", null));
             meta.setLore(lore);
@@ -330,7 +330,7 @@ public class WieldStyleDebugManager implements Listener {
             return;
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Gave you a debug wield handle. Use a resource-pack invisible model here later.");
+                "Gave you a debug wield handle using the transparent hand mask.");
     }
 
     public void setDefaultMaterial(Material material) {
@@ -834,7 +834,7 @@ public class WieldStyleDebugManager implements Listener {
         }
         restoreEquippedHandModel(session);
         session.modeledHandItem = weapon;
-        session.modeledHandState = ItemUtil.applyTemporaryNexoModel(weapon, AUTO_HAND_MODEL_NEXO_ID);
+        session.modeledHandState = ItemUtil.applyTemporaryNexoModel(weapon, TRANSPARENT_HAND_MODEL_NEXO_ID);
         Player player = plugin.getServer().getPlayer(session.playerId);
         if (player != null && player.isOnline()) {
             player.updateInventory();

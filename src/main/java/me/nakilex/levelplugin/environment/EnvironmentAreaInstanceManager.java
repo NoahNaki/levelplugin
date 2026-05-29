@@ -170,6 +170,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
+    private final Map<UUID, Map<Integer, BukkitTask>> activeBuildAnimationTasksByProfile = new HashMap<>();
     private final Map<UUID, Map<Integer, Long>> buildFinishAtByProfile = new HashMap<>();
     private BukkitTask buildTimerTask;
     private BukkitTask hologramRefreshTask;
@@ -495,6 +496,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     public void removeKingdom(UUID playerId) {
         if (playerId == null) return;
+        cancelPendingBuildStart(playerId);
         EnvironmentAreaSession session = sessions.remove(playerId);
         if (session != null) {
             session.removeHolograms();
@@ -1006,6 +1008,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         buildFinishAtByProfile.computeIfAbsent(scoped, k -> new HashMap<>()).put(slot, finishAtMs);
     }
 
+    private void clearBuildFinishAt(UUID scoped) {
+        if (scoped == null) return;
+        buildFinishAtByProfile.remove(scoped);
+    }
+
     private void clearBuildFinishAt(UUID scoped, int slot) {
         Map<Integer, Long> map = buildFinishAtByProfile.get(scoped);
         if (map == null) return;
@@ -1112,10 +1119,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
             playCoinPaymentVisual(player, destinationMarker, cost);
         }
-        BukkitTask existing = activeBuildTasks.remove(sessionOwner);
-        if (existing != null) {
-            existing.cancel();
-        }
+        cancelPendingBuildStart(sessionOwner);
+        cancelActiveBuildTask(scoped, slot);
         BukkitTask task = new BukkitRunnable() {
             @Override
             public void run() {
@@ -1127,11 +1132,20 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 long buildDurationMs = computeBuildDurationMs(slot, nextLevel);
                 long finishAt = System.currentTimeMillis() + buildDurationMs;
                 UUID profileScoped = resolveProfileScopedId(player);
+                if (!scoped.equals(profileScoped)) {
+                    activeBuildTasks.remove(sessionOwner);
+                    cancel();
+                    return;
+                }
                 setBuildFinishAt(profileScoped, slot, finishAt);
                 refreshBuildHologram(session, slot);
                 long totalTicks = Math.max(1L, Math.round((buildDurationMs / 1000.0) * 20.0));
-                buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker, totalTicks, () -> {
-                    markBuiltForProfile(player, slot);
+                buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker, scoped, slot, totalTicks, () -> {
+                    if (!isPlayerOnProfile(player, profileScoped)) {
+                        clearBuildFinishAt(profileScoped, slot);
+                        return;
+                    }
+                    markBuiltForProfile(profileScoped, slot);
                     clearBuildFinishAt(profileScoped, slot);
                     if (slot == 4) {
                         setPalaceBuildingLevel(profileScoped, Math.max(1, nextLevel));
@@ -1239,7 +1253,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private void markBuiltForProfile(Player player, int slot) {
-        UUID scoped = resolveProfileScopedId(player);
+        markBuiltForProfile(resolveProfileScopedId(player), slot);
+    }
+
+    private void markBuiltForProfile(UUID scoped, int slot) {
+        if (scoped == null) return;
         builtSlotsByProfile.computeIfAbsent(scoped, ignored -> new java.util.HashSet<>()).add(slot);
         saveBuiltSlots(scoped);
     }
@@ -1402,9 +1420,66 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     public void clearProfileKingdomProgress(UUID playerId, int slot) {
         if (playerId == null) return;
         UUID scoped = scopedProfileId(playerId, slot);
-        builtSlotsByProfile.remove(scoped);
-        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.built-slots", null);
+        cancelProfileBuildProgress(playerId, scoped);
+        clearProfileKingdomState(scoped);
         plugin.getPlayerConfig().saveConfigFile();
+    }
+
+    private void cancelProfileBuildProgress(UUID playerId, UUID scoped) {
+        if (scoped == null) return;
+        Integer active = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(playerId);
+        if (active != null && scoped.equals(scopedProfileId(playerId, active))) {
+            cancelPendingBuildStart(playerId);
+        }
+        cancelActiveBuildTasks(scoped);
+        clearBuildFinishAt(scoped);
+    }
+
+    private void clearProfileKingdomState(UUID scoped) {
+        if (scoped == null) return;
+        builtSlotsByProfile.remove(scoped);
+        farmBuildingLevelByProfile.remove(scoped);
+        palaceBuildingLevelByProfile.remove(scoped);
+        blacksmithBuildingLevelByProfile.remove(scoped);
+        String base = "players." + scoped + ".environment.area.";
+        plugin.getPlayerConfig().getConfig().set(base + "built-slots", null);
+        plugin.getPlayerConfig().getConfig().set(base + "farm-building-level", null);
+        plugin.getPlayerConfig().getConfig().set(base + "farm-level", null);
+        plugin.getPlayerConfig().getConfig().set(base + "palace-building-level", null);
+        plugin.getPlayerConfig().getConfig().set(base + "blacksmith-building-level", null);
+    }
+
+    private void cancelPendingBuildStart(UUID playerId) {
+        BukkitTask existing = activeBuildTasks.remove(playerId);
+        if (existing != null) {
+            existing.cancel();
+        }
+    }
+
+    private void cancelActiveBuildTasks(UUID scoped) {
+        Map<Integer, BukkitTask> tasks = activeBuildAnimationTasksByProfile.remove(scoped);
+        if (tasks == null) return;
+        for (BukkitTask task : tasks.values()) {
+            if (task != null) {
+                task.cancel();
+            }
+        }
+    }
+
+    private void cancelActiveBuildTask(UUID scoped, int slot) {
+        Map<Integer, BukkitTask> tasks = activeBuildAnimationTasksByProfile.get(scoped);
+        if (tasks == null) return;
+        BukkitTask existing = tasks.remove(slot);
+        if (existing != null) {
+            existing.cancel();
+        }
+        if (tasks.isEmpty()) {
+            activeBuildAnimationTasksByProfile.remove(scoped);
+        }
+    }
+
+    private boolean isPlayerOnProfile(Player player, UUID scoped) {
+        return player != null && scoped != null && scoped.equals(resolveProfileScopedId(player));
     }
 
     private void playCoinPaymentVisual(Player player, Location destinationMarker, int amount) {
@@ -1499,6 +1574,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                       CuboidTemplate template,
                                       WorldCuboid destinationArea,
                                       Location destinationMarker,
+                                      UUID scoped,
+                                      int slot,
                                       long totalTicks,
                                       Runnable onComplete) {
         if (player == null || session == null || building == null || template == null
@@ -1517,17 +1594,21 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 + ", blockCount=" + copies.size());
         int animationTicks = scaledBuildAnimationTicks(totalTicks);
         int blocksPerTick = Math.max(1, copies.size() / animationTicks);
-        new BukkitRunnable() {
+        BukkitRunnable runnable = new BukkitRunnable() {
             int index = 0;
 
             @Override
             public void run() {
-                if (!player.isOnline()) {
+                if (!player.isOnline() || !isPlayerOnProfile(player, scoped)) {
+                    clearBuildFinishAt(scoped, slot);
+                    cancelActiveBuildTask(scoped, slot);
                     cancel();
                     return;
                 }
                 World world = session.world();
-                if (world == null) {
+                if (world == null || !sessions.containsValue(session)) {
+                    clearBuildFinishAt(scoped, slot);
+                    cancelActiveBuildTask(scoped, slot);
                     cancel();
                     return;
                 }
@@ -1546,10 +1627,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     showBuildingProgressToast(player, building.displayName(), currentLevel, building.marker(), currentLevel > 1);
                     copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea);
                     if (onComplete != null) onComplete.run();
+                    cancelActiveBuildTask(scoped, slot);
                     cancel();
                 }
             }
-        }.runTaskTimer(plugin, 0L, 1L);
+        };
+        BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
+        activeBuildAnimationTasksByProfile.computeIfAbsent(scoped, ignored -> new HashMap<>()).put(slot, task);
     }
 
     private void showBuildingProgressToast(Player player, String buildingName, int level, Material icon, boolean leveledUp) {
@@ -2023,6 +2107,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         }
         activeBuildTasks.clear();
+        for (Map<Integer, BukkitTask> tasks : new ArrayList<>(activeBuildAnimationTasksByProfile.values())) {
+            for (BukkitTask task : tasks.values()) {
+                if (task != null) {
+                    task.cancel();
+                }
+            }
+        }
+        activeBuildAnimationTasksByProfile.clear();
         for (EnvironmentAreaSession session : new ArrayList<>(sessions.values())) {
             if (session != null) {
                 session.removeHolograms();
