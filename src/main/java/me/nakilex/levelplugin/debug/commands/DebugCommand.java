@@ -1387,7 +1387,7 @@ public class DebugCommand implements TabExecutor, Listener {
             case "fixed" -> {
                 wieldStyleDebugManager.setRandomizeSwingParticles(false);
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                        "Wield swing particles set to fixed CRIT + SWEEP_ATTACK.");
+                        "Wield swing particles set to fixed magical GLOW + ELECTRIC_SPARK.");
             }
             case "random" -> {
                 wieldStyleDebugManager.setRandomizeSwingParticles(true);

@@ -843,11 +843,13 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     private enum SwingParticlePreset {
-        CRIT_SWEEP("crit_sweep", Particle.CRIT, 5, Particle.SWEEP_ATTACK, 1, 0.02),
-        ENCHANTED_SWEEP("enchanted_sweep", Particle.ENCHANT, 8, Particle.SWEEP_ATTACK, 1, 0.03),
+        GLOW_SPARK("glow_spark", Particle.GLOW, 5, Particle.ELECTRIC_SPARK, 4, 0.02),
+        CRIT_ENCHANT("crit_enchant", Particle.CRIT, 5, Particle.ENCHANT, 6, 0.02),
+        ENCHANT_GLOW("enchant_glow", Particle.ENCHANT, 8, Particle.GLOW, 4, 0.03),
         SPARK_CRIT("spark_crit", Particle.ELECTRIC_SPARK, 5, Particle.CRIT, 4, 0.02),
-        WAXING_SWEEP("waxing_sweep", Particle.WAX_ON, 6, Particle.SWEEP_ATTACK, 1, 0.01),
-        GLOW_SPARK("glow_spark", Particle.GLOW, 5, Particle.ELECTRIC_SPARK, 4, 0.02);
+        WAXING_SPARK("waxing_spark", Particle.WAX_ON, 6, Particle.ELECTRIC_SPARK, 3, 0.01);
+
+        private static final SwingParticlePreset DEFAULT = GLOW_SPARK;
 
         private final String id;
         private final Particle primary;
@@ -869,12 +871,16 @@ public class WieldStyleDebugManager implements Listener {
     private record SwingParticleSelection(String id, Particle primary, int primaryCount, Particle secondary,
                                           int secondaryCount, double speed, boolean randomized) {
         private static SwingParticleSelection fixed() {
-            return new SwingParticleSelection("fixed", Particle.CRIT, 5, Particle.SWEEP_ATTACK, 1, 0.02, false);
+            return fromPreset(SwingParticlePreset.DEFAULT, false);
         }
 
         private static SwingParticleSelection randomized(SwingParticlePreset preset) {
+            return fromPreset(preset, true);
+        }
+
+        private static SwingParticleSelection fromPreset(SwingParticlePreset preset, boolean randomized) {
             return new SwingParticleSelection(preset.id, preset.primary, preset.primaryCount, preset.secondary,
-                    preset.secondaryCount, preset.speed, true);
+                    preset.secondaryCount, preset.speed, randomized);
         }
 
         private void spawn(Location location) {

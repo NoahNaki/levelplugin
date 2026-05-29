@@ -168,7 +168,8 @@ public class WieldStyleDebugGUI implements Listener {
                         TooltipUtil.bulletList(
                                 "Randomizes the swing trail particle preset per swing.",
                                 "Console logs include the selected particle names.",
-                                "Current: " + (wieldStyleDebugManager.isRandomizeSwingParticles() ? "randomized" : "fixed"))),
+                                "Fixed default: glow_spark (GLOW + ELECTRIC_SPARK).",
+                                "Current: " + (wieldStyleDebugManager.isRandomizeSwingParticles() ? "randomized" : "fixed glow_spark"))),
                 (click, context) -> {
                     boolean next = !wieldStyleDebugManager.isRandomizeSwingParticles();
                     wieldStyleDebugManager.setRandomizeSwingParticles(next);
@@ -273,7 +274,7 @@ public class WieldStyleDebugGUI implements Listener {
                     "Changes apply live to idle preview; Test Swing plays the arc.",
                     "Preview: " + (wieldStyleDebugManager.isEnabled(player) ? "enabled" : "disabled"),
                     "Hand cloak: " + wieldStyleDebugManager.getHandVisibilityMode().displayName(),
-                    "Swing particles: " + (wieldStyleDebugManager.isRandomizeSwingParticles() ? "randomized" : "fixed")
+                    "Swing particles: " + (wieldStyleDebugManager.isRandomizeSwingParticles() ? "randomized" : "fixed glow_spark")
             );
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
