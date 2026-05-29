@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.particles.ParticleRotationAxis;
 import me.nakilex.levelplugin.particles.patterns.EllipseArcPattern;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.ArmorStand;
@@ -15,7 +16,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.bukkit.util.BoundingBox;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -135,6 +138,115 @@ public final class ArcSlashCombatUtil {
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
+    public static void launchSwordPathSlash(Player caster,
+                                             List<Location> swordPath,
+                                             Vector forward,
+                                             double damage,
+                                             double damageRadius,
+                                             double travelDistance,
+                                             int travelTicks) {
+        if (caster == null || swordPath == null || swordPath.isEmpty() || damage <= 0.0) {
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) {
+            return;
+        }
+        List<Vector> localShape = toLocalSwordPathShape(swordPath);
+        if (localShape.isEmpty()) {
+            return;
+        }
+        Vector direction = forward == null ? caster.getLocation().getDirection() : forward.clone();
+        direction.setY(0.0);
+        if (direction.lengthSquared() <= 0.0001) {
+            direction = caster.getLocation().getDirection().setY(0.0);
+        }
+        if (direction.lengthSquared() <= 0.0001) {
+            return;
+        }
+        direction.normalize();
+        final Vector travelDirection = direction;
+        Vector right = new Vector(0, 1, 0).crossProduct(travelDirection).normalize();
+        Vector up = new Vector(0, 1, 0);
+        Location origin = averageLocation(swordPath);
+        int safeTicks = Math.max(1, travelTicks);
+        double safeTravel = Math.max(0.1, travelDistance);
+        double safeRadius = Math.max(0.35, damageRadius);
+
+        new BukkitRunnable() {
+            private final Set<java.util.UUID> hitTargets = new HashSet<>();
+            private int tick;
+
+            @Override
+            public void run() {
+                if (!caster.isOnline()) {
+                    cancel();
+                    return;
+                }
+                double progress = safeTicks <= 1 ? 1.0 : tick / (double) (safeTicks - 1);
+                Location center = origin.clone().add(travelDirection.clone().multiply(safeTravel * progress));
+                for (Vector local : localShape) {
+                    Location point = center.clone()
+                            .add(right.clone().multiply(local.getX()))
+                            .add(up.clone().multiply(local.getY()))
+                            .add(travelDirection.clone().multiply(local.getZ()));
+                    if (point.getWorld() == null) {
+                        continue;
+                    }
+                    point.getWorld().spawnParticle(Particle.GLOW, point, 1, 0.02, 0.02, 0.02, 0.0);
+                    point.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, point, 1, 0.015, 0.015, 0.015, 0.0);
+                    applyCollisionDamage(caster, point, safeRadius, damage, hitTargets, 0.35);
+                }
+                tick++;
+                if (tick >= safeTicks) {
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private static List<Vector> toLocalSwordPathShape(List<Location> swordPath) {
+        Location center = averageLocation(swordPath);
+        if (center == null) {
+            return List.of();
+        }
+        List<Vector> local = new ArrayList<>();
+        for (Location point : swordPath) {
+            if (point == null || point.getWorld() == null || !point.getWorld().equals(center.getWorld())) {
+                continue;
+            }
+            local.add(point.toVector().subtract(center.toVector()));
+        }
+        return local;
+    }
+
+    private static Location averageLocation(List<Location> points) {
+        if (points == null || points.isEmpty()) {
+            return null;
+        }
+        Location first = null;
+        double x = 0.0;
+        double y = 0.0;
+        double z = 0.0;
+        int count = 0;
+        for (Location point : points) {
+            if (point == null || point.getWorld() == null) {
+                continue;
+            }
+            if (first == null) {
+                first = point;
+            }
+            if (!point.getWorld().equals(first.getWorld())) {
+                continue;
+            }
+            x += point.getX();
+            y += point.getY();
+            z += point.getZ();
+            count++;
+        }
+        return count == 0 ? null : new Location(first.getWorld(), x / count, y / count, z / count);
+    }
+
     public static void strikeForward(Player caster,
                                      double forwardDistance,
                                      double upOffset,
@@ -226,10 +338,19 @@ public final class ArcSlashCombatUtil {
                                              double radius,
                                              double damage,
                                              Set<java.util.UUID> hitTargets) {
+        applyCollisionDamage(caster, center, radius, damage, hitTargets, 5.0);
+    }
+
+    private static void applyCollisionDamage(Player caster,
+                                             Location center,
+                                             double radius,
+                                             double damage,
+                                             Set<java.util.UUID> hitTargets,
+                                             double minimumRadius) {
         if (caster == null || center == null || radius <= 0.0 || damage <= 0.0) {
             return;
         }
-        double effectiveRadius = Math.max(radius, 5.0);
+        double effectiveRadius = Math.max(radius, minimumRadius);
         for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, effectiveRadius, living -> !living.equals(caster))) {
             if (!hitTargets.add(target.getUniqueId())) {
                 continue;

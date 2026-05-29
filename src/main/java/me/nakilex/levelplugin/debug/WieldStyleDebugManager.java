@@ -16,6 +16,7 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.items.utils.ItemUtil.ItemVisualModelState;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.CombatTargetUtil;
@@ -69,6 +70,10 @@ public class WieldStyleDebugManager implements Listener {
     private static final double SWING_HIT_RADIUS = 1.15D;
     private static final double SWING_DAMAGE_BASE_FALLBACK = 1.0D;
     private static final String AUTO_HAND_MODEL_NEXO_ID = "knight_assortment-key";
+    private static final double SWORD_PATH_SLASH_DAMAGE_MULTIPLIER = 0.85D;
+    private static final double SWORD_PATH_SLASH_RADIUS = 0.65D;
+    private static final double SWORD_PATH_SLASH_TRAVEL_DISTANCE = 6.0D;
+    private static final int SWORD_PATH_SLASH_TRAVEL_TICKS = 9;
 
     private final Main plugin;
     private final NamespacedKey debugHandleKey;
@@ -615,6 +620,7 @@ public class WieldStyleDebugManager implements Listener {
             private final Set<UUID> hitTargets = new HashSet<>();
             private int tick = 0;
             private Pose returnStartPose;
+            private final List<Location> swordPath = new ArrayList<>();
 
             @Override
             public void run() {
@@ -629,11 +635,16 @@ public class WieldStyleDebugManager implements Listener {
                     double progress = Math.min(1.0, tick / (double) (swingTotal - 1));
                     Pose pose = swingPose(online, easeOut(progress), activeConfig);
                     moveDisplay(session, pose);
+                    swordPath.add(pose.location().clone());
                     playSwingTrail(pose, particleSelection);
                     damageSwingTargets(online, pose, hitTargets);
                     returnStartPose = pose;
                     tick++;
                     return;
+                }
+
+                if (tick == swingTotal) {
+                    launchSwordPathSlash(online, swordPath);
                 }
 
                 int returnTick = tick - swingTotal;
@@ -717,6 +728,20 @@ public class WieldStyleDebugManager implements Listener {
     private void playSwingTrail(Pose pose, SwingParticleSelection selection) {
         Location location = pose.location();
         selection.spawn(location);
+    }
+
+    private void launchSwordPathSlash(Player player, List<Location> swordPath) {
+        if (swordPath == null || swordPath.size() < 2) {
+            return;
+        }
+        Vector forward = player.getLocation().getDirection().setY(0.0);
+        if (forward.lengthSquared() <= 0.0001) {
+            return;
+        }
+        forward.normalize();
+        double damage = playerAttackDamage(player) * SWORD_PATH_SLASH_DAMAGE_MULTIPLIER;
+        ArcSlashCombatUtil.launchSwordPathSlash(player, swordPath, forward, damage,
+                SWORD_PATH_SLASH_RADIUS, SWORD_PATH_SLASH_TRAVEL_DISTANCE, SWORD_PATH_SLASH_TRAVEL_TICKS);
     }
 
     private SwingParticleSelection selectSwingParticles() {

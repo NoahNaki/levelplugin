@@ -184,8 +184,7 @@ public final class SpellCatalog {
         registry.registerProgression(new SpellProgression(rogueNightfallLunge.id(), java.util.List.of(
                 rogueNightfallLungeCyclone.id(), rogueNightfallLungeJudgement.id())));
 
-        registry.registerBinding(SpellBinding.forInputTypeWithWeapon(rogueArcBasic.id(), playerClass -> true,
-                SpellAccessUtil::isBladeOrAxeWeapon, SpellInputType.BASIC_ATTACK));
+        // Temporarily leave the legacy rogue arc basic attack unbound while the wield-path slash is being tested.
         registry.registerBinding(SpellBinding.forInputType(rogueShadowFlurry.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_1));
         registry.registerBinding(SpellBinding.forInputType(rogueNightfallLunge.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_2));
         registry.registerBinding(SpellBinding.forInputType(rogueRazorDash.id(), ClassUtil::isRogueFamily, SpellInputType.SPELL_3));
