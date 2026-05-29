@@ -127,6 +127,81 @@ public class ItemUtil {
         stack.setItemMeta(meta);
     }
 
+
+    /** Snapshot of the visual model fields that can be temporarily overridden. */
+    public record ItemVisualModelState(Material material, boolean hadCustomModelData, Integer customModelData,
+                                       boolean hadNexoModel, String nexoModelId,
+                                       boolean hadTemplateMaterial, String templateMaterial) {
+    }
+
+    /** Capture the visual model fields needed to restore an item after a temporary model override. */
+    public static ItemVisualModelState captureVisualModelState(ItemStack stack) {
+        if (stack == null) {
+            return null;
+        }
+        Material material = stack.getType();
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) {
+            return new ItemVisualModelState(material, false, null, false, null, false, null);
+        }
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        boolean hadNexoModel = pdc.has(NEXO_MODEL_KEY, PersistentDataType.STRING);
+        String nexoModelId = hadNexoModel ? pdc.get(NEXO_MODEL_KEY, PersistentDataType.STRING) : null;
+        boolean hadTemplateMaterial = pdc.has(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING);
+        String templateMaterial = hadTemplateMaterial ? pdc.get(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING) : null;
+        return new ItemVisualModelState(material, meta.hasCustomModelData(),
+                meta.hasCustomModelData() ? meta.getCustomModelData() : null,
+                hadNexoModel, nexoModelId, hadTemplateMaterial, templateMaterial);
+    }
+
+    /**
+     * Temporarily apply a Nexo model while preserving the stack's original
+     * template material so weapon/armor detection still resolves correctly.
+     */
+    public static ItemVisualModelState applyTemporaryNexoModel(ItemStack stack, String nexoId) {
+        ItemVisualModelState state = captureVisualModelState(stack);
+        if (stack == null || nexoId == null || nexoId.isBlank()) {
+            return state;
+        }
+        Material templateMaterial = getTemplateMaterial(stack);
+        applyNexoModel(stack, nexoId);
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null && templateMaterial != null && !templateMaterial.isAir()) {
+            meta.getPersistentDataContainer().set(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING, templateMaterial.name());
+            stack.setItemMeta(meta);
+        }
+        return state;
+    }
+
+    /** Restore visual model fields captured by {@link #captureVisualModelState(ItemStack)}. */
+    public static void restoreVisualModelState(ItemStack stack, ItemVisualModelState state) {
+        if (stack == null || state == null) {
+            return;
+        }
+        stack.setType(state.material());
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        if (state.hadCustomModelData()) {
+            meta.setCustomModelData(state.customModelData());
+        } else {
+            meta.setCustomModelData(null);
+        }
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        if (state.hadNexoModel() && state.nexoModelId() != null) {
+            pdc.set(NEXO_MODEL_KEY, PersistentDataType.STRING, state.nexoModelId());
+        } else {
+            pdc.remove(NEXO_MODEL_KEY);
+        }
+        if (state.hadTemplateMaterial() && state.templateMaterial() != null) {
+            pdc.set(TEMPLATE_MATERIAL_KEY, PersistentDataType.STRING, state.templateMaterial());
+        } else {
+            pdc.remove(TEMPLATE_MATERIAL_KEY);
+        }
+        stack.setItemMeta(meta);
+    }
+
     /** Append stat lines to lore following the standard display order. */
     private static void addStatLines(List<String> lore, CustomItem cItem,
                                     StatsManager.StatType prefixStat) {
@@ -825,6 +900,59 @@ public class ItemUtil {
         if (stack == null || !stack.hasItemMeta()) return 0;
         ItemMeta meta = stack.getItemMeta();
         return meta.getPersistentDataContainer().getOrDefault(UPGRADE_LEVEL_KEY, PersistentDataType.INTEGER, 0);
+    }
+
+    /** Return true when the player can currently wield the supplied weapon. */
+    public static boolean canUseWeapon(Player player, ItemStack weapon) {
+        return getWeaponRequirementFailure(player, weapon) == null;
+    }
+
+    /**
+     * Resolve why a player cannot wield a weapon, or {@code null} when it is usable.
+     * Centralized so combat visuals, stats, and future equipment flows can share
+     * the same eligibility check instead of duplicating level/class logic.
+     */
+    public static String getWeaponRequirementFailure(Player player, ItemStack weapon) {
+        if (player == null) {
+            return "No player context was available.";
+        }
+        if (weapon == null || weapon.getType().isAir()) {
+            return "No weapon is equipped.";
+        }
+        if (ArmorType.matchType(weapon) != null) {
+            return "That item is armor, not a weapon.";
+        }
+        if (WeaponType.matchType(weapon) == null) {
+            return "That item is not a recognized weapon.";
+        }
+
+        me.nakilex.levelplugin.player.classes.data.PlayerClass playerClass =
+                StatsManager.getInstance().getPlayerStats(player.getUniqueId()).playerClass;
+        if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.isValidWeaponForClass(playerClass, weapon)) {
+            return "Your class cannot wield that weapon type.";
+        }
+
+        CustomItem custom = ItemManager.getInstance().getCustomItemFromItemStack(weapon);
+        if (custom == null) {
+            return null;
+        }
+        if (custom.isBroken()) {
+            return custom.getBaseName() + " is broken.";
+        }
+        int playerLevel = LevelManager.getInstance().getLevel(player);
+        if (playerLevel < custom.getLevelRequirement()) {
+            return "You need level " + custom.getLevelRequirement() + " to wield " + custom.getBaseName() + ".";
+        }
+
+        String classRequirement = custom.getClassRequirement();
+        me.nakilex.levelplugin.player.classes.data.PlayerClass requiredClass = null;
+        if (classRequirement != null && !classRequirement.isBlank()) {
+            requiredClass = me.nakilex.levelplugin.player.classes.data.PlayerClass.fromString(classRequirement);
+        }
+        if (!me.nakilex.levelplugin.player.classes.data.ClassUtil.meetsRequirement(playerClass, requiredClass)) {
+            return "Your class cannot wield " + custom.getBaseName() + ".";
+        }
+        return null;
     }
 
     public static Integer getLevelRequirement(ItemStack stack) {

@@ -22,6 +22,7 @@ import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
 import me.nakilex.levelplugin.debug.WieldStyleDebugManager;
 import me.nakilex.levelplugin.debug.WieldStyleDebugManager.WieldStylePreset;
+import me.nakilex.levelplugin.debug.WieldStyleDebugManager.HandVisibilityMode;
 import me.nakilex.levelplugin.debug.gui.WieldStyleDebugGUI;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.gui.StrongholdAssetDebugGUI;
@@ -1266,7 +1267,7 @@ public class DebugCommand implements TabExecutor, Listener {
         }
         if (args.length < 2) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Usage: /debug wield <toggle|once|clear|handle|gui|random|debug|preset <name>|material <material>|nexo <id|none>|status>");
+                    "Usage: /debug wield <toggle|once|clear|handle|gui|random|debug|preset <name>|material <material>|nexo <id|none>|hand <normal|cloak|material|nexo|status>|particles <status>|status>");
             return;
         }
 
@@ -1283,6 +1284,8 @@ public class DebugCommand implements TabExecutor, Listener {
             case "random" -> wieldStyleDebugManager.toggleRandomTesting(player);
             case "debug" -> wieldStyleDebugManager.toggleInputDebug(player);
             case "preset" -> handleWieldPreset(player, args);
+            case "hand" -> handleWieldHand(player, args);
+            case "particles" -> handleWieldParticles(player, args);
             case "status" -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "Wield debug: " + wieldStyleDebugManager.describeSettings()
                             + ", enabled=" + wieldStyleDebugManager.isEnabled(player)
@@ -1318,7 +1321,77 @@ public class DebugCommand implements TabExecutor, Listener {
                                 ? "none" : wieldStyleDebugManager.getDefaultNexoModelId()) + ".");
             }
             default -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Unknown wield debug action. Use toggle, once, clear, handle, gui, random, debug, preset, material, nexo, or status.");
+                    "Unknown wield debug action. Use toggle, once, clear, handle, gui, random, debug, preset, material, nexo, hand, particles, or status.");
+        }
+    }
+
+    private void handleWieldHand(Player player, String[] args) {
+        if (args.length < 3) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Usage: /debug wield hand <normal|cloak|material <material>|nexo <modelId|none>|status>");
+            return;
+        }
+        switch (args[2].toLowerCase()) {
+            case "normal", "cloak" -> {
+                HandVisibilityMode mode = HandVisibilityMode.fromString(args[2]);
+                wieldStyleDebugManager.setHandVisibilityMode(mode);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Wield hand visibility mode set to " + mode.displayName() + ".");
+            }
+            case "material" -> {
+                if (args.length < 4) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug wield hand material <material>");
+                    return;
+                }
+                Material material = Material.matchMaterial(args[3]);
+                if (material == null || material.isAir()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                            "Unknown hand cloak material: " + args[3]);
+                    return;
+                }
+                wieldStyleDebugManager.setHandCloakMaterial(material);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Wield hand cloak material set to " + material.name() + ".");
+            }
+            case "nexo" -> {
+                if (args.length < 4) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug wield hand nexo <modelId|none>");
+                    return;
+                }
+                String modelId = args[3];
+                wieldStyleDebugManager.setHandCloakNexoModelId(modelId.equalsIgnoreCase("none") ? null : modelId);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Wield hand cloak Nexo model set to "
+                                + (wieldStyleDebugManager.getHandCloakNexoModelId() == null
+                                ? "none" : wieldStyleDebugManager.getHandCloakNexoModelId()) + ".");
+            }
+            case "status" -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Wield hand cloak: mode=" + wieldStyleDebugManager.getHandVisibilityMode().id()
+                            + ", material=" + wieldStyleDebugManager.getHandCloakMaterial().name()
+                            + ", nexo=" + (wieldStyleDebugManager.getHandCloakNexoModelId() == null
+                            ? "none" : wieldStyleDebugManager.getHandCloakNexoModelId()));
+            default -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Unknown wield hand action. Use normal, cloak, material, nexo, or status.");
+        }
+    }
+
+    private void handleWieldParticles(Player player, String[] args) {
+        if (args.length < 3) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Usage: /debug wield particles <status>");
+            return;
+        }
+        switch (args[2].toLowerCase()) {
+            case "fixed", "random" -> {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                        "Weapon trail particles are disabled; only the forward arc-slash particle projectile is rendered.");
+            }
+            case "status" -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Weapon trail particles are disabled; the forward projectile uses the arc slash particle.");
+            default -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Unknown wield particle action. Use status.");
         }
     }
 
@@ -1406,7 +1479,7 @@ public class DebugCommand implements TabExecutor, Listener {
                     .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("wield")) {
-            return List.of("toggle", "once", "clear", "handle", "gui", "random", "debug", "preset", "material", "nexo", "status").stream()
+            return List.of("toggle", "once", "clear", "handle", "gui", "random", "debug", "preset", "material", "nexo", "hand", "particles", "status").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("preset")) {
@@ -1415,6 +1488,20 @@ public class DebugCommand implements TabExecutor, Listener {
             return wieldStyleDebugManager.materialSuggestions(args[2]);
         } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("nexo")) {
             return List.of("none").stream()
+                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("hand")) {
+            return List.of("normal", "cloak", "material", "nexo", "status").stream()
+                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 4 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("hand") && args[2].equalsIgnoreCase("material")) {
+            return wieldStyleDebugManager.materialSuggestions(args[3]);
+        } else if (args.length == 4 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("hand") && args[2].equalsIgnoreCase("nexo")) {
+            return List.of("none").stream()
+                    .filter(opt -> opt.startsWith(args[3].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("particles")) {
+            return List.of("status").stream()
                     .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("spellpull")) {

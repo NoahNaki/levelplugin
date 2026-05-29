@@ -11,8 +11,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.events.WeaponEquipEvent;
+import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.items.utils.ItemUtil.ItemVisualModelState;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.utils.AttributeUtil;
 import me.nakilex.levelplugin.utils.CombatTargetUtil;
@@ -33,11 +37,13 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -63,6 +69,11 @@ public class WieldStyleDebugManager implements Listener {
     private static final int RETURN_TO_IDLE_TICKS = 20;
     private static final double SWING_HIT_RADIUS = 1.15D;
     private static final double SWING_DAMAGE_BASE_FALLBACK = 1.0D;
+    private static final String AUTO_HAND_MODEL_NEXO_ID = "knight_assortment-key";
+    private static final double SWORD_PATH_SLASH_DAMAGE_MULTIPLIER = 0.85D;
+    private static final double SWORD_PATH_SLASH_RADIUS = 0.65D;
+    private static final double SWORD_PATH_SLASH_TRAVEL_DISTANCE = 6.0D;
+    private static final int SWORD_PATH_SLASH_TRAVEL_TICKS = 9;
 
     private final Main plugin;
     private final NamespacedKey debugHandleKey;
@@ -74,6 +85,9 @@ public class WieldStyleDebugManager implements Listener {
 
     private Material defaultMaterial = Material.DIAMOND_SWORD;
     private String defaultNexoModelId;
+    private HandVisibilityMode handVisibilityMode = HandVisibilityMode.NORMAL;
+    private Material handCloakMaterial = Material.LIGHT_GRAY_DYE;
+    private String handCloakNexoModelId;
     private WieldStylePreset activePreset = WieldStylePreset.OVERHEAD_SLASH;
     private WieldStyleConfig config = activePreset.config();
 
@@ -106,6 +120,30 @@ public class WieldStyleDebugManager implements Listener {
         return sessions.containsKey(player.getUniqueId());
     }
 
+    public void refreshAutoWield(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        ItemStack weapon = player.getInventory().getItemInMainHand();
+        WieldSession session = sessions.get(player.getUniqueId());
+        if (!ItemUtil.canUseWeapon(player, weapon)) {
+            if (session != null && session.autoManaged) {
+                disable(player.getUniqueId());
+            }
+            return;
+        }
+        enableForEquippedWeapon(player, weapon);
+    }
+
+    private void enableForEquippedWeapon(Player player, ItemStack weapon) {
+        enable(player, createVisualItemFromEquippedWeapon(weapon));
+        WieldSession session = sessions.get(player.getUniqueId());
+        if (session != null) {
+            session.autoManaged = true;
+            applyEquippedHandModel(session, weapon);
+        }
+    }
+
     public void toggle(Player player) {
         if (isEnabled(player)) {
             disable(player, "Custom wield preview disabled.");
@@ -119,6 +157,7 @@ public class WieldStyleDebugManager implements Listener {
         ItemStack item = sanitizeVisualItem(visualItem);
         ItemDisplay display = spawnDisplay(player, item);
         WieldSession session = new WieldSession(player.getUniqueId(), display, item);
+        applyHandVisibility(player, session);
         session.followTask = new BukkitRunnable() {
             @Override
             public void run() {
@@ -160,6 +199,8 @@ public class WieldStyleDebugManager implements Listener {
         if (session.display != null && !session.display.isDead()) {
             session.display.remove();
         }
+        restoreEquippedHandModel(session);
+        restoreHandVisibility(session);
     }
 
     public void playOnce(Player player) {
@@ -244,7 +285,7 @@ public class WieldStyleDebugManager implements Listener {
     }
 
     public ItemStack createDebugHandle() {
-        ItemStack stack = new ItemStack(Material.LIGHT_GRAY_DYE);
+        ItemStack stack = new ItemStack(handCloakMaterial);
         ItemMeta meta = stack.getItemMeta();
         if (meta != null) {
             meta.setDisplayName(ChatColor.AQUA + "Debug Wield Handle");
@@ -252,14 +293,17 @@ public class WieldStyleDebugManager implements Listener {
             lore.add(ChatColor.GRAY + "Use this while /debug wield is enabled.");
             lore.addAll(TooltipUtil.bulletList(
                     "The real weapon is rendered as an ItemDisplay.",
-                    "A resource-pack invisible model can replace this later.",
-                    "Vanilla first-person hand rendering is not fully packet-hideable."));
+                    "Enable hand cloak mode to place this placeholder in-hand while previewing.",
+                    "A resource-pack invisible model can make this placeholder visually disappear."));
             lore.add("");
             lore.addAll(TooltipUtil.clickInstructions("to play a slash preview", null));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_ENCHANTS);
             meta.getPersistentDataContainer().set(debugHandleKey, PersistentDataType.BYTE, (byte) 1);
             stack.setItemMeta(meta);
+        }
+        if (handCloakNexoModelId != null) {
+            ItemUtil.applyNexoModel(stack, handCloakNexoModelId);
         }
         return stack;
     }
@@ -293,6 +337,37 @@ public class WieldStyleDebugManager implements Listener {
 
     public String getDefaultNexoModelId() {
         return defaultNexoModelId;
+    }
+
+    public HandVisibilityMode getHandVisibilityMode() {
+        return handVisibilityMode;
+    }
+
+    public HandVisibilityMode setHandVisibilityMode(HandVisibilityMode mode) {
+        HandVisibilityMode safeMode = mode == null ? HandVisibilityMode.NORMAL : mode;
+        this.handVisibilityMode = safeMode;
+        refreshHandVisibility();
+        return safeMode;
+    }
+
+    public void setHandCloakMaterial(Material material) {
+        this.handCloakMaterial = material == null || material.isAir() ? Material.LIGHT_GRAY_DYE : material;
+        refreshHandVisibility();
+    }
+
+    public Material getHandCloakMaterial() {
+        return handCloakMaterial;
+    }
+
+    public void setHandCloakNexoModelId(String handCloakNexoModelId) {
+        this.handCloakNexoModelId = handCloakNexoModelId == null || handCloakNexoModelId.isBlank()
+                ? null
+                : handCloakNexoModelId.trim();
+        refreshHandVisibility();
+    }
+
+    public String getHandCloakNexoModelId() {
+        return handCloakNexoModelId;
     }
 
     public WieldStyleConfig config() {
@@ -351,8 +426,28 @@ public class WieldStyleDebugManager implements Listener {
     public String describeSettings() {
         return "material=" + defaultMaterial
                 + ", nexo=" + (defaultNexoModelId == null ? "none" : defaultNexoModelId)
+                + ", handMode=" + handVisibilityMode.id()
+                + ", handCloakMaterial=" + handCloakMaterial
+                + ", handCloakNexo=" + (handCloakNexoModelId == null ? "none" : handCloakNexoModelId)
+                + ", weaponTrailParticles=disabled"
+                + ", forwardParticle=" + ArcSlashCombatUtil.swordPathSlashParticle()
                 + ", preset=" + (activePreset == null ? "custom" : activePreset.id())
                 + ", " + config.describe();
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onWeaponEquip(WeaponEquipEvent event) {
+        if (event.getHandSlot() != WeaponEquipEvent.HandSlot.MAIN_HAND) {
+            return;
+        }
+        Player player = event.getPlayer();
+        plugin.getServer().getScheduler().runTask(plugin, () -> refreshAutoWield(player));
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        plugin.getServer().getScheduler().runTask(plugin, () -> refreshAutoWield(player));
     }
 
     @EventHandler
@@ -447,6 +542,15 @@ public class WieldStyleDebugManager implements Listener {
         return fallback;
     }
 
+    private ItemStack createVisualItemFromEquippedWeapon(ItemStack weapon) {
+        var customItem = ItemManager.getInstance().getCustomItemFromItemStack(weapon);
+        Material material = customItem != null ? customItem.getMaterial() : ItemUtil.getTemplateMaterial(weapon);
+        if (material == null || material.isAir()) {
+            material = defaultMaterial;
+        }
+        return new ItemStack(material);
+    }
+
     private boolean isDebugHandle(ItemStack stack) {
         if (stack == null || !stack.hasItemMeta()) {
             return false;
@@ -500,9 +604,12 @@ public class WieldStyleDebugManager implements Listener {
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.15f);
         debugInput(player, source, "started, cancelledPreviousTask=" + cancelledPreviousTask
                 + ", cooldownTicks=" + activeConfig.cooldownTicks()
-                + ", swingTicks=" + activeConfig.swingTicks());
+                + ", swingTicks=" + activeConfig.swingTicks()
+                + ", weaponTrailParticles=disabled"
+                + ", forwardParticle=" + ArcSlashCombatUtil.swordPathSlashParticle());
         session.swingTask = new BukkitRunnable() {
             private final Set<UUID> hitTargets = new HashSet<>();
+            private final Set<UUID> slashHitTargets = new HashSet<>();
             private int tick = 0;
             private Pose returnStartPose;
 
@@ -519,7 +626,7 @@ public class WieldStyleDebugManager implements Listener {
                     double progress = Math.min(1.0, tick / (double) (swingTotal - 1));
                     Pose pose = swingPose(online, easeOut(progress), activeConfig);
                     moveDisplay(session, pose);
-                    playSwingTrail(pose);
+                    launchSwordPathSlash(online, pose.location(), slashHitTargets);
                     damageSwingTargets(online, pose, hitTargets);
                     returnStartPose = pose;
                     tick++;
@@ -604,10 +711,18 @@ public class WieldStyleDebugManager implements Listener {
         applyTransformation(session.display, pose);
     }
 
-    private void playSwingTrail(Pose pose) {
-        Location location = pose.location();
-        location.getWorld().spawnParticle(Particle.CRIT, location, 5, 0.08, 0.08, 0.08, 0.02);
-        location.getWorld().spawnParticle(Particle.SWEEP_ATTACK, location, 1, 0.0, 0.0, 0.0, 0.0);
+    private void launchSwordPathSlash(Player player, Location swordLocation, Set<UUID> hitTargets) {
+        if (swordLocation == null || swordLocation.getWorld() == null) {
+            return;
+        }
+        Vector forward = player.getLocation().getDirection().setY(0.0);
+        if (forward.lengthSquared() <= 0.0001) {
+            return;
+        }
+        forward.normalize();
+        double damage = playerAttackDamage(player) * SWORD_PATH_SLASH_DAMAGE_MULTIPLIER;
+        ArcSlashCombatUtil.launchSwordPathSlashPoint(player, swordLocation, forward, damage,
+                SWORD_PATH_SLASH_RADIUS, SWORD_PATH_SLASH_TRAVEL_DISTANCE, SWORD_PATH_SLASH_TRAVEL_TICKS, hitTargets);
     }
 
     private void damageSwingTargets(Player player, Pose pose, Set<UUID> hitTargets) {
@@ -648,6 +763,77 @@ public class WieldStyleDebugManager implements Listener {
         ));
     }
 
+    private void applyEquippedHandModel(WieldSession session, ItemStack weapon) {
+        if (session == null || weapon == null || weapon.getType().isAir()) {
+            return;
+        }
+        restoreEquippedHandModel(session);
+        session.modeledHandItem = weapon;
+        session.modeledHandState = ItemUtil.applyTemporaryNexoModel(weapon, AUTO_HAND_MODEL_NEXO_ID);
+        Player player = plugin.getServer().getPlayer(session.playerId);
+        if (player != null && player.isOnline()) {
+            player.updateInventory();
+        }
+    }
+
+    private void restoreEquippedHandModel(WieldSession session) {
+        if (session == null || session.modeledHandState == null || session.modeledHandItem == null) {
+            return;
+        }
+        ItemUtil.restoreVisualModelState(session.modeledHandItem, session.modeledHandState);
+        Player player = plugin.getServer().getPlayer(session.playerId);
+        if (player != null && player.isOnline()) {
+            player.updateInventory();
+        }
+        session.modeledHandItem = null;
+        session.modeledHandState = null;
+    }
+
+    private void refreshHandVisibility() {
+        for (WieldSession session : sessions.values()) {
+            Player player = plugin.getServer().getPlayer(session.playerId);
+            if (player != null && player.isOnline()) {
+                restoreHandVisibility(session);
+                applyHandVisibility(player, session);
+            }
+        }
+    }
+
+    private void applyHandVisibility(Player player, WieldSession session) {
+        if (handVisibilityMode != HandVisibilityMode.CLOAK_WITH_DEBUG_HANDLE || session.handCloaked) {
+            return;
+        }
+        int slot = player.getInventory().getHeldItemSlot();
+        ItemStack current = player.getInventory().getItem(slot);
+        session.cloakedSlot = slot;
+        session.originalHandItem = current == null ? null : current.clone();
+        session.handCloaked = true;
+        player.getInventory().setItem(slot, createDebugHandle());
+        player.updateInventory();
+    }
+
+    private void restoreHandVisibility(WieldSession session) {
+        if (!session.handCloaked) {
+            return;
+        }
+        Player player = plugin.getServer().getPlayer(session.playerId);
+        if (player != null && player.isOnline()) {
+            ItemStack current = player.getInventory().getItem(session.cloakedSlot);
+            if (isDebugHandle(current)) {
+                player.getInventory().setItem(session.cloakedSlot, session.originalHandItem);
+            } else if (session.originalHandItem != null && !session.originalHandItem.getType().isAir()) {
+                Map<Integer, ItemStack> leftovers = player.getInventory().addItem(session.originalHandItem);
+                for (ItemStack leftover : leftovers.values()) {
+                    player.getWorld().dropItemNaturally(player.getLocation(), leftover);
+                }
+            }
+            player.updateInventory();
+        }
+        session.originalHandItem = null;
+        session.handCloaked = false;
+        session.cloakedSlot = -1;
+    }
+
     private double easeOut(double progress) {
         double clamped = Math.max(0.0, Math.min(1.0, progress));
         return 1.0 - Math.pow(1.0 - clamped, 3.0);
@@ -682,6 +868,12 @@ public class WieldStyleDebugManager implements Listener {
         private BukkitTask followTask;
         private BukkitTask swingTask;
         private boolean swinging;
+        private boolean autoManaged;
+        private ItemStack modeledHandItem;
+        private ItemVisualModelState modeledHandState;
+        private boolean handCloaked;
+        private int cloakedSlot = -1;
+        private ItemStack originalHandItem;
         private int comboIndex;
         private long nextAllowedSwingTick;
         private long lastInputTick = -1L;
@@ -693,6 +885,35 @@ public class WieldStyleDebugManager implements Listener {
         }
     }
 
+
+    public enum HandVisibilityMode {
+        NORMAL("normal", "Normal Hand"),
+        CLOAK_WITH_DEBUG_HANDLE("cloak", "Cloak With Debug Handle");
+
+        private final String id;
+        private final String displayName;
+
+        HandVisibilityMode(String id, String displayName) {
+            this.id = id;
+            this.displayName = displayName;
+        }
+
+        public String id() { return id; }
+        public String displayName() { return displayName; }
+
+        public static HandVisibilityMode fromString(String input) {
+            if (input == null) {
+                return null;
+            }
+            String normalized = input.toLowerCase(Locale.ROOT);
+            for (HandVisibilityMode mode : values()) {
+                if (mode.id.equals(normalized) || mode.name().equalsIgnoreCase(input)) {
+                    return mode;
+                }
+            }
+            return null;
+        }
+    }
 
     public enum WieldStylePreset {
         OVERHEAD_SLASH("overhead_slash", "Overhead Slash",
