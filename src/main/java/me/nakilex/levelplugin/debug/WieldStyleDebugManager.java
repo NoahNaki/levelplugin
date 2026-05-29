@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.debug;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -11,15 +12,25 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.spells.SpellEffectUtil;
+import me.nakilex.levelplugin.utils.AttributeUtil;
+import me.nakilex.levelplugin.utils.CombatTargetUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -50,6 +61,8 @@ import org.joml.Vector3f;
 public class WieldStyleDebugManager implements Listener {
     private static final long RANDOM_SWING_INTERVAL_TICKS = 40L;
     private static final int RETURN_TO_IDLE_TICKS = 20;
+    private static final double SWING_HIT_RADIUS = 1.15D;
+    private static final double SWING_DAMAGE_BASE_FALLBACK = 1.0D;
 
     private final Main plugin;
     private final NamespacedKey debugHandleKey;
@@ -386,7 +399,8 @@ public class WieldStyleDebugManager implements Listener {
                 WieldStylePreset.BASIC_ATTACK,
                 WieldStylePreset.BASIC_ATTACK_TWO,
                 WieldStylePreset.OVERHEAD_SLASH,
-                WieldStylePreset.COOL_SWEEP
+                WieldStylePreset.COOL_SWEEP,
+                WieldStylePreset.HORIZONTAL_SLASH
         };
         WieldStylePreset preset = combo[session.comboIndex % combo.length];
         session.comboIndex = (session.comboIndex + 1) % combo.length;
@@ -483,10 +497,12 @@ public class WieldStyleDebugManager implements Listener {
         session.swinging = true;
         session.nextAllowedSwingTick = now + activeConfig.cooldownTicks();
         session.display.setInterpolationDuration(Math.max(0, activeConfig.interpolationDuration()));
+        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.15f);
         debugInput(player, source, "started, cancelledPreviousTask=" + cancelledPreviousTask
                 + ", cooldownTicks=" + activeConfig.cooldownTicks()
                 + ", swingTicks=" + activeConfig.swingTicks());
         session.swingTask = new BukkitRunnable() {
+            private final Set<UUID> hitTargets = new HashSet<>();
             private int tick = 0;
             private Pose returnStartPose;
 
@@ -503,6 +519,8 @@ public class WieldStyleDebugManager implements Listener {
                     double progress = Math.min(1.0, tick / (double) (swingTotal - 1));
                     Pose pose = swingPose(online, easeOut(progress), activeConfig);
                     moveDisplay(session, pose);
+                    playSwingTrail(pose);
+                    damageSwingTargets(online, pose, hitTargets);
                     returnStartPose = pose;
                     tick++;
                     return;
@@ -584,6 +602,41 @@ public class WieldStyleDebugManager implements Listener {
         session.display.teleport(pose.location());
         session.display.setInterpolationDuration(Math.max(0, config.interpolationDuration()));
         applyTransformation(session.display, pose);
+    }
+
+    private void playSwingTrail(Pose pose) {
+        Location location = pose.location();
+        location.getWorld().spawnParticle(Particle.CRIT, location, 5, 0.08, 0.08, 0.08, 0.02);
+        location.getWorld().spawnParticle(Particle.SWEEP_ATTACK, location, 1, 0.0, 0.0, 0.0, 0.0);
+    }
+
+    private void damageSwingTargets(Player player, Pose pose, Set<UUID> hitTargets) {
+        Location location = pose.location();
+        double baseDamage = playerAttackDamage(player);
+        for (LivingEntity target : location.getNearbyLivingEntities(SWING_HIT_RADIUS)) {
+            if (!isValidSwingTarget(player, target) || !hitTargets.add(target.getUniqueId())) {
+                continue;
+            }
+            double damage = StatsEffectListener.computeBasicAttackDamage(player, target, baseDamage, ThreadLocalRandom.current());
+            SpellEffectUtil.applyDirectSpellDamage(plugin, player, target, damage, true);
+            target.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.9f, 1.05f);
+            target.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, target.getLocation().add(0.0, target.getHeight() * 0.6, 0.0),
+                    6, 0.2, 0.25, 0.2, 0.03);
+        }
+    }
+
+    private boolean isValidSwingTarget(Player player, LivingEntity target) {
+        return target != null
+                && !target.equals(player)
+                && !(target instanceof Player)
+                && !(target instanceof ArmorStand)
+                && CombatTargetUtil.isSpellValidTarget(target);
+    }
+
+    private double playerAttackDamage(Player player) {
+        Attribute attackDamageAttribute = AttributeUtil.resolve("GENERIC_ATTACK_DAMAGE", "ATTACK_DAMAGE");
+        AttributeInstance attribute = attackDamageAttribute == null ? null : player.getAttribute(attackDamageAttribute);
+        return attribute == null ? SWING_DAMAGE_BASE_FALLBACK : Math.max(SWING_DAMAGE_BASE_FALLBACK, attribute.getValue());
     }
 
     private void applyTransformation(ItemDisplay display, Pose pose) {
@@ -701,11 +754,11 @@ public class WieldStyleDebugManager implements Listener {
         HORIZONTAL_SLASH("horizontal_slash", "Horizontal Slash",
                 new WieldStyleConfig(16, 17, 1, 0.82,
                         1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
-                        107.31430466731575, 256.21725634659435, -1.3957143565347,
-                        0.2494978117191653, -0.45385151312779304, 1.3654522266504672,
-                        0.47968886574028236, -257.5833908646365, -103.99355332936875,
-                        -180.0, 4.523226173149709, -11.787335414423495,
-                        373.94624250109575, 111.0100161511391, -282.823982305912));
+                        99.10203154985236, 289.83607866228397, -1.5018903566121915,
+                        0.1904062981563185, -0.5539701381859183, 1.3438135165695648,
+                        0.43818404742518, -242.37929775792298, -92.41844422327281,
+                        -184.60878826451847, 12.334831170690254, -16.718988101303378,
+                        369.9209503977733, 98.2872356071391, -254.1760750611425));
 
         private final String id;
         private final String displayName;

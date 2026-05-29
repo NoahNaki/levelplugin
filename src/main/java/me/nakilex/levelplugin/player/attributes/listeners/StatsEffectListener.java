@@ -61,6 +61,99 @@ public class StatsEffectListener implements Listener {
         }
     }
 
+    public static double computeBasicAttackDamage(Player player, Entity target, double baseDamage, Random random) {
+        if (player == null) {
+            return Math.max(0.0, baseDamage);
+        }
+
+        PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        double finalDamage = Math.max(0.0, baseDamage);
+        int totalTec = ps.baseTechnique + ps.bonusTechnique;
+
+        boolean isMage = ClassUtil.isMageFamily(
+                PlayerClassManager.getInstance().getPlayerClass(player));
+        if (isMage) {
+            int totalInt = ps.baseIntelligence + ps.bonusIntelligence;
+            finalDamage += totalInt * 0.5;
+        } else {
+            int totalStrength = ps.baseStrength + ps.bonusStrength;
+            finalDamage += totalStrength * 0.5;
+        }
+
+        finalDamage *= (1.0 + totalTec * 0.001);
+
+        int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
+        double critChance = (double) totalDexterity / (totalDexterity + 100.0);
+        critChance = Math.max(0.0, Math.min(1.0, critChance));
+        PetManager petManager = Main.getInstance().getPetManager();
+        if (petManager != null) {
+            double critBonus = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.CRIT_CHANCE);
+            critChance = Math.min(1.0, critChance + Math.max(0.0, critBonus));
+        }
+
+        if (RogueSmokeBombSpell.hasGuaranteedCrit(player)) {
+            critChance = 1.0;
+        }
+
+        Random safeRandom = random == null ? new Random() : random;
+        boolean isCrit = safeRandom.nextDouble() < critChance;
+        if (isCrit) {
+            finalDamage *= 2;
+        }
+
+        finalDamage *= BASIC_ATTACK_MULTIPLIER;
+        finalDamage *= RogueSmokeBombSpell.getOutgoingDamageMultiplier(player);
+
+        if (petManager != null) {
+            double damageBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.DAMAGE_BOOST);
+            if (damageBoost > 0.0) {
+                finalDamage *= (1.0 + damageBoost);
+            }
+            double coinCap = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.COIN_DAMAGE);
+            if (coinCap > 0.0) {
+                EconomyManager economyManager = Main.getInstance().getEconomyManager();
+                if (economyManager != null) {
+                    int coins = economyManager.getBalance(player);
+                    double coinBonus = (coins / 1000.0) * 0.01;
+                    double cap = Math.min(2.0, coinCap);
+                    finalDamage *= (1.0 + Math.min(coinBonus, cap));
+                }
+            }
+            if (target instanceof LivingEntity livingTarget) {
+                double firstStrike = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.FIRST_STRIKE);
+                if (firstStrike > 0.0) {
+                    double maxHealth = getMaxHealth(livingTarget);
+                    if (maxHealth > 0.0 && livingTarget.getHealth() >= maxHealth - 0.01) {
+                        finalDamage *= (1.0 + Math.min(0.3, firstStrike));
+                    }
+                }
+                double executeBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE);
+                if (executeBoost > 0.0) {
+                    double maxHealth = getMaxHealth(livingTarget);
+                    if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= PetEffectType.EXECUTE.executeThreshold()) {
+                        finalDamage *= (1.0 + executeBoost);
+                    }
+                }
+                double executeThreshold = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE_NON_BOSS);
+                if (executeThreshold > 0.0 && !MobUtil.isBossLike(livingTarget)) {
+                    double maxHealth = getMaxHealth(livingTarget);
+                    double threshold = Math.min(0.25, executeThreshold);
+                    if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= threshold) {
+                        finalDamage = Math.max(finalDamage, livingTarget.getHealth());
+                    }
+                }
+                finalDamage = petManager.applyOutgoingCombatPetBonuses(player, livingTarget, finalDamage);
+            }
+            double lastStandBoost = petManager.getLastStandDamageBoost(player.getUniqueId());
+            if (lastStandBoost > 0.0) {
+                finalDamage *= (1.0 + lastStandBoost);
+            }
+        }
+
+        recordCrit(player, isCrit);
+        return finalDamage;
+    }
+
     public static void markSkipNextScaling(Player player) {
         if (player == null) {
             return;
@@ -109,101 +202,7 @@ public class StatsEffectListener implements Listener {
 
         // ── Outgoing damage (when the damager is a player or their projectile) ──
         if (player != null && !player.hasMetadata(SweepAttack.SWEEP_META)) {
-            PlayerStats ps = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
-
-            double finalDamage = event.getDamage();
-            int totalTec = ps.baseTechnique + ps.bonusTechnique;
-
-            // Use Intelligence instead of Strength for all mage attacks
-            boolean isMage = ClassUtil.isMageFamily(
-                    PlayerClassManager.getInstance().getPlayerClass(player));
-            if (isMage) {
-                int totalInt = ps.baseIntelligence + ps.bonusIntelligence;
-                finalDamage += totalInt * 0.5;
-            } else {
-                int totalStrength = ps.baseStrength + ps.bonusStrength;
-                finalDamage += totalStrength * 0.5;
-            }
-
-            // Technique scaling (overall damage)
-            finalDamage *= (1.0 + totalTec * 0.001);
-
-            // Dex → crit (diminishing returns)
-            int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
-            double critChance = (double) totalDexterity / (totalDexterity + 100.0);
-            critChance = Math.max(0.0, Math.min(1.0, critChance));
-            PetManager petManager = Main.getInstance().getPetManager();
-            if (petManager != null) {
-                double critBonus = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.CRIT_CHANCE);
-                critChance = Math.min(1.0, critChance + Math.max(0.0, critBonus));
-            }
-
-            if (RogueSmokeBombSpell.hasGuaranteedCrit(player)) {
-                critChance = 1.0;
-            }
-
-            boolean isCrit = random.nextDouble() < critChance;
-            if (isCrit) finalDamage *= 2;
-
-            finalDamage *= BASIC_ATTACK_MULTIPLIER;
-            finalDamage *= RogueSmokeBombSpell.getOutgoingDamageMultiplier(player);
-
-            if (petManager != null) {
-                double damageBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.DAMAGE_BOOST);
-                if (damageBoost > 0.0) {
-                    finalDamage *= (1.0 + damageBoost);
-                }
-                double coinCap = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.COIN_DAMAGE);
-                if (coinCap > 0.0) {
-                    EconomyManager economyManager = Main.getInstance().getEconomyManager();
-                    if (economyManager != null) {
-                        int coins = economyManager.getBalance(player);
-                        double coinBonus = (coins / 1000.0) * 0.01;
-                        double cap = Math.min(2.0, coinCap);
-                        finalDamage *= (1.0 + Math.min(coinBonus, cap));
-                    }
-                }
-                double firstStrike = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.FIRST_STRIKE);
-                if (firstStrike > 0.0 && target instanceof LivingEntity livingTarget) {
-                    double maxHealth = getMaxHealth(livingTarget);
-                    if (maxHealth > 0.0 && livingTarget.getHealth() >= maxHealth - 0.01) {
-                        finalDamage *= (1.0 + Math.min(0.3, firstStrike));
-                    }
-                }
-                double executeBoost = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE);
-                if (executeBoost > 0.0 && target instanceof LivingEntity livingTarget) {
-                    double maxHealth = getMaxHealth(livingTarget);
-                    if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= PetEffectType.EXECUTE.executeThreshold()) {
-                        finalDamage *= (1.0 + executeBoost);
-                    }
-                }
-                double executeThreshold = petManager.getActiveEffectValue(player.getUniqueId(), PetEffectType.EXECUTE_NON_BOSS);
-                if (executeThreshold > 0.0 && target instanceof LivingEntity livingTarget) {
-                    if (!MobUtil.isBossLike(livingTarget)) {
-                        double maxHealth = getMaxHealth(livingTarget);
-                        double threshold = Math.min(0.25, executeThreshold);
-                        if (maxHealth > 0.0 && livingTarget.getHealth() / maxHealth <= threshold) {
-                            finalDamage = Math.max(finalDamage, livingTarget.getHealth());
-                        }
-                    }
-                }
-                if (target instanceof LivingEntity livingTarget) {
-                    finalDamage = petManager.applyOutgoingCombatPetBonuses(player, livingTarget, finalDamage);
-                }
-                double lastStandBoost = petManager.getLastStandDamageBoost(player.getUniqueId());
-                if (lastStandBoost > 0.0) {
-                    finalDamage *= (1.0 + lastStandBoost);
-                }
-            }
-
-//            me.nakilex.levelplugin.Main.getPlugin().getLogger().info(
-//                "[StatsEffect] dmg=" + event.getDamage() + "->" + finalDamage +
-//                " crit=" + isCrit + " player=" + player.getName());
-
-            // Record for chat, etc.
-            lastCritMap.put(player.getUniqueId(), isCrit);
-
-            // Apply
+            double finalDamage = computeBasicAttackDamage(player, target, event.getDamage(), random);
             event.setDamage(finalDamage);
         }
 
@@ -276,7 +275,7 @@ public class StatsEffectListener implements Listener {
     }
 
 
-    private double getMaxHealth(LivingEntity entity) {
+    private static double getMaxHealth(LivingEntity entity) {
         if (entity == null) {
             return 0.0;
         }
