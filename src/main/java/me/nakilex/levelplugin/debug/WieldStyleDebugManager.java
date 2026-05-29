@@ -11,7 +11,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.items.events.WeaponEquipEvent;
+import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.items.utils.ItemUtil.ItemVisualModelState;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.utils.AttributeUtil;
@@ -33,11 +36,13 @@ import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -63,6 +68,7 @@ public class WieldStyleDebugManager implements Listener {
     private static final int RETURN_TO_IDLE_TICKS = 20;
     private static final double SWING_HIT_RADIUS = 1.15D;
     private static final double SWING_DAMAGE_BASE_FALLBACK = 1.0D;
+    private static final String AUTO_HAND_MODEL_NEXO_ID = "knight_assortment-key";
 
     private final Main plugin;
     private final NamespacedKey debugHandleKey;
@@ -108,6 +114,30 @@ public class WieldStyleDebugManager implements Listener {
 
     public boolean isEnabled(Player player) {
         return sessions.containsKey(player.getUniqueId());
+    }
+
+    public void refreshAutoWield(Player player) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        ItemStack weapon = player.getInventory().getItemInMainHand();
+        WieldSession session = sessions.get(player.getUniqueId());
+        if (!ItemUtil.canUseWeapon(player, weapon)) {
+            if (session != null && session.autoManaged) {
+                disable(player.getUniqueId());
+            }
+            return;
+        }
+        enableForEquippedWeapon(player, weapon);
+    }
+
+    private void enableForEquippedWeapon(Player player, ItemStack weapon) {
+        enable(player, createVisualItemFromEquippedWeapon(weapon));
+        WieldSession session = sessions.get(player.getUniqueId());
+        if (session != null) {
+            session.autoManaged = true;
+            applyEquippedHandModel(session, weapon);
+        }
     }
 
     public void toggle(Player player) {
@@ -165,6 +195,7 @@ public class WieldStyleDebugManager implements Listener {
         if (session.display != null && !session.display.isDead()) {
             session.display.remove();
         }
+        restoreEquippedHandModel(session);
         restoreHandVisibility(session);
     }
 
@@ -407,6 +438,21 @@ public class WieldStyleDebugManager implements Listener {
                 + ", " + config.describe();
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onWeaponEquip(WeaponEquipEvent event) {
+        if (event.getHandSlot() != WeaponEquipEvent.HandSlot.MAIN_HAND) {
+            return;
+        }
+        Player player = event.getPlayer();
+        plugin.getServer().getScheduler().runTask(plugin, () -> refreshAutoWield(player));
+    }
+
+    @EventHandler
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        plugin.getServer().getScheduler().runTask(plugin, () -> refreshAutoWield(player));
+    }
+
     @EventHandler
     public void onSwing(PlayerAnimationEvent event) {
         if (event.getAnimationType() != PlayerAnimationType.ARM_SWING) {
@@ -497,6 +543,15 @@ public class WieldStyleDebugManager implements Listener {
             ItemUtil.applyNexoModel(fallback, defaultNexoModelId);
         }
         return fallback;
+    }
+
+    private ItemStack createVisualItemFromEquippedWeapon(ItemStack weapon) {
+        var customItem = ItemManager.getInstance().getCustomItemFromItemStack(weapon);
+        Material material = customItem != null ? customItem.getMaterial() : ItemUtil.getTemplateMaterial(weapon);
+        if (material == null || material.isAir()) {
+            material = defaultMaterial;
+        }
+        return new ItemStack(material);
     }
 
     private boolean isDebugHandle(ItemStack stack) {
@@ -719,6 +774,32 @@ public class WieldStyleDebugManager implements Listener {
         ));
     }
 
+    private void applyEquippedHandModel(WieldSession session, ItemStack weapon) {
+        if (session == null || weapon == null || weapon.getType().isAir()) {
+            return;
+        }
+        restoreEquippedHandModel(session);
+        session.modeledHandItem = weapon;
+        session.modeledHandState = ItemUtil.applyTemporaryNexoModel(weapon, AUTO_HAND_MODEL_NEXO_ID);
+        Player player = plugin.getServer().getPlayer(session.playerId);
+        if (player != null && player.isOnline()) {
+            player.updateInventory();
+        }
+    }
+
+    private void restoreEquippedHandModel(WieldSession session) {
+        if (session == null || session.modeledHandState == null || session.modeledHandItem == null) {
+            return;
+        }
+        ItemUtil.restoreVisualModelState(session.modeledHandItem, session.modeledHandState);
+        Player player = plugin.getServer().getPlayer(session.playerId);
+        if (player != null && player.isOnline()) {
+            player.updateInventory();
+        }
+        session.modeledHandItem = null;
+        session.modeledHandState = null;
+    }
+
     private void refreshHandVisibility() {
         for (WieldSession session : sessions.values()) {
             Player player = plugin.getServer().getPlayer(session.playerId);
@@ -798,6 +879,9 @@ public class WieldStyleDebugManager implements Listener {
         private BukkitTask followTask;
         private BukkitTask swingTask;
         private boolean swinging;
+        private boolean autoManaged;
+        private ItemStack modeledHandItem;
+        private ItemVisualModelState modeledHandState;
         private boolean handCloaked;
         private int cloakedSlot = -1;
         private ItemStack originalHandItem;
