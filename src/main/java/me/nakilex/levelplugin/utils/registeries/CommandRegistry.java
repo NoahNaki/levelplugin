@@ -183,6 +183,8 @@ public class CommandRegistry {
                                         PetSummonGUI petSummonGUI,
                                         CustomMobManager customMobManager,
                                         me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager,
+                                        me.nakilex.levelplugin.debug.WieldStyleDebugManager wieldStyleDebugManager,
+                                        me.nakilex.levelplugin.debug.gui.WieldStyleDebugGUI wieldStyleDebugGUI,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
 
 
@@ -380,6 +382,8 @@ public class CommandRegistry {
                 beaconEntityDebugManager,
                 questManager,
                 arcSlashDebugManager,
+                wieldStyleDebugManager,
+                wieldStyleDebugGUI,
                 arcSlashDebugGUI,
                 petManager);
         plugin.getCommand("debug").setExecutor(debugCmd);

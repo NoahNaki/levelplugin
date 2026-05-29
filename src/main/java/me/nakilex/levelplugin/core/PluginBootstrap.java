@@ -194,6 +194,8 @@ public class PluginBootstrap {
     private PlayerToggleManager mobDebugToggleManager;
     private me.nakilex.levelplugin.debug.DropDebugManager dropDebugManager;
     private me.nakilex.levelplugin.debug.ArcSlashDebugManager arcSlashDebugManager;
+    private me.nakilex.levelplugin.debug.WieldStyleDebugManager wieldStyleDebugManager;
+    private me.nakilex.levelplugin.debug.gui.WieldStyleDebugGUI wieldStyleDebugGUI;
     private me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI;
     private me.nakilex.levelplugin.debug.BeaconEntityDebugManager beaconEntityDebugManager;
     private DpsDummyManager dpsDummyManager;
@@ -595,6 +597,8 @@ public class PluginBootstrap {
                 dropDebugManager,
                 lootChestManager.getCooldownManager());
         arcSlashDebugManager = new me.nakilex.levelplugin.debug.ArcSlashDebugManager(plugin);
+        wieldStyleDebugManager = new me.nakilex.levelplugin.debug.WieldStyleDebugManager(plugin);
+        wieldStyleDebugGUI = new me.nakilex.levelplugin.debug.gui.WieldStyleDebugGUI(wieldStyleDebugManager);
         arcSlashDebugGUI = new me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI(arcSlashDebugManager);
         petSettingsGUI = new me.nakilex.levelplugin.pet.gui.PetSettingsGUI(petManager);
         petGUI = new me.nakilex.levelplugin.pet.gui.PetGUI(petManager, petSettingsGUI);
@@ -660,6 +664,8 @@ public class PluginBootstrap {
             petSummonGUI,
             customMobManager,
             arcSlashDebugManager,
+            wieldStyleDebugManager,
+            wieldStyleDebugGUI,
             arcSlashDebugGUI
         );
         plugin.getCommand("pweather").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalWeatherCommand(playerEnvironmentService));
@@ -787,6 +793,8 @@ public class PluginBootstrap {
             spellSummonManager,
             customMobManager,
             arcSlashDebugManager,
+            wieldStyleDebugManager,
+            wieldStyleDebugGUI,
             arcSlashDebugGUI
         );
         plugin.getServer().getPluginManager().registerEvents(
@@ -949,6 +957,7 @@ public class PluginBootstrap {
         if (serverSelectionManager != null) serverSelectionManager.shutdown();
         if (cursorMenuManager != null) cursorMenuManager.shutdown();
         if (blockGlowUtil != null) blockGlowUtil.shutdown();
+        if (wieldStyleDebugManager != null) wieldStyleDebugManager.shutdown();
         if (worldManager != null) {
             me.nakilex.levelplugin.debug.StrongholdDebugGenerator.cleanupGeneratedWorlds(plugin);
         }

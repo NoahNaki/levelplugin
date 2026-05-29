@@ -20,6 +20,9 @@ import me.nakilex.levelplugin.economy.managers.CoinDropManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.DropDebugManager;
 import me.nakilex.levelplugin.debug.ArcSlashDebugManager;
+import me.nakilex.levelplugin.debug.WieldStyleDebugManager;
+import me.nakilex.levelplugin.debug.WieldStyleDebugManager.WieldStylePreset;
+import me.nakilex.levelplugin.debug.gui.WieldStyleDebugGUI;
 import me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI;
 import me.nakilex.levelplugin.debug.gui.StrongholdAssetDebugGUI;
 import me.nakilex.levelplugin.debug.gui.StrongholdTemplateDebugGUI;
@@ -114,6 +117,8 @@ public class DebugCommand implements TabExecutor, Listener {
     private final BeaconEntityDebugManager beaconEntityDebugManager;
     private final QuestManager questManager;
     private final ArcSlashDebugManager arcSlashDebugManager;
+    private final WieldStyleDebugManager wieldStyleDebugManager;
+    private final WieldStyleDebugGUI wieldStyleDebugGUI;
     private final ArcSlashDebugGUI arcSlashDebugGUI;
     private final PetManager petManager;
 
@@ -128,6 +133,8 @@ public class DebugCommand implements TabExecutor, Listener {
                         BeaconEntityDebugManager beaconEntityDebugManager,
                         QuestManager questManager,
                         ArcSlashDebugManager arcSlashDebugManager,
+                        WieldStyleDebugManager wieldStyleDebugManager,
+                        WieldStyleDebugGUI wieldStyleDebugGUI,
                         ArcSlashDebugGUI arcSlashDebugGUI,
                         PetManager petManager) {
         this.mobDebugManager = mobDebugManager;
@@ -141,6 +148,8 @@ public class DebugCommand implements TabExecutor, Listener {
         this.beaconEntityDebugManager = beaconEntityDebugManager;
         this.questManager = questManager;
         this.arcSlashDebugManager = arcSlashDebugManager;
+        this.wieldStyleDebugManager = wieldStyleDebugManager;
+        this.wieldStyleDebugGUI = wieldStyleDebugGUI;
         this.arcSlashDebugGUI = arcSlashDebugGUI;
         this.petManager = petManager;
         this.environmentAreaInstanceManager = EnvironmentAreaInstanceManager.getInstance(Main.getInstance());
@@ -155,7 +164,7 @@ public class DebugCommand implements TabExecutor, Listener {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|wield|" + statUsage + ">");
             }
             return true;
         }
@@ -667,6 +676,10 @@ public class DebugCommand implements TabExecutor, Listener {
                         "Rendered particle preset " + preset.name() + ".");
                 return true;
 
+            case "wield":
+                handleWieldDebug(sender, args);
+                return true;
+
             case "hand":
                 if (!(sender instanceof Player p4)) {
                     sender.sendMessage("Players only.");
@@ -1000,7 +1013,7 @@ public class DebugCommand implements TabExecutor, Listener {
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|wield|" + statUsage2 + ">");
                 return true;
         }
     }
@@ -1246,6 +1259,87 @@ public class DebugCommand implements TabExecutor, Listener {
         player.updateInventory();
     }
 
+    private void handleWieldDebug(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(ChatColor.RED + "Players only.");
+            return;
+        }
+        if (args.length < 2) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Usage: /debug wield <toggle|once|clear|handle|gui|random|debug|preset <name>|material <material>|nexo <id|none>|status>");
+            return;
+        }
+
+        switch (args[1].toLowerCase()) {
+            case "toggle" -> wieldStyleDebugManager.toggle(player);
+            case "once" -> wieldStyleDebugManager.playOnce(player);
+            case "clear" -> {
+                wieldStyleDebugManager.clearAll();
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Cleared all custom wield debug displays.");
+            }
+            case "handle" -> wieldStyleDebugManager.giveDebugHandle(player);
+            case "gui" -> wieldStyleDebugGUI.open(player);
+            case "random" -> wieldStyleDebugManager.toggleRandomTesting(player);
+            case "debug" -> wieldStyleDebugManager.toggleInputDebug(player);
+            case "preset" -> handleWieldPreset(player, args);
+            case "status" -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Wield debug: " + wieldStyleDebugManager.describeSettings()
+                            + ", enabled=" + wieldStyleDebugManager.isEnabled(player)
+                            + ", random=" + wieldStyleDebugManager.isRandomTestingEnabled(player)
+                            + ", inputDebug=" + wieldStyleDebugManager.isInputDebugEnabled(player));
+            case "material" -> {
+                if (args.length < 3) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug wield material <material>");
+                    return;
+                }
+                Material material = Material.matchMaterial(args[2]);
+                if (material == null || material.isAir()) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                            "Unknown item material: " + args[2]);
+                    return;
+                }
+                wieldStyleDebugManager.setDefaultMaterial(material);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Default debug wield material set to " + material.name() + ".");
+            }
+            case "nexo" -> {
+                if (args.length < 3) {
+                    ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                            "Usage: /debug wield nexo <modelId|none>");
+                    return;
+                }
+                String modelId = args[2];
+                wieldStyleDebugManager.setDefaultNexoModelId(modelId.equalsIgnoreCase("none") ? null : modelId);
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        "Default debug wield Nexo model set to "
+                                + (wieldStyleDebugManager.getDefaultNexoModelId() == null
+                                ? "none" : wieldStyleDebugManager.getDefaultNexoModelId()) + ".");
+            }
+            default -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Unknown wield debug action. Use toggle, once, clear, handle, gui, random, debug, preset, material, nexo, or status.");
+        }
+    }
+
+    private void handleWieldPreset(Player player, String[] args) {
+        if (args.length < 3) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Usage: /debug wield preset <" + String.join("|", WieldStylePreset.suggestions("")) + ">");
+            return;
+        }
+        WieldStylePreset preset = wieldStyleDebugManager.applyPreset(args[2]);
+        if (preset == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Unknown wield preset. Available: " + String.join(", ", WieldStylePreset.suggestions("")));
+            return;
+        }
+        wieldStyleDebugManager.playOnce(player);
+        wieldStyleDebugManager.logConfig(wieldStyleDebugManager.config());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Applied wield preset " + preset.displayName() + " and logged settings.");
+    }
+
     private void handleChatGameToggle(CommandSender sender, String[] args) {
         if (chatGameManager == null) {
             sender.sendMessage(ChatColor.RED + "Chat games are not initialized.");
@@ -1291,7 +1385,7 @@ public class DebugCommand implements TabExecutor, Listener {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "buildmat", "buildspeed", "speedupscroll", "cityowner", "kingdommax", "area", "autocast",
-                    "hand", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
+                    "hand", "wield", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
                     "particle", "particlepath", "particlepreset", "inventorydebug", "farmgrowthspeed", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
@@ -1310,6 +1404,18 @@ public class DebugCommand implements TabExecutor, Listener {
         } else if (args.length == 3 && args[0].equalsIgnoreCase("area") && args[1].equalsIgnoreCase("scanblocks")) {
             return environmentAreaInstanceManager.templateNames().stream()
                     .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("wield")) {
+            return List.of("toggle", "once", "clear", "handle", "gui", "random", "debug", "preset", "material", "nexo", "status").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("preset")) {
+            return wieldStyleDebugManager.presetSuggestions(args[2]);
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("material")) {
+            return wieldStyleDebugManager.materialSuggestions(args[2]);
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("wield") && args[1].equalsIgnoreCase("nexo")) {
+            return List.of("none").stream()
+                    .filter(opt -> opt.startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("spellpull")) {
             return List.of("1", "10", "25", "50", "100").stream()
