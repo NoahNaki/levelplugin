@@ -70,7 +70,11 @@ import org.joml.Vector3f;
 public class WieldStyleDebugManager implements Listener {
     private static final long RANDOM_SWING_INTERVAL_TICKS = 40L;
     private static final int BASE_RETURN_TO_IDLE_TICKS = 20;
-    private static final double BASE_RETURN_ATTACK_SPEED = 0.8D;
+    private static final double BASE_ANIMATION_ATTACK_SPEED = 0.8D;
+    private static final double SWING_ATTACK_SPEED_WEIGHT = 0.45D;
+    private static final double RETURN_ATTACK_SPEED_WEIGHT = 1.0D;
+    private static final int MIN_SWING_TICKS = 8;
+    private static final int MAX_SWING_TICKS = 24;
     private static final int MIN_RETURN_TO_IDLE_TICKS = 6;
     private static final int MAX_RETURN_TO_IDLE_TICKS = 36;
     private static final double SWING_HIT_RADIUS = 1.15D;
@@ -484,6 +488,10 @@ public class WieldStyleDebugManager implements Listener {
             debugInput(player, source, "ignored=duplicate-same-tick, cancelled=" + eventCancelled);
             return;
         }
+        if (session.swinging) {
+            debugInput(player, source, "ignored=returning-to-idle, cancelled=" + eventCancelled);
+            return;
+        }
         if (now < session.nextAllowedSwingTick) {
             debugInput(player, source, "ignored=cooldown, remainingTicks=" + (session.nextAllowedSwingTick - now)
                     + ", cancelled=" + eventCancelled);
@@ -610,21 +618,25 @@ public class WieldStyleDebugManager implements Listener {
 
     private void startSwing(Player player, WieldSession session, boolean force, WieldStyleConfig activeConfig, String source) {
         long now = currentTick();
+        if (session.swinging) {
+            debugInput(player, source, "start-blocked=returning-to-idle");
+            return;
+        }
         if (!force && now < session.nextAllowedSwingTick) {
             debugInput(player, source, "start-blocked=cooldown, remainingTicks=" + (session.nextAllowedSwingTick - now));
             return;
         }
-        boolean cancelledPreviousTask = session.swingTask != null;
-        if (session.swingTask != null) {
-            session.swingTask.cancel();
-        }
+        int swingTotal = swingTicks(player, activeConfig);
+        int returnTotal = returnToIdleTicks(player);
         session.swinging = true;
-        session.nextAllowedSwingTick = now + activeConfig.cooldownTicks();
+        session.nextAllowedSwingTick = now + swingTotal + returnTotal;
         session.display.setInterpolationDuration(Math.max(0, activeConfig.interpolationDuration()));
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.15f);
-        debugInput(player, source, "started, cancelledPreviousTask=" + cancelledPreviousTask
+        debugInput(player, source, "started"
                 + ", cooldownTicks=" + activeConfig.cooldownTicks()
-                + ", swingTicks=" + activeConfig.swingTicks()
+                + ", baseSwingTicks=" + activeConfig.swingTicks()
+                + ", scaledSwingTicks=" + swingTotal
+                + ", returnTicks=" + returnTotal
                 + ", weaponTrailParticles=disabled"
                 + ", forwardParticle=" + ArcSlashCombatUtil.swordPathSlashParticle());
         session.swingTask = new BukkitRunnable() {
@@ -640,7 +652,6 @@ public class WieldStyleDebugManager implements Listener {
                     cancel();
                     return;
                 }
-                int swingTotal = Math.max(2, activeConfig.swingTicks());
                 if (tick < swingTotal) {
                     double progress = Math.min(1.0, tick / (double) (swingTotal - 1));
                     Pose pose = swingPose(online, easeOut(progress), activeConfig);
@@ -653,7 +664,6 @@ public class WieldStyleDebugManager implements Listener {
                 }
 
                 int returnTick = tick - swingTotal;
-                int returnTotal = returnToIdleTicks(online);
                 double returnProgress = Math.min(1.0, returnTick / (double) (returnTotal - 1));
                 Pose idle = idlePose(online, config);
                 moveDisplay(session, interpolatePose(returnStartPose == null ? idle : returnStartPose,
@@ -748,14 +758,26 @@ public class WieldStyleDebugManager implements Listener {
                 SWORD_PATH_SLASH_TRAVEL_TICKS, hitTargets);
     }
 
+    private int swingTicks(Player player, WieldStyleConfig activeConfig) {
+        int baseTicks = activeConfig == null ? WieldStyleConfig.defaultConfig().swingTicks() : activeConfig.swingTicks();
+        return attackSpeedScaledTicks(player, baseTicks, MIN_SWING_TICKS, MAX_SWING_TICKS, SWING_ATTACK_SPEED_WEIGHT);
+    }
+
     private int returnToIdleTicks(Player player) {
+        return attackSpeedScaledTicks(player, BASE_RETURN_TO_IDLE_TICKS, MIN_RETURN_TO_IDLE_TICKS,
+                MAX_RETURN_TO_IDLE_TICKS, RETURN_ATTACK_SPEED_WEIGHT);
+    }
+
+    private int attackSpeedScaledTicks(Player player, int baseTicks, int minTicks, int maxTicks, double speedWeight) {
         if (player == null) {
-            return BASE_RETURN_TO_IDLE_TICKS;
+            return Math.max(minTicks, Math.min(maxTicks, baseTicks));
         }
         StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
         double attackSpeed = Math.max(0.1D, stats.attackSpeed);
-        int ticks = (int) Math.round(BASE_RETURN_TO_IDLE_TICKS * (BASE_RETURN_ATTACK_SPEED / attackSpeed));
-        return Math.max(MIN_RETURN_TO_IDLE_TICKS, Math.min(MAX_RETURN_TO_IDLE_TICKS, ticks));
+        double speedRatio = BASE_ANIMATION_ATTACK_SPEED / attackSpeed;
+        double weightedRatio = Math.pow(speedRatio, Math.max(0.0D, speedWeight));
+        int ticks = (int) Math.round(baseTicks * weightedRatio);
+        return Math.max(minTicks, Math.min(maxTicks, ticks));
     }
 
     private void damageSwingTargets(Player player, Pose pose, Set<UUID> hitTargets) {
