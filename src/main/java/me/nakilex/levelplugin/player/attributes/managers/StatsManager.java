@@ -28,6 +28,8 @@ public class StatsManager {
     public static final double BASE_HEALTH = 20.0;
     public static final double HEALTH_PER_VITALITY = 0.4;
     public static final double HEALTH_PER_STRENGTH = 0.1;
+    public static final int BASE_MANA = 50;
+    public static final int MANA_PER_WILL = 2;
     private static final double REGEN_STAT_DIVISOR = 120.0;
     private static final double COMBAT_REGEN_MULTIPLIER = 0.30;
     private static final long COMBAT_TIMEOUT_MS = 6_000L;
@@ -344,7 +346,8 @@ public class StatsManager {
         player.setHealthScale(20.0);
 
         // Recalculate other derived stats (e.g., mana, walk speed) as needed.
-        ps.maxMana = 50;
+        int totalWill = ps.baseWill + ps.bonusWill;
+        ps.maxMana = BASE_MANA + (totalWill * MANA_PER_WILL);
         if (ps.currentMana > ps.maxMana) {
             ps.currentMana = ps.maxMana;
         }
@@ -532,7 +535,7 @@ public class StatsManager {
             case INT: return ps.baseIntelligence + ps.bonusIntelligence;
             case DEX: return ps.baseDexterity + ps.bonusDexterity;
             case VIT: return ps.baseVitality + ps.bonusVitality;
-            case WIL: return 0;
+            case WIL: return ps.baseWill + ps.bonusWill;
             case TEC: return ps.baseTechnique + ps.bonusTechnique;
             default: return 0;
         }

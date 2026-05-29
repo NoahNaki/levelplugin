@@ -163,7 +163,7 @@ public class LifeSkillRewardManager {
             case AGI -> "Agility";
             case INT -> "Intelligence";
             case DEX -> "Dexterity";
-            case WIL -> "Intelligence";
+            case WIL -> "Will";
             case TEC -> "Technique";
         };
     }

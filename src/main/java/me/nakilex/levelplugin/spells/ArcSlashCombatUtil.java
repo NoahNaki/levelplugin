@@ -21,6 +21,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /** Shared arc-slash visual + damage helpers for rogue-style melee spells. */
 public final class ArcSlashCombatUtil {
@@ -209,7 +211,20 @@ public final class ArcSlashCombatUtil {
                                                  double travelDistance,
                                                  int travelTicks,
                                                  Set<java.util.UUID> hitTargets) {
-        if (caster == null || swordPoint == null || swordPoint.getWorld() == null || damage <= 0.0) {
+        launchSwordPathSlashPoint(caster, swordPoint, forward, target -> damage, null,
+                damageRadius, travelDistance, travelTicks, hitTargets);
+    }
+
+    public static void launchSwordPathSlashPoint(Player caster,
+                                                 Location swordPoint,
+                                                 Vector forward,
+                                                 Function<LivingEntity, Double> damageResolver,
+                                                 Consumer<LivingEntity> onHit,
+                                                 double damageRadius,
+                                                 double travelDistance,
+                                                 int travelTicks,
+                                                 Set<java.util.UUID> hitTargets) {
+        if (caster == null || swordPoint == null || swordPoint.getWorld() == null || damageResolver == null) {
             return;
         }
         Main plugin = Main.getInstance();
@@ -239,8 +254,8 @@ public final class ArcSlashCombatUtil {
                 double progress = safeTicks <= 1 ? 1.0 : tick / (double) (safeTicks - 1);
                 Location point = origin.clone().add(travelDirection.clone().multiply(safeTravel * progress));
                 spawnSwordPathSlashParticles(point);
-                applyCollisionDamage(caster, point, safeRadius, damage, activeHitTargets, 0.35);
-                applySegmentCollisionDamage(caster, previousPoint, point, safeRadius, damage, activeHitTargets);
+                applyCollisionDamage(caster, point, safeRadius, damageResolver, onHit, activeHitTargets, 0.35);
+                applySegmentCollisionDamage(caster, previousPoint, point, safeRadius, damageResolver, onHit, activeHitTargets);
                 previousPoint = point;
                 tick++;
                 if (tick >= safeTicks) {
@@ -430,6 +445,33 @@ public final class ArcSlashCombatUtil {
         }
     }
 
+
+    private static void applyCollisionDamage(Player caster,
+                                             Location center,
+                                             double radius,
+                                             Function<LivingEntity, Double> damageResolver,
+                                             Consumer<LivingEntity> onHit,
+                                             Set<java.util.UUID> hitTargets,
+                                             double minimumRadius) {
+        if (caster == null || center == null || radius <= 0.0 || damageResolver == null) {
+            return;
+        }
+        double effectiveRadius = Math.max(radius, minimumRadius);
+        for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, effectiveRadius, living -> !living.equals(caster))) {
+            if (!hitTargets.add(target.getUniqueId())) {
+                continue;
+            }
+            double damage = Math.max(0.0, damageResolver.apply(target));
+            if (damage <= 0.0) {
+                continue;
+            }
+            SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, target, damage, true);
+            if (onHit != null) {
+                onHit.accept(target);
+            }
+        }
+    }
+
     private static void applySegmentCollisionDamage(Player caster,
                                                     Location from,
                                                     Location to,
@@ -449,6 +491,37 @@ public final class ArcSlashCombatUtil {
             return;
         }
         SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, hit, damage, true);
+    }
+
+
+    private static void applySegmentCollisionDamage(Player caster,
+                                                    Location from,
+                                                    Location to,
+                                                    double radius,
+                                                    Function<LivingEntity, Double> damageResolver,
+                                                    Consumer<LivingEntity> onHit,
+                                                    Set<java.util.UUID> hitTargets) {
+        if (caster == null || from == null || to == null || from.getWorld() == null || to.getWorld() == null
+                || damageResolver == null) {
+            return;
+        }
+        Vector segment = to.toVector().subtract(from.toVector());
+        if (segment.lengthSquared() <= 0.0001) {
+            return;
+        }
+        LivingEntity hit = SpellTargetingUtil.rayTraceLivingEntity(from, segment, Math.max(0.35, radius * 0.6),
+                living -> !living.equals(caster));
+        if (hit == null || !hitTargets.add(hit.getUniqueId())) {
+            return;
+        }
+        double damage = Math.max(0.0, damageResolver.apply(hit));
+        if (damage <= 0.0) {
+            return;
+        }
+        SpellEffectUtil.applyDirectSpellDamage(Main.getInstance(), caster, hit, damage, true);
+        if (onHit != null) {
+            onHit.accept(hit);
+        }
     }
 
     private static ArmorStand spawnCollisionProbe(Location at) {
