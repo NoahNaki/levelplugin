@@ -61,6 +61,7 @@ public class RerollBrowser implements CommandExecutor, Listener {
         gui.setItem(14, menuItem(Material.SKULL_BANNER_PATTERN, ChatColor.RED + "Scroll of Vitality"));
         gui.setItem(15, menuItem(Material.GUSTER_BANNER_PATTERN, ChatColor.YELLOW + "Scroll of Precision"));
         gui.setItem(16, menuItem(Material.GLOBE_BANNER_PATTERN, ChatColor.BLUE + "Scroll of Fortitude"));
+        gui.setItem(13, menuItem(Material.CREEPER_BANNER_PATTERN, ChatColor.DARK_AQUA + "Scroll of Technique"));
 
         player.openInventory(gui);
     }

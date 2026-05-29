@@ -9,6 +9,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.events.WeaponEquipEvent;
@@ -16,6 +17,7 @@ import me.nakilex.levelplugin.items.managers.ItemManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.items.utils.ItemUtil.ItemVisualModelState;
 import me.nakilex.levelplugin.player.attributes.listeners.StatsEffectListener;
+import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.utils.AttributeUtil;
@@ -40,6 +42,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.player.PlayerAnimationEvent;
 import org.bukkit.event.player.PlayerAnimationType;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -66,11 +69,20 @@ import org.joml.Vector3f;
  */
 public class WieldStyleDebugManager implements Listener {
     private static final long RANDOM_SWING_INTERVAL_TICKS = 40L;
-    private static final int RETURN_TO_IDLE_TICKS = 20;
+    private static final int BASE_RETURN_TO_IDLE_TICKS = 20;
+    private static final double BASE_ANIMATION_ATTACK_SPEED = 0.8D;
+    private static final double SWING_ATTACK_SPEED_WEIGHT = 0.45D;
+    private static final double RETURN_ATTACK_SPEED_WEIGHT = 1.0D;
+    private static final double DEFAULT_IDLE_DISTANCE = 0.76D;
+    private static final double DEFAULT_IDLE_RIGHT_OFFSET = 0.62D;
+    private static final int MIN_SWING_TICKS = 8;
+    private static final int MAX_SWING_TICKS = 24;
+    private static final int MIN_RETURN_TO_IDLE_TICKS = 6;
+    private static final int MAX_RETURN_TO_IDLE_TICKS = 36;
     private static final double SWING_HIT_RADIUS = 1.15D;
     private static final double SWING_DAMAGE_BASE_FALLBACK = 1.0D;
     private static final String AUTO_HAND_MODEL_NEXO_ID = "knight_assortment-key";
-    private static final double SWORD_PATH_SLASH_DAMAGE_MULTIPLIER = 0.85D;
+    private static final double SWORD_PATH_SLASH_DAMAGE_MULTIPLIER = 0.30D;
     private static final double SWORD_PATH_SLASH_RADIUS = 0.65D;
     private static final double SWORD_PATH_SLASH_TRAVEL_DISTANCE = 6.0D;
     private static final int SWORD_PATH_SLASH_TRAVEL_TICKS = 9;
@@ -478,6 +490,10 @@ public class WieldStyleDebugManager implements Listener {
             debugInput(player, source, "ignored=duplicate-same-tick, cancelled=" + eventCancelled);
             return;
         }
+        if (session.swinging) {
+            debugInput(player, source, "ignored=returning-to-idle, cancelled=" + eventCancelled);
+            return;
+        }
         if (now < session.nextAllowedSwingTick) {
             debugInput(player, source, "ignored=cooldown, remainingTicks=" + (session.nextAllowedSwingTick - now)
                     + ", cancelled=" + eventCancelled);
@@ -523,6 +539,20 @@ public class WieldStyleDebugManager implements Listener {
                 + ", source=" + source
                 + ", " + outcome
                 + ", " + state);
+    }
+
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onVanillaHandDamage(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player player)) {
+            return;
+        }
+        WieldSession session = sessions.get(player.getUniqueId());
+        if (session == null || player.hasMetadata(SpellEffectUtil.BYPASS_STAT_SCALING_META)) {
+            return;
+        }
+        event.setCancelled(true);
+        debugInput(player, "vanilla-damage", "cancelled=custom-wield-session");
     }
 
     @EventHandler
@@ -590,26 +620,29 @@ public class WieldStyleDebugManager implements Listener {
 
     private void startSwing(Player player, WieldSession session, boolean force, WieldStyleConfig activeConfig, String source) {
         long now = currentTick();
+        if (session.swinging) {
+            debugInput(player, source, "start-blocked=returning-to-idle");
+            return;
+        }
         if (!force && now < session.nextAllowedSwingTick) {
             debugInput(player, source, "start-blocked=cooldown, remainingTicks=" + (session.nextAllowedSwingTick - now));
             return;
         }
-        boolean cancelledPreviousTask = session.swingTask != null;
-        if (session.swingTask != null) {
-            session.swingTask.cancel();
-        }
+        int swingTotal = swingTicks(player, activeConfig);
+        int returnTotal = returnToIdleTicks(player);
         session.swinging = true;
-        session.nextAllowedSwingTick = now + activeConfig.cooldownTicks();
+        session.nextAllowedSwingTick = now + swingTotal + returnTotal;
         session.display.setInterpolationDuration(Math.max(0, activeConfig.interpolationDuration()));
         player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 0.8f, 1.15f);
-        debugInput(player, source, "started, cancelledPreviousTask=" + cancelledPreviousTask
+        debugInput(player, source, "started"
                 + ", cooldownTicks=" + activeConfig.cooldownTicks()
-                + ", swingTicks=" + activeConfig.swingTicks()
+                + ", baseSwingTicks=" + activeConfig.swingTicks()
+                + ", scaledSwingTicks=" + swingTotal
+                + ", returnTicks=" + returnTotal
                 + ", weaponTrailParticles=disabled"
                 + ", forwardParticle=" + ArcSlashCombatUtil.swordPathSlashParticle());
         session.swingTask = new BukkitRunnable() {
             private final Set<UUID> hitTargets = new HashSet<>();
-            private final Set<UUID> slashHitTargets = new HashSet<>();
             private int tick = 0;
             private Pose returnStartPose;
 
@@ -621,20 +654,18 @@ public class WieldStyleDebugManager implements Listener {
                     cancel();
                     return;
                 }
-                int swingTotal = Math.max(2, activeConfig.swingTicks());
                 if (tick < swingTotal) {
                     double progress = Math.min(1.0, tick / (double) (swingTotal - 1));
                     Pose pose = swingPose(online, easeOut(progress), activeConfig);
                     moveDisplay(session, pose);
-                    launchSwordPathSlash(online, pose.location(), slashHitTargets);
                     damageSwingTargets(online, pose, hitTargets);
+                    launchSwordPathSlash(online, pose.location(), hitTargets);
                     returnStartPose = pose;
                     tick++;
                     return;
                 }
 
                 int returnTick = tick - swingTotal;
-                int returnTotal = Math.max(2, RETURN_TO_IDLE_TICKS);
                 double returnProgress = Math.min(1.0, returnTick / (double) (returnTotal - 1));
                 Pose idle = idlePose(online, config);
                 moveDisplay(session, interpolatePose(returnStartPose == null ? idle : returnStartPose,
@@ -720,9 +751,35 @@ public class WieldStyleDebugManager implements Listener {
             return;
         }
         forward.normalize();
-        double damage = playerAttackDamage(player) * SWORD_PATH_SLASH_DAMAGE_MULTIPLIER;
-        ArcSlashCombatUtil.launchSwordPathSlashPoint(player, swordLocation, forward, damage,
-                SWORD_PATH_SLASH_RADIUS, SWORD_PATH_SLASH_TRAVEL_DISTANCE, SWORD_PATH_SLASH_TRAVEL_TICKS, hitTargets);
+        double baseDamage = playerAttackDamage(player);
+        Function<LivingEntity, Double> particleDamage = target ->
+                StatsEffectListener.computeBasicAttackDamage(player, target, baseDamage, ThreadLocalRandom.current())
+                        * SWORD_PATH_SLASH_DAMAGE_MULTIPLIER;
+        ArcSlashCombatUtil.launchSwordPathSlashPoint(player, swordLocation, forward, particleDamage,
+                this::playHitFeedback, SWORD_PATH_SLASH_RADIUS, SWORD_PATH_SLASH_TRAVEL_DISTANCE,
+                SWORD_PATH_SLASH_TRAVEL_TICKS, hitTargets);
+    }
+
+    private int swingTicks(Player player, WieldStyleConfig activeConfig) {
+        int baseTicks = activeConfig == null ? WieldStyleConfig.defaultConfig().swingTicks() : activeConfig.swingTicks();
+        return attackSpeedScaledTicks(player, baseTicks, MIN_SWING_TICKS, MAX_SWING_TICKS, SWING_ATTACK_SPEED_WEIGHT);
+    }
+
+    private int returnToIdleTicks(Player player) {
+        return attackSpeedScaledTicks(player, BASE_RETURN_TO_IDLE_TICKS, MIN_RETURN_TO_IDLE_TICKS,
+                MAX_RETURN_TO_IDLE_TICKS, RETURN_ATTACK_SPEED_WEIGHT);
+    }
+
+    private int attackSpeedScaledTicks(Player player, int baseTicks, int minTicks, int maxTicks, double speedWeight) {
+        if (player == null) {
+            return Math.max(minTicks, Math.min(maxTicks, baseTicks));
+        }
+        StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(player.getUniqueId());
+        double attackSpeed = Math.max(0.1D, stats.attackSpeed);
+        double speedRatio = BASE_ANIMATION_ATTACK_SPEED / attackSpeed;
+        double weightedRatio = Math.pow(speedRatio, Math.max(0.0D, speedWeight));
+        int ticks = (int) Math.round(baseTicks * weightedRatio);
+        return Math.max(minTicks, Math.min(maxTicks, ticks));
     }
 
     private void damageSwingTargets(Player player, Pose pose, Set<UUID> hitTargets) {
@@ -734,10 +791,18 @@ public class WieldStyleDebugManager implements Listener {
             }
             double damage = StatsEffectListener.computeBasicAttackDamage(player, target, baseDamage, ThreadLocalRandom.current());
             SpellEffectUtil.applyDirectSpellDamage(plugin, player, target, damage, true);
-            target.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.9f, 1.05f);
-            target.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR, target.getLocation().add(0.0, target.getHeight() * 0.6, 0.0),
-                    6, 0.2, 0.25, 0.2, 0.03);
+            playHitFeedback(target);
         }
+    }
+
+    private void playHitFeedback(LivingEntity target) {
+        if (target == null || target.getWorld() == null) {
+            return;
+        }
+        target.getWorld().playSound(target.getLocation(), Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.9f, 1.05f);
+        target.getWorld().spawnParticle(Particle.DAMAGE_INDICATOR,
+                target.getLocation().add(0.0, target.getHeight() * 0.6, 0.0),
+                6, 0.2, 0.25, 0.2, 0.03);
     }
 
     private boolean isValidSwingTarget(Player player, LivingEntity target) {
@@ -918,7 +983,7 @@ public class WieldStyleDebugManager implements Listener {
     public enum WieldStylePreset {
         OVERHEAD_SLASH("overhead_slash", "Overhead Slash",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         106.78813936115861, -186.6909558808558, 0.15980664918631562,
                         0.9877825861829582, 0.036862218691507104, 1.2711515689082424,
                         0.4006004088814077, -41.38846296298364, 48.91458472939911,
@@ -926,7 +991,7 @@ public class WieldStyleDebugManager implements Listener {
                         132.66759822330394, 99.1515139506437, -30.49929654416185)),
         BEYBLADE_SWIRL("beyblade_swirl", "Beyblade Swirl",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         149.69386305872723, -171.96775775595756, 1.1393345553474903,
                         0.8506799627353459, -0.36832261979426884, 1.2973677239379766,
                         0.4424320994105332, 5.7231808755518045, 185.31289826600295,
@@ -934,7 +999,7 @@ public class WieldStyleDebugManager implements Listener {
                         -423.9848043587916, -1.5009839314438977, 372.082944972278)),
         COOL_SWEEP("cool_sweep", "Cool Sweep",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         55.01033770127748, -298.06188822354045, 0.9024002861771805,
                         0.6039956910541824, 0.06503697955364385, 1.1567669547934205,
                         0.4147886779934885, 124.46899839538139, -83.92384491011171,
@@ -942,7 +1007,7 @@ public class WieldStyleDebugManager implements Listener {
                         -177.45824996471913, 60.07567107365088, 161.6478692857686)),
         COOL_SWIRL("cool_swirl", "Cool Swirl",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         -123.2797945004859, -326.88824337384665, -1.2929481246029473,
                         1.0850175545906546, -0.07845679609481981, 1.3829925186475112,
                         0.2843594103411882, 100.41132146621277, -139.45950615941555,
@@ -950,7 +1015,7 @@ public class WieldStyleDebugManager implements Listener {
                         -433.8053333171781, 134.99582825105335, -268.5415701430878)),
         PARRY_TYPE("parry_type", "Parry Type",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         -157.70547416035907, 391.3088240022212, 0.8931485413847031,
                         -0.8684853539984333, 0.2650746358058361, 1.2321292243985533,
                         0.36050623086962186, 23.51300724555844, -155.64026598650247,
@@ -958,7 +1023,7 @@ public class WieldStyleDebugManager implements Listener {
                         -497.9896943862577, -37.62978480829449, -447.6378094901502)),
         BASIC_ATTACK("basic_attack", "Basic Attack",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         -7.597476350519571, -396.6678009578013, -1.002474704638901,
                         -0.10955255504269501, -0.49299159608471477, 1.1246103768763687,
                         0.43023693341752944, -34.03258465878355, 105.8781397276856,
@@ -966,7 +1031,7 @@ public class WieldStyleDebugManager implements Listener {
                         258.9278522064494, 74.59162027705167, -280.6300726398954)),
         BASIC_ATTACK_TWO("basic_attack_2", "Basic Attack 2",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         -85.68423014032777, -202.81888790329361, 1.2802284526314247,
                         -0.5111532543229289, -0.07972367059891083, 1.179850083916887,
                         0.5010660807049536, 4.879281831669914, 165.93664880282688,
@@ -974,7 +1039,7 @@ public class WieldStyleDebugManager implements Listener {
                         -406.01305010724536, 187.880697581937, 52.44780271370257)),
         HORIZONTAL_SLASH("horizontal_slash", "Horizontal Slash",
                 new WieldStyleConfig(16, 17, 1, 0.82,
-                        1.12, 0.34, -0.28, -18.0, -12.0, -35.0, 60.0,
+                        DEFAULT_IDLE_DISTANCE, DEFAULT_IDLE_RIGHT_OFFSET, -0.28, -18.0, -12.0, -35.0, 60.0,
                         99.10203154985236, 289.83607866228397, -1.5018903566121915,
                         0.1904062981563185, -0.5539701381859183, 1.3438135165695648,
                         0.43818404742518, -242.37929775792298, -92.41844422327281,

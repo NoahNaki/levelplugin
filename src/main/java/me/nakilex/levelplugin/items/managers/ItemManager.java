@@ -124,8 +124,10 @@ public class ItemManager {
                     itemsConfig.getString(path + "intel", "0-0"));
                 StatRange dexRange   = StatRange.fromString(
                     itemsConfig.getString(path + "dex", "0-0"));
-                StatRange wilRange   = new StatRange(0, 0);
-                StatRange tecRange   = new StatRange(0, 0);
+                StatRange wilRange   = StatRange.fromString(
+                    itemsConfig.getString(path + "wil", "0-0"));
+                StatRange tecRange   = StatRange.fromString(
+                    itemsConfig.getString(path + "tec", "0-0"));
 
                 addTemplate(numericId, name, rarity, levelReq, classReq, material,
                         hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange);
@@ -165,8 +167,8 @@ public class ItemManager {
                 StatRange agiRange = parseStatRange(statsSection, "agi");
                 StatRange intelRange = parseStatRange(statsSection, "intel");
                 StatRange dexRange = parseStatRange(statsSection, "dex");
-                StatRange wilRange = new StatRange(0, 0);
-                StatRange tecRange = new StatRange(0, 0);
+                StatRange wilRange = parseStatRange(statsSection, "wil");
+                StatRange tecRange = parseStatRange(statsSection, "tec");
 
                 addTemplate(numericId, name, rarity, levelReq, classReq, material,
                         hpRange, defRange, strRange, agiRange, intelRange, dexRange, wilRange, tecRange);
@@ -304,8 +306,8 @@ public class ItemManager {
         ranges.put(StatSlot.AGI, agiRange);
         ranges.put(StatSlot.INT, intelRange);
         ranges.put(StatSlot.DEX, dexRange);
-        ranges.put(StatSlot.WIL, new StatRange(0, 0));
-        ranges.put(StatSlot.TEC, new StatRange(0, 0));
+        ranges.put(StatSlot.WIL, wilRange);
+        ranges.put(StatSlot.TEC, tecRange);
 
         for (StatSlot slot : NON_VITALITY_STAT_ORDER) {
             if (isRangeNonZero(ranges.get(slot))) {
@@ -395,7 +397,9 @@ public class ItemManager {
             StatSlot.STR,
             StatSlot.AGI,
             StatSlot.INT,
-            StatSlot.DEX
+            StatSlot.DEX,
+            StatSlot.WIL,
+            StatSlot.TEC
     );
 
     private static final List<StatSlot> TRIM_PRIORITY = List.of(
@@ -403,6 +407,8 @@ public class ItemManager {
             StatSlot.INT,
             StatSlot.AGI,
             StatSlot.STR,
+            StatSlot.WIL,
+            StatSlot.TEC,
             StatSlot.HP
     );
 

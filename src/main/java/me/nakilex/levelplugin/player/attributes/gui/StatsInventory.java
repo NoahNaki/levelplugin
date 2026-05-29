@@ -44,7 +44,7 @@ public class StatsInventory {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border();
 
-        builder.setItem(20, createStatBook(
+        builder.setItem(19, createStatBook(
             "Strength", StatType.STR, ps.baseStrength, ps.bonusStrength, ps.skillPoints,
             List.of("Boosts melee damage and adds a bit of health."),
             new String[]{
@@ -57,7 +57,7 @@ public class StatsInventory {
         double dodgePercent = totalAgility / (totalAgility + 200.0) * 100.0;
         dodgePercent = Math.round(dodgePercent * 100.0) / 100.0;
 
-        builder.setItem(21, createStatBook(
+        builder.setItem(20, createStatBook(
             "Agility", StatType.AGI, ps.baseAgility, ps.bonusAgility, ps.skillPoints,
             List.of("Improves your speed and dodge chance."),
             new String[]{
@@ -68,7 +68,7 @@ public class StatsInventory {
             }
         ));
 
-        builder.setItem(22, createStatBook(
+        builder.setItem(21, createStatBook(
             "Intelligence", StatType.INT, ps.baseIntelligence, ps.bonusIntelligence, ps.skillPoints,
             List.of("Improves magical prowess and spell cooldown recovery."),
             new String[]{
@@ -82,7 +82,7 @@ public class StatsInventory {
         int totalDexterity = ps.baseDexterity + ps.bonusDexterity;
         double critPercent  = totalDexterity / (totalDexterity + 100.0) * 100.0;
         critPercent = Math.round(critPercent * 100.0) / 100.0;
-        builder.setItem(23, createStatBook(
+        builder.setItem(22, createStatBook(
             "Dexterity", StatType.DEX, ps.baseDexterity, ps.bonusDexterity, ps.skillPoints,
             List.of(
                 "Improves crit chance and subtracts",
@@ -95,7 +95,7 @@ public class StatsInventory {
             }
         ));
 
-        builder.setItem(24, createStatBook(
+        builder.setItem(23, createStatBook(
             "Vitality", StatType.VIT, ps.baseVitality, ps.bonusVitality, ps.skillPoints,
             List.of("Increases max health and reduces damage taken."),
             new String[]{
@@ -105,7 +105,24 @@ public class StatsInventory {
             }
         ));
 
-        builder.setItem(25, GuiUtil.createGuiItem(Material.GRAY_STAINED_GLASS_PANE, " ", List.of()));
+        builder.setItem(24, createStatBook(
+            "Will", StatType.WIL, ps.baseWill, ps.bonusWill, ps.skillPoints,
+            List.of("Increases your maximum mana pool."),
+            new String[]{
+                String.format("Each point: +%d mana.", StatsManager.MANA_PER_WILL),
+                "Current max mana: " + ChatColor.YELLOW + ps.maxMana
+            }
+        ));
+
+        builder.setItem(25, createStatBook(
+            "Technique", StatType.TEC, ps.baseTechnique, ps.bonusTechnique, ps.skillPoints,
+            List.of("Improves attack speed and weapon control."),
+            new String[]{
+                "Each point: +0.75% attack speed.",
+                "Current attack speed: " + ChatColor.YELLOW + String.format("%.2f", ps.attackSpeed)
+            }
+        ));
+
         builder.setItem(13, GuiUtil.getNexoItem("refresh", ChatColor.RED + "Refund All Skill Points"));
         builder.setItem(8, createPlayerHead(player, ps, page));
         builder.setItem(40, null);
@@ -183,6 +200,8 @@ public class StatsInventory {
             lore.add(GuiUtil.formatStatName(StatsManager.StatType.INT) + ": " + ChatColor.WHITE + (ps.baseIntelligence + ps.bonusIntelligence) + ChatColor.GREEN + " (+" + ps.bonusIntelligence + ")");
             lore.add(GuiUtil.formatStatName(StatsManager.StatType.DEX) + ": " + ChatColor.WHITE + (ps.baseDexterity + ps.bonusDexterity) + ChatColor.GREEN + " (+" + ps.bonusDexterity + ")");
             lore.add(GuiUtil.formatStatName(StatsManager.StatType.VIT) + ": " + ChatColor.RED + (ps.baseVitality + ps.bonusVitality) + ChatColor.GREEN + " (+" + ps.bonusVitality + ")");
+            lore.add(GuiUtil.formatStatName(StatsManager.StatType.WIL) + ": " + ChatColor.WHITE + (ps.baseWill + ps.bonusWill) + ChatColor.GREEN + " (+" + ps.bonusWill + ")");
+            lore.add(GuiUtil.formatStatName(StatsManager.StatType.TEC) + ": " + ChatColor.WHITE + (ps.baseTechnique + ps.bonusTechnique) + ChatColor.GREEN + " (+" + ps.bonusTechnique + ")");
             lore.add("");
 
             int gearScore = ItemUtil.calculateTotalGearScore(player);

@@ -176,6 +176,11 @@ vitality:
   - of the Shieldbearer
   - of the Stoneborn
 
+will:
+  - of Willpower
+  - of Focus
+  - of the Mind
+
 technique:
   - of Mastery
   - of Skill

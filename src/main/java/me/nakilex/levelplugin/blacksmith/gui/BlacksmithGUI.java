@@ -653,6 +653,7 @@ public class BlacksmithGUI implements Listener {
             case SKULL_BANNER_PATTERN         -> StatType.VIT;
             case GUSTER_BANNER_PATTERN        -> StatType.DEX;
             case GLOBE_BANNER_PATTERN         -> StatType.WIL;
+            case CREEPER_BANNER_PATTERN       -> StatType.TEC;
             default -> null;
         };
     }
