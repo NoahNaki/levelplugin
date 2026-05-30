@@ -8,41 +8,48 @@ import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
-/** Messenger that reveals a message over time and then finishes after a wait period. */
+/** Auto-advancing messenger that reveals text and then waits for its configured duration. */
 public final class TimedMessenger extends DialogueMessenger {
+    private static final int RENDER_INTERVAL_TICKS = 3;
     private final TimedDialogueEntry timedEntry;
+    private final TypingAnimation typingAnimation;
     private Duration playTime = Duration.ZERO;
+    private int ticksSinceRender;
     private int lastVisibleCharacters = -1;
 
     public TimedMessenger(Player player, TimedDialogueEntry entry, InteractionContext context) {
         super(player, entry, context);
         this.timedEntry = entry;
+        this.typingAnimation = new TypingAnimation(entry.typingDuration());
     }
 
     @Override public void init() { super.init(); render(0); }
 
     @Override public void tick(Duration deltaTime) {
         if (state() != State.RUNNING) return;
-        playTime = playTime.plus(deltaTime == null ? Duration.ZERO : deltaTime);
-        long typingMs = Math.max(0L, timedEntry.typingDuration().toMillis());
-        long elapsedMs = playTime.toMillis();
-        String message = resolvedMessage();
-        int visible = typingMs <= 0L ? message.length()
-                : (int) Math.min(message.length(), Math.floor(message.length() * (elapsedMs / (double) typingMs)));
-        render(visible);
-        if (elapsedMs >= typingMs + Math.max(0L, timedEntry.waitDuration().toMillis())) finish();
+        Duration safeDelta = deltaTime == null || deltaTime.isNegative() ? Duration.ZERO : deltaTime;
+        playTime = playTime.plus(safeDelta);
+        typingAnimation.tick(safeDelta);
+        ticksSinceRender++;
+        if (ticksSinceRender >= RENDER_INTERVAL_TICKS || typingAnimation.isComplete(resolvedMessage())) {
+            render(typingAnimation.visibleCharacters(resolvedMessage()));
+        }
+        if (playTime.toMillis() >= Math.max(0L, timedEntry.typingDuration().toMillis())
+                + Math.max(0L, timedEntry.waitDuration().toMillis())) finish();
     }
 
     @Override public void requestNextOrSkip() {
-        if (timedEntry.allowSkip() && lastVisibleCharacters < resolvedMessage().length()) {
+        if (timedEntry.allowSkip() && !typingAnimation.isComplete(resolvedMessage())) {
+            typingAnimation.complete();
+            playTime = typingAnimation.duration();
             render(resolvedMessage().length());
-            playTime = timedEntry.typingDuration();
             return;
         }
         finish();
     }
 
     private void render(int visibleCharacters) {
+        ticksSinceRender = 0;
         String message = resolvedMessage();
         int safeVisible = Math.max(0, Math.min(message.length(), visibleCharacters));
         if (safeVisible == lastVisibleCharacters) return;
