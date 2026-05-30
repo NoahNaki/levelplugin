@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.attributes.managers;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.npc.dialog.display.DialogueDisplays;
 import me.nakilex.levelplugin.stronghold.run.StrongholdRunManager;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -20,7 +21,7 @@ public class ActionBarTask extends BukkitRunnable {
     public void run() {
         long now = System.currentTimeMillis();
         for (Player player : Bukkit.getOnlinePlayers()) {
-            if (plugin.getCutsceneManager().isInCutscene(player)) continue;
+            if (plugin.getCutsceneManager().isInCutscene(player) || DialogueDisplays.isActive(player)) continue;
             CooldownIndicatorManager.Info info = CooldownIndicatorManager.getInstance().get(player);
             if (info != null) {
                 boolean showCd = now < info.expireAt && now < info.costExpireAt;

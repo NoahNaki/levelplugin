@@ -2,19 +2,23 @@ package me.nakilex.levelplugin.npc.dialog.messenger;
 
 import java.time.Duration;
 import me.nakilex.levelplugin.npc.dialog.PlaceholderResolver;
+import me.nakilex.levelplugin.npc.dialog.display.DialogueDisplay;
+import me.nakilex.levelplugin.npc.dialog.display.DialogueDisplays;
+import me.nakilex.levelplugin.npc.dialog.display.DialogueFrame;
 import me.nakilex.levelplugin.npc.dialog.entry.MessageDialogueEntry;
 import me.nakilex.levelplugin.npc.dialog.model.InteractionContext;
 import me.nakilex.levelplugin.npc.dialog.model.SpeakerEntry;
-import me.nakilex.levelplugin.utils.ChatFormatter;
-import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
-/** Player-advanced dialogue messenger that reveals normal NPC text gradually by default. */
+/** Player-advanced dialogue messenger that renders replaceable animated frames instead of raw partial chat lines. */
 public final class MessageMessenger extends DialogueMessenger {
-    private static final int RENDER_INTERVAL_TICKS = 3;
+    private static final int RENDER_INTERVAL_TICKS = 2;
     private final MessageDialogueEntry messageEntry;
     private final TypingAnimation typingAnimation;
+    private final DialogueDisplay display = DialogueDisplays.defaultDisplay();
+    private String resolvedSpeaker;
+    private String resolvedText;
     private int ticksSinceRender;
     private int lastVisibleCharacters = -1;
     private boolean renderedFinalLine;
@@ -28,9 +32,10 @@ public final class MessageMessenger extends DialogueMessenger {
     @Override
     public void init() {
         super.init();
-        if (messageEntry.index() == 0) ChatFormatter.constructDivider(player, " ", 45);
+        resolvedSpeaker = resolveSpeaker();
+        resolvedText = resolveText();
         if (!messageEntry.animated()) typingAnimation.complete();
-        if (isAnimationComplete()) renderCurrentText();
+        renderCurrentFrame();
     }
 
     @Override
@@ -38,7 +43,7 @@ public final class MessageMessenger extends DialogueMessenger {
         if (state() != State.RUNNING || isAnimationComplete()) return;
         typingAnimation.tick(deltaTime);
         ticksSinceRender++;
-        if (ticksSinceRender >= RENDER_INTERVAL_TICKS || isAnimationComplete()) renderCurrentText();
+        if (ticksSinceRender >= RENDER_INTERVAL_TICKS || isAnimationComplete()) renderCurrentFrame();
     }
 
     @Override
@@ -46,42 +51,42 @@ public final class MessageMessenger extends DialogueMessenger {
         if (!isAnimationComplete()) {
             if (!messageEntry.allowSkip()) return;
             typingAnimation.complete();
-            renderCurrentText();
+            renderCurrentFrame();
             return;
         }
         finish();
     }
 
-    private void renderCurrentText() {
+    @Override public void dispose() { display.clear(player); }
+
+    private void renderCurrentFrame() {
         ticksSinceRender = 0;
-        String line = resolvedLine();
-        int visibleCharacters = typingAnimation.visibleCharacters(line);
+        int visibleCharacters = typingAnimation.visibleCharacters(resolvedText);
         if (visibleCharacters == lastVisibleCharacters) return;
         lastVisibleCharacters = visibleCharacters;
-        SpeakerEntry speakerEntry = messageEntry.speaker();
-        String speaker = speakerEntry == null ? resolvedLegacySpeaker() : PlaceholderResolver.resolve(speakerEntry.displayName(), context);
-        ChatColor speakerColor = speakerEntry == null ? ChatColor.YELLOW : speakerEntry.color();
-        player.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + (messageEntry.index() + 1)
-                + "/" + messageEntry.total() + ChatColor.DARK_GRAY + "] "
-                + speakerColor + speaker + ChatColor.WHITE + ": " + line.substring(0, visibleCharacters));
-        if (isAnimationComplete() && !renderedFinalLine) {
+        boolean complete = isAnimationComplete();
+        display.show(player, new DialogueFrame(resolvedSpeaker, resolvedText.substring(0, visibleCharacters),
+                messageEntry.index(), messageEntry.total(), complete));
+        if (complete && !renderedFinalLine) {
             renderedFinalLine = true;
-            ChatFormatter.constructDivider(player, " ", 45);
+            SpeakerEntry speakerEntry = messageEntry.speaker();
             player.playSound(player.getLocation(), speakerEntry == null || speakerEntry.sound() == null
                     ? Sound.UI_BUTTON_CLICK : speakerEntry.sound(), 1f, 1f);
         }
     }
 
-    private boolean isAnimationComplete() { return typingAnimation.isComplete(resolvedLine()); }
+    private boolean isAnimationComplete() { return typingAnimation.isComplete(resolvedText); }
 
-    private String resolvedLegacySpeaker() {
+    private String resolveSpeaker() {
+        SpeakerEntry speakerEntry = messageEntry.speaker();
+        if (speakerEntry != null) return PlaceholderResolver.resolve(speakerEntry.displayName(), context);
         String raw = messageEntry.line();
         int bar = raw.indexOf('|');
         String speaker = bar >= 0 ? raw.substring(0, bar) : context.npc() == null ? "NPC" : context.npc().name();
         return PlaceholderResolver.resolve(speaker, context);
     }
 
-    private String resolvedLine() {
+    private String resolveText() {
         String raw = messageEntry.line();
         int bar = messageEntry.speaker() == null ? raw.indexOf('|') : -1;
         return PlaceholderResolver.resolve(bar >= 0 ? raw.substring(bar + 1) : raw, context);
