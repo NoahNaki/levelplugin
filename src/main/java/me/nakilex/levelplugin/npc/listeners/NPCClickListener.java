@@ -17,6 +17,7 @@ import me.nakilex.levelplugin.quests.def.SalvagersLessonQuest;
 import me.nakilex.levelplugin.quests.def.HawieHermitCrabQuest;
 import me.nakilex.levelplugin.quests.def.MarketBeginningsQuest;
 import me.nakilex.levelplugin.quests.def.FieldworkFavorQuest;
+import me.nakilex.levelplugin.quests.def.ForgeFundamentalsQuest;
 import me.nakilex.levelplugin.quests.def.WakePerryQuest;
 import me.nakilex.levelplugin.quests.util.QuestNavigationUtil;
 import me.nakilex.levelplugin.npc.handlers.EssenceWeaverLessonNpcHandler;
@@ -33,7 +34,13 @@ import me.nakilex.levelplugin.npc.handlers.SerasSlimeKingNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.SharpestSecretNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.StableKeeperNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.ZoyaDungeonNpcHandler;
+import me.nakilex.levelplugin.npc.dialog.DialogueDefinition;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
+import me.nakilex.levelplugin.npc.dialog.entry.DialogueEntry;
+import me.nakilex.levelplugin.npc.dialog.entry.MessageDialogueEntry;
+import me.nakilex.levelplugin.npc.dialog.entry.OptionDialogueEntry;
+import me.nakilex.levelplugin.npc.dialog.model.ContextKeys;
+import me.nakilex.levelplugin.npc.dialog.model.DialogNpcRef;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
@@ -57,19 +64,7 @@ import java.util.UUID;
 
 public class NPCClickListener implements Listener {
 
-    private static final int TEST_DIALOG_CITIZENS_NPC_ID = 12;
     private static final int STORAGE_REGISTRATION_COST = 100;
-    private static final List<String> TEST_DIALOG_INTRO = List.of(
-            "Dialogue Tester|Hello, <player>. This is the Citizens NPC 12 dialogue test.",
-            "Dialogue Tester|The message messenger is presenting these lines one step at a time.",
-            "Dialogue Tester|After this line, use your scroll wheel to choose an answer and right click me to confirm."
-    );
-    private static final List<String> TEST_DIALOG_ACCEPTED = List.of(
-            "Dialogue Tester|Great. The option messenger received your confirmation successfully."
-    );
-    private static final List<String> TEST_DIALOG_DECLINED = List.of(
-            "Dialogue Tester|No problem. The alternate option path is working too."
-    );
     private static final List<String> STORAGE_INTRO_DIALOG = List.of(
             "Storage Manager|Looking to keep your belongings safe?",
             "Storage Manager|I can register a personal storage for you for " + STORAGE_REGISTRATION_COST + " coins."
@@ -106,6 +101,7 @@ public class NPCClickListener implements Listener {
         this.storageManager = storageManager;
         this.questHandlerRegistry = new QuestNpcInteractionRegistry();
         registerQuestHandlers();
+        registerDialogueDefinitions();
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -137,6 +133,16 @@ public class NPCClickListener implements Listener {
         }
 
         dialogManager.recordDialogCooldown(player);
+        DialogNpcRef clickedNpc = npc != null ? DialogNpcRef.of(npc) : DialogNpcRef.of(citizensNpc);
+        if (dialogManager.hasSession(player)) {
+            dialogManager.nextOrSkip(player);
+            return;
+        }
+        var definition = dialogManager.getRegistry().findBest(player, clickedNpc);
+        if (definition.isPresent()) {
+            dialogManager.startInteraction(player, definition.get(), clickedNpc);
+            return;
+        }
 
         if (npc != null && WakePerryQuest.handleNpcInteraction(player, npc, event.getHand())) {
             return;
@@ -225,21 +231,6 @@ public class NPCClickListener implements Listener {
             }
         }
 
-        if (dialogManager.hasSession(player)) {
-            if (dialogManager.isSessionNpc(player, npcId)) {
-                dialogManager.advanceDialog(player, questManager);
-            }
-            return;
-        }
-        if (dialogManager.hasChoiceSession(player)) {
-            return;
-        }
-
-        if (citizensNpc != null && npcId == TEST_DIALOG_CITIZENS_NPC_ID) {
-            handleTestDialog(player, citizensNpc);
-            return;
-        }
-
         if (isNpcName(npcName, "Storage Manager")) {
             handleStorageManagerInteraction(player, npc, citizensNpc);
             return;
@@ -297,14 +288,6 @@ public class NPCClickListener implements Listener {
                 default -> {}
             }
         }
-    }
-
-    private void handleTestDialog(Player player, net.citizensnpcs.api.npc.NPC citizensNpc) {
-        startDialog(player, TEST_DIALOG_INTRO, null, citizensNpc,
-                () -> Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
-                        startChoiceDialog(player, null, citizensNpc, List.of("Continue", "Not now"), choice ->
-                                startDialog(player, choice == 0 ? TEST_DIALOG_ACCEPTED : TEST_DIALOG_DECLINED,
-                                        null, citizensNpc, null)), 1L));
     }
 
     private void handleStorageManagerInteraction(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
@@ -429,6 +412,47 @@ public class NPCClickListener implements Listener {
     private boolean hasUnlockedDungeonEntrance(Player player) {
         return questManager != null
                 && questManager.hasCompleted(player.getUniqueId(), DungeonGuardQuest.QUEST_ID);
+    }
+
+
+    private void registerDialogueDefinitions() {
+        registerTestDialogueDefinition();
+        registerForgeFundamentalsIntroDefinition();
+    }
+
+    /** Citizens NPC 12 remains an explicit smoke test for registry routing and criteria-based branches. */
+    private void registerTestDialogueDefinition() {
+        DialogNpcRef npc = DialogNpcRef.forId(12, "Dialogue Tester");
+        List<DialogueEntry> entries = new java.util.ArrayList<>();
+        entries.add(new MessageDialogueEntry("dialogue-test:intro-1", "Test intro", "Dialogue Tester|Hello, <player>. This dialogue came from the registry.", 0, 3));
+        entries.add(new MessageDialogueEntry("dialogue-test:intro-2", "Test architecture", "Dialogue Tester|Use the scroll wheel to choose an answer, then right click me to confirm.", 1, 3));
+        entries.add(new OptionDialogueEntry("dialogue-test:choice", "Test choice", npc, "Does the new interaction-driven dialog work?",
+                "dialogue_test_choice", List.of(new OptionDialogueEntry.Option("Yes"), new OptionDialogueEntry.Option("Not yet")), null));
+        entries.add(new MessageDialogueEntry("dialogue-test:accepted", "Accepted branch", "Dialogue Tester|Great. The option trigger stored your zero-based selection successfully.", 2, 3,
+                null, List.of(context -> context.get(ContextKeys.SELECTED_OPTION).orElse(-1) == 0), List.of(), List.of(), 0));
+        entries.add(new MessageDialogueEntry("dialogue-test:declined", "Declined branch", "Dialogue Tester|No problem. The alternate criteria branch works too.", 2, 3,
+                null, List.of(context -> context.get(ContextKeys.SELECTED_OPTION).orElse(-1) == 1), List.of(), List.of(), 0));
+        dialogManager.getRegistry().register(new DialogueDefinition("dialogue-test:citizens-12", "Citizens NPC 12 dialogue test",
+                npc, 100, List.of(), entries));
+    }
+
+    /** First low-risk quest-handler migration: the existing handler remains the fallback for every other forge state. */
+    private void registerForgeFundamentalsIntroDefinition() {
+        Quest quest = questManager.getQuestById(ForgeFundamentalsQuest.ID);
+        if (quest == null || quest.getDialogLines() == null || quest.getDialogLines().isEmpty()) return;
+        DialogNpcRef npc = DialogNpcRef.forId(ForgeFundamentalsQuest.NPC_ID, ForgeFundamentalsQuest.NPC_NAME);
+        List<DialogueEntry> entries = new java.util.ArrayList<>();
+        for (int index = 0; index < quest.getDialogLines().size(); index++) {
+            boolean last = index == quest.getDialogLines().size() - 1;
+            entries.add(new MessageDialogueEntry("forge-fundamentals:intro-" + index, "Forge intro", quest.getDialogLines().get(index),
+                    index, quest.getDialogLines().size(), null, List.of(), List.of(),
+                    last ? List.of(context -> questManager.handleTalk(context.player(), "npc_blacksmith_intro")) : List.of(), 0));
+        }
+        dialogManager.getRegistry().register(new DialogueDefinition("forge-fundamentals:intro", "Forge Fundamentals intro", npc, 100,
+                List.of(context -> {
+                    PlayerQuestProgress progress = questManager.getProgress(context.player().getUniqueId(), ForgeFundamentalsQuest.ID);
+                    return progress != null && progress.getProgress(0) < 1;
+                }), entries));
     }
 
     private void registerQuestHandlers() {

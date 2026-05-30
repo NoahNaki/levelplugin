@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.npc.dialog.messenger;
 
+import me.nakilex.levelplugin.npc.dialog.PlaceholderResolver;
 import me.nakilex.levelplugin.npc.dialog.entry.InputDialogueEntry;
+import me.nakilex.levelplugin.npc.dialog.model.ContextKeys;
 import me.nakilex.levelplugin.npc.dialog.model.InteractionContext;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -20,17 +22,17 @@ public final class InputMessenger extends DialogueMessenger implements Listener 
         this.inputEntry = entry;
     }
 
-    @Override
-    public void init() {
+    @Override public void init() {
         super.init();
         Bukkit.getPluginManager().registerEvents(this, context.plugin());
-        player.sendMessage(ChatColor.AQUA + inputEntry.prompt());
+        String prompt = PlaceholderResolver.resolve(inputEntry.prompt(), context);
+        if (inputEntry.speaker() != null) {
+            prompt = PlaceholderResolver.resolve(inputEntry.speaker().displayName(), context) + ": " + prompt;
+        }
+        player.sendMessage(ChatColor.AQUA + prompt);
     }
 
-    @Override
-    public void dispose() {
-        HandlerList.unregisterAll(this);
-    }
+    @Override public void dispose() { HandlerList.unregisterAll(this); }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onChat(AsyncPlayerChatEvent event) {
@@ -39,10 +41,12 @@ public final class InputMessenger extends DialogueMessenger implements Listener 
         String input = event.getMessage() == null ? "" : event.getMessage().trim();
         Bukkit.getScheduler().runTask(context.plugin(), () -> {
             if (!inputEntry.isValid(input)) {
-                player.sendMessage(ChatColor.RED + "That response is not valid. Try again.");
+                player.sendMessage(ChatColor.RED + PlaceholderResolver.resolve(inputEntry.invalidMessage(), context));
                 return;
             }
             context.set(inputEntry.resultKey(), input);
+            context.set(ContextKeys.INPUT_TEXT, input);
+            try { context.set(ContextKeys.INPUT_NUMBER, Double.valueOf(input)); } catch (NumberFormatException ignored) { }
             dispose();
             finish();
         });

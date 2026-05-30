@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.quests.data.Quest;
 import org.bukkit.entity.Player;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -49,5 +50,20 @@ public final class InteractionContext {
     public Optional<String> getString(String key) {
         Object value = variables.get(key);
         return value == null ? Optional.empty() : Optional.of(String.valueOf(value));
+    }
+
+    public <T> void set(ContextKey<T> key, T value) {
+        if (key == null) return;
+        set(key.id(), value);
+    }
+
+    public <T> Optional<T> get(ContextKey<T> key) {
+        if (key == null) return Optional.empty();
+        Object value = variables.get(key.id());
+        return key.type().isInstance(value) ? Optional.of(key.type().cast(value)) : Optional.empty();
+    }
+
+    public Map<String, Object> variables() {
+        return Collections.unmodifiableMap(variables);
     }
 }
