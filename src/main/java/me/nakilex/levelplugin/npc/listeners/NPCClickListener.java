@@ -57,7 +57,19 @@ import java.util.UUID;
 
 public class NPCClickListener implements Listener {
 
+    private static final int TEST_DIALOG_CITIZENS_NPC_ID = 12;
     private static final int STORAGE_REGISTRATION_COST = 100;
+    private static final List<String> TEST_DIALOG_INTRO = List.of(
+            "Dialogue Tester|Hello, <player>. This is the Citizens NPC 12 dialogue test.",
+            "Dialogue Tester|The message messenger is presenting these lines one step at a time.",
+            "Dialogue Tester|After this line, use your scroll wheel to choose an answer and right click me to confirm."
+    );
+    private static final List<String> TEST_DIALOG_ACCEPTED = List.of(
+            "Dialogue Tester|Great. The option messenger received your confirmation successfully."
+    );
+    private static final List<String> TEST_DIALOG_DECLINED = List.of(
+            "Dialogue Tester|No problem. The alternate option path is working too."
+    );
     private static final List<String> STORAGE_INTRO_DIALOG = List.of(
             "Storage Manager|Looking to keep your belongings safe?",
             "Storage Manager|I can register a personal storage for you for " + STORAGE_REGISTRATION_COST + " coins."
@@ -219,6 +231,14 @@ public class NPCClickListener implements Listener {
             }
             return;
         }
+        if (dialogManager.hasChoiceSession(player)) {
+            return;
+        }
+
+        if (citizensNpc != null && npcId == TEST_DIALOG_CITIZENS_NPC_ID) {
+            handleTestDialog(player, citizensNpc);
+            return;
+        }
 
         if (isNpcName(npcName, "Storage Manager")) {
             handleStorageManagerInteraction(player, npc, citizensNpc);
@@ -277,6 +297,14 @@ public class NPCClickListener implements Listener {
                 default -> {}
             }
         }
+    }
+
+    private void handleTestDialog(Player player, net.citizensnpcs.api.npc.NPC citizensNpc) {
+        startDialog(player, TEST_DIALOG_INTRO, null, citizensNpc,
+                () -> Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
+                        startChoiceDialog(player, null, citizensNpc, List.of("Continue", "Not now"), choice ->
+                                startDialog(player, choice == 0 ? TEST_DIALOG_ACCEPTED : TEST_DIALOG_DECLINED,
+                                        null, citizensNpc, null)), 1L));
     }
 
     private void handleStorageManagerInteraction(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
