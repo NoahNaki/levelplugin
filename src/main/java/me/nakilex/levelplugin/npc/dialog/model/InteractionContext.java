@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.npc.dialog.model;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.npc.dialog.DialogueInteraction;
 import me.nakilex.levelplugin.quests.data.Quest;
 import org.bukkit.entity.Player;
 
@@ -17,6 +18,7 @@ public final class InteractionContext {
     private final Quest quest;
     private final Runnable finish;
     private final Map<String, Object> variables = new HashMap<>();
+    private DialogueInteraction interaction;
 
     public InteractionContext(Main plugin, Player player, DialogNpcRef npc, Quest quest, Runnable finish) {
         this.plugin = plugin;
@@ -31,6 +33,8 @@ public final class InteractionContext {
     public DialogNpcRef npc() { return npc; }
     public Quest quest() { return quest; }
     public Runnable finish() { return finish; }
+    public Optional<DialogueInteraction> interaction() { return Optional.ofNullable(interaction); }
+    public void attachInteraction(DialogueInteraction interaction) { this.interaction = interaction; }
 
     public void set(String key, Object value) {
         if (key == null || key.isBlank()) return;

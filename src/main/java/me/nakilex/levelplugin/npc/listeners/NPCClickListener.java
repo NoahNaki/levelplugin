@@ -39,8 +39,9 @@ import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
 import me.nakilex.levelplugin.npc.dialog.entry.DialogueEntry;
 import me.nakilex.levelplugin.npc.dialog.entry.MessageDialogueEntry;
 import me.nakilex.levelplugin.npc.dialog.entry.OptionDialogueEntry;
-import me.nakilex.levelplugin.npc.dialog.model.ContextKeys;
 import me.nakilex.levelplugin.npc.dialog.model.DialogNpcRef;
+import me.nakilex.levelplugin.npc.dialog.trigger.EndInteractionTrigger;
+import me.nakilex.levelplugin.npc.dialog.trigger.GoToEntryTrigger;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
@@ -427,13 +428,15 @@ public class NPCClickListener implements Listener {
         entries.add(new MessageDialogueEntry("dialogue-test:intro-1", "Test intro", "Dialogue Tester|Hello, <player>. This dialogue came from the registry.", 0, 3));
         entries.add(new MessageDialogueEntry("dialogue-test:intro-2", "Test architecture", "Dialogue Tester|Use the scroll wheel to choose an answer, then right click me to confirm.", 1, 3));
         entries.add(new OptionDialogueEntry("dialogue-test:choice", "Test choice", npc, "Does the new interaction-driven dialog work?",
-                "dialogue_test_choice", List.of(new OptionDialogueEntry.Option("Yes"), new OptionDialogueEntry.Option("Not yet")), null));
-        entries.add(new MessageDialogueEntry("dialogue-test:accepted", "Accepted branch", "Dialogue Tester|Great. The option trigger stored your zero-based selection successfully.", 2, 3,
-                null, List.of(context -> context.get(ContextKeys.SELECTED_OPTION).orElse(-1) == 0), List.of(), List.of(), 0));
-        entries.add(new MessageDialogueEntry("dialogue-test:declined", "Declined branch", "Dialogue Tester|No problem. The alternate criteria branch works too.", 2, 3,
-                null, List.of(context -> context.get(ContextKeys.SELECTED_OPTION).orElse(-1) == 1), List.of(), List.of(), 0));
+                "dialogue_test_choice", List.of(
+                        new OptionDialogueEntry.Option("Yes", List.of(), List.of(), List.of(new GoToEntryTrigger("dialogue-test:accepted"))),
+                        new OptionDialogueEntry.Option("Not yet", List.of(), List.of(), List.of(new GoToEntryTrigger("dialogue-test:declined")))), null));
+        entries.add(new MessageDialogueEntry("dialogue-test:accepted", "Accepted branch", "Dialogue Tester|Great. Your option routed directly to this graph entry.", 2, 3,
+                null, List.of(), List.of(), List.of(new EndInteractionTrigger()), 0));
+        entries.add(new MessageDialogueEntry("dialogue-test:declined", "Declined branch", "Dialogue Tester|No problem. The alternate graph route works too.", 2, 3,
+                null, List.of(), List.of(), List.of(new EndInteractionTrigger()), 0));
         dialogManager.getRegistry().register(new DialogueDefinition("dialogue-test:citizens-12", "Citizens NPC 12 dialogue test",
-                npc, 100, List.of(), entries));
+                npc, 100, List.of(), entries, "dialogue-test:intro-1"));
     }
 
     /** First low-risk quest-handler migration: the existing handler remains the fallback for every other forge state. */

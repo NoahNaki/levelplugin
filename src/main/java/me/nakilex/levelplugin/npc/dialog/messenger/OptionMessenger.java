@@ -72,7 +72,10 @@ public final class OptionMessenger extends DialogueMessenger implements Listener
         context.set(ContextKeys.SELECTED_OPTION, originalIndex);
         for (DialogueModifier modifier : selected.modifiers()) modifier.apply(context);
         if (optionEntry.selectionCallback() != null) optionEntry.selectionCallback().accept(originalIndex);
-        for (DialogueTrigger trigger : selected.triggers()) trigger.execute(context);
+        for (DialogueTrigger trigger : selected.triggers()) {
+            context.interaction().ifPresentOrElse(interaction -> interaction.executeTrigger(trigger),
+                    () -> trigger.execute(context));
+        }
         dispose();
         finish();
     }

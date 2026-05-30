@@ -93,7 +93,7 @@ public class NPCDialogManager implements Listener {
     }
 
     public void startInteraction(Player player, DialogueDefinition definition, DialogNpcRef clickedNpc) {
-        startInteraction(player, null, clickedNpc, definition.entries(), null);
+        startInteraction(player, null, clickedNpc, definition, null);
     }
 
     public void startDialog(Player player, Quest quest, NPC npc) {
@@ -127,6 +127,13 @@ public class NPCDialogManager implements Listener {
 
     private void startInteraction(Player player, Quest quest, DialogNpcRef npc,
                                   List<DialogueEntry> entries, Runnable finish) {
+        DialogueDefinition definition = new DialogueDefinition("legacy:" + player.getUniqueId(), "Legacy dialogue",
+                npc, 0, List.of(), entries);
+        startInteraction(player, quest, npc, definition, finish);
+    }
+
+    private void startInteraction(Player player, Quest quest, DialogNpcRef npc,
+                                  DialogueDefinition definition, Runnable finish) {
         DialogueInteraction old = interactions.remove(player.getUniqueId());
         if (old != null) old.cancel();
         lockPlayer(player);
@@ -135,7 +142,7 @@ public class NPCDialogManager implements Listener {
             if (npc != null) plugin.getCodexManager().recordNpc(player, ChatColor.stripColor(npc.name()));
             if (finish != null) finish.run();
         };
-        DialogueInteraction interaction = new DialogueInteraction(plugin, player, npc, quest, entries, completion,
+        DialogueInteraction interaction = new DialogueInteraction(plugin, player, npc, quest, definition, completion,
                 entry -> { if (entry instanceof MessageDialogueEntry message) lastLines.put(player.getUniqueId(), message.line()); });
         interactions.put(player.getUniqueId(), interaction);
         interaction.start();

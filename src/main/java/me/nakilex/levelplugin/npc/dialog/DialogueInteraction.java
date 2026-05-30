@@ -15,17 +15,20 @@ import me.nakilex.levelplugin.quests.data.Quest;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-/** Owns the mutable runtime state for one player's dialogue chain. */
+/** Owns the mutable runtime state for one player's linear or graph-routed dialogue. */
 public final class DialogueInteraction {
+    private final Main plugin;
     private final Player player;
     private final DialogNpcRef npc;
     private final Quest quest;
     private final InteractionContext context;
-    private final List<DialogueEntry> entries;
+    private final DialogueDefinition definition;
     private final Consumer<DialogueEntry> entryStarted;
     private DialogueEntry currentEntry;
     private DialogueMessenger currentMessenger;
-    private int index;
+    private String currentEntryId;
+    private String requestedNextEntryId;
+    private boolean endRequested;
     private boolean active;
     private boolean paused;
     private boolean finished;
@@ -34,18 +37,33 @@ public final class DialogueInteraction {
     public DialogueInteraction(Main plugin, Player player, DialogNpcRef npc, Quest quest,
                                List<DialogueEntry> entries, Runnable finish,
                                Consumer<DialogueEntry> entryStarted) {
+        this(plugin, player, npc, quest,
+                new DialogueDefinition("legacy:" + player.getUniqueId(), "Legacy dialogue", npc, 0, List.of(), entries),
+                finish, entryStarted);
+    }
+
+    public DialogueInteraction(Main plugin, Player player, DialogNpcRef npc, Quest quest,
+                               DialogueDefinition definition, Runnable finish,
+                               Consumer<DialogueEntry> entryStarted) {
+        this.plugin = plugin;
         this.player = player;
         this.npc = npc;
         this.quest = quest;
-        this.entries = List.copyOf(entries);
+        this.definition = definition;
         this.context = new InteractionContext(plugin, player, npc, quest, finish);
+        this.context.attachInteraction(this);
         this.entryStarted = entryStarted == null ? entry -> { } : entryStarted;
     }
 
-    public void start() { if (!active && !finished && !cancelled) { active = true; next(); } }
+    public void start() {
+        if (active || finished || cancelled) return;
+        active = true;
+        debug("starting dialogue definition '" + definition.id() + "'");
+        next();
+    }
 
     public void tick(Duration deltaTime) {
-        if (!active || paused || currentMessenger == null) return;
+        if (!active || paused || currentMessenger == null || currentMessenger.isFinished()) return;
         currentMessenger.tick(deltaTime);
         if (currentMessenger.isFinished()) next();
     }
@@ -60,16 +78,67 @@ public final class DialogueInteraction {
 
     public void next() {
         if (!active || paused) return;
-        completeCurrentEntry();
-        while (index < entries.size()) {
-            DialogueEntry candidate = entries.get(index++);
-            if (!candidate.matches(context)) continue;
+        String completedEntryId = completeCurrentEntry();
+        if (endRequested) { finish(); return; }
+        String nextEntryId = consumeRequestedEntryId();
+        if (nextEntryId == null) {
+            nextEntryId = completedEntryId == null ? definition.startEntryId()
+                    : definition.getEntryAfter(completedEntryId).flatMap(definition::getEntryId).orElse(null);
+        }
+        startNextMatchingEntry(nextEntryId);
+    }
+
+    /** Requests a graph jump after the currently completing entry or option. */
+    public void goTo(String entryId) {
+        requestedNextEntryId = entryId;
+        debug("requested go-to entry '" + entryId + "'");
+    }
+
+    /** Requests a safe interaction end after the currently completing entry or option. */
+    public void requestEnd() {
+        endRequested = true;
+        debug("requested interaction end");
+    }
+
+    /** Explicitly requests the ordered successor used by backwards-compatible linear dialogues. */
+    public void nextLinear() {
+        requestedNextEntryId = currentEntryId == null ? definition.startEntryId()
+                : definition.getEntryAfter(currentEntryId).flatMap(definition::getEntryId).orElse(null);
+        if (requestedNextEntryId == null) requestEnd();
+    }
+
+    public void executeTrigger(DialogueTrigger trigger) {
+        debug("executing trigger " + trigger.getClass().getSimpleName());
+        trigger.execute(this, context);
+    }
+
+    private void startNextMatchingEntry(String nextEntryId) {
+        while (nextEntryId != null) {
+            DialogueEntry candidate = definition.getEntry(nextEntryId).orElse(null);
+            if (candidate == null) {
+                plugin.getLogger().warning("[DialogDebug] dialogue '" + definition.id()
+                        + "' requested missing entry '" + nextEntryId + "'; ending safely");
+                requestEnd();
+                finish();
+                return;
+            }
+            if (!candidate.matches(context)) {
+                nextEntryId = definition.getEntryAfter(nextEntryId).flatMap(definition::getEntryId).orElse(null);
+                continue;
+            }
+            currentEntryId = nextEntryId;
             currentEntry = candidate;
             currentMessenger = candidate.createMessenger(player, context);
+            debug("starting entry '" + currentEntryId + "'");
             entryStarted.accept(candidate);
             currentMessenger.init();
             if (candidate instanceof OptionDialogueEntry && currentMessenger.isFinished()) {
-                completeCurrentEntry();
+                String completedEntryId = completeCurrentEntry();
+                if (endRequested) { finish(); return; }
+                nextEntryId = consumeRequestedEntryId();
+                if (nextEntryId == null) {
+                    nextEntryId = definition.getEntryAfter(completedEntryId).flatMap(definition::getEntryId).orElse(null);
+                }
                 continue;
             }
             return;
@@ -77,13 +146,23 @@ public final class DialogueInteraction {
         finish();
     }
 
-    private void completeCurrentEntry() {
-        if (currentEntry == null || currentMessenger == null || !currentMessenger.isFinished()) return;
+    private String completeCurrentEntry() {
+        if (currentEntry == null || currentMessenger == null || !currentMessenger.isFinished()) return null;
+        String completedEntryId = currentEntryId;
+        debug("finished entry '" + completedEntryId + "'");
         for (DialogueModifier modifier : currentEntry.getModifiers()) modifier.apply(context);
-        for (DialogueTrigger trigger : currentEntry.getTriggers()) trigger.execute(context);
+        for (DialogueTrigger trigger : currentEntry.getTriggers()) executeTrigger(trigger);
         currentMessenger.dispose();
         currentMessenger = null;
         currentEntry = null;
+        currentEntryId = null;
+        return completedEntryId;
+    }
+
+    private String consumeRequestedEntryId() {
+        String requested = requestedNextEntryId;
+        requestedNextEntryId = null;
+        return requested;
     }
 
     public void cancel() {
@@ -101,8 +180,15 @@ public final class DialogueInteraction {
         completeCurrentEntry();
         finished = true;
         active = false;
+        debug("ending interaction");
         if (currentMessenger != null) currentMessenger.dispose();
         context.finish().run();
+    }
+
+    private void debug(String message) {
+        if (plugin.getQuestManager() != null && plugin.getQuestManager().isDebug()) {
+            plugin.getLogger().info("[DialogDebug] " + message + " player=" + player.getName());
+        }
     }
 
     public boolean isActive() { return active; }
