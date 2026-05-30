@@ -2,33 +2,33 @@ package me.nakilex.levelplugin.npc.dialog;
 
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
-import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.Main;
-import net.citizensnpcs.api.CitizensAPI;
+import me.nakilex.levelplugin.npc.dialog.entry.DialogueEntry;
+import me.nakilex.levelplugin.npc.dialog.entry.MessageDialogueEntry;
+import me.nakilex.levelplugin.npc.dialog.entry.OptionDialogueEntry;
+import me.nakilex.levelplugin.npc.dialog.messenger.DialogueMessenger;
+import me.nakilex.levelplugin.npc.dialog.messenger.OptionMessenger;
+import me.nakilex.levelplugin.npc.dialog.model.DialogNpcRef;
+import me.nakilex.levelplugin.npc.dialog.model.InteractionContext;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.Sound;
-import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.HandlerList;
+import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.scheduler.BukkitTask;
 import java.util.function.Consumer;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Matcher;
 
 /**
  * Handles simple dialog sequences with NPCs.
@@ -36,35 +36,32 @@ import java.util.regex.Matcher;
 public class NPCDialogManager implements Listener {
 
     private final Main plugin;
+    private final BukkitTask messengerTickTask;
 
     public NPCDialogManager(Main plugin) {
         this.plugin = plugin;
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        this.messengerTickTask = plugin.getServer().getScheduler()
+                .runTaskTimer(plugin, this::tickMessengers, 1L, 1L);
     }
 
     private static class DialogSession {
         final Quest quest;
-        final List<String> lines;
-        final NPC npc;
-        final net.citizensnpcs.api.npc.NPC citizensNpc;
+        final List<DialogueEntry> entries;
+        final DialogNpcRef npc;
         final Runnable finish;
+        final InteractionContext context;
+        DialogueMessenger currentMessenger;
         int index = 0;
         boolean paused = false;
 
-        DialogSession(Quest quest, List<String> lines, NPC npc, Runnable finish) {
-            this(quest, lines, npc, null, finish);
-        }
-
-        DialogSession(Quest quest, List<String> lines, net.citizensnpcs.api.npc.NPC citizensNpc, Runnable finish) {
-            this(quest, lines, null, citizensNpc, finish);
-        }
-
-        DialogSession(Quest quest, List<String> lines, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc, Runnable finish) {
+        DialogSession(Main plugin, Player player, Quest quest, List<DialogueEntry> entries,
+                      DialogNpcRef npc, Runnable finish) {
             this.quest = quest;
-            this.lines = lines;
+            this.entries = entries;
             this.npc = npc;
-            this.citizensNpc = citizensNpc;
             this.finish = finish;
+            this.context = new InteractionContext(plugin, player, npc, quest, finish);
         }
     }
 
@@ -77,7 +74,7 @@ public class NPCDialogManager implements Listener {
 
     public NPC getSessionNpc(Player player) {
         DialogSession s = sessions.get(player.getUniqueId());
-        return s != null ? s.npc : null;
+        return s != null && s.npc != null ? s.npc.npc() : null;
     }
 
     public Integer getSessionNpcId(Player player) {
@@ -85,13 +82,7 @@ public class NPCDialogManager implements Listener {
         if (s == null) {
             return null;
         }
-        if (s.npc != null) {
-            return s.npc.getId();
-        }
-        if (s.citizensNpc != null) {
-            return s.citizensNpc.getId();
-        }
-        return null;
+        return s.npc != null ? s.npc.id() : null;
     }
 
     public boolean isSessionNpc(Player player, int npcId) {
@@ -100,59 +91,28 @@ public class NPCDialogManager implements Listener {
     }
 
     private static class ChoiceSession {
-        final NPC npc;
-        final net.citizensnpcs.api.npc.NPC citizensNpc;
-        final List<String> options;
-        int index = 0;
-        final Consumer<Integer> callback;
-        final Listener listener;
-        String questId;
-        String flagBase;
-        String resumeLine;
-        final long openedAt;
+        final DialogNpcRef npc;
+        final OptionMessenger messenger;
 
-        ChoiceSession(NPC npc, List<String> options, Consumer<Integer> callback, Listener listener) {
-            this(npc, null, options, callback, listener);
-        }
-
-        ChoiceSession(net.citizensnpcs.api.npc.NPC citizensNpc, List<String> options, Consumer<Integer> callback, Listener listener) {
-            this(null, citizensNpc, options, callback, listener);
-        }
-
-        ChoiceSession(NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc, List<String> options,
-                      Consumer<Integer> callback, Listener listener) {
+        ChoiceSession(DialogNpcRef npc, OptionMessenger messenger) {
             this.npc = npc;
-            this.citizensNpc = citizensNpc;
-            this.options = options;
-            this.callback = callback;
-            this.listener = listener;
-            this.openedAt = System.currentTimeMillis();
+            this.messenger = messenger;
         }
     }
 
     private final Map<UUID, ChoiceSession> choiceSessions = new HashMap<>();
+
     private static class PendingChoice {
-        final NPC npc;
-        final net.citizensnpcs.api.npc.NPC citizensNpc;
+        final DialogNpcRef npc;
         final List<String> options;
         final Consumer<Integer> callback;
         final String questId;
         final String flagBase;
         final String resumeLine;
 
-        PendingChoice(NPC npc, List<String> options, Consumer<Integer> callback, String questId, String flagBase, String resumeLine) {
-            this(npc, null, options, callback, questId, flagBase, resumeLine);
-        }
-
-        PendingChoice(net.citizensnpcs.api.npc.NPC citizensNpc, List<String> options, Consumer<Integer> callback,
-                      String questId, String flagBase, String resumeLine) {
-            this(null, citizensNpc, options, callback, questId, flagBase, resumeLine);
-        }
-
-        PendingChoice(NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc, List<String> options, Consumer<Integer> callback,
+        PendingChoice(DialogNpcRef npc, List<String> options, Consumer<Integer> callback,
                       String questId, String flagBase, String resumeLine) {
             this.npc = npc;
-            this.citizensNpc = citizensNpc;
             this.options = options;
             this.callback = callback;
             this.questId = questId;
@@ -172,7 +132,7 @@ public class NPCDialogManager implements Listener {
      * after interacting with an NPC. Used to prevent accidental skill triggers.
      */
     public boolean isDialogLockActive(Player player) {
-        if (hasSession(player)) {
+        if (hasSession(player) || hasChoiceSession(player)) {
             return true;
         }
         UUID id = player.getUniqueId();
@@ -191,6 +151,22 @@ public class NPCDialogManager implements Listener {
         return choiceSessions.containsKey(player.getUniqueId());
     }
 
+    private void tickMessengers() {
+        Duration tick = Duration.ofMillis(50L);
+        for (DialogSession session : List.copyOf(sessions.values())) {
+            if (session.currentMessenger != null && !session.currentMessenger.isFinished()
+                    && !session.currentMessenger.isCancelled()) {
+                session.currentMessenger.tick(tick);
+            }
+        }
+        for (ChoiceSession session : List.copyOf(choiceSessions.values())) {
+            if (session.messenger != null && !session.messenger.isFinished()
+                    && !session.messenger.isCancelled()) {
+                session.messenger.tick(tick);
+            }
+        }
+    }
+
     /** Start a dialog sequence for a quest. */
     public void startDialog(Player player, Quest quest, NPC npc) {
         List<String> lines = quest.getDialogLines();
@@ -199,11 +175,7 @@ public class NPCDialogManager implements Listener {
             plugin.getLogger().info("[DialogDebug] startDialog quest=" + quest.getId() +
                     " player=" + player.getName());
         }
-        player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(quest, lines, npc, null);
-        sessions.put(player.getUniqueId(), session);
-        sendLine(player, session);
+        startDialogSession(player, quest, lines, DialogNpcRef.of(npc), null);
     }
 
     public void startDialog(Player player, Quest quest, net.citizensnpcs.api.npc.NPC npc) {
@@ -213,11 +185,7 @@ public class NPCDialogManager implements Listener {
             plugin.getLogger().info("[DialogDebug] startDialog quest=" + quest.getId() +
                     " player=" + player.getName());
         }
-        player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(quest, lines, npc, null);
-        sessions.put(player.getUniqueId(), session);
-        sendLine(player, session);
+        startDialogSession(player, quest, lines, DialogNpcRef.of(npc), null);
     }
 
     /** Start a dialog sequence with custom lines and finish callback. */
@@ -226,11 +194,7 @@ public class NPCDialogManager implements Listener {
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] startDialog custom player=" + player.getName());
         }
-        player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(null, lines, npc, finish);
-        sessions.put(player.getUniqueId(), session);
-        sendLine(player, session);
+        startDialogSession(player, null, lines, DialogNpcRef.of(npc), finish);
     }
 
     public void startDialog(Player player, List<String> lines, net.citizensnpcs.api.npc.NPC npc, Runnable finish) {
@@ -238,11 +202,7 @@ public class NPCDialogManager implements Listener {
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] startDialog custom player=" + player.getName());
         }
-        player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(null, lines, npc, finish);
-        sessions.put(player.getUniqueId(), session);
-        sendLine(player, session);
+        startDialogSession(player, null, lines, DialogNpcRef.of(npc), finish);
     }
 
     /**
@@ -252,79 +212,16 @@ public class NPCDialogManager implements Listener {
      * @param flagBase  if questId is supplied, choice index will be appended to this and stored as a flag
      */
     public void startChoiceDialog(Player player, NPC npc, List<String> options, String questId, String flagBase, Consumer<Integer> callback) {
-        if (options == null || options.isEmpty()) return;
-        if (hasChoiceSession(player)) return;
-        if (plugin.getQuestManager().isDebug()) {
-            plugin.getLogger().info("[DialogDebug] startChoiceDialog player=" + player.getName() +
-                    " quest=" + questId + " flagBase=" + flagBase);
-        }
-        if (questId != null && flagBase != null) {
-            String pendingFlag = flagBase + "pending";
-            plugin.getQuestManager().setFlag(player.getUniqueId(), questId, pendingFlag);
-            String last = lastLines.get(player.getUniqueId());
-            pendingChoices.put(player.getUniqueId(), new PendingChoice(npc, options, callback, questId, flagBase, last));
-        }
-
-        // Keep the player locked in place while making the choice
-        player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-
-        ChoiceSession[] ref = new ChoiceSession[1];
-        Listener listener = new Listener() {
-            @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-            public void onScroll(PlayerItemHeldEvent e) {
-                if (!e.getPlayer().equals(player)) return;
-                e.setCancelled(true);
-                ChoiceSession cs = ref[0];
-                if (cs == null) return;
-                if (e.getNewSlot() > e.getPreviousSlot()) cs.index++; else cs.index--;
-                if (cs.index < 0) cs.index = cs.options.size() - 1;
-                if (cs.index >= cs.options.size()) cs.index = 0;
-                sendChoice(player, cs);
-            }
-
-            @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-            public void onInteract(PlayerInteractEntityEvent e) {
-                if (!e.getPlayer().equals(player)) return;
-                NPC n = NpcApi.getRegistry().getNPC(e.getRightClicked());
-                net.citizensnpcs.api.npc.NPC citizens = CitizensAPI.getNPCRegistry().getNPC(e.getRightClicked());
-                if (npc != null) {
-                    if (n != null && n.getId() == npc.getId()) {
-                        // matched LevelPlugin NPC
-                    } else if (citizens != null && citizens.getId() == npc.getId()) {
-                        // matched Citizens NPC with same id
-                    } else {
-                        return;
-                    }
-                } else if (citizens != null) {
-                    return;
-                }
-                e.setCancelled(true);
-                finishChoice(player, ref[0]);
-            }
-
-            @EventHandler
-            public void onQuit(PlayerQuitEvent e) {
-                if (e.getPlayer().equals(player)) {
-                    // Treat quitting like walking away so the dialog can resume
-                    if (plugin.getQuestManager().isDebug()) {
-                        plugin.getLogger().info("[DialogDebug] player quit during choice " + player.getName());
-                    }
-                    pauseDialog(player);
-                }
-            }
-        };
-        ChoiceSession cs = new ChoiceSession(npc, options, callback, listener);
-        cs.questId = questId;
-        cs.flagBase = flagBase;
-        ref[0] = cs;
-        choiceSessions.put(player.getUniqueId(), cs);
-        Bukkit.getPluginManager().registerEvents(listener, me.nakilex.levelplugin.Main.getInstance());
-        sendChoice(player, cs);
+        startChoiceDialog(player, DialogNpcRef.of(npc), options, questId, flagBase, callback);
     }
 
     public void startChoiceDialog(Player player, net.citizensnpcs.api.npc.NPC npc, List<String> options,
                                   String questId, String flagBase, Consumer<Integer> callback) {
+        startChoiceDialog(player, DialogNpcRef.of(npc), options, questId, flagBase, callback);
+    }
+
+    private void startChoiceDialog(Player player, DialogNpcRef npc, List<String> options,
+                                   String questId, String flagBase, Consumer<Integer> callback) {
         if (options == null || options.isEmpty()) return;
         if (hasChoiceSession(player)) return;
         if (plugin.getQuestManager().isDebug()) {
@@ -338,60 +235,17 @@ public class NPCDialogManager implements Listener {
             pendingChoices.put(player.getUniqueId(), new PendingChoice(npc, options, callback, questId, flagBase, last));
         }
 
-        player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-
-        ChoiceSession[] ref = new ChoiceSession[1];
-        Listener listener = new Listener() {
-            @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-            public void onScroll(PlayerItemHeldEvent e) {
-                if (!e.getPlayer().equals(player)) return;
-                e.setCancelled(true);
-                ChoiceSession cs = ref[0];
-                if (cs == null) return;
-                if (e.getNewSlot() > e.getPreviousSlot()) cs.index++; else cs.index--;
-                if (cs.index < 0) cs.index = cs.options.size() - 1;
-                if (cs.index >= cs.options.size()) cs.index = 0;
-                sendChoice(player, cs);
-            }
-
-            @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-            public void onInteract(PlayerInteractEntityEvent e) {
-                if (!e.getPlayer().equals(player)) return;
-                NPC n = NpcApi.getRegistry().getNPC(e.getRightClicked());
-                net.citizensnpcs.api.npc.NPC citizens = CitizensAPI.getNPCRegistry().getNPC(e.getRightClicked());
-                if (npc != null) {
-                    if (citizens != null && citizens.getId() == npc.getId()) {
-                        // matched Citizens NPC
-                    } else if (n != null && n.getId() == npc.getId()) {
-                        // matched LevelPlugin NPC with same id
-                    } else {
-                        return;
-                    }
-                } else if (citizens != null) {
-                    return;
-                }
-                e.setCancelled(true);
-                finishChoice(player, ref[0]);
-            }
-
-            @EventHandler
-            public void onQuit(PlayerQuitEvent e) {
-                if (e.getPlayer().equals(player)) {
-                    if (plugin.getQuestManager().isDebug()) {
-                        plugin.getLogger().info("[DialogDebug] player quit during choice " + player.getName());
-                    }
-                    pauseDialog(player);
-                }
-            }
-        };
-        ChoiceSession cs = new ChoiceSession(npc, options, callback, listener);
-        cs.questId = questId;
-        cs.flagBase = flagBase;
-        ref[0] = cs;
-        choiceSessions.put(player.getUniqueId(), cs);
-        Bukkit.getPluginManager().registerEvents(listener, me.nakilex.levelplugin.Main.getInstance());
-        sendChoice(player, cs);
+        lockPlayer(player);
+        List<OptionDialogueEntry.Option> optionEntries = options.stream()
+                .map(OptionDialogueEntry.Option::new)
+                .toList();
+        Consumer<Integer> wrappedCallback = selected -> finishChoiceSelection(player, selected, questId, flagBase, callback);
+        OptionDialogueEntry entry = new OptionDialogueEntry("choice:" + player.getUniqueId(), "Choose your answer",
+                "Choose your answer:", optionEntries, wrappedCallback, "choice_index");
+        InteractionContext context = new InteractionContext(plugin, player, npc, null, null);
+        OptionMessenger messenger = (OptionMessenger) entry.createMessenger(player, context);
+        choiceSessions.put(player.getUniqueId(), new ChoiceSession(npc, messenger));
+        messenger.init();
     }
 
     /** Convenience overload for backwards compatibility. */
@@ -411,21 +265,23 @@ public class NPCDialogManager implements Listener {
 
         if (session.paused) {
             session.paused = false;
-            player.setInvulnerable(true);
-            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
+            lockPlayer(player);
         }
 
-        if (session.index >= session.lines.size()) {
+        if (session.currentMessenger != null && !session.currentMessenger.isFinished()
+                && !session.currentMessenger.isCancelled()) {
+            session.currentMessenger.requestNextOrSkip();
+            return;
+        }
+
+        if (session.index >= session.entries.size()) {
             endDialog(player);
             if (session.quest != null) {
                 questManager.startQuest(player, session.quest.getId());
             }
             if (session.npc != null) {
                 Main.getInstance().getCodexManager().recordNpc(player,
-                        org.bukkit.ChatColor.stripColor(session.npc.getName()));
-            } else if (session.citizensNpc != null) {
-                Main.getInstance().getCodexManager().recordNpc(player,
-                        org.bukkit.ChatColor.stripColor(session.citizensNpc.getName()));
+                        org.bukkit.ChatColor.stripColor(session.npc.name()));
             }
             if (session.finish != null) {
                 session.finish.run();
@@ -433,51 +289,62 @@ public class NPCDialogManager implements Listener {
             return;
         }
 
-        sendLine(player, session);
+        sendNextEntry(player, session);
     }
 
-    private void sendLine(Player player, DialogSession session) {
-        String raw = session.lines.get(session.index);
-        lastLines.put(player.getUniqueId(), raw);
-        String speaker = session.npc != null ? session.npc.getName()
-                : session.citizensNpc != null ? session.citizensNpc.getName()
-                : "NPC";
-        String line = raw;
-        int bar = raw.indexOf('|');
-        if (bar >= 0) {
-            speaker = raw.substring(0, bar);
-            line = raw.substring(bar + 1);
-            if ("<player>".equalsIgnoreCase(speaker)) {
-                speaker = player.getName();
-            }
-        }
-        line = line.replaceAll("(?i)<player>", Matcher.quoteReplacement(player.getName()));
+    private void startDialogSession(Player player, Quest quest, List<String> lines, DialogNpcRef npc, Runnable finish) {
+        if (lines == null || lines.isEmpty()) return;
+        lockPlayer(player);
+        DialogSession session = new DialogSession(plugin, player, quest, createMessageEntries(lines), npc, finish);
+        sessions.put(player.getUniqueId(), session);
+        sendNextEntry(player, session);
+    }
 
-        if (session.index == 0) {
-            ChatFormatter.constructDivider(player, " ", 45);
+    private List<DialogueEntry> createMessageEntries(List<String> lines) {
+        int total = lines.size();
+        return java.util.stream.IntStream.range(0, total)
+                .mapToObj(index -> new MessageDialogueEntry("message:" + index, "Message " + (index + 1),
+                        lines.get(index), index, total))
+                .map(DialogueEntry.class::cast)
+                .toList();
+    }
+
+    private void sendNextEntry(Player player, DialogSession session) {
+        if (session.index >= session.entries.size()) {
+            return;
         }
-        String msg = ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + (session.index + 1)
-                + "/" + session.lines.size() + ChatColor.DARK_GRAY + "] "
-                + ChatColor.YELLOW + speaker
-                + ChatColor.WHITE + ": " + line;
-        player.sendMessage(msg);
-        ChatFormatter.constructDivider(player, " ", 45);
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        DialogueEntry entry = session.entries.get(session.index);
+        session.currentMessenger = entry.createMessenger(player, session.context);
+        if (entry instanceof MessageDialogueEntry messageEntry) {
+            lastLines.put(player.getUniqueId(), messageEntry.rawLine());
+        }
+        session.currentMessenger.init();
         session.index++;
     }
 
-    private void endDialog(Player player) {
+    private void lockPlayer(Player player) {
+        player.setInvulnerable(true);
+        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
+    }
+
+    private void unlockPlayer(Player player) {
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
+    }
+
+    private void endDialog(Player player) {
+        DialogSession session = sessions.remove(player.getUniqueId());
+        if (session != null && session.currentMessenger != null) {
+            session.currentMessenger.dispose();
+        }
+        unlockPlayer(player);
         recordDialogCooldown(player);
-        sessions.remove(player.getUniqueId());
     }
 
     private void pauseDialog(Player player) {
         DialogSession session = sessions.get(player.getUniqueId());
         if (session == null) return;
-        player.removePotionEffect(PotionEffectType.SLOWNESS);
-        player.setInvulnerable(false);
+        unlockPlayer(player);
         session.paused = true;
         cancelChoice(player);
         BukkitTask task = resumeTasks.remove(player.getUniqueId());
@@ -492,9 +359,11 @@ public class NPCDialogManager implements Listener {
      */
     public void resetDialog(Player player) {
         cancelChoice(player);
-        sessions.remove(player.getUniqueId());
-        player.removePotionEffect(PotionEffectType.SLOWNESS);
-        player.setInvulnerable(false);
+        DialogSession session = sessions.remove(player.getUniqueId());
+        if (session != null && session.currentMessenger != null) {
+            session.currentMessenger.cancel();
+        }
+        unlockPlayer(player);
         recordDialogCooldown(player);
         lastLines.remove(player.getUniqueId());
         pendingChoices.remove(player.getUniqueId());
@@ -502,6 +371,20 @@ public class NPCDialogManager implements Listener {
         if (task != null) task.cancel();
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] reset dialog for " + player.getName());
+        }
+    }
+
+    @EventHandler
+    public void onPluginDisable(PluginDisableEvent event) {
+        if (event.getPlugin() != plugin) return;
+        messengerTickTask.cancel();
+        for (UUID playerId : List.copyOf(sessions.keySet())) {
+            Player player = plugin.getServer().getPlayer(playerId);
+            if (player != null) resetDialog(player);
+        }
+        for (UUID playerId : List.copyOf(choiceSessions.keySet())) {
+            Player player = plugin.getServer().getPlayer(playerId);
+            if (player != null) resetDialog(player);
         }
     }
 
@@ -516,54 +399,29 @@ public class NPCDialogManager implements Listener {
     /** Remove an active choice dialog without triggering its callback. */
     private void cancelChoice(Player player) {
         ChoiceSession cs = choiceSessions.remove(player.getUniqueId());
-        if (cs != null) {
-            HandlerList.unregisterAll(cs.listener);
+        if (cs != null && cs.messenger != null) {
+            cs.messenger.cancel();
         }
     }
 
-    private void sendChoice(Player player, ChoiceSession cs) {
-        ChatFormatter.sendCenteredMessage(player, ChatColor.AQUA + "Choose your answer:");
-        ChatFormatter.constructDivider(player, " ", 45);
-
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < cs.options.size(); i++) {
-            if (i > 0) sb.append(ChatColor.GRAY).append(" / ");
-            ChatColor col = i == cs.index ? ChatColor.GREEN : ChatColor.WHITE;
-            sb.append(ChatColor.DARK_GRAY).append("[")
-                    .append(col).append(i == cs.index ? ChatColor.UNDERLINE : "")
-                    .append(cs.options.get(i))
-                    .append(ChatColor.DARK_GRAY).append("]");
-        }
-        ChatFormatter.sendCenteredMessage(player, sb.toString());
-        ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "(Scroll to cycle)");
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-    }
-
-    private void finishChoice(Player player, ChoiceSession cs) {
-        if (cs == null) return;
-        if (System.currentTimeMillis() - cs.openedAt < 400) {
-            sendChoice(player, cs);
-            return;
-        }
-        HandlerList.unregisterAll(cs.listener);
+    private void finishChoiceSelection(Player player, int selectedIndex, String questId, String flagBase, Consumer<Integer> callback) {
         choiceSessions.remove(player.getUniqueId());
-        player.removePotionEffect(PotionEffectType.SLOWNESS);
-        player.setInvulnerable(false);
+        unlockPlayer(player);
         recordDialogCooldown(player);
         BukkitTask pending = resumeTasks.remove(player.getUniqueId());
         if (pending != null) pending.cancel();
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] finishChoice player=" + player.getName() +
-                    " quest=" + cs.questId + " choice=" + cs.index);
+                    " quest=" + questId + " choice=" + selectedIndex);
         }
-        if (cs.questId != null && cs.flagBase != null) {
+        if (questId != null && flagBase != null) {
             QuestManager qm = plugin.getQuestManager();
-            qm.removeFlag(player.getUniqueId(), cs.questId, cs.flagBase + "pending");
-            qm.setFlag(player.getUniqueId(), cs.questId, cs.flagBase + cs.index);
+            qm.removeFlag(player.getUniqueId(), questId, flagBase + "pending");
+            qm.setFlag(player.getUniqueId(), questId, flagBase + selectedIndex);
             pendingChoices.remove(player.getUniqueId());
         }
-        if (cs.callback != null) {
-            cs.callback.accept(cs.index);
+        if (callback != null) {
+            callback.accept(selectedIndex);
         }
     }
 
@@ -589,13 +447,7 @@ public class NPCDialogManager implements Listener {
             }
             return false;
         }
-        if (npc != null && pc.npc != null && pc.npc.getId() != npc.getId()) {
-            if (plugin.getQuestManager().isDebug()) {
-                plugin.getLogger().info("[DialogDebug] pending choice NPC mismatch for " + player.getName());
-            }
-            return false;
-        }
-        if (npc != null && pc.npc == null && pc.citizensNpc != null && pc.citizensNpc.getId() != npc.getId()) {
+        if (npc != null && pc.npc != null && pc.npc.id() != npc.getId()) {
             if (plugin.getQuestManager().isDebug()) {
                 plugin.getLogger().info("[DialogDebug] pending choice NPC mismatch for " + player.getName());
             }
@@ -643,13 +495,7 @@ public class NPCDialogManager implements Listener {
             }
             return false;
         }
-        if (npc != null && pc.citizensNpc != null && pc.citizensNpc.getId() != npc.getId()) {
-            if (plugin.getQuestManager().isDebug()) {
-                plugin.getLogger().info("[DialogDebug] pending choice NPC mismatch for " + player.getName());
-            }
-            return false;
-        }
-        if (npc != null && pc.citizensNpc == null && pc.npc != null && pc.npc.getId() != npc.getId()) {
+        if (npc != null && pc.npc != null && pc.npc.id() != npc.getId()) {
             if (plugin.getQuestManager().isDebug()) {
                 plugin.getLogger().info("[DialogDebug] pending choice NPC mismatch for " + player.getName());
             }
@@ -694,7 +540,7 @@ public class NPCDialogManager implements Listener {
         DialogSession session = sessions.get(player.getUniqueId());
         if (session != null) {
             if (session.paused) return;
-            Location location = getNpcLocation(session.npc, session.citizensNpc);
+            Location location = session.npc != null ? session.npc.location() : null;
             if (location != null && player.getLocation().distanceSquared(location) > maxDistanceSquared) {
                 player.sendMessage(ChatColor.RED + "You walked away from the NPC. Dialogue cancelled.");
                 resetDialog(player);
@@ -704,7 +550,7 @@ public class NPCDialogManager implements Listener {
 
         ChoiceSession cs = choiceSessions.get(player.getUniqueId());
         if (cs != null) {
-            Location location = getNpcLocation(cs.npc, cs.citizensNpc);
+            Location location = cs.npc != null ? cs.npc.location() : null;
             if (location != null && player.getLocation().distanceSquared(location) > maxDistanceSquared) {
                 player.sendMessage(ChatColor.RED + "You walked away from the NPC. Dialogue cancelled.");
                 resetDialog(player);
@@ -712,19 +558,4 @@ public class NPCDialogManager implements Listener {
         }
     }
 
-    private Location getNpcLocation(NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
-        if (npc != null) {
-            if (npc.isSpawned() && npc.getEntity() != null) {
-                return npc.getEntity().getLocation();
-            }
-            return npc.getStoredLocation();
-        }
-        if (citizensNpc != null) {
-            if (citizensNpc.isSpawned() && citizensNpc.getEntity() != null) {
-                return citizensNpc.getEntity().getLocation();
-            }
-            return citizensNpc.getStoredLocation();
-        }
-        return null;
-    }
 }
