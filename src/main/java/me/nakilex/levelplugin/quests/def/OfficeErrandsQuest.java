@@ -145,7 +145,7 @@ public class OfficeErrandsQuest extends Quest implements QuestScript, QuestCompl
                 if (plugin.getDialogManager().hasSession(player)) {
                     if (plugin.getDialogManager().isSessionNpc(player, npcId)) {
                         event.setCancelled(true);
-                        plugin.getDialogManager().advanceDialog(player, plugin.getQuestManager());
+                        plugin.getDialogManager().handlePrimaryInput(player);
                         return;
                     }
                 }

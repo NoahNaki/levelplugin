@@ -67,7 +67,6 @@ import me.nakilex.levelplugin.utils.FeatureFlagUtil;
 import me.nakilex.levelplugin.quests.listeners.QuestKillListener;
 import me.nakilex.levelplugin.quests.listeners.QuestCraftListener;
 import me.nakilex.levelplugin.quests.gui.QuestGUIListener;
-import me.nakilex.levelplugin.npc.listeners.NPCDialogMoveListener;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.listeners.MobStatusDebugListener;
@@ -341,7 +340,6 @@ public class ListenerRegistry {
         pm.registerEvents(new QuestKillListener(questManager), plugin);
         pm.registerEvents(new QuestCraftListener(questManager), plugin);
         pm.registerEvents(new QuestGUIListener(questManager), plugin);
-        pm.registerEvents(new NPCDialogMoveListener(dialogManager), plugin);
         pm.registerEvents(plugin.getScoreboardManager(), plugin);
         pm.registerEvents(plugin.getPartyGlowManager(), plugin);
         pm.registerEvents(plugin.getFriendGlowManager(), plugin);

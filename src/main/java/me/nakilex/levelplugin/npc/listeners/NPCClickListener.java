@@ -215,7 +215,7 @@ public class NPCClickListener implements Listener {
 
         if (dialogManager.hasSession(player)) {
             if (dialogManager.isSessionNpc(player, npcId)) {
-                dialogManager.advanceDialog(player, questManager);
+                dialogManager.handlePrimaryInput(player);
             }
             return;
         }

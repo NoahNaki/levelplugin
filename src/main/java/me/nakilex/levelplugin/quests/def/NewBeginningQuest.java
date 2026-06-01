@@ -147,7 +147,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 if (plugin.getDialogManager().hasSession(pl)) {
                     if (plugin.getDialogManager().isSessionNpc(pl, clicked.id())) {
-                        plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
+                        plugin.getDialogManager().handlePrimaryInput(pl);
                     }
                     return;
                 }
@@ -185,7 +185,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 if (plugin.getDialogManager().hasSession(pl)) {
                     if (plugin.getDialogManager().isSessionNpc(pl, clicked.id())) {
-                        plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
+                        plugin.getDialogManager().handlePrimaryInput(pl);
                     }
                     return;
                 }
@@ -230,7 +230,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
                                                         clicked,
                                                         null);
                                                 Bukkit.getScheduler().runTaskLater(plugin,
-                                                        () -> plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager()),
+                                                        () -> plugin.getDialogManager().handlePrimaryInput(pl),
                                                         1L);
                                             }
                                             if (qm.isDebug()) {
@@ -292,7 +292,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 if (plugin.getDialogManager().hasSession(pl)) {
                     if (plugin.getDialogManager().isSessionNpc(pl, clicked.id())) {
-                        plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
+                        plugin.getDialogManager().handlePrimaryInput(pl);
                     }
                     return;
                 }

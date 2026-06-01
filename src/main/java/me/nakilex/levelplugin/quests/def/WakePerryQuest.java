@@ -184,7 +184,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
         if (dialogManager.hasSession(player)) {
             NPC sessionNpc = dialogManager.getSessionNpc(player);
             if (sessionNpc != null && sessionNpc.getId() == npc.getId()) {
-                dialogManager.advanceDialog(player, questManager);
+                dialogManager.handlePrimaryInput(player);
             }
             return true;
         }
@@ -448,7 +448,7 @@ public class WakePerryQuest extends Quest implements QuestScript {
                     cancel();
                     return;
                 }
-                dialogManager.advanceDialog(player, questManager);
+                dialogManager.handlePrimaryInput(player);
             }
         }.runTaskTimer(Main.getInstance(), 20L, 40L);
     }

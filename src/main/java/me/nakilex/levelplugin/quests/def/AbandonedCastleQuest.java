@@ -245,7 +245,7 @@ public class AbandonedCastleQuest extends Quest implements QuestScript, QuestRes
 
         if (dialogManager != null && dialogStarter != null) {
             dialogStarter.accept(() -> questManager.handleTalk(player, RETURN_TARGET));
-            dialogManager.advanceDialog(player, questManager);
+            dialogManager.handlePrimaryInput(player);
         } else {
             questManager.handleTalk(player, RETURN_TARGET);
         }

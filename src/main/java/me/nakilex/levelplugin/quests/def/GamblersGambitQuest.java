@@ -239,7 +239,7 @@ public class GamblersGambitQuest extends Quest implements QuestScript, QuestComp
             new BukkitRunnable() {
                 @Override
                 public void run() {
-                    dialogManager.advanceDialog(player, questManager);
+                    dialogManager.handlePrimaryInput(player);
                 }
             }.runTask(plugin);
         } else {
