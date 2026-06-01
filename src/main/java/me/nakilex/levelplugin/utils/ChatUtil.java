@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.utils;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -18,6 +19,7 @@ import java.util.regex.Pattern;
 /** Utility methods for player chat messages. */
 public final class ChatUtil {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final Pattern EMOJI_PATTERN = Pattern.compile(":([a-z_]+):", Pattern.CASE_INSENSITIVE);
     private static final Map<String, String> EMOJI_GLYPHS = Map.ofEntries(
             Map.entry("begging", glyphTag("begging_emote")),
@@ -105,6 +107,25 @@ public final class ChatUtil {
                 .append(Component.text(": "))
                 .append(combined)
                 .build();
+    }
+
+    /**
+     * Deserialize a legacy section-colored message after applying configured emoji glyphs.
+     */
+    public static Component legacyComponent(String message) {
+        return LEGACY.deserialize(applyEmojis(message));
+    }
+
+    /**
+     * Build a formatted text component for UI messages. Legacy section-colored text remains
+     * supported, while messages without legacy codes may use MiniMessage formatting and the
+     * standard {@code <newline>} tag.
+     */
+    public static Component formattedComponent(String message) {
+        String formatted = applyEmojis(message).replace("<newline>", "\n");
+        return formatted.indexOf('§') >= 0
+                ? LEGACY.deserialize(formatted)
+                : MINI_MESSAGE.deserialize(formatted);
     }
 
     /**

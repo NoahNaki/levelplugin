@@ -126,6 +126,12 @@ public class NPCClickListener implements Listener {
 
         dialogManager.recordDialogCooldown(player);
 
+        var questDialogueManager = Main.getInstance().getQuestDialogueManager();
+        if (questDialogueManager != null && questDialogueManager.hasSession(player)) {
+            questDialogueManager.nextOrSkip(player, npcId);
+            return;
+        }
+
         if (npc != null && WakePerryQuest.handleNpcInteraction(player, npc, event.getHand())) {
             return;
         }
@@ -215,7 +221,7 @@ public class NPCClickListener implements Listener {
 
         if (dialogManager.hasSession(player)) {
             if (dialogManager.isSessionNpc(player, npcId)) {
-                dialogManager.advanceDialog(player, questManager);
+                dialogManager.nextOrSkipDialog(player, questManager);
             }
             return;
         }

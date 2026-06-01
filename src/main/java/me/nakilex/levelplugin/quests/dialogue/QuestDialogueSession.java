@@ -1,0 +1,183 @@
+package me.nakilex.levelplugin.quests.dialogue;
+
+import me.nakilex.levelplugin.utils.ChatUtil;
+import net.kyori.adventure.text.Component;
+import org.bukkit.entity.Player;
+
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.LongSupplier;
+
+/**
+ * Tracks one player's progress through a simple linear quest dialogue.
+ */
+public class QuestDialogueSession {
+    public enum State {
+        TYPING,
+        WAITING,
+        FINISHED
+    }
+
+    /** Renders the currently visible portion of a line and clears it when the session ends. */
+    public interface Renderer {
+        void render(Player player, QuestDialogueLine line, Component speaker, Component visibleText,
+                    State state, int lineNumber, int lineCount);
+
+        void clear(Player player);
+    }
+
+    private static final Runnable NO_OP = () -> {};
+
+    private final Player player;
+    private final int npcId;
+    private final List<PreparedLine> lines;
+    private final Runnable onFinish;
+    private final Consumer<QuestDialogueSession> onFinished;
+    private final int lineNumberOffset;
+    private final int lineCount;
+    private final LongSupplier clock;
+    private final Renderer renderer;
+
+    private int lineIndex;
+    private State state = State.TYPING;
+    private long stateStartedAt;
+
+    public QuestDialogueSession(Player player, int npcId, List<QuestDialogueLine> lines, Runnable onFinish,
+                                Consumer<QuestDialogueSession> onFinished, LongSupplier clock, Renderer renderer) {
+        this(player, npcId, lines, 0, lines == null ? 0 : lines.size(), onFinish, onFinished, clock, renderer);
+    }
+
+    public QuestDialogueSession(Player player, int npcId, List<QuestDialogueLine> lines, int lineNumberOffset,
+                                int lineCount, Runnable onFinish, Consumer<QuestDialogueSession> onFinished,
+                                LongSupplier clock, Renderer renderer) {
+        this.player = Objects.requireNonNull(player, "player");
+        this.npcId = npcId;
+        this.lines = Objects.requireNonNull(lines, "lines").stream().map(PreparedLine::new).toList();
+        if (this.lines.isEmpty()) {
+            throw new IllegalArgumentException("lines cannot be empty");
+        }
+        this.onFinish = onFinish == null ? NO_OP : onFinish;
+        this.onFinished = Objects.requireNonNull(onFinished, "onFinished");
+        this.lineNumberOffset = Math.max(0, lineNumberOffset);
+        this.lineCount = Math.max(this.lineNumberOffset + this.lines.size(), lineCount);
+        this.clock = Objects.requireNonNull(clock, "clock");
+        this.renderer = Objects.requireNonNull(renderer, "renderer");
+        startLine();
+    }
+
+    /** Update the current typing animation or automatically advance after the configured wait. */
+    public void tick() {
+        if (state == State.FINISHED) {
+            return;
+        }
+
+        PreparedLine line = currentLine();
+        long elapsed = elapsedSinceStateStarted();
+        if (state == State.TYPING) {
+            if (elapsed < line.typingDuration()) {
+                render(line.text().sliceForElapsed(elapsed, line.line().typingMillis()));
+                return;
+            }
+            enterWaiting();
+            if (line.line().waitMillis() > 0) {
+                return;
+            }
+        }
+
+        if (elapsedSinceStateStarted() >= line.line().waitMillis()) {
+            nextLine();
+        }
+    }
+
+    /** Skip an in-progress typing animation, or advance a fully revealed line. */
+    public void nextOrSkip() {
+        if (state == State.TYPING) {
+            enterWaiting();
+            return;
+        }
+        if (state == State.WAITING) {
+            nextLine();
+        }
+    }
+
+    /** Stop the dialogue without invoking its completion callback. */
+    public void cancel() {
+        if (state == State.FINISHED) {
+            return;
+        }
+        state = State.FINISHED;
+        renderer.clear(player);
+    }
+
+    public Player getPlayer() {
+        return player;
+    }
+
+    public int getNpcId() {
+        return npcId;
+    }
+
+    public State getState() {
+        return state;
+    }
+
+    public int getLineIndex() {
+        return lineIndex;
+    }
+
+    private void startLine() {
+        state = State.TYPING;
+        stateStartedAt = clock.getAsLong();
+        if (currentLine().typingDuration() == 0) {
+            enterWaiting();
+        } else {
+            render(Component.empty());
+        }
+    }
+
+    private void nextLine() {
+        lineIndex++;
+        if (lineIndex >= lines.size()) {
+            finish();
+            return;
+        }
+        startLine();
+    }
+
+    private void enterWaiting() {
+        state = State.WAITING;
+        stateStartedAt = clock.getAsLong();
+        render(currentLine().text().fullComponent());
+    }
+
+    private void render(Component visibleText) {
+        PreparedLine line = currentLine();
+        renderer.render(player, line.line(), line.speaker(), visibleText, state, lineNumberOffset + lineIndex + 1, lineCount);
+    }
+
+    private long elapsedSinceStateStarted() {
+        return Math.max(0L, clock.getAsLong() - stateStartedAt);
+    }
+
+    private PreparedLine currentLine() {
+        return lines.get(lineIndex);
+    }
+
+    private void finish() {
+        state = State.FINISHED;
+        renderer.clear(player);
+        onFinished.accept(this);
+        onFinish.run();
+    }
+
+    private record PreparedLine(QuestDialogueLine line, Component speaker, QuestDialogueText text, long typingDuration) {
+        PreparedLine(QuestDialogueLine line) {
+            this(line, QuestDialogueText.parse(line.text()));
+        }
+
+        private PreparedLine(QuestDialogueLine line, QuestDialogueText text) {
+            this(line, ChatUtil.formattedComponent(line.speakerName()), text, text.typingDuration(line.typingMillis()));
+        }
+    }
+}

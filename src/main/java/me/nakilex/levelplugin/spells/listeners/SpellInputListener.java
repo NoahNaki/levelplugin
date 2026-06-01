@@ -230,7 +230,9 @@ public class SpellInputListener implements Listener {
             return true;
         }
         var dialogManager = Main.getInstance().getDialogManager();
-        return dialogManager != null && dialogManager.hasSession(player);
+        var questDialogueManager = Main.getInstance().getQuestDialogueManager();
+        return (dialogManager != null && dialogManager.hasSession(player))
+                || (questDialogueManager != null && questDialogueManager.hasSession(player));
     }
 
     private SpellInputType getBoundSpell(Player player, SpellInputMode mode, SpellKeybindSlot slot) {

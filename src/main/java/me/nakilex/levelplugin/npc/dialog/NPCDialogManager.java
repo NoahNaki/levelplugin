@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.npc.dialog;
 
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
+import me.nakilex.levelplugin.quests.dialogue.QuestDialogueLine;
+import me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.Main;
@@ -74,6 +76,8 @@ public class NPCDialogManager implements Listener {
     private final Map<UUID, Long> dialogCooldowns = new HashMap<>();
 
     private static final long SKILL_DELAY_MS = 500L;
+    private static final long TYPING_MILLIS_PER_CHARACTER = 35L;
+    private static final long LINE_WAIT_MILLIS = 3000L;
 
     public NPC getSessionNpc(Player player) {
         DialogSession s = sessions.get(player.getUniqueId());
@@ -172,7 +176,8 @@ public class NPCDialogManager implements Listener {
      * after interacting with an NPC. Used to prevent accidental skill triggers.
      */
     public boolean isDialogLockActive(Player player) {
-        if (hasSession(player)) {
+        var questDialogueManager = Main.getInstance().getQuestDialogueManager();
+        if (hasSession(player) || (questDialogueManager != null && questDialogueManager.hasSession(player))) {
             return true;
         }
         UUID id = player.getUniqueId();
@@ -404,8 +409,25 @@ public class NPCDialogManager implements Listener {
         startChoiceDialog(player, npc, options, null, null, callback);
     }
 
+    /**
+     * Handle a player's click against the NPC that owns the active dialog.
+     * Timed lines consume the first click as a skip and the next click as an advance.
+     */
+    public void nextOrSkipDialog(Player player, QuestManager questManager) {
+        QuestDialogueManager questDialogueManager = plugin.getQuestDialogueManager();
+        Integer npcId = getSessionNpcId(player);
+        if (questDialogueManager != null && npcId != null && questDialogueManager.nextOrSkip(player, npcId)) {
+            return;
+        }
+        advanceDialog(player, questManager);
+    }
+
     /** Advance the dialog or accept the quest if finished. */
     public void advanceDialog(Player player, QuestManager questManager) {
+        QuestDialogueManager questDialogueManager = plugin.getQuestDialogueManager();
+        if (questDialogueManager != null) {
+            questDialogueManager.cancel(player);
+        }
         DialogSession session = sessions.get(player.getUniqueId());
         if (session == null) return;
 
@@ -439,34 +461,37 @@ public class NPCDialogManager implements Listener {
     private void sendLine(Player player, DialogSession session) {
         String raw = session.lines.get(session.index);
         lastLines.put(player.getUniqueId(), raw);
-        String speaker = session.npc != null ? session.npc.getName()
+        String defaultSpeaker = session.npc != null ? session.npc.getName()
                 : session.citizensNpc != null ? session.citizensNpc.getName()
                 : "NPC";
-        String line = raw;
-        int bar = raw.indexOf('|');
-        if (bar >= 0) {
-            speaker = raw.substring(0, bar);
-            line = raw.substring(bar + 1);
-            if ("<player>".equalsIgnoreCase(speaker)) {
-                speaker = player.getName();
-            }
-        }
-        line = line.replaceAll("(?i)<player>", Matcher.quoteReplacement(player.getName()));
+        QuestDialogueLine line = QuestDialogueLine.fromLegacy(raw, defaultSpeaker,
+                TYPING_MILLIS_PER_CHARACTER, LINE_WAIT_MILLIS);
+        int lineNumber = ++session.index;
 
-        if (session.index == 0) {
-            ChatFormatter.constructDivider(player, " ", 45);
-        }
-        String msg = ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + (session.index + 1)
-                + "/" + session.lines.size() + ChatColor.DARK_GRAY + "] "
-                + ChatColor.YELLOW + speaker
-                + ChatColor.WHITE + ": " + line;
-        player.sendMessage(msg);
-        ChatFormatter.constructDivider(player, " ", 45);
         player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
-        session.index++;
+        QuestDialogueManager questDialogueManager = plugin.getQuestDialogueManager();
+        if (questDialogueManager != null) {
+            questDialogueManager.startDialogueLine(player, getNpcId(session), line, lineNumber, session.lines.size(),
+                    () -> advanceDialog(player, plugin.getQuestManager()));
+            return;
+        }
+
+        String speaker = "<player>".equalsIgnoreCase(line.speakerName()) ? player.getName() : line.speakerName();
+        String text = line.text().replaceAll("(?i)<player>", Matcher.quoteReplacement(player.getName()));
+        player.sendMessage(ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + lineNumber
+                + "/" + session.lines.size() + ChatColor.DARK_GRAY + "] "
+                + ChatColor.YELLOW + speaker + ChatColor.WHITE + ": " + text);
+    }
+
+    private int getNpcId(DialogSession session) {
+        if (session.npc != null) {
+            return session.npc.getId();
+        }
+        return session.citizensNpc != null ? session.citizensNpc.getId() : -1;
     }
 
     private void endDialog(Player player) {
+        cancelTimedDialogue(player);
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
         recordDialogCooldown(player);
@@ -474,6 +499,7 @@ public class NPCDialogManager implements Listener {
     }
 
     private void pauseDialog(Player player) {
+        cancelTimedDialogue(player);
         DialogSession session = sessions.get(player.getUniqueId());
         if (session == null) return;
         player.removePotionEffect(PotionEffectType.SLOWNESS);
@@ -491,6 +517,7 @@ public class NPCDialogManager implements Listener {
      * Remove any active dialog session entirely, discarding progress.
      */
     public void resetDialog(Player player) {
+        cancelTimedDialogue(player);
         cancelChoice(player);
         sessions.remove(player.getUniqueId());
         player.removePotionEffect(PotionEffectType.SLOWNESS);
@@ -502,6 +529,13 @@ public class NPCDialogManager implements Listener {
         if (task != null) task.cancel();
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] reset dialog for " + player.getName());
+        }
+    }
+
+    private void cancelTimedDialogue(Player player) {
+        QuestDialogueManager questDialogueManager = plugin.getQuestDialogueManager();
+        if (questDialogueManager != null) {
+            questDialogueManager.cancel(player);
         }
     }
 

@@ -21,6 +21,7 @@ public class ActionBarTask extends BukkitRunnable {
         long now = System.currentTimeMillis();
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (plugin.getCutsceneManager().isInCutscene(player)) continue;
+            if (plugin.getQuestDialogueManager() != null && plugin.getQuestDialogueManager().hasSession(player)) continue;
             CooldownIndicatorManager.Info info = CooldownIndicatorManager.getInstance().get(player);
             if (info != null) {
                 boolean showCd = now < info.expireAt && now < info.costExpireAt;

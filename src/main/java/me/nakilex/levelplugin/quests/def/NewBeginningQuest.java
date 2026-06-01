@@ -147,7 +147,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 if (plugin.getDialogManager().hasSession(pl)) {
                     if (plugin.getDialogManager().isSessionNpc(pl, clicked.id())) {
-                        plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
+                        plugin.getDialogManager().nextOrSkipDialog(pl, plugin.getQuestManager());
                     }
                     return;
                 }
@@ -185,7 +185,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 if (plugin.getDialogManager().hasSession(pl)) {
                     if (plugin.getDialogManager().isSessionNpc(pl, clicked.id())) {
-                        plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
+                        plugin.getDialogManager().nextOrSkipDialog(pl, plugin.getQuestManager());
                     }
                     return;
                 }
@@ -292,7 +292,7 @@ public class NewBeginningQuest extends Quest implements QuestScript, QuestComple
 
                 if (plugin.getDialogManager().hasSession(pl)) {
                     if (plugin.getDialogManager().isSessionNpc(pl, clicked.id())) {
-                        plugin.getDialogManager().advanceDialog(pl, plugin.getQuestManager());
+                        plugin.getDialogManager().nextOrSkipDialog(pl, plugin.getQuestManager());
                     }
                     return;
                 }
