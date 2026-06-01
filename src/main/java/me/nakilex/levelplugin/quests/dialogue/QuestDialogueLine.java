@@ -7,7 +7,7 @@ import java.util.Objects;
  *
  * @param speakerName  name displayed before the dialogue text
  * @param text         full text revealed by the typing animation
- * @param typingMillis time spent revealing the text
+ * @param typingMillis base time spent revealing the text, before natural punctuation pauses
  * @param waitMillis   time the full text remains visible before automatically advancing
  */
 public record QuestDialogueLine(String speakerName, String text, long typingMillis, long waitMillis) {

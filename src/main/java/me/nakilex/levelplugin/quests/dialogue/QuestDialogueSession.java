@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.quests.dialogue;
 
+import me.nakilex.levelplugin.utils.ChatUtil;
+import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -19,7 +21,8 @@ public class QuestDialogueSession {
 
     /** Renders the currently visible portion of a line and clears it when the session ends. */
     public interface Renderer {
-        void render(Player player, QuestDialogueLine line, String visibleText, State state, int lineNumber, int lineCount);
+        void render(Player player, QuestDialogueLine line, Component speaker, Component visibleText,
+                    State state, int lineNumber, int lineCount);
 
         void clear(Player player);
     }
@@ -28,7 +31,7 @@ public class QuestDialogueSession {
 
     private final Player player;
     private final int npcId;
-    private final List<QuestDialogueLine> lines;
+    private final List<PreparedLine> lines;
     private final Runnable onFinish;
     private final Consumer<QuestDialogueSession> onFinished;
     private final LongSupplier clock;
@@ -42,7 +45,7 @@ public class QuestDialogueSession {
                                 Consumer<QuestDialogueSession> onFinished, LongSupplier clock, Renderer renderer) {
         this.player = Objects.requireNonNull(player, "player");
         this.npcId = npcId;
-        this.lines = List.copyOf(Objects.requireNonNull(lines, "lines"));
+        this.lines = Objects.requireNonNull(lines, "lines").stream().map(PreparedLine::new).toList();
         if (this.lines.isEmpty()) {
             throw new IllegalArgumentException("lines cannot be empty");
         }
@@ -59,23 +62,20 @@ public class QuestDialogueSession {
             return;
         }
 
-        QuestDialogueLine line = currentLine();
-        long elapsed = Math.max(0L, clock.getAsLong() - stateStartedAt);
+        PreparedLine line = currentLine();
+        long elapsed = elapsedSinceStateStarted();
         if (state == State.TYPING) {
-            if (elapsed < line.typingMillis()) {
-                double percent = elapsed / (double) line.typingMillis();
-                int chars = (int) (line.text().length() * Math.min(1.0, percent));
-                render(line.text().substring(0, chars));
+            if (elapsed < line.typingDuration()) {
+                render(line.text().sliceForElapsed(elapsed, line.line().typingMillis()));
                 return;
             }
             enterWaiting();
-            if (line.waitMillis() > 0) {
+            if (line.line().waitMillis() > 0) {
                 return;
             }
         }
 
-        elapsed = Math.max(0L, clock.getAsLong() - stateStartedAt);
-        if (elapsed >= line.waitMillis()) {
+        if (elapsedSinceStateStarted() >= line.line().waitMillis()) {
             nextLine();
         }
     }
@@ -119,10 +119,10 @@ public class QuestDialogueSession {
     private void startLine() {
         state = State.TYPING;
         stateStartedAt = clock.getAsLong();
-        if (currentLine().typingMillis() == 0) {
+        if (currentLine().typingDuration() == 0) {
             enterWaiting();
         } else {
-            render("");
+            render(Component.empty());
         }
     }
 
@@ -138,18 +138,19 @@ public class QuestDialogueSession {
     private void enterWaiting() {
         state = State.WAITING;
         stateStartedAt = clock.getAsLong();
-        showFullLine();
+        render(currentLine().text().fullComponent());
     }
 
-    private void showFullLine() {
-        render(currentLine().text());
+    private void render(Component visibleText) {
+        PreparedLine line = currentLine();
+        renderer.render(player, line.line(), line.speaker(), visibleText, state, lineIndex + 1, lines.size());
     }
 
-    private void render(String visibleText) {
-        renderer.render(player, currentLine(), visibleText, state, lineIndex + 1, lines.size());
+    private long elapsedSinceStateStarted() {
+        return Math.max(0L, clock.getAsLong() - stateStartedAt);
     }
 
-    private QuestDialogueLine currentLine() {
+    private PreparedLine currentLine() {
         return lines.get(lineIndex);
     }
 
@@ -158,5 +159,15 @@ public class QuestDialogueSession {
         renderer.clear(player);
         onFinished.accept(this);
         onFinish.run();
+    }
+
+    private record PreparedLine(QuestDialogueLine line, Component speaker, QuestDialogueText text, long typingDuration) {
+        PreparedLine(QuestDialogueLine line) {
+            this(line, QuestDialogueText.parse(line.text()));
+        }
+
+        private PreparedLine(QuestDialogueLine line, QuestDialogueText text) {
+            this(line, ChatUtil.formattedComponent(line.speakerName()), text, text.typingDuration(line.typingMillis()));
+        }
     }
 }

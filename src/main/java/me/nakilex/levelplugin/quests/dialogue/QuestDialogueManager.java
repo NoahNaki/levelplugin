@@ -1,8 +1,7 @@
 package me.nakilex.levelplugin.quests.dialogue;
 
-import me.nakilex.levelplugin.utils.ChatUtil;
 import net.kyori.adventure.text.Component;
-import org.bukkit.ChatColor;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -115,15 +114,19 @@ public class QuestDialogueManager implements Listener {
 
     private static class ActionBarRenderer implements QuestDialogueSession.Renderer {
         @Override
-        public void render(Player player, QuestDialogueLine line, String visibleText, QuestDialogueSession.State state,
-                           int lineNumber, int lineCount) {
-            String prompt = state == QuestDialogueSession.State.WAITING
-                    ? ChatColor.DARK_GRAY + "  [Click to continue]"
-                    : "";
-            String message = ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + lineNumber + "/" + lineCount
-                    + ChatColor.DARK_GRAY + "] " + ChatColor.YELLOW + line.speakerName()
-                    + ChatColor.WHITE + ": " + visibleText + prompt;
-            player.sendActionBar(ChatUtil.legacyComponent(message));
+        public void render(Player player, QuestDialogueLine line, Component speaker, Component visibleText,
+                           QuestDialogueSession.State state, int lineNumber, int lineCount) {
+            Component message = Component.text("[", NamedTextColor.DARK_GRAY)
+                    .append(Component.text(lineNumber + "/" + lineCount, NamedTextColor.GRAY))
+                    .append(Component.text("] ", NamedTextColor.DARK_GRAY))
+                    .append(speaker.colorIfAbsent(NamedTextColor.YELLOW))
+                    .append(Component.text(": ", NamedTextColor.WHITE))
+                    .append(visibleText.colorIfAbsent(NamedTextColor.WHITE));
+            if (state == QuestDialogueSession.State.WAITING) {
+                message = message.append(Component.text("  [Click to continue]", NamedTextColor.DARK_GRAY));
+            }
+            player.sendActionBar(Component.empty());
+            player.sendActionBar(message);
         }
 
         @Override
