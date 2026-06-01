@@ -1,3 +1,10 @@
+# Fishing challenges selected after a bite. Set a weight to 0 to disable that game.
+minigames:
+  simple_reel:
+    weight: 1.0
+  accurate_click:
+    weight: 1.0
+
 fish:
   carp:
     display: "Carp"

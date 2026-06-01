@@ -7,6 +7,11 @@ import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig;
 import me.nakilex.levelplugin.player.fishing.data.FishDefinition;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
+import me.nakilex.levelplugin.player.fishing.minigame.AccurateClickFishingMinigame;
+import me.nakilex.levelplugin.player.fishing.minigame.FishingMinigame;
+import me.nakilex.levelplugin.player.fishing.minigame.FishingMinigameContext;
+import me.nakilex.levelplugin.player.fishing.minigame.FishingMinigameRegistry;
+import me.nakilex.levelplugin.player.fishing.minigame.ReelWindowFishingMinigame;
 import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -16,9 +21,6 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
-import org.bukkit.boss.BarColor;
-import org.bukkit.boss.BarStyle;
-import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -26,6 +28,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
@@ -48,11 +51,21 @@ public class FishingListener implements Listener {
     private final Map<UUID, Boolean> lastRewarded = new HashMap<>();
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> lavaBiteTasks = new HashMap<>();
     private final Random random = new Random();
+    private final FishingMinigameRegistry minigames = new FishingMinigameRegistry();
 
     public FishingListener(Main plugin, FishingRewardsConfig rewardsConfig, FishingManager fishingManager) {
         this.plugin = plugin;
         this.rewardsConfig = rewardsConfig;
         this.fishingManager = fishingManager;
+        registerMinigames();
+    }
+
+    private void registerMinigames() {
+        minigames.register(ReelWindowFishingMinigame::new,
+                rewardsConfig.getConfig().getDouble("minigames.simple_reel.weight", 1.0));
+        minigames.register(context -> new AccurateClickFishingMinigame(new FishingMinigameContext(
+                        context.player(), Math.max(4_000L, context.durationMs() * 3L))),
+                rewardsConfig.getConfig().getDouble("minigames.accurate_click.weight", 1.0));
     }
 
     @EventHandler
@@ -75,6 +88,8 @@ public class FishingListener implements Listener {
 
     private void handleCast(Player player, UUID uuid, org.bukkit.Location hookLocation) {
         clearLavaTask(uuid);
+        lastResult.remove(uuid);
+        lastRewarded.remove(uuid);
         boolean inLava = isLavaFishingArea(player, hookLocation);
         if (!inLava) {
             return;
@@ -91,32 +106,25 @@ public class FishingListener implements Listener {
     private void startSession(Player player, UUID uuid, org.bukkit.Location hookLocation,
                               boolean inLava, boolean rewardOnReel) {
         clearSession(uuid);
-        BossBar bar = Bukkit.createBossBar("Reel in!", BarColor.BLUE, BarStyle.SOLID);
-        bar.addPlayer(player);
-        bar.setVisible(true);
         long windowMs = computeWindowMs(player);
-        FishingSession session = new FishingSession(bar, System.currentTimeMillis() + windowMs, windowMs, inLava, rewardOnReel);
+        FishingMinigame minigame = minigames.create(random, new FishingMinigameContext(player, windowMs));
+        FishingSession session = new FishingSession(minigame, inLava, rewardOnReel);
         sessions.put(uuid, session);
+        minigame.start();
         session.task = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
-            long remaining = session.expiresAtMs - System.currentTimeMillis();
-            double progress = Math.max(0.0, Math.min(1.0, remaining / (double) session.windowMs));
-            bar.setProgress(progress);
-            if (remaining <= 0) {
-                clearSession(uuid);
-            }
+            minigame.tick();
+            if (minigame.isComplete()) finishSession(uuid, minigame.isSuccessful());
         }, 0L, 1L);
     }
 
     private void handleReel(Player player, UUID uuid) {
         clearLavaTask(uuid);
         FishingSession session = sessions.get(uuid);
-        if (session == null) {
-            lastResult.put(uuid, false);
-            return;
-        }
-        boolean success = System.currentTimeMillis() <= session.expiresAtMs;
-        lastResult.put(uuid, success);
-        clearSession(uuid);
+        if (session == null) return;
+        session.minigame.reel();
+        if (!session.minigame.isComplete()) return;
+        boolean success = session.minigame.isSuccessful();
+        finishSession(uuid, success);
         if (success) {
             player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.9f, 1.2f);
             if (session.inLava && session.rewardOnReel) {
@@ -224,11 +232,11 @@ public class FishingListener implements Listener {
             return stored;
         }
         FishingSession session = sessions.get(uuid);
-        if (session == null) {
-            return false;
-        }
-        boolean success = System.currentTimeMillis() <= session.expiresAtMs;
-        clearSession(uuid);
+        if (session == null) return false;
+        session.minigame.tick();
+        if (!session.minigame.isComplete()) session.minigame.reel();
+        boolean success = session.minigame.isComplete() && session.minigame.isSuccessful();
+        finishSession(uuid, success);
         return success;
     }
 
@@ -284,7 +292,12 @@ public class FishingListener implements Listener {
         if (session.task != null) {
             session.task.cancel();
         }
-        session.bar.removeAll();
+        session.minigame.dispose();
+    }
+
+    private void finishSession(UUID uuid, boolean success) {
+        lastResult.put(uuid, success);
+        clearSession(uuid);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -313,19 +326,23 @@ public class FishingListener implements Listener {
         }
     }
 
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        UUID uuid = event.getPlayer().getUniqueId();
+        clearLavaTask(uuid);
+        clearSession(uuid);
+        lastResult.remove(uuid);
+        lastRewarded.remove(uuid);
+    }
+
     private static class FishingSession {
-        private final BossBar bar;
-        private final long expiresAtMs;
-        private final long windowMs;
+        private final FishingMinigame minigame;
         private final boolean inLava;
         private final boolean rewardOnReel;
         private org.bukkit.scheduler.BukkitTask task;
 
-        private FishingSession(BossBar bar, long expiresAtMs, long windowMs,
-                               boolean inLava, boolean rewardOnReel) {
-            this.bar = bar;
-            this.expiresAtMs = expiresAtMs;
-            this.windowMs = windowMs;
+        private FishingSession(FishingMinigame minigame, boolean inLava, boolean rewardOnReel) {
+            this.minigame = minigame;
             this.inLava = inLava;
             this.rewardOnReel = rewardOnReel;
         }
