@@ -29,9 +29,8 @@ public class TensionFishingMiniGame extends AbstractFishingMiniGame {
         updateBar("Reel progress", fish);
         boolean struggling = tension >= 0.68;
         if (useResourcePack()) {
-            actionBar(FishingGlyphs.tension(fish, struggling, frame++)
-                    .append(Component.text("  ")).append(FishingGlyphs.strain(tension))
-                    .append(Component.text("  Hold sneak to pull")));
+            showGameTitle(FishingGlyphs.strainIcon(tension), FishingGlyphs.tension(fish, struggling, frame++));
+            actionBar(Component.text("Hold sneak to pull"));
         } else if (useFallbackTextUi()) {
             actionBar(ChatColor.AQUA + "Tension: " + meter(tension, 18) + ChatColor.GRAY + "  Hold sneak to pull");
         } else {

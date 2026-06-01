@@ -31,10 +31,9 @@ public class HoldFishingMiniGame extends AbstractFishingMiniGame {
         held = clamp(held + (inZone ? 0.05 / requiredHold : -0.025));
         updateBar("Keep the fish in your control zone!", held);
         if (useResourcePack()) {
-            actionBar(FishingGlyphs.fishWithJudgement(fish, control - zoneWidth / 2.0,
-                    FishingGlyphs.JUDGEMENT_NORMAL, 49)
-                    .append(Component.text("  ")).append(FishingGlyphs.icon(FishingGlyphs.PROGRESS_ICON))
-                    .append(FishingGlyphs.bar(held)));
+            showGameTitle(FishingGlyphs.progressIcon(held),
+                    FishingGlyphs.hold(fish, control - zoneWidth / 2.0, 49, FishingGlyphs.JUDGEMENT_NORMAL));
+            actionBar(Component.text("Left-click to move your control area"));
         } else if (useFallbackTextUi()) {
             actionBar(ChatColor.AQUA + "Control: " + pointer(fish, control - zoneWidth / 2.0, control + zoneWidth / 2.0, 21));
         } else {

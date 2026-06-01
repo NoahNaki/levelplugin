@@ -26,8 +26,9 @@ public class AccurateClickFishingMiniGame extends AbstractFishingMiniGame {
         if (position <= 0.0) { position = 0.0; forward = true; }
         updateBar("Click inside the green zone!", 1.0 - remainingMs() / (double) durationMs);
         if (useResourcePack()) {
-            actionBar(FishingGlyphs.pointerWithJudgement(position, zoneStart,
-                    FishingGlyphs.JUDGEMENT_NORMAL, 49).append(Component.text("  Click in the green zone!")));
+            showGameTitle(Component.text("Click in the green zone!"),
+                    FishingGlyphs.accurateClick(FishingGlyphs.BAR_5, position, -119, 7));
+            actionBar(Component.empty());
         } else if (useFallbackTextUi()) {
             actionBar(ChatColor.AQUA + "Timing: " + pointer(position, zoneStart, zoneEnd, 21));
         } else {

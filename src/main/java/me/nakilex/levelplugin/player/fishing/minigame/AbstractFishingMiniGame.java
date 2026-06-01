@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.player.fishing.resourcepack.FishingResourcePackManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
@@ -13,6 +14,7 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.time.Duration;
 import java.util.function.Consumer;
 
 /** Shared lifecycle, timeout, boss-bar UI, and cleanup for fishing mini-games. */
@@ -39,9 +41,11 @@ public abstract class AbstractFishingMiniGame implements FishingMiniGame {
     @Override
     public final void start() {
         endsAtMs = System.currentTimeMillis() + durationMs;
-        bar = Bukkit.createBossBar(instruction, BarColor.BLUE, BarStyle.SOLID);
-        bar.addPlayer(player);
-        bar.setVisible(true);
+        if (!useResourcePack() && useFallbackTextUi()) {
+            bar = Bukkit.createBossBar(instruction, BarColor.BLUE, BarStyle.SOLID);
+            bar.addPlayer(player);
+            bar.setVisible(true);
+        }
         onStart();
         task = Bukkit.getScheduler().runTaskTimer(plugin, this::runTick, 0L, 1L);
     }
@@ -65,6 +69,7 @@ public abstract class AbstractFishingMiniGame implements FishingMiniGame {
         if (task != null) task.cancel();
         if (bar != null) bar.removeAll();
         player.sendActionBar(Component.empty());
+        player.clearTitle();
         if (player.isOnline()) {
             player.getWorld().playSound(player.getLocation(),
                     success ? Sound.ENTITY_EXPERIENCE_ORB_PICKUP : Sound.BLOCK_NOTE_BLOCK_BASS,
@@ -80,8 +85,14 @@ public abstract class AbstractFishingMiniGame implements FishingMiniGame {
     @Override public void handleMovement(Movement movement) { }
 
     protected final void updateBar(String title, double progress) {
+        if (bar == null) return;
         bar.setTitle(title);
         bar.setProgress(clamp(progress));
+    }
+
+    protected final void showGameTitle(Component title, Component subtitle) {
+        player.showTitle(Title.title(title, subtitle,
+                Title.Times.times(Duration.ZERO, Duration.ofMillis(1000), Duration.ZERO)));
     }
 
     protected final void actionBar(String message) {

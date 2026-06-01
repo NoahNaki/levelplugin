@@ -21,8 +21,8 @@ public class ProgressClickFishingMiniGame extends AbstractFishingMiniGame {
         progress = clamp(progress - decay);
         updateBar("Keep reeling!", progress);
         if (useResourcePack()) {
-            actionBar(FishingGlyphs.icon(FishingGlyphs.PROGRESS_ICON).append(Component.text("  "))
-                    .append(FishingGlyphs.bar(progress)).append(Component.text("  Keep clicking!")));
+            showGameTitle(FishingGlyphs.progressIcon(progress), Component.empty());
+            actionBar(Component.text("Keep clicking!"));
         } else if (useFallbackTextUi()) {
             actionBar(ChatColor.AQUA + "Line control: " + meter(progress, 18));
         } else {
