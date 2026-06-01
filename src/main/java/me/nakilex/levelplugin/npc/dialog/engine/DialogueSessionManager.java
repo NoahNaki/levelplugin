@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.npc.dialog.render.DialogueRenderer;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.quests.data.Quest;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -19,19 +20,21 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 public final class DialogueSessionManager {
-    private static final double MAX_DISTANCE_SQUARED = 25.0;
     private final Main plugin;
     private final DialogueRenderer renderer;
     private final DialogueConditionEvaluator conditions;
     private final DialogueActionExecutor actions;
+    private final Consumer<Player> closeCallback;
     private final Map<UUID, DialogueSession> sessions = new HashMap<>();
 
     public DialogueSessionManager(Main plugin, DialogueRenderer renderer,
-                                  DialogueConditionEvaluator conditions, DialogueActionExecutor actions) {
+                                  DialogueConditionEvaluator conditions, DialogueActionExecutor actions,
+                                  Consumer<Player> closeCallback) {
         this.plugin = plugin;
         this.renderer = renderer;
         this.conditions = conditions;
         this.actions = actions;
+        this.closeCallback = closeCallback;
     }
 
     public void start(Player player, DialogueDefinition definition, NPC npc,
@@ -49,7 +52,7 @@ public final class DialogueSessionManager {
         sessions.put(player.getUniqueId(), session);
         lock(player);
         session.rangeTask = plugin.getServer().getScheduler().runTaskTimer(plugin,
-                () -> checkDistance(player, MAX_DISTANCE_SQUARED), 5L, 5L);
+                () -> checkDistance(player, definition.range() * definition.range()), 5L, 5L);
         enterPage(player, session);
     }
 
@@ -70,7 +73,7 @@ public final class DialogueSessionManager {
         DialogueSession session = getSession(player);
         if (session == null) return;
         if (session.typing) {
-            finishTyping(player, session);
+            if (!session.dialogue.preventSkip()) finishTyping(player, session);
             return;
         }
         List<DialogueAnswer> answers = session.visibleAnswers(conditions);
@@ -91,6 +94,7 @@ public final class DialogueSessionManager {
         List<DialogueAnswer> answers = session.visibleAnswers(conditions);
         if (answers.isEmpty()) return;
         session.selectedAnswerIndex = Math.floorMod(session.selectedAnswerIndex + direction, answers.size());
+        play(session.dialogue.selectionSound(), player);
         renderer.render(player, session);
     }
 
@@ -105,13 +109,24 @@ public final class DialogueSessionManager {
         }
     }
 
+    public void exit(Player player) {
+        DialogueSession session = getSession(player);
+        if (session == null || session.dialogue.preventExit()) return;
+        close(player, DialogueEndReason.EXITED, true);
+    }
+
     public void reset(Player player, boolean runExitActions) {
+        close(player, DialogueEndReason.RESET, runExitActions);
+    }
+
+    public void close(Player player, DialogueEndReason reason, boolean runExitActions) {
         DialogueSession session = sessions.remove(player.getUniqueId());
         if (session == null) return;
         if (runExitActions && session.currentPage() != null) actions.run(player, session.currentPage().exitActions());
         cancelTasks(session);
         unlock(player);
         renderer.clear(player);
+        if (closeCallback != null) closeCallback.accept(player);
     }
 
     public DialogueActionExecutor actions() {
@@ -128,7 +143,7 @@ public final class DialogueSessionManager {
 
     private void startTyping(Player player, DialogueSession session) {
         session.typing = true;
-        int length = visibleLength(String.join(" ", session.currentPage().lines()));
+        int length = visibleLength(player, session);
         if (length == 0) {
             finishTyping(player, session);
             return;
@@ -137,9 +152,10 @@ public final class DialogueSessionManager {
         session.typingTask = plugin.getServer().getScheduler().runTaskTimer(plugin, () -> {
             if (getSession(player) != session) return;
             session.visibleCharacterCount++;
+            play(session.dialogue.typingSound(), player);
             renderer.render(player, session);
             if (session.visibleCharacterCount >= length) finishTyping(player, session);
-        }, 1L, 1L);
+        }, session.dialogue.typingSpeedTicks(), session.dialogue.typingSpeedTicks());
     }
 
     private void finishTyping(Player player, DialogueSession session) {
@@ -147,7 +163,7 @@ public final class DialogueSessionManager {
             session.typingTask.cancel();
             session.typingTask = null;
         }
-        session.visibleCharacterCount = visibleLength(String.join(" ", session.currentPage().lines()));
+        session.visibleCharacterCount = visibleLength(player, session);
         session.typing = false;
         runPostActions(player, session);
         renderer.render(player, session);
@@ -159,6 +175,7 @@ public final class DialogueSessionManager {
             return;
         }
         int index = Math.floorMod(session.selectedAnswerIndex, answers.size());
+        play(session.dialogue.confirmSound(), player);
         DialogueAnswer answer = answers.get(index);
         for (String reply : answer.replies()) player.sendMessage(ChatColor.GRAY + reply.replace("<player>", player.getName()));
         actions.run(player, answer.actions());
@@ -188,7 +205,7 @@ public final class DialogueSessionManager {
         if (session == null) return;
         runPostActions(player, session);
         actions.run(player, session.currentPage().exitActions());
-        reset(player, false);
+        close(player, DialogueEndReason.COMPLETED, false);
         if (!complete) return;
         if (session.quest != null) plugin.getQuestManager().startQuest(player, session.quest.getId());
         String npcName = session.npc != null ? session.npc.getName()
@@ -204,8 +221,11 @@ public final class DialogueSessionManager {
     }
 
     private void lock(Player player) {
+        DialogueSession session = getSession(player);
         player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
+        if (session != null && session.dialogue.effect() == DialogueEffect.SLOWNESS) {
+            player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, Integer.MAX_VALUE, 4, false, false, false));
+        }
     }
 
     private void unlock(Player player) {
@@ -218,8 +238,21 @@ public final class DialogueSessionManager {
         if (session.rangeTask != null) session.rangeTask.cancel();
     }
 
-    private int visibleLength(String text) {
-        return ChatColor.stripColor(text).length();
+    public void shutdown() {
+        for (DialogueSession session : List.copyOf(sessions.values())) {
+            Player player = Bukkit.getPlayer(session.playerId);
+            if (player != null) close(player, DialogueEndReason.SHUTDOWN, false);
+            else cancelTasks(session);
+        }
+        sessions.clear();
+    }
+
+    private int visibleLength(Player player, DialogueSession session) {
+        return ChatColor.stripColor(DialogueTextFormatter.format(player, session).text()).length();
+    }
+
+    private void play(DialogueSound sound, Player player) {
+        if (sound != null) sound.play(player);
     }
 
     private Location getNpcLocation(DialogueSession session) {

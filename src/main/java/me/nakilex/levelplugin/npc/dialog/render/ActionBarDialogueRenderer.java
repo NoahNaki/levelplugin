@@ -3,12 +3,12 @@ package me.nakilex.levelplugin.npc.dialog.render;
 import me.nakilex.levelplugin.npc.dialog.engine.DialogueAnswer;
 import me.nakilex.levelplugin.npc.dialog.engine.DialogueConditionEvaluator;
 import me.nakilex.levelplugin.npc.dialog.engine.DialogueSession;
+import me.nakilex.levelplugin.npc.dialog.engine.DialogueTextFormatter;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 
 import java.util.List;
-import java.util.regex.Matcher;
 
 public class ActionBarDialogueRenderer implements DialogueRenderer {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
@@ -23,8 +23,10 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         String message = pageText(player, session);
         List<DialogueAnswer> answers = session.visibleAnswers(conditions);
         if (!session.typing && !answers.isEmpty()) {
-            DialogueAnswer selected = answers.get(Math.floorMod(session.selectedAnswerIndex, answers.size()));
-            message += ChatColor.DARK_GRAY + "  [" + ChatColor.GREEN + selected.text() + ChatColor.DARK_GRAY + "]"
+            int index = Math.floorMod(session.selectedAnswerIndex, answers.size());
+            DialogueAnswer selected = answers.get(index);
+            String number = session.dialogue.answerNumbers() ? (index + 1) + ". " : "";
+            message += ChatColor.DARK_GRAY + "  [" + ChatColor.GREEN + number + selected.text() + ChatColor.DARK_GRAY + "]"
                     + ChatColor.GRAY + " (scroll to cycle)";
         }
         player.sendActionBar(LEGACY.deserialize(message));
@@ -36,17 +38,8 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
     }
 
     protected String pageText(Player player, DialogueSession session) {
-        String raw = String.join(" ", session.currentPage().lines());
-        String speaker = session.npc != null ? session.npc.getName()
-                : session.citizensNpc != null ? session.citizensNpc.getName() : "NPC";
-        int bar = raw.indexOf('|');
-        if (bar >= 0) {
-            speaker = raw.substring(0, bar);
-            raw = raw.substring(bar + 1);
-        }
-        speaker = speaker.replaceAll("(?i)<player>", Matcher.quoteReplacement(player.getName()));
-        raw = raw.replaceAll("(?i)<player>", Matcher.quoteReplacement(player.getName()));
-        return ChatColor.YELLOW + speaker + ChatColor.WHITE + ": " + reveal(raw, session.visibleCharacterCount);
+        DialogueTextFormatter.DisplayText display = DialogueTextFormatter.format(player, session);
+        return ChatColor.YELLOW + display.speaker() + ChatColor.WHITE + ": " + reveal(display.text(), session.visibleCharacterCount);
     }
 
     static String reveal(String text, int visibleCharacters) {

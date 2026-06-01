@@ -889,6 +889,7 @@ public class PluginBootstrap {
     }
 
     public void disable() {
+        if (dialogManager != null) dialogManager.shutdown();
         TaskRegistry.stopTasks();
         if (chatGameManager != null) chatGameManager.stop();
         if (mercenaryManager != null) mercenaryManager.unbindAll();

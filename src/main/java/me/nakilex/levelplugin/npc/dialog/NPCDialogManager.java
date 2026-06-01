@@ -5,6 +5,8 @@ import me.nakilex.levelplugin.npc.dialog.engine.DialogueActionExecutor;
 import me.nakilex.levelplugin.npc.dialog.engine.DialogueAnswer;
 import me.nakilex.levelplugin.npc.dialog.engine.DialogueConditionEvaluator;
 import me.nakilex.levelplugin.npc.dialog.engine.DialogueDefinition;
+import me.nakilex.levelplugin.npc.dialog.engine.DialogueDefinitionLoader;
+import me.nakilex.levelplugin.npc.dialog.render.ResourcePackScaffolder;
 import me.nakilex.levelplugin.npc.dialog.engine.DialoguePage;
 import me.nakilex.levelplugin.npc.dialog.engine.DialogueSession;
 import me.nakilex.levelplugin.npc.dialog.engine.DialogueSessionManager;
@@ -20,6 +22,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
@@ -36,6 +39,7 @@ public class NPCDialogManager implements Listener {
     private static final long SKILL_DELAY_MS = 500L;
     private final Main plugin;
     private final DialogueSessionManager sessions;
+    private final DialogueDefinitionLoader dialogueLoader;
     private final Map<UUID, Long> dialogCooldowns = new HashMap<>();
     private final Map<UUID, PendingChoice> pendingChoices = new HashMap<>();
 
@@ -43,7 +47,10 @@ public class NPCDialogManager implements Listener {
         this.plugin = plugin;
         DialogueConditionEvaluator conditions = new DialogueConditionEvaluator(plugin);
         DialogueActionExecutor actions = new DialogueActionExecutor(plugin);
-        this.sessions = new DialogueSessionManager(plugin, new ActionBarDialogueRenderer(conditions), conditions, actions);
+        this.sessions = new DialogueSessionManager(plugin, new ActionBarDialogueRenderer(conditions), conditions, actions,
+                this::recordDialogCooldown);
+        this.dialogueLoader = new DialogueDefinitionLoader(plugin);
+        new ResourcePackScaffolder(plugin).ensureDirectories();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
@@ -70,6 +77,28 @@ public class NPCDialogManager implements Listener {
 
     public void startDialog(Player player, DialogueDefinition dialogue, net.citizensnpcs.api.npc.NPC npc, Runnable finish) {
         sessions.start(player, dialogue, null, npc, null, finish);
+    }
+
+    public DialogueDefinition getDialogue(String id) {
+        return dialogueLoader.get(id);
+    }
+
+    public void reloadDialogues() {
+        dialogueLoader.reload();
+    }
+
+    public boolean startDialog(Player player, String dialogueId, NPC npc, Runnable finish) {
+        DialogueDefinition dialogue = getDialogue(dialogueId);
+        if (dialogue == null) return false;
+        startDialog(player, dialogue, npc, finish);
+        return true;
+    }
+
+    public boolean startDialog(Player player, String dialogueId, net.citizensnpcs.api.npc.NPC npc, Runnable finish) {
+        DialogueDefinition dialogue = getDialogue(dialogueId);
+        if (dialogue == null) return false;
+        startDialog(player, dialogue, npc, finish);
+        return true;
     }
 
     public void startChoiceDialog(Player player, NPC npc, List<String> options, String questId,
@@ -177,13 +206,27 @@ public class NPCDialogManager implements Listener {
     public void onScroll(PlayerItemHeldEvent event) {
         if (!hasChoiceSession(event.getPlayer())) return;
         event.setCancelled(true);
-        int direction = event.getNewSlot() > event.getPreviousSlot() ? 1 : -1;
-        sessions.selectAnswer(event.getPlayer(), direction);
+        sessions.selectAnswer(event.getPlayer(), getScrollDirection(event.getPreviousSlot(), event.getNewSlot()));
+    }
+
+    @EventHandler
+    public void onSneak(PlayerToggleSneakEvent event) {
+        if (event.isSneaking()) sessions.exit(event.getPlayer());
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        resetDialog(event.getPlayer());
+        sessions.close(event.getPlayer(), me.nakilex.levelplugin.npc.dialog.engine.DialogueEndReason.QUIT, true);
+    }
+
+    public void shutdown() {
+        sessions.shutdown();
+    }
+
+    private int getScrollDirection(int oldSlot, int newSlot) {
+        if (oldSlot == 8 && newSlot == 0) return 1;
+        if (oldSlot == 0 && newSlot == 8) return -1;
+        return newSlot > oldSlot ? 1 : -1;
     }
 
     private void start(Player player, List<String> lines, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc,
