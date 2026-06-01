@@ -41,9 +41,19 @@ public class QuestDialogueManager implements Listener {
         List<QuestDialogueLine> preparedLines = lines.stream()
                 .map(line -> prepareLine(player, line))
                 .toList();
-        QuestDialogueSession session = new QuestDialogueSession(player, npcId, preparedLines, onFinish,
-                this::removeFinishedSession, System::currentTimeMillis, new ActionBarRenderer());
-        sessions.put(player.getUniqueId(), session);
+        startDialogue(player, npcId, preparedLines, 0, preparedLines.size(), onFinish);
+    }
+
+    /**
+     * Start one line from a larger legacy dialogue sequence while preserving its displayed position.
+     */
+    public void startDialogueLine(Player player, int npcId, QuestDialogueLine line, int lineNumber, int lineCount,
+                                  Runnable onFinish) {
+        if (player == null || line == null) {
+            return;
+        }
+        startDialogue(player, npcId, List.of(prepareLine(player, line)), Math.max(0, lineNumber - 1), lineCount,
+                onFinish);
     }
 
     /** Skip or advance only when the player clicked the NPC that owns the active session. */
@@ -96,6 +106,15 @@ public class QuestDialogueManager implements Listener {
             }
             session.tick();
         }
+    }
+
+
+    private void startDialogue(Player player, int npcId, List<QuestDialogueLine> lines, int lineNumberOffset,
+                               int lineCount, Runnable onFinish) {
+        cancel(player);
+        QuestDialogueSession session = new QuestDialogueSession(player, npcId, lines, lineNumberOffset, lineCount,
+                onFinish, this::removeFinishedSession, System::currentTimeMillis, new ActionBarRenderer());
+        sessions.put(player.getUniqueId(), session);
     }
 
     private QuestDialogueLine prepareLine(Player player, QuestDialogueLine line) {

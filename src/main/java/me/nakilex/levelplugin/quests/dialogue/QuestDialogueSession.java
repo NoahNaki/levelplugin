@@ -34,6 +34,8 @@ public class QuestDialogueSession {
     private final List<PreparedLine> lines;
     private final Runnable onFinish;
     private final Consumer<QuestDialogueSession> onFinished;
+    private final int lineNumberOffset;
+    private final int lineCount;
     private final LongSupplier clock;
     private final Renderer renderer;
 
@@ -43,6 +45,12 @@ public class QuestDialogueSession {
 
     public QuestDialogueSession(Player player, int npcId, List<QuestDialogueLine> lines, Runnable onFinish,
                                 Consumer<QuestDialogueSession> onFinished, LongSupplier clock, Renderer renderer) {
+        this(player, npcId, lines, 0, lines == null ? 0 : lines.size(), onFinish, onFinished, clock, renderer);
+    }
+
+    public QuestDialogueSession(Player player, int npcId, List<QuestDialogueLine> lines, int lineNumberOffset,
+                                int lineCount, Runnable onFinish, Consumer<QuestDialogueSession> onFinished,
+                                LongSupplier clock, Renderer renderer) {
         this.player = Objects.requireNonNull(player, "player");
         this.npcId = npcId;
         this.lines = Objects.requireNonNull(lines, "lines").stream().map(PreparedLine::new).toList();
@@ -51,6 +59,8 @@ public class QuestDialogueSession {
         }
         this.onFinish = onFinish == null ? NO_OP : onFinish;
         this.onFinished = Objects.requireNonNull(onFinished, "onFinished");
+        this.lineNumberOffset = Math.max(0, lineNumberOffset);
+        this.lineCount = Math.max(this.lineNumberOffset + this.lines.size(), lineCount);
         this.clock = Objects.requireNonNull(clock, "clock");
         this.renderer = Objects.requireNonNull(renderer, "renderer");
         startLine();
@@ -143,7 +153,7 @@ public class QuestDialogueSession {
 
     private void render(Component visibleText) {
         PreparedLine line = currentLine();
-        renderer.render(player, line.line(), line.speaker(), visibleText, state, lineIndex + 1, lines.size());
+        renderer.render(player, line.line(), line.speaker(), visibleText, state, lineNumberOffset + lineIndex + 1, lineCount);
     }
 
     private long elapsedSinceStateStarted() {
