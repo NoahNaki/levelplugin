@@ -78,3 +78,39 @@ animatedlb:
   cycle-duration: 200
   row-count: 10
   animation-speed: 1.0
+
+# Interactive challenge selected when a fish bites. Rod fishing speed scales the time allowance.
+fishing-mini-games:
+  enabled: [click, click_v2, hold, tension, dance, accurate_click]
+  click:
+    duration-ms: 5000
+    required-clicks: 12
+  click_v2:
+    duration-ms: 5000
+    start-progress: 0.35
+    click-gain: 0.10
+    decay-per-tick: 0.012
+  hold:
+    duration-ms: 8000
+    zone-width: 0.28
+    burst-chance: 0.08
+    burst-strength: 0.08
+    damping: 0.12
+    required-hold: 2.4
+    click-gain: 0.08
+    control-decay: 0.025
+  tension:
+    duration-ms: 9000
+    pull-per-tick: 0.012
+    gain-per-tick: 0.018
+    decay-per-tick: 0.025
+    struggle-chance: 0.035
+    struggle-step: 0.035
+    struggle-tension: 0.05
+  dance:
+    duration-ms: 7000
+    sequence-length: 5
+  accurate_click:
+    duration-ms: 5000
+    speed-per-tick: 0.035
+    zone-width: 0.22
