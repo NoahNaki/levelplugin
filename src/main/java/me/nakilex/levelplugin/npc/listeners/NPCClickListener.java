@@ -126,6 +126,12 @@ public class NPCClickListener implements Listener {
 
         dialogManager.recordDialogCooldown(player);
 
+        var questDialogueManager = Main.getInstance().getQuestDialogueManager();
+        if (questDialogueManager != null && questDialogueManager.hasSession(player)) {
+            questDialogueManager.nextOrSkip(player, npcId);
+            return;
+        }
+
         if (npc != null && WakePerryQuest.handleNpcInteraction(player, npc, event.getHand())) {
             return;
         }

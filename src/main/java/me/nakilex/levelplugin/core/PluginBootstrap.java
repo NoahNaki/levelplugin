@@ -212,6 +212,7 @@ public class PluginBootstrap {
     private BattlePassManager battlePassManager;
     private BattlePassGUI battlePassGUI;
     private me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager;
+    private me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager questDialogueManager;
     private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
     private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
@@ -451,6 +452,7 @@ public class PluginBootstrap {
         battlePassManager = new BattlePassManager(plugin, questManager, itemManager);
         battlePassGUI = battlePassManager.getGui();
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
+        questDialogueManager = new me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
         if (arenaQueueManager != null) {
             arenaQueueManager.setScoreboardManager(scoreboardManager);
@@ -955,6 +957,7 @@ public class PluginBootstrap {
         if (beaconManager != null) beaconManager.removeAll();
         if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
         if (serverSelectionManager != null) serverSelectionManager.shutdown();
+        if (questDialogueManager != null) questDialogueManager.shutdown();
         if (cursorMenuManager != null) cursorMenuManager.shutdown();
         if (blockGlowUtil != null) blockGlowUtil.shutdown();
         if (wieldStyleDebugManager != null) wieldStyleDebugManager.shutdown();
@@ -1057,6 +1060,7 @@ public class PluginBootstrap {
     public BattlePassManager getBattlePassManager() { return battlePassManager; }
     public BattlePassGUI getBattlePassGUI() { return battlePassGUI; }
     public me.nakilex.levelplugin.npc.dialog.NPCDialogManager getDialogManager() { return dialogManager; }
+    public me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager getQuestDialogueManager() { return questDialogueManager; }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return scoreboardManager; }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return beaconManager; }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return fastTravelManager; }

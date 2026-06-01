@@ -108,6 +108,13 @@ public final class ChatUtil {
     }
 
     /**
+     * Deserialize a legacy section-colored message after applying configured emoji glyphs.
+     */
+    public static Component legacyComponent(String message) {
+        return LEGACY.deserialize(applyEmojis(message));
+    }
+
+    /**
      * Replace :emoji: shortcodes with their configured glyph tags for the font provider.
      */
     public static String applyEmojis(String message) {

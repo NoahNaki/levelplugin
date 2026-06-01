@@ -172,7 +172,8 @@ public class NPCDialogManager implements Listener {
      * after interacting with an NPC. Used to prevent accidental skill triggers.
      */
     public boolean isDialogLockActive(Player player) {
-        if (hasSession(player)) {
+        var questDialogueManager = Main.getInstance().getQuestDialogueManager();
+        if (hasSession(player) || (questDialogueManager != null && questDialogueManager.hasSession(player))) {
             return true;
         }
         UUID id = player.getUniqueId();
