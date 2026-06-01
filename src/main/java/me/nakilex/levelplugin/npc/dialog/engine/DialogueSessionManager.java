@@ -105,7 +105,7 @@ public final class DialogueSessionManager {
         if (npcLocation != null && (!npcLocation.getWorld().equals(player.getWorld())
                 || player.getLocation().distanceSquared(npcLocation) > maxDistanceSquared)) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You walked away from the NPC. Dialogue cancelled.");
-            reset(player, true);
+            close(player, DialogueEndReason.OUT_OF_RANGE, true);
         }
     }
 
@@ -122,7 +122,9 @@ public final class DialogueSessionManager {
     public void close(Player player, DialogueEndReason reason, boolean runExitActions) {
         DialogueSession session = sessions.remove(player.getUniqueId());
         if (session == null) return;
-        if (runExitActions && session.currentPage() != null) actions.run(player, session.currentPage().exitActions());
+        if (runExitActions && supportsExitActions(reason) && session.currentPage() != null) {
+            actions.run(player, session.currentPage().exitActions());
+        }
         cancelTasks(session);
         unlock(player);
         renderer.clear(player);
@@ -177,7 +179,7 @@ public final class DialogueSessionManager {
         int index = Math.floorMod(session.selectedAnswerIndex, answers.size());
         play(session.dialogue.confirmSound(), player);
         DialogueAnswer answer = answers.get(index);
-        for (String reply : answer.replies()) player.sendMessage(ChatColor.GRAY + reply.replace("<player>", player.getName()));
+        for (String reply : answer.replies()) player.sendMessage(ChatColor.GRAY + DialogueTextFormatter.formatDisplay(player, reply));
         actions.run(player, answer.actions());
         if (!answer.gotoTargets().isEmpty()) {
             if (session.answerCallback != null) session.answerCallback.accept(index);
@@ -204,7 +206,6 @@ public final class DialogueSessionManager {
         DialogueSession session = getSession(player);
         if (session == null) return;
         runPostActions(player, session);
-        actions.run(player, session.currentPage().exitActions());
         close(player, DialogueEndReason.COMPLETED, false);
         if (!complete) return;
         if (session.quest != null) plugin.getQuestManager().startQuest(player, session.quest.getId());
@@ -231,6 +232,13 @@ public final class DialogueSessionManager {
     private void unlock(Player player) {
         player.removePotionEffect(PotionEffectType.SLOWNESS);
         player.setInvulnerable(false);
+    }
+
+    private boolean supportsExitActions(DialogueEndReason reason) {
+        return switch (reason) {
+            case EXITED, OUT_OF_RANGE, QUIT, RESET -> true;
+            case COMPLETED, SHUTDOWN -> false;
+        };
     }
 
     private void cancelTasks(DialogueSession session) {

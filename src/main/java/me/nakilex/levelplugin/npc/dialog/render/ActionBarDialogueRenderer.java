@@ -26,7 +26,8 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
             int index = Math.floorMod(session.selectedAnswerIndex, answers.size());
             DialogueAnswer selected = answers.get(index);
             String number = session.dialogue.answerNumbers() ? (index + 1) + ". " : "";
-            message += ChatColor.DARK_GRAY + "  [" + ChatColor.GREEN + number + selected.text() + ChatColor.DARK_GRAY + "]"
+            String answer = DialogueTextFormatter.formatDisplay(player, selected.text());
+            message += ChatColor.DARK_GRAY + "  [" + ChatColor.GREEN + number + answer + ChatColor.DARK_GRAY + "]"
                     + ChatColor.GRAY + " (scroll to cycle)";
         }
         player.sendActionBar(LEGACY.deserialize(message));

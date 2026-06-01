@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.npc.dialog.engine;
 
-import me.clip.placeholderapi.PlaceholderAPI;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.quests.managers.QuestManager;
 import org.bukkit.Bukkit;
@@ -44,8 +43,7 @@ public final class DialogueConditionEvaluator {
 
     private boolean placeholderMatches(Player player, String expression) {
         String[] parts = expression.split("=", 2);
-        String resolved = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")
-                ? PlaceholderAPI.setPlaceholders(player, parts[0]) : parts[0];
+        String resolved = DialogueTextFormatter.formatPlaceholders(player, parts[0]);
         return parts.length == 2 ? resolved.equalsIgnoreCase(parts[1]) : !resolved.isBlank() && !resolved.equalsIgnoreCase("false");
     }
 
