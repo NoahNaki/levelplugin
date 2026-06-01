@@ -4,22 +4,28 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * Adds fully revealed timed quest dialogue lines to the player's normal chat history.
+ * Mirrors timed quest dialogue into the chat window without owning dialogue timing.
  *
- * <p>Chat messages cannot be edited after they are sent. Sending each typewriter frame would either
- * flood the player's chat history or require blank-line redraws that hide the messages the player had
- * before speaking to an NPC. The timed session remains the single source of dialogue progress, while
- * this renderer emits each completed line once so normal chat history stays visible and the NPC lines
- * remain in that history after the conversation ends.
+ * <p>This intentionally redraws a small temporary dialogue window so the currently active line can
+ * retain its typewriter animation. When the dialogue finishes, it appends a compact transcript as one
+ * ordinary chat message. Existing chat remains available in the client history, while the completed
+ * NPC dialogue remains readable after the temporary animation window is gone.
  */
 public class ChatRenderer implements QuestDialogueSession.Renderer {
+    private static final int CLEAR_LINES = 20;
+    private static final int HISTORY_LIMIT = 12;
+    private static final int SPACING_LINES = 2;
+
     private final Map<UUID, Conversation> conversations = new HashMap<>();
 
     /** Start a fresh conversation, discarding any retained lines from an older dialogue. */
@@ -44,14 +50,12 @@ public class ChatRenderer implements QuestDialogueSession.Renderer {
     @Override
     public void render(Player player, QuestDialogueLine line, Component speaker, Component visibleText,
                        QuestDialogueSession.State state, int lineNumber, int lineCount) {
-        if (state != QuestDialogueSession.State.WAITING) {
-            return;
-        }
-
         Conversation conversation = conversations.computeIfAbsent(player.getUniqueId(), ignored -> new Conversation());
-        if (conversation.markRendered(lineNumber, lineCount)) {
-            player.sendMessage(dialogueLine(speaker, visibleText, state, lineNumber, lineCount));
-        }
+        Component currentLine = dialogueLine(speaker, visibleText, state, lineNumber, lineCount);
+        Component retainedLine = dialogueLine(speaker, visibleText, QuestDialogueSession.State.TYPING,
+                lineNumber, lineCount);
+        conversation.update(lineNumber, lineCount, retainedLine, state == QuestDialogueSession.State.WAITING);
+        player.sendMessage(conversation.redraw(currentLine, lineNumber));
     }
 
     @Override
@@ -59,10 +63,11 @@ public class ChatRenderer implements QuestDialogueSession.Renderer {
         Conversation conversation = conversations.get(player.getUniqueId());
         if (conversation != null && conversation.isComplete()) {
             conversations.remove(player.getUniqueId());
+            player.sendMessage(conversation.transcript());
         }
     }
 
-    /** Build the shared chat presentation for a fully revealed dialogue line. */
+    /** Build the shared chat presentation for an active or retained dialogue line. */
     static Component dialogueLine(Component speaker, Component visibleText, QuestDialogueSession.State state,
                                   int lineNumber, int lineCount) {
         Component message = Component.text("[", NamedTextColor.DARK_GRAY)
@@ -77,17 +82,60 @@ public class ChatRenderer implements QuestDialogueSession.Renderer {
         return message;
     }
 
+    private static Component darken(Component component) {
+        List<Component> children = component.children().stream().map(ChatRenderer::darken).toList();
+        return component.children(children).color(NamedTextColor.DARK_GRAY);
+    }
+
     private static class Conversation {
-        private final Set<Integer> renderedLines = new HashSet<>();
+        private final Map<Integer, Component> lines = new LinkedHashMap<>();
+        private final Set<Integer> completedLines = new HashSet<>();
         private int lineCount;
 
-        private boolean markRendered(int lineNumber, int lineCount) {
+        private void update(int lineNumber, int lineCount, Component line, boolean complete) {
             this.lineCount = Math.max(this.lineCount, lineCount);
-            return renderedLines.add(lineNumber);
+            lines.put(lineNumber, line);
+            if (complete) {
+                completedLines.add(lineNumber);
+            }
+        }
+
+        private Component redraw(Component currentLine, int currentLineNumber) {
+            List<Component> previousLines = new ArrayList<>();
+            for (Map.Entry<Integer, Component> entry : lines.entrySet()) {
+                if (entry.getKey() < currentLineNumber) {
+                    previousLines.add(darken(entry.getValue()));
+                }
+            }
+            if (previousLines.size() > HISTORY_LIMIT) {
+                previousLines = previousLines.subList(previousLines.size() - HISTORY_LIMIT, previousLines.size());
+            }
+
+            Component message = Component.text("\n".repeat(CLEAR_LINES));
+            for (Component previousLine : previousLines) {
+                message = message.append(previousLine).append(Component.newline());
+            }
+            if (!previousLines.isEmpty()) {
+                message = message.append(Component.text("\n".repeat(SPACING_LINES)));
+            }
+            return message.append(currentLine);
+        }
+
+        private Component transcript() {
+            Component transcript = Component.empty();
+            boolean firstLine = true;
+            for (Component line : lines.values()) {
+                if (!firstLine) {
+                    transcript = transcript.append(Component.newline());
+                }
+                transcript = transcript.append(line);
+                firstLine = false;
+            }
+            return transcript;
         }
 
         private boolean isComplete() {
-            return lineCount > 0 && renderedLines.contains(lineCount);
+            return lineCount > 0 && completedLines.contains(lineCount);
         }
     }
 }
