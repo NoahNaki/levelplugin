@@ -4,25 +4,22 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
- * Mirrors timed quest dialogue into the chat window without owning dialogue timing.
+ * Adds fully revealed timed quest dialogue lines to the player's normal chat history.
  *
- * <p>This is intentionally lighter than a packet-level chat history interceptor. It redraws a small
- * dialogue window as one chat component, keeping completed lines dimmed above the currently typing
- * line. The session renderer remains the single source of timing, formatting-safe slicing and state.
+ * <p>Chat messages cannot be edited after they are sent. Sending each typewriter frame would either
+ * flood the player's chat history or require blank-line redraws that hide the messages the player had
+ * before speaking to an NPC. The timed session remains the single source of dialogue progress, while
+ * this renderer emits each completed line once so normal chat history stays visible and the NPC lines
+ * remain in that history after the conversation ends.
  */
 public class ChatRenderer implements QuestDialogueSession.Renderer {
-    private static final int CLEAR_LINES = 20;
-    private static final int HISTORY_LIMIT = 12;
-    private static final int SPACING_LINES = 2;
-
     private final Map<UUID, Conversation> conversations = new HashMap<>();
 
     /** Start a fresh conversation, discarding any retained lines from an older dialogue. */
@@ -47,12 +44,14 @@ public class ChatRenderer implements QuestDialogueSession.Renderer {
     @Override
     public void render(Player player, QuestDialogueLine line, Component speaker, Component visibleText,
                        QuestDialogueSession.State state, int lineNumber, int lineCount) {
+        if (state != QuestDialogueSession.State.WAITING) {
+            return;
+        }
+
         Conversation conversation = conversations.computeIfAbsent(player.getUniqueId(), ignored -> new Conversation());
-        Component currentLine = dialogueLine(speaker, visibleText, state, lineNumber, lineCount);
-        Component retainedLine = dialogueLine(speaker, visibleText, QuestDialogueSession.State.TYPING,
-                lineNumber, lineCount);
-        conversation.update(lineNumber, lineCount, retainedLine);
-        player.sendMessage(conversation.redraw(currentLine, lineNumber));
+        if (conversation.markRendered(lineNumber, lineCount)) {
+            player.sendMessage(dialogueLine(speaker, visibleText, state, lineNumber, lineCount));
+        }
     }
 
     @Override
@@ -63,7 +62,7 @@ public class ChatRenderer implements QuestDialogueSession.Renderer {
         }
     }
 
-    /** Build the shared active-line presentation used in both chat and the action bar. */
+    /** Build the shared chat presentation for a fully revealed dialogue line. */
     static Component dialogueLine(Component speaker, Component visibleText, QuestDialogueSession.State state,
                                   int lineNumber, int lineCount) {
         Component message = Component.text("[", NamedTextColor.DARK_GRAY)
@@ -78,44 +77,17 @@ public class ChatRenderer implements QuestDialogueSession.Renderer {
         return message;
     }
 
-    private static Component darken(Component component) {
-        List<Component> children = component.children().stream().map(ChatRenderer::darken).toList();
-        return component.children(children).color(NamedTextColor.DARK_GRAY);
-    }
-
     private static class Conversation {
-        private final Map<Integer, Component> lines = new LinkedHashMap<>();
+        private final Set<Integer> renderedLines = new HashSet<>();
         private int lineCount;
 
-        private void update(int lineNumber, int lineCount, Component line) {
+        private boolean markRendered(int lineNumber, int lineCount) {
             this.lineCount = Math.max(this.lineCount, lineCount);
-            lines.put(lineNumber, line);
-            while (lines.size() > HISTORY_LIMIT) {
-                Integer firstLine = lines.keySet().iterator().next();
-                lines.remove(firstLine);
-            }
-        }
-
-        private Component redraw(Component currentLine, int currentLineNumber) {
-            List<Component> previousLines = new ArrayList<>();
-            for (Map.Entry<Integer, Component> entry : lines.entrySet()) {
-                if (entry.getKey() < currentLineNumber) {
-                    previousLines.add(darken(entry.getValue()));
-                }
-            }
-
-            Component message = Component.text("\n".repeat(CLEAR_LINES));
-            for (Component previousLine : previousLines) {
-                message = message.append(previousLine).append(Component.newline());
-            }
-            if (!previousLines.isEmpty()) {
-                message = message.append(Component.text("\n".repeat(SPACING_LINES)));
-            }
-            return message.append(currentLine);
+            return renderedLines.add(lineNumber);
         }
 
         private boolean isComplete() {
-            return lineCount > 0 && lines.containsKey(lineCount);
+            return lineCount > 0 && renderedLines.contains(lineCount);
         }
     }
 }

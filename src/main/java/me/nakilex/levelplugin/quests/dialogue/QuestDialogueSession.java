@@ -19,7 +19,7 @@ public class QuestDialogueSession {
         FINISHED
     }
 
-    /** Renders the currently visible portion of a line and clears it when the session ends. */
+    /** Receives dialogue progress updates and clears any retained renderer state when the session ends. */
     public interface Renderer {
         void render(Player player, QuestDialogueLine line, Component speaker, Component visibleText,
                     State state, int lineNumber, int lineCount);

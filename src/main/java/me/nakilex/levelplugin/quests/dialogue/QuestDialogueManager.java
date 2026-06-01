@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.quests.dialogue;
 
-import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -118,7 +117,7 @@ public class QuestDialogueManager implements Listener {
     private void startDialogue(Player player, int npcId, List<QuestDialogueLine> lines, int lineNumberOffset,
                                int lineCount, Runnable onFinish) {
         QuestDialogueSession session = new QuestDialogueSession(player, npcId, lines, lineNumberOffset, lineCount,
-                onFinish, this::removeFinishedSession, System::currentTimeMillis, new ActionBarRenderer(chatRenderer));
+                onFinish, this::removeFinishedSession, System::currentTimeMillis, chatRenderer);
         sessions.put(player.getUniqueId(), session);
     }
 
@@ -143,25 +142,4 @@ public class QuestDialogueManager implements Listener {
         }
     }
 
-    private static class ActionBarRenderer implements QuestDialogueSession.Renderer {
-        private final ChatRenderer chatRenderer;
-
-        private ActionBarRenderer(ChatRenderer chatRenderer) {
-            this.chatRenderer = chatRenderer;
-        }
-        @Override
-        public void render(Player player, QuestDialogueLine line, Component speaker, Component visibleText,
-                           QuestDialogueSession.State state, int lineNumber, int lineCount) {
-            Component message = ChatRenderer.dialogueLine(speaker, visibleText, state, lineNumber, lineCount);
-            player.sendActionBar(Component.empty());
-            player.sendActionBar(message);
-            chatRenderer.render(player, line, speaker, visibleText, state, lineNumber, lineCount);
-        }
-
-        @Override
-        public void clear(Player player) {
-            player.sendActionBar(Component.empty());
-            chatRenderer.clear(player);
-        }
-    }
 }
