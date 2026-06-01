@@ -115,7 +115,9 @@ fishing-mini-games:
   dance:
     duration-ms: 7000
     sequence-length: 5
+    use-movement: false
   accurate_click:
     duration-ms: 5000
     speed-per-tick: 0.035
     zone-width: 0.22
+    bars: [BAR_1, BAR_2, BAR_3, BAR_4, BAR_5, BAR_6, BAR_7, BAR_8, BAR_9]

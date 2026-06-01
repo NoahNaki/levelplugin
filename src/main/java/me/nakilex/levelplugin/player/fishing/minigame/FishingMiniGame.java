@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 public interface FishingMiniGame {
     void start();
     void handleClick();
+    default void handleRightClick() { }
     void handleSneak(boolean sneaking);
     void handleMovement(Movement movement);
     void cancel();

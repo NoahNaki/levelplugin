@@ -342,7 +342,7 @@ commands:
     usage: /petdebug <list|summon|dismiss|setlevel|addxp|info|reload>
   levelplugin:
     description: LevelPlugin administration command
-    usage: /<command> <reload|fishingpack info>
+    usage: /<command> <reload|fishingpack info|fishing minigame test <type>>
     permission: levelplugin.admin
   motd:
     description: Reload or preview the server MOTD

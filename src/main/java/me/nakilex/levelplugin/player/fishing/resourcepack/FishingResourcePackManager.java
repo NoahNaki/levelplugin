@@ -3,12 +3,23 @@ package me.nakilex.levelplugin.player.fishing.resourcepack;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 
+import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystemAlreadyExistsException;
+import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.Map;
 
-/** Verifies the externally managed Nexo fishing resource-pack fragment used by the glyph renderer. */
+/** Installs and verifies the Nexo-managed fishing resource-pack fragment used by the glyph renderer. */
 public final class FishingResourcePackManager {
-    private static final String FALLBACK_MESSAGE = "Could not find fishing mini-game resource-pack fragment in Nexo. Falling back to text UI.";
+    private static final String BUNDLED_FRAGMENT = "resourcepack/fishing_games";
+    private static final String FALLBACK_MESSAGE = "Could not install fishing mini-game resource-pack fragment into Nexo. Falling back to text UI.";
+    private static final String INSTALLED_MESSAGE = "Installed fishing mini-game resource-pack fragment into Nexo external_packs. Regenerate/reload Nexo pack to apply changes.";
     private static FishingResourcePackManager instance;
 
     private final Main plugin;
@@ -26,6 +37,7 @@ public final class FishingResourcePackManager {
     public static FishingResourcePackManager initialize(Main plugin) {
         FishingResourcePackManager manager = new FishingResourcePackManager(plugin);
         instance = manager;
+        manager.installBundledFragment();
         manager.logAvailability();
         return manager;
     }
@@ -55,6 +67,55 @@ public final class FishingResourcePackManager {
                 packMetadataExists, defaultFontExists, iconsFontExists, offsetFontExists,
                 glyphUiEnabled,
                 plugin.getConfig().getBoolean("fishing-mini-games.resource-pack.fallback-text-ui", true));
+    }
+
+    /** Copies a bundled fragment when present; Nexo remains responsible for generating and sending the final pack. */
+    private void installBundledFragment() {
+        if (!Files.isDirectory(nexoExternalPacks)) return;
+        URL resource = plugin.getClass().getClassLoader().getResource(BUNDLED_FRAGMENT);
+        if (resource == null) return;
+        try {
+            URI uri = resource.toURI();
+            if ("jar".equalsIgnoreCase(uri.getScheme())) {
+                copyFromJar(uri);
+            } else {
+                copyTree(Path.of(uri));
+            }
+            plugin.getLogger().info(INSTALLED_MESSAGE);
+        } catch (IOException | URISyntaxException exception) {
+            plugin.getLogger().warning(FALLBACK_MESSAGE);
+            plugin.getLogger().warning("Fishing pack fragment installation failed: " + exception.getMessage());
+        }
+    }
+
+    private void copyFromJar(URI uri) throws IOException {
+        FileSystem fileSystem = null;
+        boolean closeFileSystem = false;
+        try {
+            try {
+                fileSystem = FileSystems.newFileSystem(uri, Map.of());
+                closeFileSystem = true;
+            } catch (FileSystemAlreadyExistsException ignored) {
+                fileSystem = FileSystems.getFileSystem(uri);
+            }
+            copyTree(fileSystem.getPath("/" + BUNDLED_FRAGMENT));
+        } finally {
+            if (closeFileSystem && fileSystem != null) fileSystem.close();
+        }
+    }
+
+    private void copyTree(Path source) throws IOException {
+        try (var paths = Files.walk(source)) {
+            for (Path path : paths.toList()) {
+                Path destination = installedPack.resolve(source.relativize(path).toString());
+                if (Files.isDirectory(path)) {
+                    Files.createDirectories(destination);
+                } else {
+                    Files.createDirectories(destination.getParent());
+                    Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING);
+                }
+            }
+        }
     }
 
     private void logAvailability() {

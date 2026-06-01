@@ -89,6 +89,7 @@ public class FishingListener implements Listener {
     }
 
     private void handleCast(Player player, UUID uuid, FishHook hook) {
+        if (miniGameManager.isPlaying(uuid)) return;
         clearLavaTask(uuid);
         miniGameManager.cancel(uuid);
         org.bukkit.Location hookLocation = hook != null ? hook.getLocation() : null;
@@ -234,6 +235,7 @@ public class FishingListener implements Listener {
         switch (event.getAction()) {
             case LEFT_CLICK_AIR, LEFT_CLICK_BLOCK -> miniGameManager.click(uuid);
             case RIGHT_CLICK_AIR, RIGHT_CLICK_BLOCK -> {
+                miniGameManager.rightClick(uuid);
                 if (event.getItem() != null && event.getItem().getType() == Material.FISHING_ROD) {
                     event.setCancelled(true);
                     return;

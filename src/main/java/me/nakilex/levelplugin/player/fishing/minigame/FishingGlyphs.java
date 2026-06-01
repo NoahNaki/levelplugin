@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.player.fishing.minigame;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 
+import java.util.Set;
+
 /** Glyph catalogue and reusable CustomFishing-style subtitle layers for fishing mini-games. */
 public final class FishingGlyphs {
     public static final Key DEFAULT_FONT = Key.key("customfishing:default");
@@ -76,13 +78,35 @@ public final class FishingGlyphs {
     }
 
     /** CustomFishing accurate-click subtitle: pre-drawn bar followed by a moving pointer layer. */
-    public static Component accurateClick(char bar, double position, int pointerOffset, int sections) {
-        int effectiveWidth = sections * 16;
+    public static Component accurateClick(AccurateClickBar bar, double position) {
+        int effectiveWidth = bar.sections() * bar.widthPerSection();
         int pointerPosition = pixel(position, effectiveWidth - ACCURATE_POINTER_WIDTH);
-        return glyph(bar)
-                .append(OffsetGlyphs.component(pointerOffset + pointerPosition))
+        return glyph(bar.glyph())
+                .append(OffsetGlyphs.component(bar.pointerOffset() + pointerPosition))
                 .append(glyph(POINTER))
                 .append(OffsetGlyphs.component(effectiveWidth - pointerPosition - ACCURATE_POINTER_WIDTH));
+    }
+
+    public static AccurateClickBar accurateClickBar(String name) {
+        return switch (name == null ? "" : name.toUpperCase()) {
+            case "BAR_2" -> new AccurateClickBar(BAR_2, -183, 11, 16, Set.of(4));
+            case "BAR_3" -> new AccurateClickBar(BAR_3, -183, 11, 16, Set.of(8));
+            case "BAR_4" -> new AccurateClickBar(BAR_4, -183, 22, 8, Set.of(11, 17));
+            case "BAR_5" -> new AccurateClickBar(BAR_5, -183, 22, 8, Set.of(1, 8, 14, 18));
+            case "BAR_6" -> new AccurateClickBar(BAR_6, -183, 22, 8, Set.of(9, 11, 13));
+            case "BAR_7" -> new AccurateClickBar(BAR_7, -183, 44, 4, Set.of(39));
+            case "BAR_8" -> new AccurateClickBar(BAR_8, -183, 44, 4, Set.of(21));
+            case "BAR_9" -> new AccurateClickBar(BAR_9, -183, 44, 4, Set.of(1, 44));
+            case "RAINBOW_BAR" -> new AccurateClickBar(RAINBOW_BAR, -119, 7, 16, Set.of(4));
+            default -> new AccurateClickBar(BAR_1, -183, 11, 16, Set.of(6));
+        };
+    }
+
+    public record AccurateClickBar(char glyph, int pointerOffset, int sections, int widthPerSection, Set<Integer> successSections) {
+        public boolean isHit(double position) {
+            int section = Math.min(sections, (int) Math.floor(clamp(position) * sections) + 1);
+            return successSections.contains(section);
+        }
     }
 
     private static char iconGlyph(int start, double progress) {
