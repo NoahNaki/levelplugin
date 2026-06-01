@@ -63,7 +63,7 @@ public class ChatRenderer implements QuestDialogueSession.Renderer {
         }
     }
 
-    /** Build the shared active-line presentation used in both chat and the action bar. */
+    /** Build the active-line presentation used in the chat dialogue window. */
     static Component dialogueLine(Component speaker, Component visibleText, QuestDialogueSession.State state,
                                   int lineNumber, int lineCount) {
         Component message = Component.text("[", NamedTextColor.DARK_GRAY)
