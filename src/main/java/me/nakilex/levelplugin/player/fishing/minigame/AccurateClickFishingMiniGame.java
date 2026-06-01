@@ -17,12 +17,15 @@ public class AccurateClickFishingMiniGame extends AbstractFishingMiniGame {
     private final double zoneStart;
     private final double zoneEnd;
     private final FishingGlyphs.AccurateClickBar glyphBar;
+    private final double glyphZoneMultiplier;
     private double position;
     private boolean forward = true;
-    public AccurateClickFishingMiniGame(Main plugin, Player player, long durationMs, FileConfiguration config, Consumer<Boolean> completion) {
+    public AccurateClickFishingMiniGame(Main plugin, Player player, long durationMs, FileConfiguration config, FishingDifficultyProfile profile, Consumer<Boolean> completion) {
         super(plugin, player, durationMs, "Precision reel: click inside the green zone!", completion);
-        speed = config.getDouble("fishing-mini-games.accurate_click.speed-per-tick", 0.035);
-        double width = config.getDouble("fishing-mini-games.accurate_click.zone-width", 0.22);
+        speed = config.getDouble("fishing-mini-games.accurate_click.speed-per-tick", 0.035) * profile.speedMultiplier();
+        glyphZoneMultiplier = profile.zoneMultiplier();
+        double width = Math.max(0.10, Math.min(0.45,
+                config.getDouble("fishing-mini-games.accurate_click.zone-width", 0.22) * profile.zoneMultiplier()));
         zoneStart = 0.5 - width / 2.0;
         zoneEnd = 0.5 + width / 2.0;
         List<String> bars = new ArrayList<>(config.getStringList("fishing-mini-games.accurate_click.bars"));
@@ -43,5 +46,5 @@ public class AccurateClickFishingMiniGame extends AbstractFishingMiniGame {
             actionBar(Component.empty());
         }
     }
-    @Override public void handleClick() { finish(useResourcePack() ? glyphBar.isHit(position) : position >= zoneStart && position <= zoneEnd); }
+    @Override public void handleClick() { finish(useResourcePack() ? glyphBar.isHit(position, glyphZoneMultiplier) : position >= zoneStart && position <= zoneEnd); }
 }

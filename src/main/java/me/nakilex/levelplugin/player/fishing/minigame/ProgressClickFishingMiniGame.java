@@ -11,10 +11,10 @@ public class ProgressClickFishingMiniGame extends AbstractFishingMiniGame {
     private final double clickGain;
     private final double decay;
     private double progress;
-    public ProgressClickFishingMiniGame(Main plugin, Player player, long durationMs, FileConfiguration config, Consumer<Boolean> completion) {
+    public ProgressClickFishingMiniGame(Main plugin, Player player, long durationMs, FileConfiguration config, FishingDifficultyProfile profile, Consumer<Boolean> completion) {
         super(plugin, player, durationMs, "Keep reeling: left-click to hold the line!", completion);
-        clickGain = config.getDouble("fishing-mini-games.click_v2.click-gain", 0.10);
-        decay = config.getDouble("fishing-mini-games.click_v2.decay-per-tick", 0.012);
+        clickGain = config.getDouble("fishing-mini-games.click_v2.click-gain", 0.10) * profile.zoneMultiplier();
+        decay = config.getDouble("fishing-mini-games.click_v2.decay-per-tick", 0.012) * profile.decayMultiplier();
         progress = config.getDouble("fishing-mini-games.click_v2.start-progress", 0.35);
     }
     @Override protected void tick() {

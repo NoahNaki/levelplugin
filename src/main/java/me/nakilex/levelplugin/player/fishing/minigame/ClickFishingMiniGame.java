@@ -11,9 +11,10 @@ public class ClickFishingMiniGame extends AbstractFishingMiniGame {
     private final int requiredClicks;
     private int clicks;
 
-    public ClickFishingMiniGame(Main plugin, Player player, long durationMs, FileConfiguration config, Consumer<Boolean> completion) {
+    public ClickFishingMiniGame(Main plugin, Player player, long durationMs, FileConfiguration config, FishingDifficultyProfile profile, Consumer<Boolean> completion) {
         super(plugin, player, durationMs, "Fish struggle: left-click rapidly!", completion);
-        requiredClicks = Math.max(1, config.getInt("fishing-mini-games.click.required-clicks", 12));
+        requiredClicks = Math.max(1, (int) Math.round(config.getInt("fishing-mini-games.click.required-clicks", 12)
+                * profile.requiredProgressMultiplier()));
     }
     @Override protected void tick() {
         double progress = clicks / (double) requiredClicks;

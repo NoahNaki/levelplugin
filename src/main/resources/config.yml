@@ -79,8 +79,23 @@ animatedlb:
   row-count: 10
   animation-speed: 1.0
 
-# Interactive challenge selected when a fish bites. Rod fishing speed scales the time allowance.
+# Interactive challenge selected when a fish bites. Difficulty scales with level, fish rarity, and rod tier.
 fishing-mini-games:
+  debug: false
+  difficulty:
+    enabled: true
+    level-tiers:
+      easy-max-level: 15
+      normal-max-level: 40
+      hard-max-level: 70
+    rarity-modifiers:
+      common: -1
+      uncommon: 0
+      rare: 0
+      epic: 1
+      legendary: 2
+      mythic: 2
+      fabled: 2
   resource-pack:
     # Glyph assets are managed externally in Nexo/pack/external_packs/levelplugin-fishing-games.
     enabled: true
@@ -114,7 +129,7 @@ fishing-mini-games:
     struggle-tension: 0.05
   dance:
     duration-ms: 7000
-    sequence-length: 5
+    sequence-length: 4
     use-movement: false
   accurate_click:
     duration-ms: 5000

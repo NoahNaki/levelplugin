@@ -103,9 +103,11 @@ public final class FishingGlyphs {
     }
 
     public record AccurateClickBar(char glyph, int pointerOffset, int sections, int widthPerSection, Set<Integer> successSections) {
-        public boolean isHit(double position) {
-            int section = Math.min(sections, (int) Math.floor(clamp(position) * sections) + 1);
-            return successSections.contains(section);
+        public boolean isHit(double position, double zoneMultiplier) {
+            double normalizedPosition = clamp(position);
+            double tolerance = (0.5 / sections) * Math.max(0.1, zoneMultiplier);
+            return successSections.stream().anyMatch(section ->
+                    Math.abs(normalizedPosition - ((section - 0.5) / sections)) <= tolerance);
         }
     }
 

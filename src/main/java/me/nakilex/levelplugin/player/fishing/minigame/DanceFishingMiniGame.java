@@ -14,11 +14,15 @@ public class DanceFishingMiniGame extends AbstractFishingMiniGame {
     private final List<Movement> sequence = new ArrayList<>();
     private final boolean useMovement;
     private int index;
-    public DanceFishingMiniGame(Main plugin, Player player, long durationMs, FileConfiguration c, Consumer<Boolean> completion) {
+    public DanceFishingMiniGame(Main plugin, Player player, long durationMs, FileConfiguration c,
+                                FishingDifficultyProfile profile, Consumer<Boolean> completion) {
         super(plugin, player, durationMs, "Follow the fishing rhythm!", completion);
-        int length = Math.max(1, c.getInt("fishing-mini-games.dance.sequence-length", 5));
+        int baseLength = Math.max(1, c.getInt("fishing-mini-games.dance.sequence-length", 4));
+        int length = Math.max(3, baseLength + profile.sequenceBonusLength());
         useMovement = c.getBoolean("fishing-mini-games.dance.use-movement", false);
-        Movement[] choices = Movement.values();
+        Movement[] choices = profile.tier() == FishingMiniGameDifficulty.EASY
+                ? new Movement[]{Movement.LEFT, Movement.RIGHT}
+                : Movement.values();
         for (int i = 0; i < length; i++) sequence.add(choices[ThreadLocalRandom.current().nextInt(choices.length)]);
     }
     @Override protected void tick() {

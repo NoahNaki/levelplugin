@@ -7,6 +7,8 @@ import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig;
 import me.nakilex.levelplugin.player.fishing.data.FishDefinition;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
+import me.nakilex.levelplugin.player.fishing.minigame.FishingDifficultyProfile;
+import me.nakilex.levelplugin.player.fishing.minigame.FishingDifficultyResolver;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingMiniGame;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingMiniGameManager;
 import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
@@ -102,10 +104,23 @@ public class FishingListener implements Listener {
 
     private void startMiniGame(Player player, UUID uuid, FishHook hook, boolean inLava) {
         clearLavaTask(uuid);
-        miniGameManager.startRandom(player, computeDurationMultiplier(player), success -> {
+        ItemStack rod = resolveRod(player);
+        ToolTier rodTier = resolveTier(rod);
+        FishDefinition hookedFish = rollHookedFish(player, inLava, rodTier);
+        FishingDifficultyProfile profile = FishingDifficultyResolver.resolve(
+                plugin.getConfig(), fishingManager.getLevel(player), hookedFish, rodTier);
+        FishingMiniGameManager.DebugContext debugContext = new FishingMiniGameManager.DebugContext(
+                hookedFish != null ? hookedFish.id() : "unknown",
+                hookedFish != null && hookedFish.rarity() != null ? hookedFish.rarity().name() : "COMMON",
+                fishingManager.getLevel(player));
+        miniGameManager.startRandom(player, profile, debugContext, success -> {
             if (hook != null && hook.isValid()) hook.remove();
-            if (!success || !player.isOnline()) return;
-            giveFishItem(player, awardCatch(player, inLava));
+            if (!player.isOnline()) return;
+            if (!success) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "The fish escaped!");
+                return;
+            }
+            giveFishItem(player, awardSpecificCatch(player, hookedFish, inLava));
         });
     }
 
@@ -118,18 +133,14 @@ public class FishingListener implements Listener {
         }
     }
 
-    private ItemStack awardCatch(Player player, boolean inLava) {
-        ItemStack rod = resolveRod(player);
-        ToolTier tier = resolveTier(rod);
+    private FishDefinition rollHookedFish(Player player, boolean inLava, ToolTier tier) {
         boolean highestTier = tier != null && tier.isHighestTier();
-
         double rarityBonus = tier == null ? 0.0 : Math.max(0.0, tier.getFishRarityBonus() - 1.0);
-        FishDefinition definition = rewardsConfig.rollFish(
-                fishingManager.getLevel(player),
-                inLava,
-                highestTier,
-                rarityBonus,
-                random);
+        return rewardsConfig.rollFish(fishingManager.getLevel(player), inLava, highestTier, rarityBonus, random);
+    }
+
+    private ItemStack awardSpecificCatch(Player player, FishDefinition definition, boolean inLava) {
+        if (definition == null) return null;
         double size = rollSize(definition);
         ItemStack fishItem = FishingItemUtil.createFishItem(definition, size);
 
@@ -174,12 +185,6 @@ public class FishingListener implements Listener {
         if (rod == null) return null;
         CustomTool tool = ToolManager.getInstance().getTool(rod);
         return tool != null ? tool.getTier() : ToolTier.fromMaterial(rod.getType());
-    }
-
-    private double computeDurationMultiplier(Player player) {
-        ItemStack rod = resolveRod(player);
-        ToolTier tier = resolveTier(rod);
-        return tier != null ? Math.max(0.5, tier.getFishingSpeed()) : 1.0;
     }
 
     private double rollSize(FishDefinition definition) {

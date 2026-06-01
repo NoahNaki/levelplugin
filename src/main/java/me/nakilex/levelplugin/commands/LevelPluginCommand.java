@@ -7,6 +7,7 @@ import java.util.Locale;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
+import me.nakilex.levelplugin.player.fishing.minigame.FishingDifficultyProfile;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingMiniGameManager;
 import me.nakilex.levelplugin.player.fishing.resourcepack.FishingResourcePackManager;
 import org.bukkit.ChatColor;
@@ -94,7 +95,7 @@ public class LevelPluginCommand implements TabExecutor {
             ChatMessageUtil.send(sender, MessageType.WARNING, "Fishing mini-games have not initialized yet.");
             return;
         }
-        boolean started = manager.start(player, type, 1.0, success -> ChatMessageUtil.send(player,
+        boolean started = manager.start(player, type, FishingDifficultyProfile.normal(), success -> ChatMessageUtil.send(player,
                 success ? MessageType.SUCCESS : MessageType.WARNING,
                 "Fishing mini-game test " + (success ? "completed successfully." : "failed.")));
         if (!started) {
