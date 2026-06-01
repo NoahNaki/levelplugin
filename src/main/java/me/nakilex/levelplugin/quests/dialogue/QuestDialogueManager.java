@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.quests.dialogue;
 
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -24,6 +23,7 @@ public class QuestDialogueManager implements Listener {
     private static final Pattern PLAYER_PLACEHOLDER = Pattern.compile("(?i)<player>");
 
     private final Map<UUID, QuestDialogueSession> sessions = new HashMap<>();
+    private final ChatRenderer chatRenderer = new ChatRenderer();
     private final BukkitTask tickTask;
 
     public QuestDialogueManager(JavaPlugin plugin) {
@@ -38,6 +38,7 @@ public class QuestDialogueManager implements Listener {
         }
 
         cancel(player);
+        chatRenderer.begin(player);
         List<QuestDialogueLine> preparedLines = lines.stream()
                 .map(line -> prepareLine(player, line))
                 .toList();
@@ -51,6 +52,12 @@ public class QuestDialogueManager implements Listener {
                                   Runnable onFinish) {
         if (player == null || line == null) {
             return;
+        }
+        if (lineNumber <= 1) {
+            cancel(player);
+            chatRenderer.begin(player);
+        } else {
+            cancelSession(player);
         }
         startDialogue(player, npcId, List.of(prepareLine(player, line)), Math.max(0, lineNumber - 1), lineCount,
                 onFinish);
@@ -78,10 +85,8 @@ public class QuestDialogueManager implements Listener {
         if (player == null) {
             return;
         }
-        QuestDialogueSession session = sessions.remove(player.getUniqueId());
-        if (session != null) {
-            session.cancel();
-        }
+        cancelSession(player);
+        chatRenderer.discard(player);
     }
 
     /** Stop the scheduler and discard all sessions during plugin shutdown. */
@@ -91,6 +96,7 @@ public class QuestDialogueManager implements Listener {
             session.cancel();
         }
         sessions.clear();
+        chatRenderer.discardAll();
     }
 
     @EventHandler
@@ -111,9 +117,8 @@ public class QuestDialogueManager implements Listener {
 
     private void startDialogue(Player player, int npcId, List<QuestDialogueLine> lines, int lineNumberOffset,
                                int lineCount, Runnable onFinish) {
-        cancel(player);
         QuestDialogueSession session = new QuestDialogueSession(player, npcId, lines, lineNumberOffset, lineCount,
-                onFinish, this::removeFinishedSession, System::currentTimeMillis, new ActionBarRenderer());
+                onFinish, this::removeFinishedSession, System::currentTimeMillis, new ActionBarRenderer(chatRenderer));
         sessions.put(player.getUniqueId(), session);
     }
 
@@ -131,26 +136,32 @@ public class QuestDialogueManager implements Listener {
         sessions.remove(session.getPlayer().getUniqueId(), session);
     }
 
+    private void cancelSession(Player player) {
+        QuestDialogueSession session = sessions.remove(player.getUniqueId());
+        if (session != null) {
+            session.cancel();
+        }
+    }
+
     private static class ActionBarRenderer implements QuestDialogueSession.Renderer {
+        private final ChatRenderer chatRenderer;
+
+        private ActionBarRenderer(ChatRenderer chatRenderer) {
+            this.chatRenderer = chatRenderer;
+        }
         @Override
         public void render(Player player, QuestDialogueLine line, Component speaker, Component visibleText,
                            QuestDialogueSession.State state, int lineNumber, int lineCount) {
-            Component message = Component.text("[", NamedTextColor.DARK_GRAY)
-                    .append(Component.text(lineNumber + "/" + lineCount, NamedTextColor.GRAY))
-                    .append(Component.text("] ", NamedTextColor.DARK_GRAY))
-                    .append(speaker.colorIfAbsent(NamedTextColor.YELLOW))
-                    .append(Component.text(": ", NamedTextColor.WHITE))
-                    .append(visibleText.colorIfAbsent(NamedTextColor.WHITE));
-            if (state == QuestDialogueSession.State.WAITING) {
-                message = message.append(Component.text("  [Click to continue]", NamedTextColor.DARK_GRAY));
-            }
+            Component message = ChatRenderer.dialogueLine(speaker, visibleText, state, lineNumber, lineCount);
             player.sendActionBar(Component.empty());
             player.sendActionBar(message);
+            chatRenderer.render(player, line, speaker, visibleText, state, lineNumber, lineCount);
         }
 
         @Override
         public void clear(Player player) {
             player.sendActionBar(Component.empty());
+            chatRenderer.clear(player);
         }
     }
 }
