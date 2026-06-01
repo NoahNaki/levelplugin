@@ -97,6 +97,7 @@ fishing-mini-games:
   hold:
     duration-ms: 8000
     zone-width: 0.28
+    judgement-width: 36
     burst-chance: 0.08
     burst-strength: 0.08
     damping: 0.12

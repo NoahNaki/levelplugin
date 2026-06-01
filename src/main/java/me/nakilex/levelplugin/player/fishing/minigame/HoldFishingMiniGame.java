@@ -10,6 +10,7 @@ import java.util.function.Consumer;
 
 public class HoldFishingMiniGame extends AbstractFishingMiniGame {
     private final double zoneWidth, burstChance, burstStrength, damping, requiredHold, controlGain, controlDecay;
+    private final int judgementWidth;
     private double fish = 0.5, velocity, control = 0.5, held;
     public HoldFishingMiniGame(Main plugin, Player player, long durationMs, FileConfiguration c, Consumer<Boolean> completion) {
         super(plugin, player, durationMs, "Fish struggle: click to keep ◆ in the green zone!", completion);
@@ -20,6 +21,8 @@ public class HoldFishingMiniGame extends AbstractFishingMiniGame {
         requiredHold = c.getDouble("fishing-mini-games.hold.required-hold", 2.4);
         controlGain = c.getDouble("fishing-mini-games.hold.click-gain", 0.08);
         controlDecay = c.getDouble("fishing-mini-games.hold.control-decay", 0.025);
+        judgementWidth = Math.max(1, c.getInt("fishing-mini-games.hold.judgement-width",
+                FishingGlyphs.HOLD_JUDGEMENT_NORMAL_WIDTH));
     }
     @Override protected void tick() {
         if (ThreadLocalRandom.current().nextDouble() < burstChance) velocity += ThreadLocalRandom.current().nextDouble(-burstStrength, burstStrength);
@@ -31,8 +34,10 @@ public class HoldFishingMiniGame extends AbstractFishingMiniGame {
         held = clamp(held + (inZone ? 0.05 / requiredHold : -0.025));
         updateBar("Keep the fish in your control zone!", held);
         if (useResourcePack()) {
+            double judgementStart = clamp(control - zoneWidth / 2.0);
+            double pointerPosition = fish;
             showGameTitle(FishingGlyphs.progressIcon(held),
-                    FishingGlyphs.hold(fish, control - zoneWidth / 2.0, 49, FishingGlyphs.JUDGEMENT_NORMAL));
+                    FishingGlyphs.hold(pointerPosition, judgementStart, judgementWidth, FishingGlyphs.JUDGEMENT_NORMAL));
             actionBar(Component.text("Left-click to move your control area"));
         } else if (useFallbackTextUi()) {
             actionBar(ChatColor.AQUA + "Control: " + pointer(fish, control - zoneWidth / 2.0, control + zoneWidth / 2.0, 21));

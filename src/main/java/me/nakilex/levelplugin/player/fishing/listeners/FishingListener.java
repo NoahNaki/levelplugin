@@ -62,6 +62,16 @@ public class FishingListener implements Listener {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
 
+        if (miniGameManager.isPlaying(uuid)) {
+            switch (event.getState()) {
+                case REEL_IN, FISHING, CAUGHT_FISH -> {
+                    event.setCancelled(true);
+                    return;
+                }
+                default -> { }
+            }
+        }
+
         switch (event.getState()) {
             case FISHING -> handleCast(player, uuid, event.getHook());
             case BITE -> {
@@ -217,7 +227,7 @@ public class FishingListener implements Listener {
         return type == Material.LAVA || type == Material.LAVA_CAULDRON;
     }
 
-    @EventHandler(priority = EventPriority.HIGH)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onMiniGameClick(PlayerInteractEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
         if (!miniGameManager.isPlaying(uuid)) return;
@@ -226,8 +236,7 @@ public class FishingListener implements Listener {
             case RIGHT_CLICK_AIR, RIGHT_CLICK_BLOCK -> {
                 if (event.getItem() != null && event.getItem().getType() == Material.FISHING_ROD) {
                     event.setCancelled(true);
-                    ChatMessageUtil.send(event.getPlayer(), ChatMessageUtil.MessageType.WARNING,
-                            "Complete the fishing mini-game before reeling in.");
+                    return;
                 }
             }
             default -> { }
