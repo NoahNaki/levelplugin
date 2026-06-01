@@ -7,5 +7,9 @@ public final class ReelWindowFishingMinigame extends AbstractBossBarFishingMinig
     public ReelWindowFishingMinigame(FishingMinigameContext context) { super(context, "Reel in!", BarColor.BLUE); }
     @Override public String id() { return "simple_reel"; }
     @Override public void tick() { bar.setProgress(remainingProgress()); if (expired()) complete = true; }
-    @Override public void reel() { if (complete) return; successful = !expired(); complete = true; }
+    @Override public void input(FishingMinigameInput input) {
+        if (complete || (input != FishingMinigameInput.REEL && input != FishingMinigameInput.RIGHT_CLICK)) return;
+        successful = !expired();
+        complete = true;
+    }
 }

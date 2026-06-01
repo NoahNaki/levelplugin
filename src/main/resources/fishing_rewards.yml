@@ -1,9 +1,88 @@
 # Fishing challenges selected after a bite. Set a weight to 0 to disable that game.
+# Gauge symbols may also be resource-pack glyph placeholders such as "<glyph:fishing_pointer>".
 minigames:
   simple_reel:
     weight: 1.0
   accurate_click:
     weight: 1.0
+    duration_multiplier: 3.0
+    minimum_duration_ms: 4000
+    pointer_speed: 0.055
+    target_width: 0.22
+    min_target: 0.20
+    max_target: 0.80
+    gauge:
+      width: 15
+      empty: "-"
+      target: "■"
+      pointer: "|"
+  hold:
+    weight: 1.0
+    duration_multiplier: 5.0
+    minimum_duration_ms: 7000
+    water_resistance: 0.014
+    pulling_strength: 0.028
+    max_velocity: 0.09
+    target_width: 0.30
+    required_progress: 1.0
+    progress_gain: 0.018
+    progress_loss: 0.012
+    gauge:
+      width: 15
+      empty: "-"
+      target: "■"
+      pointer: "|"
+  click:
+    weight: 1.0
+    duration_multiplier: 2.5
+    minimum_duration_ms: 4000
+    required_clicks: 12
+  hold_v2:
+    weight: 1.0
+    duration_multiplier: 5.0
+    minimum_duration_ms: 7000
+    click_control: true
+    water_resistance: 0.018
+    pulling_strength: 0.07
+    max_velocity: 0.12
+    target_width: 0.26
+    required_progress: 1.0
+    progress_gain: 0.018
+    progress_loss: 0.014
+    gauge:
+      width: 15
+      empty: "-"
+      target: "■"
+      pointer: "|"
+  click_v2:
+    weight: 1.0
+    duration_multiplier: 3.0
+    minimum_duration_ms: 5000
+    required_progress: 18
+    progress_per_click: 2.0
+    decay_per_tick: 0.20
+  tension:
+    weight: 1.0
+    duration_multiplier: 5.0
+    minimum_duration_ms: 7000
+    safe_min: 0.35
+    safe_max: 0.70
+    increase_per_tick: 0.025
+    decrease_per_tick: 0.016
+    required_progress: 1.0
+    progress_gain: 0.014
+    progress_loss: 0.018
+    gauge:
+      width: 15
+      empty: "-"
+      target: "■"
+      pointer: "|"
+  dance:
+    weight: 1.0
+    duration_multiplier: 4.0
+    minimum_duration_ms: 6000
+    sequence_length: 6
+  # accurate_click_v2 and accurate_click_v3 reuse the same engine. Copy accurate_click and tune values to enable them.
 
 fish:
   carp:

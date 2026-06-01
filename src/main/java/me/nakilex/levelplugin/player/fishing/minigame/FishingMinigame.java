@@ -5,7 +5,7 @@ public interface FishingMinigame {
     String id();
     void start();
     void tick();
-    void reel();
+    void input(FishingMinigameInput input);
     boolean isComplete();
     boolean isSuccessful();
     void dispose();

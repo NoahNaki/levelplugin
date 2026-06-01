@@ -9,9 +9,15 @@ import me.nakilex.levelplugin.player.fishing.data.FishDefinition;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.fishing.minigame.AccurateClickFishingMinigame;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingMinigame;
+import me.nakilex.levelplugin.player.fishing.minigame.ClickFishingMinigame;
+import me.nakilex.levelplugin.player.fishing.minigame.DanceFishingMinigame;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingMinigameContext;
+import me.nakilex.levelplugin.player.fishing.minigame.FishingMinigameInput;
+import me.nakilex.levelplugin.player.fishing.minigame.FishingMinigameSettings;
+import me.nakilex.levelplugin.player.fishing.minigame.HoldFishingMinigame;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingMinigameRegistry;
 import me.nakilex.levelplugin.player.fishing.minigame.ReelWindowFishingMinigame;
+import me.nakilex.levelplugin.player.fishing.minigame.TensionFishingMinigame;
 import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -29,6 +35,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.HashMap;
@@ -61,11 +68,48 @@ public class FishingListener implements Listener {
     }
 
     private void registerMinigames() {
-        minigames.register(ReelWindowFishingMinigame::new,
-                rewardsConfig.getConfig().getDouble("minigames.simple_reel.weight", 1.0));
-        minigames.register(context -> new AccurateClickFishingMinigame(new FishingMinigameContext(
-                        context.player(), Math.max(4_000L, context.durationMs() * 3L))),
-                rewardsConfig.getConfig().getDouble("minigames.accurate_click.weight", 1.0));
+        var config = rewardsConfig.getConfig();
+        minigames.register(ReelWindowFishingMinigame::new, config.getDouble("minigames.simple_reel.weight", 1.0));
+        registerAccurateClick(config, "accurate_click");
+        registerAccurateClick(config, "accurate_click_v2");
+        registerAccurateClick(config, "accurate_click_v3");
+        registerHold(config, "hold");
+        registerHold(config, "hold_v2");
+        registerClick(config, "click");
+        registerClick(config, "click_v2");
+        FishingMinigameSettings.Tension tension = FishingMinigameSettings.tension(config);
+        minigames.register(context -> new TensionFishingMinigame(scaleDuration(context,
+                        tension.durationMultiplier(), tension.minimumDurationMs()), tension),
+                config.getDouble("minigames.tension.weight", 1.0));
+        FishingMinigameSettings.Dance dance = FishingMinigameSettings.dance(config);
+        minigames.register(context -> new DanceFishingMinigame(scaleDuration(context,
+                        dance.durationMultiplier(), dance.minimumDurationMs()), dance),
+                config.getDouble("minigames.dance.weight", 1.0));
+    }
+
+    private void registerAccurateClick(org.bukkit.configuration.file.FileConfiguration config, String id) {
+        FishingMinigameSettings.AccurateClick settings = FishingMinigameSettings.accurateClick(config, id);
+        minigames.register(context -> new AccurateClickFishingMinigame(id, scaleDuration(context,
+                        settings.durationMultiplier(), settings.minimumDurationMs()), settings),
+                config.getDouble("minigames." + id + ".weight", 0.0));
+    }
+
+    private void registerHold(org.bukkit.configuration.file.FileConfiguration config, String id) {
+        FishingMinigameSettings.Hold settings = FishingMinigameSettings.hold(config, id);
+        minigames.register(context -> new HoldFishingMinigame(id, scaleDuration(context,
+                        settings.durationMultiplier(), settings.minimumDurationMs()), settings),
+                config.getDouble("minigames." + id + ".weight", 0.0));
+    }
+
+    private void registerClick(org.bukkit.configuration.file.FileConfiguration config, String id) {
+        FishingMinigameSettings.Click settings = FishingMinigameSettings.click(config, id);
+        minigames.register(context -> new ClickFishingMinigame(id, scaleDuration(context,
+                        settings.durationMultiplier(), settings.minimumDurationMs()), settings),
+                config.getDouble("minigames." + id + ".weight", 0.0));
+    }
+
+    private FishingMinigameContext scaleDuration(FishingMinigameContext context, double multiplier, long minimumMs) {
+        return new FishingMinigameContext(context.player(), Math.max(minimumMs, Math.round(context.durationMs() * multiplier)));
     }
 
     @EventHandler
@@ -119,23 +163,7 @@ public class FishingListener implements Listener {
 
     private void handleReel(Player player, UUID uuid) {
         clearLavaTask(uuid);
-        FishingSession session = sessions.get(uuid);
-        if (session == null) return;
-        session.minigame.reel();
-        if (!session.minigame.isComplete()) return;
-        boolean success = session.minigame.isSuccessful();
-        finishSession(uuid, success);
-        if (success) {
-            player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.9f, 1.2f);
-            if (session.inLava && session.rewardOnReel) {
-                ItemStack fishItem = awardCatch(player, session.inLava);
-                giveFishItem(player, fishItem);
-                lastRewarded.put(uuid, true);
-                Bukkit.getScheduler().runTaskLater(plugin, () -> lastRewarded.remove(uuid), 40L);
-            }
-        } else {
-            player.getWorld().playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.9f, 0.8f);
-        }
+        handleInput(player, FishingMinigameInput.REEL);
     }
 
     private void handleCatch(PlayerFishEvent event, Player player, UUID uuid) {
@@ -234,7 +262,7 @@ public class FishingListener implements Listener {
         FishingSession session = sessions.get(uuid);
         if (session == null) return false;
         session.minigame.tick();
-        if (!session.minigame.isComplete()) session.minigame.reel();
+        if (!session.minigame.isComplete()) session.minigame.input(FishingMinigameInput.REEL);
         boolean success = session.minigame.isComplete() && session.minigame.isSuccessful();
         finishSession(uuid, success);
         return success;
@@ -301,22 +329,34 @@ public class FishingListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
-    public void onRodReel(PlayerInteractEvent event) {
-        switch (event.getAction()) {
-            case RIGHT_CLICK_AIR, RIGHT_CLICK_BLOCK -> {
-            }
-            default -> {
-                return;
-            }
+    public void onRodInput(PlayerInteractEvent event) {
+        if (event.getItem() == null || event.getItem().getType() != Material.FISHING_ROD) return;
+        FishingMinigameInput input = switch (event.getAction()) {
+            case LEFT_CLICK_AIR, LEFT_CLICK_BLOCK -> FishingMinigameInput.LEFT_CLICK;
+            default -> null;
+        };
+        if (input != null) handleInput(event.getPlayer(), input);
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onSneak(PlayerToggleSneakEvent event) {
+        handleInput(event.getPlayer(), event.isSneaking() ? FishingMinigameInput.SNEAK_START : FishingMinigameInput.SNEAK_END);
+    }
+
+    private void handleInput(Player player, FishingMinigameInput input) {
+        FishingSession session = sessions.get(player.getUniqueId());
+        if (session == null) return;
+        session.minigame.input(input);
+        if (!session.minigame.isComplete()) return;
+        boolean success = session.minigame.isSuccessful();
+        finishSession(player.getUniqueId(), success);
+        if (success) player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.9f, 1.2f);
+        else player.getWorld().playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.9f, 0.8f);
+        if (success && session.inLava && session.rewardOnReel) {
+            giveFishItem(player, awardCatch(player, true));
+            lastRewarded.put(player.getUniqueId(), true);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> lastRewarded.remove(player.getUniqueId()), 40L);
         }
-        if (event.getItem() == null || event.getItem().getType() != Material.FISHING_ROD) {
-            return;
-        }
-        UUID uuid = event.getPlayer().getUniqueId();
-        if (!sessions.containsKey(uuid)) {
-            return;
-        }
-        handleReel(event.getPlayer(), uuid);
     }
 
     private void clearLavaTask(UUID uuid) {
