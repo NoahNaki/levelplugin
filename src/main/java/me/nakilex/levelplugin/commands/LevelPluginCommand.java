@@ -10,7 +10,6 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingDifficultyProfile;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingMiniGameManager;
 import me.nakilex.levelplugin.player.fishing.resourcepack.FishingResourcePackManager;
-import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -29,8 +28,6 @@ public class LevelPluginCommand implements TabExecutor {
     private static final String SUB_FISHING = "fishing";
     private static final String SUB_MINIGAME = "minigame";
     private static final String SUB_TEST = "test";
-    private static final String SUB_SPEED = "speed";
-    private static final String SUB_RESET = "reset";
 
     private final Main plugin;
 
@@ -64,10 +61,6 @@ public class LevelPluginCommand implements TabExecutor {
         if (SUB_FISHING.equalsIgnoreCase(args[0]) && args.length >= 4
                 && SUB_MINIGAME.equalsIgnoreCase(args[1]) && SUB_TEST.equalsIgnoreCase(args[2])) {
             startFishingMiniGameTest(sender, args[3]);
-            return true;
-        }
-        if (SUB_FISHING.equalsIgnoreCase(args[0]) && args.length >= 3 && SUB_SPEED.equalsIgnoreCase(args[1])) {
-            setFishingSpeed(sender, args[2]);
             return true;
         }
         sendUsage(sender, label);
@@ -112,27 +105,6 @@ public class LevelPluginCommand implements TabExecutor {
     }
 
 
-    private void setFishingSpeed(CommandSender sender, String rawMultiplier) {
-        if (!(sender instanceof Player player)) {
-            ChatMessageUtil.send(sender, MessageType.ERROR, "Only players can set a fishing-speed debug override.");
-            return;
-        }
-        FishingManager manager = FishingManager.getInstance();
-        if (SUB_RESET.equalsIgnoreCase(rawMultiplier)) {
-            manager.clearDebugBiteSpeedMultiplier(player.getUniqueId());
-            ChatMessageUtil.send(player, MessageType.SUCCESS, "Fishing-speed debug override reset.");
-            return;
-        }
-        try {
-            double multiplier = Double.parseDouble(rawMultiplier);
-            if (multiplier < 1.0 || multiplier > 100.0) throw new NumberFormatException();
-            manager.setDebugBiteSpeedMultiplier(player.getUniqueId(), multiplier);
-            ChatMessageUtil.send(player, MessageType.SUCCESS, "Fishing bite speed set to " + multiplier + "x.");
-        } catch (NumberFormatException ignored) {
-            ChatMessageUtil.send(player, MessageType.WARNING, "Use a fishing-speed multiplier from 1 to 100, or reset.");
-        }
-    }
-
     private void sendStatus(CommandSender sender, String label, boolean enabled) {
         ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + label + ": "
                 + (enabled ? ChatColor.GREEN + "yes" : ChatColor.RED + "no"));
@@ -140,7 +112,7 @@ public class LevelPluginCommand implements TabExecutor {
 
     private void sendUsage(CommandSender sender, String label) {
         ChatMessageUtil.send(sender, MessageType.INFO,
-                "Usage: /" + label + " <reload|fishingpack info|fishing minigame test <type>|fishing speed <multiplier|reset>>");
+                "Usage: /" + label + " <reload|fishingpack info|fishing minigame test <type>>");
     }
 
     @Override
@@ -156,13 +128,10 @@ public class LevelPluginCommand implements TabExecutor {
             return SUB_INFO.startsWith(input) ? List.of(SUB_INFO) : Collections.emptyList();
         }
         if (args.length == 2 && SUB_FISHING.equalsIgnoreCase(args[0])) {
-            return matching(args[1], List.of(SUB_MINIGAME, SUB_SPEED));
+            return matching(args[1], List.of(SUB_MINIGAME));
         }
         if (args.length == 3 && SUB_FISHING.equalsIgnoreCase(args[0]) && SUB_MINIGAME.equalsIgnoreCase(args[1])) {
             return matching(args[2], List.of(SUB_TEST));
-        }
-        if (args.length == 3 && SUB_FISHING.equalsIgnoreCase(args[0]) && SUB_SPEED.equalsIgnoreCase(args[1])) {
-            return matching(args[2], List.of("2", "5", "10", SUB_RESET));
         }
         if (args.length == 4 && SUB_FISHING.equalsIgnoreCase(args[0]) && SUB_MINIGAME.equalsIgnoreCase(args[1])
                 && SUB_TEST.equalsIgnoreCase(args[2])) {

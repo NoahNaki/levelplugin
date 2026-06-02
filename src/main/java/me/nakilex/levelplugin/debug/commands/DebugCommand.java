@@ -48,6 +48,7 @@ import me.nakilex.levelplugin.particles.ParticlePreset;
 import me.nakilex.levelplugin.particles.ParticleService;
 import me.nakilex.levelplugin.particles.presets.ElementalPresets;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
+import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager.StatType;
 import me.nakilex.levelplugin.spells.SpellCastManager;
 import me.nakilex.levelplugin.spells.deck.SpellDeckManager;
@@ -165,7 +166,7 @@ public class DebugCommand implements TabExecutor, Listener {
                 String statUsage = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|wield|" + statUsage + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|fishingspeed|wield|" + statUsage + ">");
             }
             return true;
         }
@@ -1009,14 +1010,49 @@ public class DebugCommand implements TabExecutor, Listener {
                         "Farm growth speed set to " + ChatColor.WHITE + me.nakilex.levelplugin.player.farming.gui.FarmFieldsGUI.getGrowthSpeedMultiplier() + ChatColor.GREEN + "x.");
                 return true;
 
+            case "fishingspeed":
+                return setFishingSpeed(sender, args);
+
             default:
                 sender.sendMessage("Unknown debug subcommand: " + sub);
                 String statUsage2 = Arrays.stream(StatType.values())
                         .map(StatType::getAbbrev)
                         .collect(Collectors.joining("|"));
-                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|wield|" + statUsage2 + ">");
+                sender.sendMessage("Usage: /debug <mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|cityowner|kingdommax|area|chatgame|expedition|dungeonexpedition|beaconentity|spellinput|spellcooldown|spellmanacost|stunstick|poisonstick|tauntstick|fearstick|slowstick|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|warriorcyclone|stronghold|strongholdxp|gemdungeonsweep|lootchestanimation|npcmodel|npcundisguise|npcorphanprune|farmgrowthspeed|fishingspeed|wield|" + statUsage2 + ">");
                 return true;
         }
+    }
+
+    private boolean setFishingSpeed(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                    "Only players can set a fishing-speed debug override.");
+            return true;
+        }
+        FishingManager manager = FishingManager.getInstance();
+        if (args.length < 2) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Fishing bite speed: " + ChatColor.WHITE + manager.getDebugBiteSpeedMultiplier(player.getUniqueId())
+                            + ChatColor.GRAY + "x. Usage: /debug fishingspeed <multiplier|reset>");
+            return true;
+        }
+        if (args[1].equalsIgnoreCase("reset")) {
+            manager.clearDebugBiteSpeedMultiplier(player.getUniqueId());
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "Fishing-speed debug override reset.");
+            return true;
+        }
+        try {
+            double multiplier = Double.parseDouble(args[1]);
+            if (multiplier < 1.0 || multiplier > 100.0) throw new NumberFormatException();
+            manager.setDebugBiteSpeedMultiplier(player.getUniqueId(), multiplier);
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "Fishing bite speed set to " + ChatColor.WHITE + multiplier + ChatColor.GREEN + "x.");
+        } catch (NumberFormatException ignored) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Use a fishing-speed multiplier from 1 to 100, or reset.");
+        }
+        return true;
     }
 
     private boolean pruneOrphanCitizensNpcs(CommandSender sender) {
@@ -1460,10 +1496,14 @@ public class DebugCommand implements TabExecutor, Listener {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "buildmat", "buildspeed", "speedupscroll", "cityowner", "kingdommax", "area", "autocast",
                     "hand", "wield", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "farmgrowthspeed", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "farmgrowthspeed", "fishingspeed", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("fishingspeed")) {
+            return List.of("1", "2", "5", "10", "reset").stream()
+                    .filter(opt -> opt.startsWith(args[1].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("area")) {
             return List.of("initialize", "scanblocks").stream()
