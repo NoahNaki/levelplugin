@@ -8,6 +8,7 @@ public interface LifeSkillProgression {
     int getXP(UUID uuid);
     void addXP(UUID uuid, int amount);
     void setLevel(UUID uuid, int level);
+    void clearPlayerData(UUID uuid);
     int getXpRequired(int level);
     int getMaxLevel();
 

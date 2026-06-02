@@ -207,6 +207,16 @@ public class LifeSkillRewardManager {
                 .add(levelRequired);
     }
 
+    /** Clears claimed milestone rewards when a profile is deleted. */
+    public void clearPlayerData(UUID uuid) {
+        if (uuid == null) return;
+        claimed.values().forEach(claimedByPlayer -> claimedByPlayer.remove(uuid));
+        if (plugin.getPlayerConfig() != null) {
+            plugin.getPlayerConfig().getConfig().set("players." + uuid + ".lifeskills", null);
+            plugin.getPlayerConfig().saveConfigFile();
+        }
+    }
+
     public boolean claimReward(Player player, ToolDiscipline discipline, LifeSkillReward reward) {
         UUID uuid = player.getUniqueId();
         if (reward == null) {

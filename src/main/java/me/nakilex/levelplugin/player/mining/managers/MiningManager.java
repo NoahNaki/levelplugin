@@ -185,6 +185,7 @@ public class MiningManager implements LifeSkillProgression {
     }
 
     /** Remove all mining progress for a player. */
+    @Override
     public void clearPlayerData(UUID uuid) {
         miningLevels.remove(uuid);
         miningXp.remove(uuid);

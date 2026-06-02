@@ -256,6 +256,7 @@ public class FarmingManager implements LifeSkillProgression {
         farmingXp.put(uuid, 0);
     }
 
+    @Override
     public void clearPlayerData(UUID uuid) {
         farmingLevels.remove(uuid);
         farmingXp.remove(uuid);

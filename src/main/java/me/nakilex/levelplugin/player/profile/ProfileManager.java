@@ -115,12 +115,7 @@ public class ProfileManager {
         if (plugin.getCodexManager() != null) {
             plugin.getCodexManager().clearPlayerData(uuid);
         }
-        if (plugin.getMiningManager() != null) {
-            plugin.getMiningManager().clearPlayerData(uuid);
-        }
-        if (plugin.getWoodcuttingManager() != null) {
-            plugin.getWoodcuttingManager().clearPlayerData(uuid);
-        }
+        me.nakilex.levelplugin.player.attributes.lifeskill.LifeSkillRegistry.clearPlayerData(plugin, uuid);
         if (plugin.getHorseManager() != null) {
             plugin.getHorseManager().clearPlayerData(uuid);
         }

@@ -111,8 +111,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final WorldPoint KINGDOM_ANIMATED_LB = new WorldPoint(3810, 105, -3377);
     // Authored against the finished kingdom template, then projected into each pasted empty-world instance.
     private static final List<KingdomLeaderboardPlacement> LIFE_SKILL_LEADERBOARDS = List.of(
-            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3858, 74, -3006)), -90.0F, BoardType.MINING),
-            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3800, 99, -3018)), -90.0F, BoardType.FARMING),
+            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3858, 73, -3006)), -90.0F, BoardType.MINING),
+            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3800, 98, -3018)), -90.0F, BoardType.FARMING),
             new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3664, 82, -3026)), 45.0F, BoardType.FISHING)
     );
 

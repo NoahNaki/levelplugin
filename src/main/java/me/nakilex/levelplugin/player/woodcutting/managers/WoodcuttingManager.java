@@ -185,6 +185,7 @@ public class WoodcuttingManager implements LifeSkillProgression {
         xp.put(uuid, 0);
     }
 
+    @Override
     public void clearPlayerData(UUID uuid) {
         levels.remove(uuid);
         xp.remove(uuid);

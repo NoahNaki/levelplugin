@@ -224,6 +224,7 @@ public class FishingManager implements LifeSkillProgression {
     }
 
     /** Remove all fishing progress for a player. */
+    @Override
     public void clearPlayerData(UUID uuid) {
         fishingLevels.remove(uuid);
         fishingXp.remove(uuid);
