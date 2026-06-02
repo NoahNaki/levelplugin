@@ -1105,7 +1105,8 @@ public class ItemUtil {
         } else if (discipline == ToolDiscipline.WOODCUTTING) {
             lore.add(ChatColor.GRAY + "Woodcutting Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
         } else {
-            lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + tier.getMiningSpeed());
+            lore.add(ChatColor.GRAY + "Mining Damage: " + ChatColor.GREEN + "+" + tier.getMiningDamage());
+            lore.add(ChatColor.GRAY + "Mining Speed: " + ChatColor.GREEN + "+" + (int) (tier.getMiningSpeed() * 100 - 100) + "%");
             me.nakilex.levelplugin.items.tools.MiningToolEnchant enchant =
                     ToolManager.getInstance().getMiningEnchant(stack);
             if (enchant != null) {

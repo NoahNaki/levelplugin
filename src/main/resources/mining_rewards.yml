@@ -65,3 +65,42 @@ ores:
     drop:
       min: 1
       max: 1
+
+# Special ore nodes reuse the normal ore pipeline while changing health, rewards, and weak-point frequency.
+nodes:
+  special-chance: 0.18
+  variants:
+    normal:
+      health-multiplier: 1.0
+      drop-multiplier: 1.0
+      xp-multiplier: 1.0
+      weak-point-chance: 0.22
+      weak-point-damage-multiplier: 2.5
+    rich:
+      weight: 3.0
+      health-multiplier: 1.35
+      drop-multiplier: 1.8
+      xp-multiplier: 1.25
+      weak-point-chance: 0.22
+      weak-point-damage-multiplier: 2.5
+    brittle:
+      weight: 2.5
+      health-multiplier: 0.85
+      drop-multiplier: 1.25
+      xp-multiplier: 1.15
+      weak-point-chance: 0.55
+      weak-point-damage-multiplier: 3.0
+    dense:
+      weight: 2.0
+      health-multiplier: 1.8
+      drop-multiplier: 1.5
+      xp-multiplier: 1.6
+      weak-point-chance: 0.28
+      weak-point-damage-multiplier: 2.75
+    geode:
+      weight: 1.0
+      health-multiplier: 1.25
+      drop-multiplier: 2.25
+      xp-multiplier: 1.4
+      weak-point-chance: 0.35
+      weak-point-damage-multiplier: 2.75

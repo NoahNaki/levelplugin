@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.player.mining.managers;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.progression.TimedTierProgression;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.boss.BarColor;
@@ -26,6 +28,12 @@ public class MiningManager implements LifeSkillProgression {
     private final HashMap<UUID, BossBar> xpBars       = new HashMap<>();
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> hideTasks = new HashMap<>();
     private final Map<UUID, Boolean> activeBars = new HashMap<>();
+    private final Map<UUID, TimedTierProgression> momentumStates = new HashMap<>();
+
+    private static final int MOMENTUM_MAX_TIER = 5;
+    private static final int MOMENTUM_ORES_PER_TIER = 3;
+    private static final long MOMENTUM_TIMEOUT_MS = 12_000L;
+    private static final double MOMENTUM_DAMAGE_PER_TIER = 0.08;
 
     private final int MAX_LEVEL = 100;
     private final int XP_PER_LEVEL_MULTIPLIER = 200;
@@ -43,6 +51,7 @@ public class MiningManager implements LifeSkillProgression {
         UUID uuid = player.getUniqueId();
         miningLevels.putIfAbsent(uuid, 1);
         miningXp.putIfAbsent(uuid, 0);
+        momentumStates.computeIfAbsent(uuid, ignored -> createMomentumState());
         updateBossBar(player);
     }
 
@@ -106,6 +115,46 @@ public class MiningManager implements LifeSkillProgression {
 
     public int getXpRequired(int level) {
         return level * XP_PER_LEVEL_MULTIPLIER;
+    }
+
+
+    public TimedTierProgression.Update recordMomentumOre(Player player) {
+        if (player == null) return new TimedTierProgression.Update(1, 0, false);
+        TimedTierProgression.Update update = momentumState(player.getUniqueId()).recordActivity(System.currentTimeMillis());
+        if (update.tierIncreased()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
+                    "Mining Momentum reached " + ChatColor.YELLOW + "Tier " + update.tier() + ChatColor.GOLD + "!");
+            player.getWorld().playSound(player.getLocation(), org.bukkit.Sound.BLOCK_NOTE_BLOCK_PLING, 0.8f,
+                    Math.min(2.0f, 0.8f + (update.tier() * 0.15f)));
+        }
+        return update;
+    }
+
+    public int getMomentumTier(Player player) {
+        if (player == null) return 1;
+        return momentumState(player.getUniqueId()).getTier(System.currentTimeMillis());
+    }
+
+    public double getMomentumDamageMultiplier(Player player) {
+        return 1.0 + ((getMomentumTier(player) - 1) * MOMENTUM_DAMAGE_PER_TIER);
+    }
+
+    public String getMomentumIndicator(Player player) {
+        if (player == null) return null;
+        TimedTierProgression state = momentumState(player.getUniqueId());
+        long now = System.currentTimeMillis();
+        int tier = state.getTier(now);
+        int progress = state.getProgress(now);
+        return ChatColor.AQUA + "Momentum " + ChatColor.YELLOW + "T" + tier
+                + ChatColor.DARK_GRAY + " [" + progress + "/" + state.getActivitiesPerTier() + "]";
+    }
+
+    private TimedTierProgression momentumState(UUID uuid) {
+        return momentumStates.computeIfAbsent(uuid, ignored -> createMomentumState());
+    }
+
+    private TimedTierProgression createMomentumState() {
+        return new TimedTierProgression(MOMENTUM_MAX_TIER, MOMENTUM_ORES_PER_TIER, MOMENTUM_TIMEOUT_MS);
     }
 
     private void sendLevelUpMessage(Player player, int newLevel, int nextXp) {
@@ -196,6 +245,7 @@ public class MiningManager implements LifeSkillProgression {
     public void clearPlayerData(UUID uuid) {
         miningLevels.remove(uuid);
         miningXp.remove(uuid);
+        momentumStates.remove(uuid);
         if (plugin.getPlayerConfig() != null) {
             String path = "players." + uuid + ".mining";
             plugin.getPlayerConfig().getConfig().set(path, null);
