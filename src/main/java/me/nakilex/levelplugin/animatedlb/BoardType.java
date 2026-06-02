@@ -8,7 +8,10 @@ public enum BoardType {
     STRONGHOLD_STAGE("STRONGHOLD PROGRESSION", "⚔", ChatColor.LIGHT_PURPLE,
             (e, type) -> "S" + (int) e.primaryValue() + "-W" + (int) e.secondaryValue()),
     POWER("POWER RANKING", "✦", ChatColor.AQUA,
-            (e, type) -> "GS " + (int) e.primaryValue() + " • LV " + (int) e.secondaryValue());
+            (e, type) -> "GS " + (int) e.primaryValue() + " • LV " + (int) e.secondaryValue()),
+    MINING("MINING XP", "⛏", ChatColor.GRAY, BoardType::formatLifeSkill),
+    FARMING("FARMING XP", "✿", ChatColor.GREEN, BoardType::formatLifeSkill),
+    FISHING("FISHING XP", "≈", ChatColor.AQUA, BoardType::formatLifeSkill);
 
     private final String title;
     private final String icon;
@@ -27,8 +30,8 @@ public enum BoardType {
     public ChatColor color() { return color; }
     public String format(LeaderboardEntry entry) { return formatter.apply(entry, this); }
 
-    public BoardType next() {
-        BoardType[] values = values();
-        return values[(ordinal() + 1) % values.length];
+    private static String formatLifeSkill(LeaderboardEntry entry, BoardType ignored) {
+        return String.format("%,.0f XP", entry.primaryValue());
     }
+
 }

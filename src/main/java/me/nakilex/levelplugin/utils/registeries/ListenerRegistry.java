@@ -187,13 +187,10 @@ public class ListenerRegistry {
             pm.registerEvents(customMobManager.getAdminGui(), plugin);
             pm.registerEvents(new MobStatusDebugListener(customMobManager), plugin);
         }
-        pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.OreMiningListener(
-                plugin,
-                plugin.getMiningRewardsConfig(),
-                plugin.getMiningManager()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.KingdomMineRegenListener(
                 plugin,
-                me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin)), plugin);
+                me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin),
+                plugin.getMiningRewardsConfig()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.farming.listeners.WheatHarvestListener(plugin.getFarmingManager(), plugin.getFarmingRewardsConfig()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.fishing.listeners.FishingListener(
                 plugin,

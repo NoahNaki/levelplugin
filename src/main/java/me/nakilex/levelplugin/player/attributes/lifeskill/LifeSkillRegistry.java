@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 /** Resolves discipline metadata and progression managers in one reusable place. */
 public final class LifeSkillRegistry {
@@ -41,5 +42,16 @@ public final class LifeSkillRegistry {
         map.put(ToolDiscipline.FISHING, plugin.getFishingManager());
         map.put(ToolDiscipline.WOODCUTTING, plugin.getWoodcuttingManager());
         return map;
+    }
+
+    /** Clears progression and claimed milestone rewards for every registered life skill. */
+    public static void clearPlayerData(Main plugin, UUID uuid) {
+        if (plugin == null || uuid == null) return;
+        for (LifeSkillProgression progression : progressions(plugin).values()) {
+            if (progression != null) progression.clearPlayerData(uuid);
+        }
+        if (plugin.getLifeSkillRewardManager() != null) {
+            plugin.getLifeSkillRewardManager().clearPlayerData(uuid);
+        }
     }
 }

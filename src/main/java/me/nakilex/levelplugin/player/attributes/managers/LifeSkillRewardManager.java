@@ -14,7 +14,9 @@ import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.NumberUtil;
 import org.bukkit.ChatColor;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -72,7 +74,6 @@ public class LifeSkillRewardManager {
     private List<LifeSkillReward> createRewardList(String skillName) {
         List<LifeSkillReward> list = new ArrayList<>();
         list.addAll(List.of(
-                coinReward(1, skillName, 200),
                 giftReward(2, skillName, "blossom_bundle"),
                 statReward(3, skillName, StatType.VIT, 1, "+1 Vitality"),
                 coinReward(4, skillName, 400),
@@ -125,7 +126,7 @@ public class LifeSkillRewardManager {
         String title = ChatColor.GOLD + skillName + " Level " + level;
         String rewardLine = ChatColor.GREEN + "• " + ChatColor.WHITE + "+" + coins + " <glyph:coins_icon>";
         return new LifeSkillReward(level, title, List.of(ChatColor.GRAY + "Rewards:", rewardLine),
-                player -> economyManager.addCoins(player, coins, false));
+                player -> economyManager.addCoins(player, coins, false), RewardBreakdown.coins(coins));
     }
 
     private LifeSkillReward statReward(int level, String skillName, StatType stat, int amount, String label) {
@@ -135,7 +136,8 @@ public class LifeSkillRewardManager {
                 ChatColor.GREEN + "• " + ChatColor.WHITE + label
         );
         return new LifeSkillReward(level, title, lore,
-                player -> StatsManager.getInstance().addBaseStat(player.getUniqueId(), stat, amount));
+                player -> StatsManager.getInstance().addBaseStat(player.getUniqueId(), stat, amount),
+                RewardBreakdown.stat(stat, amount));
     }
 
     private LifeSkillReward giftReward(int level, String skillName, String giftId) {
@@ -155,7 +157,7 @@ public class LifeSkillRewardManager {
             if (gift != null) {
                 player.getInventory().addItem(gift);
             }
-        });
+        }, RewardBreakdown.gift(giftId));
     }
 
     private String statLabel(StatType stat) {
@@ -206,6 +208,16 @@ public class LifeSkillRewardManager {
                 .add(levelRequired);
     }
 
+    /** Clears claimed milestone rewards when a profile is deleted. */
+    public void clearPlayerData(UUID uuid) {
+        if (uuid == null) return;
+        claimed.values().forEach(claimedByPlayer -> claimedByPlayer.remove(uuid));
+        if (plugin.getPlayerConfig() != null) {
+            plugin.getPlayerConfig().getConfig().set("players." + uuid + ".lifeskills", null);
+            plugin.getPlayerConfig().saveConfigFile();
+        }
+    }
+
     public boolean claimReward(Player player, ToolDiscipline discipline, LifeSkillReward reward) {
         UUID uuid = player.getUniqueId();
         if (reward == null) {
@@ -251,6 +263,7 @@ public class LifeSkillRewardManager {
         }
         message += ".";
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD, message);
+        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.2f);
         ChatFormatter.sendIndentedMessage(player, ChatColor.GREEN + "Rewards:");
         for (String line : buildRewardLines(newlyClaimed)) {
             ChatFormatter.sendIndentedMessage(player, line);
@@ -259,28 +272,9 @@ public class LifeSkillRewardManager {
     }
 
     private List<String> buildRewardLines(List<LifeSkillReward> rewards) {
-        List<String> lines = new ArrayList<>();
-        for (LifeSkillReward reward : rewards) {
-            for (String line : reward.lore()) {
-                if (line == null || line.isBlank()) {
-                    continue;
-                }
-                String stripped = ChatColor.stripColor(line).trim();
-                if (stripped.equalsIgnoreCase("Rewards:")) {
-                    continue;
-                }
-                if (stripped.isEmpty()) {
-                    continue;
-                }
-                if (stripped.startsWith("–")) {
-                    lines.add(ChatColor.DARK_GRAY + "  " + line.trim());
-                    continue;
-                }
-                String cleaned = line.replace("• ", "").replace("•", "").trim();
-                lines.add(ChatColor.GREEN + "- " + cleaned);
-            }
-        }
-        return lines;
+        RewardSummary summary = new RewardSummary();
+        rewards.forEach(reward -> summary.add(reward.breakdown()));
+        return summary.toLines();
     }
 
     private int getLevel(ToolDiscipline discipline, UUID uuid) {
@@ -288,6 +282,54 @@ public class LifeSkillRewardManager {
         return progression == null ? 1 : progression.getLevel(uuid);
     }
 
-    public record LifeSkillReward(int levelRequired, String displayName, List<String> lore, Consumer<Player> rewardAction) {
+    public record LifeSkillReward(int levelRequired, String displayName, List<String> lore,
+                                  Consumer<Player> rewardAction, RewardBreakdown breakdown) {
+    }
+
+    public record RewardBreakdown(int coins, StatType stat, int statAmount, String giftId) {
+        private static RewardBreakdown coins(int amount) {
+            return new RewardBreakdown(amount, null, 0, null);
+        }
+
+        private static RewardBreakdown stat(StatType stat, int amount) {
+            return new RewardBreakdown(0, stat, amount, null);
+        }
+
+        private static RewardBreakdown gift(String giftId) {
+            return new RewardBreakdown(0, null, 0, giftId);
+        }
+    }
+
+    private final class RewardSummary {
+        private int coins;
+        private final Map<StatType, Integer> stats = new EnumMap<>(StatType.class);
+        private final Map<String, Integer> gifts = new LinkedHashMap<>();
+
+        private void add(RewardBreakdown breakdown) {
+            if (breakdown == null) return;
+            coins += breakdown.coins();
+            if (breakdown.stat() != null && breakdown.statAmount() > 0) {
+                stats.merge(breakdown.stat(), breakdown.statAmount(), Integer::sum);
+            }
+            if (breakdown.giftId() != null && !breakdown.giftId().isBlank()) {
+                gifts.merge(breakdown.giftId(), 1, Integer::sum);
+            }
+        }
+
+        private List<String> toLines() {
+            List<String> lines = new ArrayList<>();
+            if (coins > 0) {
+                lines.add(ChatColor.GREEN + "- " + ChatColor.WHITE + "+" + NumberUtil.formatCommas(coins)
+                        + " <glyph:coins_icon>");
+            }
+            stats.forEach((stat, amount) -> lines.add(ChatColor.GREEN + "- " + ChatColor.WHITE + "+" + amount
+                    + " " + statLabel(stat)));
+            if (!gifts.isEmpty()) {
+                lines.add(ChatColor.GREEN + "- " + ChatColor.WHITE + "Friendship Gifts");
+                gifts.forEach((giftId, amount) -> lines.add(ChatColor.DARK_GRAY + "  – " + ChatColor.WHITE
+                        + amount + "x " + prettyGiftName(giftId)));
+            }
+            return lines;
+        }
     }
 }

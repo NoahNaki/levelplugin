@@ -115,12 +115,7 @@ public class ProfileManager {
         if (plugin.getCodexManager() != null) {
             plugin.getCodexManager().clearPlayerData(uuid);
         }
-        if (plugin.getMiningManager() != null) {
-            plugin.getMiningManager().clearPlayerData(uuid);
-        }
-        if (plugin.getWoodcuttingManager() != null) {
-            plugin.getWoodcuttingManager().clearPlayerData(uuid);
-        }
+        me.nakilex.levelplugin.player.attributes.lifeskill.LifeSkillRegistry.clearPlayerData(plugin, uuid);
         if (plugin.getHorseManager() != null) {
             plugin.getHorseManager().clearPlayerData(uuid);
         }
@@ -168,6 +163,12 @@ public class ProfileManager {
         if (wasActive) {
             wipePlayer(player);
             clearActiveSlot(uuid);
+        } else if (activeSlot.get(uuid) == null) {
+            // Profile entry intentionally clears the active slot before selection. Clear the
+            // root-level life-skill state as well so deleting from that screen cannot leave
+            // loaded progression or claimed rewards behind for the next profile.
+            me.nakilex.levelplugin.player.attributes.lifeskill.LifeSkillRegistry.clearPlayerData(
+                    me.nakilex.levelplugin.Main.getInstance(), uuid);
         }
         areaManager.removeKingdom(uuid);
         areaManager.clearProfileKingdomProgress(uuid, slot);

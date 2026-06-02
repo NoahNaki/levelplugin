@@ -936,7 +936,6 @@ public class PluginBootstrap {
             dungeonManager.saveLayoutsSync();
             dungeonManager.getBuilder().cancelAll();
         }
-        if (me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance() != null) me.nakilex.levelplugin.player.mining.listeners.OreMiningListener.getInstance().removeAllHolograms();
         if (questManager != null) questManager.saveProgress();
         if (modelGateManager != null) modelGateManager.removeAllGates();
         if (environmentManager != null) {
