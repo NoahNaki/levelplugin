@@ -7,11 +7,14 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
+import me.nakilex.levelplugin.player.fishing.data.FishingQuality;
+import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.spells.input.SpellKeybindSlot;
 import me.nakilex.levelplugin.spells.progression.SpellProgressionManager;
 import org.bukkit.Bukkit;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.inventory.ItemStack;
@@ -23,6 +26,8 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -73,6 +78,14 @@ public class PlayerConfig {
         config.set(path + ".woodcutting.level", woodcuttingManager.getLevel(uuid));
         config.set(path + ".woodcutting.xp",    woodcuttingManager.getXP(uuid));
         config.set(path + ".fishing.discovered", new ArrayList<>(fishingManager.getDiscoveredFish(uuid)));
+        config.set(path + ".fishing.records", null);
+        for (Map.Entry<String, FishingManager.FishRecord> entry : fishingManager.getFishRecords(uuid).entrySet()) {
+            String recordPath = path + ".fishing.records." + entry.getKey();
+            FishingManager.FishRecord record = entry.getValue();
+            config.set(recordPath + ".caught", record.caughtCount());
+            config.set(recordPath + ".largest", record.largestSize());
+            config.set(recordPath + ".quality", record.bestQuality().name());
+        }
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         if (rewardManager != null) {
             for (ToolDiscipline discipline : ToolDiscipline.values()) {
@@ -152,6 +165,22 @@ public class PlayerConfig {
         int woodcuttingLevel = config.getInt(root + ".woodcutting.level", 1);
         int woodcuttingXp = config.getInt(root + ".woodcutting.xp", 0);
         List<String> discoveredFish = config.getStringList(root + ".fishing.discovered");
+        Map<String, FishingManager.FishRecord> fishRecords = new HashMap<>();
+        ConfigurationSection fishingRecords = config.getConfigurationSection(root + ".fishing.records");
+        if (fishingRecords != null) {
+            for (String fishId : fishingRecords.getKeys(false)) {
+                String recordPath = root + ".fishing.records." + fishId;
+                FishingQuality quality;
+                try {
+                    quality = FishingQuality.valueOf(config.getString(recordPath + ".quality", "NORMAL"));
+                } catch (IllegalArgumentException ignored) {
+                    quality = FishingQuality.NORMAL;
+                }
+                fishRecords.put(fishId, new FishingManager.FishRecord(
+                        config.getInt(recordPath + ".caught", 0),
+                        config.getDouble(recordPath + ".largest", 0.0), quality));
+            }
+        }
         LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         int skillPoints = config.getInt(root + ".skill_points", 0);
         // Spell progression is profile-scoped and loaded on profile selection.
@@ -170,6 +199,7 @@ public class PlayerConfig {
         fim.setLevel(uuid, fishingLevel);
         fim.addXP(uuid, fishingXp);
         fim.setDiscoveredFish(uuid, new HashSet<>(discoveredFish));
+        fim.setFishRecords(uuid, fishRecords);
         me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager wcm = me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance();
         wcm.setLevel(uuid, woodcuttingLevel);
         wcm.addXP(uuid, woodcuttingXp);

@@ -3,9 +3,11 @@ package me.nakilex.levelplugin.player.fishing.listeners;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.tools.CustomTool;
 import me.nakilex.levelplugin.items.tools.ToolManager;
+import me.nakilex.levelplugin.items.tools.FishingToolEnchant;
 import me.nakilex.levelplugin.items.tools.ToolTier;
 import me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig;
 import me.nakilex.levelplugin.player.fishing.data.FishDefinition;
+import me.nakilex.levelplugin.player.fishing.data.FishingQuality;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingDifficultyProfile;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingDifficultyResolver;
@@ -79,9 +81,7 @@ public class FishingListener implements Listener {
         }
 
         switch (event.getState()) {
-            case FISHING -> {
-                if (miniGamesEnabled) handleCast(player, uuid, event.getHook());
-            }
+            case FISHING -> handleCast(player, uuid, event.getHook());
             case BITE -> {
                 if (miniGamesEnabled) {
                     event.setCancelled(true);
@@ -103,9 +103,15 @@ public class FishingListener implements Listener {
         if (miniGameManager.isPlaying(uuid)) return;
         clearLavaTask(uuid);
         miniGameManager.cancelSilently(uuid);
+        ItemStack rod = resolveRod(player);
+        double biteSpeed = resolveBiteSpeed(rod);
+        if (hook != null) {
+            hook.setMinWaitTime(scaleWaitTicks(100, biteSpeed));
+            hook.setMaxWaitTime(scaleWaitTicks(600, biteSpeed));
+        }
         org.bukkit.Location hookLocation = hook != null ? hook.getLocation() : null;
-        if (!isLavaFishingArea(player, hookLocation)) return;
-        int delay = ThreadLocalRandom.current().nextInt(LAVA_BITE_MIN_TICKS, LAVA_BITE_MAX_TICKS + 1);
+        if (!miniGameManager.isEnabled() || !isLavaFishingArea(player, hookLocation)) return;
+        int delay = scaleWaitTicks(ThreadLocalRandom.current().nextInt(LAVA_BITE_MIN_TICKS, LAVA_BITE_MAX_TICKS + 1), biteSpeed);
         lavaBiteTasks.put(uuid, Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!player.isOnline()) return;
             if (!miniGameManager.isEnabled() || miniGameManager.isPlaying(uuid)) return;
@@ -121,6 +127,9 @@ public class FishingListener implements Listener {
         FishDefinition hookedFish = rollHookedFish(player, inLava, rodTier);
         FishingDifficultyProfile profile = FishingDifficultyResolver.resolve(
                 plugin.getConfig(), fishingManager.getLevel(player), hookedFish, rodTier);
+        if (getFishingEnchant(rod) == FishingToolEnchant.STEADY_HAND) {
+            profile = profile.withRodAssistance(0.18, 0.18, 0.12);
+        }
         FishingMiniGameManager.DebugContext debugContext = new FishingMiniGameManager.DebugContext(
                 hookedFish != null ? hookedFish.id() : "unknown",
                 hookedFish != null && hookedFish.rarity() != null ? hookedFish.rarity().name() : "COMMON",
@@ -133,6 +142,10 @@ public class FishingListener implements Listener {
                 return;
             }
             giveFishItem(player, awardSpecificCatch(player, hookedFish, inLava));
+            if (getFishingEnchant(rod) == FishingToolEnchant.DOUBLE_HOOK && random.nextDouble() < 0.15) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD, "Double Hook reeled in an extra fish!");
+                giveFishItem(player, awardCatch(player, inLava));
+            }
         });
     }
 
@@ -180,16 +193,20 @@ public class FishingListener implements Listener {
     private FishDefinition rollHookedFish(Player player, boolean inLava, ToolTier tier) {
         boolean highestTier = tier != null && tier.isHighestTier();
         double rarityBonus = tier == null ? 0.0 : Math.max(0.0, tier.getFishRarityBonus() - 1.0);
+        if (getFishingEnchant(resolveRod(player)) == FishingToolEnchant.LUCKY_CAST) rarityBonus += 0.25;
         return rewardsConfig.rollFish(fishingManager.getLevel(player), inLava, highestTier, rarityBonus, random);
     }
 
     private ItemStack awardSpecificCatch(Player player, FishDefinition definition, boolean inLava) {
         if (definition == null) return null;
-        double size = rollSize(definition);
+        double size = rollSize(player, definition);
+        FishingQuality quality = FishingQuality.fromSize(definition, size);
         ItemStack fishItem = FishingItemUtil.createFishItem(definition, size);
 
         fishingManager.addXP(player, definition.xpReward());
         fishingManager.discoverFish(player.getUniqueId(), definition.id());
+        FishingManager.CatchResult catchResult = fishingManager.recordCatch(player.getUniqueId(), definition.id(), size, quality);
+        if (plugin.getPlayerConfig() != null) plugin.getPlayerConfig().savePlayerData(player.getUniqueId());
         if (plugin.getQuestManager() != null) {
             plugin.getQuestManager().handleCaptureFish(player, definition.id());
         }
@@ -200,6 +217,14 @@ public class FishingListener implements Listener {
                 + expColor + "+" + definition.xpReward() + ChatColor.GRAY
                 + " <glyph:experience_orb_icon> Fishing EXP" + ChatColor.GRAY + ".";
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, message);
+        if (catchResult.personalBest()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
+                    "New personal record: " + ChatColor.WHITE + sizeLabel + " " + definition.displayName() + ChatColor.GOLD + "!");
+        }
+        if (catchResult.qualityUpgrade() && quality != FishingQuality.NORMAL) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
+                    "New trophy quality: " + quality.getColor() + quality.getDisplayName() + ChatColor.GOLD + "!");
+        }
         return fishItem;
     }
 
@@ -231,11 +256,30 @@ public class FishingListener implements Listener {
         return tool != null ? tool.getTier() : ToolTier.fromMaterial(rod.getType());
     }
 
-    private double rollSize(FishDefinition definition) {
+    private double rollSize(Player player, FishDefinition definition) {
         int min = definition.minSize();
         int max = Math.max(min, definition.maxSize());
-        double size = min + (random.nextDouble() * (max - min));
+        double roll = random.nextDouble();
+        if (getFishingEnchant(resolveRod(player)) == FishingToolEnchant.TROPHY_HUNTER) {
+            roll = Math.min(1.0, roll + 0.18);
+        }
+        double size = min + (roll * (max - min));
         return Math.round(size * 10.0) / 10.0;
+    }
+
+    private FishingToolEnchant getFishingEnchant(ItemStack rod) {
+        return ToolManager.getInstance().getFishingEnchant(rod);
+    }
+
+    private double resolveBiteSpeed(ItemStack rod) {
+        ToolTier tier = resolveTier(rod);
+        double speed = tier == null ? 1.0 : Math.max(1.0, tier.getFishingSpeed());
+        if (getFishingEnchant(rod) == FishingToolEnchant.LURE) speed *= 1.20;
+        return speed;
+    }
+
+    private int scaleWaitTicks(int ticks, double speed) {
+        return Math.max(1, (int) Math.round(ticks / Math.max(1.0, speed)));
     }
 
     private boolean isLavaHook(org.bukkit.Location hookLocation) {

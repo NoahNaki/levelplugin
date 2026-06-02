@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.attributes.gui.LifeSkillRewardsGUI;
 import me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig;
 import me.nakilex.levelplugin.player.fishing.data.FishDefinition;
 import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
+import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
@@ -89,13 +90,25 @@ public class FishingCatalogGUI implements Listener {
         player.openInventory(inv);
     }
 
-    private ItemStack createInfoItem() {
+    private ItemStack createInfoItem(Player player) {
         ItemStack info = GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Fishing Catalog");
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Track every fish you can catch.");
             lore.add(ChatColor.GRAY + "Unknown fish reveal after discovery.");
+            int discovered = FishingManager.getInstance().getDiscoveredFish(player.getUniqueId()).size();
+            int total = rewardsConfig.getFish().size();
+            lore.add("");
+            lore.add(ChatColor.GOLD + "Collection Progress:");
+            lore.add(ChatColor.GRAY + "  " + discovered + "/" + total + " species discovered");
+            lore.add(TooltipUtil.progressBar(discovered, total, 16));
+            lore.add("");
+            lore.add(ChatColor.GOLD + "Milestones:");
+            lore.addAll(TooltipUtil.bulletList(
+                    milestone(discovered, Math.min(5, total), "Angler"),
+                    milestone(discovered, Math.min(10, total), "Collector"),
+                    milestone(discovered, total, "Master Angler")));
             lore.add("");
             lore.addAll(TooltipUtil.clickInstructions("to return to rewards", null));
             meta.setLore(lore);
@@ -104,7 +117,14 @@ public class FishingCatalogGUI implements Listener {
         return info;
     }
 
-    private ItemStack createDiscoveredItem(FishDefinition def) {
+
+    private String milestone(int discovered, int required, String title) {
+        boolean complete = discovered >= required;
+        return (complete ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                + ChatColor.GRAY + title + ": " + Math.min(discovered, required) + "/" + required;
+    }
+
+    private ItemStack createDiscoveredItem(Player player, FishDefinition def) {
         double size = (def.minSize() + def.maxSize()) / 2.0;
         ItemStack item = FishingItemUtil.createFishItem(def, size);
         ItemMeta meta = item.getItemMeta();
@@ -117,6 +137,13 @@ public class FishingCatalogGUI implements Listener {
         } else {
             lore = new ArrayList<>(lore);
         }
+        lore.add("");
+        FishingManager.FishRecord record = FishingManager.getInstance().getFishRecord(player.getUniqueId(), def.id());
+        lore.add(ChatColor.GOLD + "Trophy Records:");
+        lore.addAll(TooltipUtil.bulletList(
+                "Caught: " + record.caughtCount(),
+                "Largest: " + String.format("%.1f cm", record.largestSize()),
+                "Best Quality: " + record.bestQuality().getColor() + record.bestQuality().getDisplayName()));
         lore.add("");
         lore.add(ChatColor.GOLD + "Rewards:");
         lore.addAll(TooltipUtil.bulletList(
@@ -178,7 +205,7 @@ public class FishingCatalogGUI implements Listener {
     private List<GuiWidget> buildWidgets(Player player, List<FishDefinition> fish, int page, int maxPage) {
         List<GuiWidget> widgets = new ArrayList<>();
         widgets.add(new ActionWidget(INFO_SLOT,
-                context -> createInfoItem(),
+                context -> createInfoItem(player),
                 (click, context) -> LifeSkillRewardsGUI.open(context.player(), ToolDiscipline.FISHING)));
         widgets.add(new ActionWidget(BACK_SLOT,
                 context -> GuiUtil.getNexoItem("arrow_left", ChatColor.YELLOW + "Back to Rewards"),
@@ -201,7 +228,7 @@ public class FishingCatalogGUI implements Listener {
             int slot = GuiUtil.PAGED_SLOTS[slotIndex++];
             widgets.add(new ActionWidget(slot,
                     context -> fishingManager.isFishDiscovered(context.player().getUniqueId(), def.id())
-                            ? createDiscoveredItem(def)
+                            ? createDiscoveredItem(player, def)
                             : createUndiscoveredItem(def),
                     null));
         }
