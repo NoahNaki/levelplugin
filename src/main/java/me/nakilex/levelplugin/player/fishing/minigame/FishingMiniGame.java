@@ -9,6 +9,7 @@ public interface FishingMiniGame {
     default boolean usesRightClickInput() { return false; }
     default void handleRightClick() { }
     void handleSneak(boolean sneaking);
+    default boolean usesMovementInput() { return false; }
     void handleMovement(Movement movement);
     void cancel();
     default void cancelSilently() { cancel(); }

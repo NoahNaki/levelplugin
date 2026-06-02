@@ -297,16 +297,17 @@ public class FishingListener implements Listener {
 
     @EventHandler
     public void onMiniGameMove(PlayerMoveEvent event) {
-        if (event.getTo() == null || !miniGameManager.isPlaying(event.getPlayer().getUniqueId())) return;
+        UUID uuid = event.getPlayer().getUniqueId();
+        if (event.getTo() == null || !miniGameManager.usesMovementInput(uuid)) return;
         double dy = event.getTo().getY() - event.getFrom().getY();
         if (dy > 0.18) {
-            miniGameManager.move(event.getPlayer().getUniqueId(), FishingMiniGame.Movement.JUMP);
+            miniGameManager.move(uuid, FishingMiniGame.Movement.JUMP);
             return;
         }
         org.bukkit.util.Vector delta = event.getTo().toVector().subtract(event.getFrom().toVector());
         if (delta.lengthSquared() < 0.0025) return;
         double side = delta.dot(event.getPlayer().getLocation().getDirection().crossProduct(new org.bukkit.util.Vector(0, 1, 0)));
-        miniGameManager.move(event.getPlayer().getUniqueId(), side >= 0 ? FishingMiniGame.Movement.RIGHT : FishingMiniGame.Movement.LEFT);
+        miniGameManager.move(uuid, side >= 0 ? FishingMiniGame.Movement.RIGHT : FishingMiniGame.Movement.LEFT);
     }
 
     @EventHandler

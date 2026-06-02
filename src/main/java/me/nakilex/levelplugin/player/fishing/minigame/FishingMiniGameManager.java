@@ -141,7 +141,8 @@ public class FishingMiniGameManager {
     public void click(UUID uuid) { FishingMiniGame game = getGame(uuid); if (game != null) game.handleClick(); }
     public void rightClick(UUID uuid) { FishingMiniGame game = getGame(uuid); if (game != null && game.usesRightClickInput()) game.handleRightClick(); }
     public void sneak(UUID uuid, boolean sneaking) { FishingMiniGame game = getGame(uuid); if (game != null) game.handleSneak(sneaking); }
-    public void move(UUID uuid, FishingMiniGame.Movement movement) { FishingMiniGame game = getGame(uuid); if (game != null) game.handleMovement(movement); }
+    public boolean usesMovementInput(UUID uuid) { FishingMiniGame game = getGame(uuid); return game != null && game.usesMovementInput(); }
+    public void move(UUID uuid, FishingMiniGame.Movement movement) { FishingMiniGame game = getGame(uuid); if (game != null && game.usesMovementInput()) game.handleMovement(movement); }
     public void cancel(UUID uuid) { cancel(uuid, true); }
     public void cancelSilently(UUID uuid) { cancel(uuid, false); }
     public void cancel(UUID uuid, boolean notifyFailure) {

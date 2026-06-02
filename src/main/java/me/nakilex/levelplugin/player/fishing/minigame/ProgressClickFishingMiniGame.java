@@ -30,6 +30,7 @@ public class ProgressClickFishingMiniGame extends AbstractFishingMiniGame {
         }
         if (progress <= 0.0) finish(false);
     }
+    /** click_v2 is a survival challenge: keep any line progress until the configured timeout. */
     @Override protected boolean timeoutSuccess() { return progress > 0.0; }
     @Override public void handleClick() { progress = clamp(progress + clickGain); }
 }

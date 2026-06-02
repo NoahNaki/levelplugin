@@ -29,6 +29,7 @@ public class DanceFishingMiniGame extends AbstractFishingMiniGame {
         Movement current = sequence.get(index);
         updateBar("Fishing rhythm: " + label(current), index / (double) sequence.size());
         if (useResourcePack()) {
+            // TODO: Replace the functional text sequence with dedicated dance-sequence glyph layers.
             showGameTitle(Component.text(sequenceDisplay()), Component.text("Next: " + label(current)));
             actionBar(Component.text("Left-click: left | Right-click: right | Sneak: jump"));
         } else if (useFallbackTextUi()) {
@@ -41,6 +42,7 @@ public class DanceFishingMiniGame extends AbstractFishingMiniGame {
     @Override public boolean usesRightClickInput() { return true; }
     @Override public void handleRightClick() { accept(Movement.RIGHT); }
     @Override public void handleSneak(boolean sneaking) { if (sneaking) accept(Movement.JUMP); }
+    @Override public boolean usesMovementInput() { return useMovement; }
     @Override public void handleMovement(Movement movement) { if (useMovement) accept(movement); }
     private void accept(Movement movement) {
         if (movement != sequence.get(index)) { finish(false); return; }
