@@ -22,6 +22,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -323,7 +324,7 @@ public class OreMiningListener implements Listener {
         if (expiresAt != null && System.currentTimeMillis() <= expiresAt) return "§e§l✦ WEAK POINT! §fStrike now!";
         if (expiresAt != null) weakPointExpiresAt.remove(oreId);
         String momentum = miningManager.getMomentumIndicator(player);
-        return momentum == null ? "§7Right-Click to start mining" : "§7Right-Click to mine  §8•  " + momentum;
+        return momentum == null ? "§7Left-Click to start mining" : "§7Left-Click to mine  §8•  " + momentum;
     }
 
     private String buildNodeName(String type, MiningNodeVariant variant) {
@@ -351,62 +352,31 @@ public class OreMiningListener implements Listener {
         }
     }
 
-    // Interacting with entities (e.g., ore mobs)
-    // Process entity interactions before other handlers react
+    // Right-clicking an ore should never mine it. Survival-mode mining uses the normal left-click damage event.
     @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST, ignoreCancelled = false)
     public void onEntityInteract(org.bukkit.event.player.PlayerInteractEntityEvent event) {
-        ItemStack item = event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
-                ? event.getPlayer().getInventory().getItemInMainHand()
-                : event.getPlayer().getInventory().getItemInOffHand();
-        if (item == null || !isPickaxe(item.getType())) return;
-        if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
-            event.setCancelled(true);
-            return;
-        }
-
-        if (!(event.getRightClicked() instanceof LivingEntity entity)) {
-            return;
-        }
-        String type = resolveOreType(entity);
-        if (type == null) return;
-        if (!rewardsConfig.getConfig().contains("ores." + type)) return;
-        if (!checkOreLevel(event.getPlayer(), type)) {
-            event.setCancelled(true);
-            return;
-        }
-
-        event.setCancelled(true);
-        handleOreHit(event.getPlayer(), entity, type, item);
+        cancelRightClickOreInteraction(event.getPlayer(), event.getRightClicked(), event);
     }
 
-    // Same for interacting at a specific entity location
+    // Some entity models emit the more specific at-entity interaction event as well.
     @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST, ignoreCancelled = false)
     public void onAtEntityInteract(org.bukkit.event.player.PlayerInteractAtEntityEvent event) {
-        ItemStack item = event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
-                ? event.getPlayer().getInventory().getItemInMainHand()
-                : event.getPlayer().getInventory().getItemInOffHand();
-        if (item == null || !isPickaxe(item.getType())) return;
-        if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
-            event.setCancelled(true);
-            return;
-        }
-
-        if (!(event.getRightClicked() instanceof LivingEntity entity)) {
-            return;
-        }
-        String type = resolveOreType(entity);
-        if (type == null) return;
-        if (!rewardsConfig.getConfig().contains("ores." + type)) return;
-        if (!checkOreLevel(event.getPlayer(), type)) {
-            event.setCancelled(true);
-            return;
-        }
-
-        event.setCancelled(true);
-        handleOreHit(event.getPlayer(), entity, type, item);
+        cancelRightClickOreInteraction(event.getPlayer(), event.getRightClicked(), event);
     }
 
-    // Track player who damages an ore mob
+    private void cancelRightClickOreInteraction(Player player, org.bukkit.entity.Entity clicked, Cancellable event) {
+        if (!(clicked instanceof LivingEntity entity)) return;
+        String type = resolveOreType(entity);
+        if (type == null || !rewardsConfig.getConfig().contains("ores." + type)) return;
+        event.setCancelled(true);
+        ItemStack held = player.getInventory().getItemInMainHand();
+        if (held != null && isPickaxe(held.getType())) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Left-click this ore with your pickaxe to mine it.");
+        }
+    }
+
+    // Survival-mode left-click mining arrives through the standard damage event.
     @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = false)
     public void onDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;

@@ -55,7 +55,7 @@ public class PlayerJoinListener implements Listener {
         // Early initialization and teleport
         Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             // 1) Set up gamemode & stats
-            player.setGameMode(GameMode.ADVENTURE);
+            player.setGameMode(GameMode.SURVIVAL);
             StatsManager.getInstance().recalcDerivedStats(player);
             levelManager.initializePlayer(player);
             miningManager.initializePlayer(player);

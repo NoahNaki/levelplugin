@@ -146,7 +146,7 @@ public class DoubleJumpListener implements Listener {
         int bonusJumps = getBonusJumps(player.getUniqueId());
         int total = Math.max(0, baseJumps + bonusJumps);
         remainingJumps.put(player.getUniqueId(), total);
-        if (player.getGameMode() == GameMode.ADVENTURE) {
+        if (player.getGameMode() != GameMode.CREATIVE) {
             player.setAllowFlight(total > 0);
         }
     }
