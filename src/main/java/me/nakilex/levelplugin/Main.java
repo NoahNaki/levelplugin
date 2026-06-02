@@ -94,6 +94,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager getWoodcuttingManager() { return bootstrap.getWoodcuttingManager(); }
     public me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager getLifeSkillRewardManager() { return bootstrap.getLifeSkillRewardManager(); }
     public me.nakilex.levelplugin.items.tools.ToolManager getToolManager() { return bootstrap.getToolManager(); }
+    public me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig getMiningRewardsConfig() { return bootstrap.getMiningRewardsConfig(); }
     public me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig getFarmingRewardsConfig() { return bootstrap.getFarmingRewardsConfig(); }
     public me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig getFishingRewardsConfig() { return bootstrap.getFishingRewardsConfig(); }
     public me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig getWoodcuttingConfig() { return bootstrap.getWoodcuttingConfig(); }

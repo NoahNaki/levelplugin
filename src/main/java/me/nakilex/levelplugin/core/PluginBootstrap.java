@@ -129,6 +129,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.player.fishing.managers.FishingManager fishingManager;
     private me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager woodcuttingManager;
     private me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager lifeSkillRewardManager;
+    private me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig miningRewardsConfig;
     private me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig farmingRewardsConfig;
     private me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig fishingRewardsConfig;
     private me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig woodcuttingConfig;
@@ -389,6 +390,7 @@ public class PluginBootstrap {
         farmingManager = new me.nakilex.levelplugin.player.farming.managers.FarmingManager(plugin);
         fishingManager = new me.nakilex.levelplugin.player.fishing.managers.FishingManager(plugin);
         woodcuttingManager = new me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager(plugin);
+        miningRewardsConfig = new me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig(plugin);
         farmingRewardsConfig = new me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig(plugin);
         fishingRewardsConfig = new me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig(plugin);
         woodcuttingConfig = new me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig(plugin);
@@ -981,6 +983,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.player.fishing.managers.FishingManager getFishingManager() { return fishingManager; }
     public me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager getWoodcuttingManager() { return woodcuttingManager; }
     public me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager getLifeSkillRewardManager() { return lifeSkillRewardManager; }
+    public me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig getMiningRewardsConfig() { return miningRewardsConfig; }
     public me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig getFarmingRewardsConfig() { return farmingRewardsConfig; }
     public me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig getFishingRewardsConfig() { return fishingRewardsConfig; }
     public me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig getWoodcuttingConfig() { return woodcuttingConfig; }
@@ -1133,6 +1136,9 @@ public class PluginBootstrap {
         if (potionManager != null && potionsFile.exists()) {
             FileConfiguration potionCfg = YamlConfiguration.loadConfiguration(potionsFile);
             potionManager.reload(potionCfg);
+        }
+        if (miningRewardsConfig != null) {
+            miningRewardsConfig.reloadConfig();
         }
         if (farmingRewardsConfig != null) {
             farmingRewardsConfig.reloadConfig();

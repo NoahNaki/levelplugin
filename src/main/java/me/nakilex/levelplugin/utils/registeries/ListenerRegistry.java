@@ -189,7 +189,8 @@ public class ListenerRegistry {
         }
         pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.KingdomMineRegenListener(
                 plugin,
-                me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin)), plugin);
+                me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin),
+                plugin.getMiningRewardsConfig()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.farming.listeners.WheatHarvestListener(plugin.getFarmingManager(), plugin.getFarmingRewardsConfig()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.fishing.listeners.FishingListener(
                 plugin,

@@ -2,9 +2,14 @@ package me.nakilex.levelplugin.player.mining.listeners;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager;
+import me.nakilex.levelplugin.items.tools.CustomTool;
 import me.nakilex.levelplugin.items.tools.MiningToolEnchant;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
 import me.nakilex.levelplugin.items.tools.ToolManager;
+import me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig;
+import me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig.MiningBlockReward;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -17,9 +22,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -31,66 +33,13 @@ public final class KingdomMineRegenListener implements Listener {
 
     private final Main plugin;
     private final EnvironmentAreaInstanceManager areaManager;
-    private final Map<Material, Material> oreFallback = new HashMap<>();
-    private final Map<Material, MiningBlockDefinition> miningBlocks = new EnumMap<>(Material.class);
-    private final java.util.Set<Material> allowedMineMaterials = new java.util.HashSet<>();
+    private final MiningRewardsConfig rewardsConfig;
 
-    public KingdomMineRegenListener(Main plugin, EnvironmentAreaInstanceManager areaManager) {
+    public KingdomMineRegenListener(Main plugin, EnvironmentAreaInstanceManager areaManager,
+                                    MiningRewardsConfig rewardsConfig) {
         this.plugin = plugin;
         this.areaManager = areaManager;
-        registerOreFallbacks();
-        registerMiningBlocks();
-        registerAllowedMineMaterials();
-    }
-
-    private void registerOreFallbacks() {
-        for (Material material : Material.values()) {
-            if (material.name().endsWith("_ORE") || material == Material.ANCIENT_DEBRIS) {
-                if (material.name().startsWith("DEEPSLATE_")) oreFallback.put(material, Material.DEEPSLATE);
-                else if (material.name().startsWith("NETHER_") || material == Material.ANCIENT_DEBRIS) oreFallback.put(material, Material.NETHERRACK);
-                else oreFallback.put(material, Material.STONE);
-            }
-        }
-    }
-
-    private void registerMiningBlocks() {
-        registerMiningBlock(Material.STONE, Material.COBBLESTONE, 2, null);
-        registerMiningBlock(Material.COBBLESTONE, Material.COBBLESTONE, 1, null);
-        registerMiningBlock(Material.DEEPSLATE, Material.COBBLED_DEEPSLATE, 2, null);
-        registerMiningBlock(Material.NETHERRACK, null, 2, null);
-        registerMiningBlock(Material.COAL_ORE, Material.COAL, 6, "coal_ore");
-        registerMiningBlock(Material.DEEPSLATE_COAL_ORE, Material.COAL, 7, "coal_ore");
-        registerMiningBlock(Material.COPPER_ORE, Material.RAW_COPPER, 8, "copper_ore");
-        registerMiningBlock(Material.DEEPSLATE_COPPER_ORE, Material.RAW_COPPER, 9, "copper_ore");
-        registerMiningBlock(Material.IRON_ORE, Material.RAW_IRON, 10, "iron_ore");
-        registerMiningBlock(Material.DEEPSLATE_IRON_ORE, Material.RAW_IRON, 11, "iron_ore");
-        registerMiningBlock(Material.REDSTONE_ORE, Material.REDSTONE, 11, "redstone_ore");
-        registerMiningBlock(Material.DEEPSLATE_REDSTONE_ORE, Material.REDSTONE, 12, "redstone_ore");
-        registerMiningBlock(Material.LAPIS_ORE, Material.LAPIS_LAZULI, 12, "lapis_ore");
-        registerMiningBlock(Material.DEEPSLATE_LAPIS_ORE, Material.LAPIS_LAZULI, 13, "lapis_ore");
-        registerMiningBlock(Material.GOLD_ORE, Material.RAW_GOLD, 14, "gold_ore");
-        registerMiningBlock(Material.DEEPSLATE_GOLD_ORE, Material.RAW_GOLD, 15, "gold_ore");
-        registerMiningBlock(Material.DIAMOND_ORE, Material.DIAMOND, 18, "diamond_ore");
-        registerMiningBlock(Material.DEEPSLATE_DIAMOND_ORE, Material.DIAMOND, 20, "diamond_ore");
-        registerMiningBlock(Material.EMERALD_ORE, Material.EMERALD, 20, "emerald_ore");
-        registerMiningBlock(Material.DEEPSLATE_EMERALD_ORE, Material.EMERALD, 22, "emerald_ore");
-        registerMiningBlock(Material.NETHER_QUARTZ_ORE, Material.QUARTZ, 14, "quartz_ore");
-        registerMiningBlock(Material.NETHER_GOLD_ORE, Material.RAW_GOLD, 15, "gold_ore");
-        registerMiningBlock(Material.ANCIENT_DEBRIS, Material.ANCIENT_DEBRIS, 28, "netherite_ore");
-    }
-
-    private void registerMiningBlock(Material blockMaterial, Material dropMaterial, int xp, String questOreId) {
-        miningBlocks.put(blockMaterial, new MiningBlockDefinition(dropMaterial, xp, questOreId));
-    }
-
-
-    private void registerAllowedMineMaterials() {
-        allowedMineMaterials.add(Material.STONE);
-        allowedMineMaterials.add(Material.COBBLESTONE);
-        allowedMineMaterials.add(Material.DEEPSLATE);
-        allowedMineMaterials.add(Material.NETHERRACK);
-        allowedMineMaterials.add(Material.BEDROCK);
-        allowedMineMaterials.addAll(oreFallback.keySet());
+        this.rewardsConfig = rewardsConfig;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -103,8 +52,11 @@ public final class KingdomMineRegenListener implements Listener {
         event.setDropItems(false);
         event.setExpToDrop(0);
 
-        ItemStack tool = player.getInventory().getItemInMainHand();
-        MiningToolEnchant enchant = ToolManager.getInstance().getMiningEnchant(tool);
+        ItemStack toolStack = player.getInventory().getItemInMainHand();
+        CustomTool tool = ToolManager.getInstance().getTool(toolStack);
+        if (!isValidMiningTool(player, tool)) return;
+
+        MiningToolEnchant enchant = ToolManager.getInstance().getMiningEnchant(toolStack);
         processBlock(player, block, enchant);
 
         if (enchant == MiningToolEnchant.QUARRY) {
@@ -118,20 +70,21 @@ public final class KingdomMineRegenListener implements Listener {
     private void processBlock(Player player, Block block, MiningToolEnchant enchant) {
         if (block == null || !areaManager.isMineBlock(player, block)) return;
         Material current = block.getType();
-        if (!allowedMineMaterials.contains(current)) return;
-        Material next = nextState(current);
+        MiningBlockReward reward = rewardsConfig.getReward(current);
+        if (reward == null || !meetsLevelRequirement(player, reward)) return;
+        Material next = reward.replacementMaterial();
         if (next == null) return;
 
         BlockData original = block.getBlockData().clone();
         if (enchant == MiningToolEnchant.DEEPCORE) {
-            rewardPlayer(player, block, current);
+            rewardPlayer(player, block, reward);
             rewardStageMaterial(player, block, next);
             block.setType(Material.BEDROCK, false);
             scheduleRegen(player, block, original);
             return;
         }
 
-        rewardPlayer(player, block, current);
+        rewardPlayer(player, block, reward);
         block.setType(next, false);
 
         if (next == Material.BEDROCK) {
@@ -177,49 +130,56 @@ public final class KingdomMineRegenListener implements Listener {
         }, REGEN_TICKS);
     }
 
-    private void rewardPlayer(Player player, Block block, Material brokenMaterial) {
+    private void rewardPlayer(Player player, Block block, MiningBlockReward reward) {
         ItemStack tool = player.getInventory().getItemInMainHand();
         MiningToolEnchant enchant = ToolManager.getInstance().getMiningEnchant(tool);
 
-        MiningBlockDefinition definition = miningBlocks.get(brokenMaterial);
-        int xp = definition != null ? definition.xp() : 2;
+        int xp = reward.xp();
         if (enchant == MiningToolEnchant.INSIGHT && ThreadLocalRandom.current().nextDouble() <= 0.30D) {
             xp = (int) Math.round(xp * 1.6D);
         }
         MiningManager.getInstance().addXP(player, Math.max(1, xp));
-        if (definition != null && definition.questOreId() != null && plugin.getQuestManager() != null) {
-            plugin.getQuestManager().handleMineOre(player, definition.questOreId());
+        if (reward.questOreId() != null && plugin.getQuestManager() != null) {
+            plugin.getQuestManager().handleMineOre(player, reward.questOreId());
         }
 
-        Material dropMaterial = resolveDropMaterial(brokenMaterial);
+        Material dropMaterial = reward.dropMaterial();
         if (dropMaterial == null || dropMaterial == Material.AIR) return;
 
-        int dropAmount = 1;
+        int dropAmount = reward.dropMin();
+        if (reward.dropMax() > dropAmount) {
+            dropAmount += ThreadLocalRandom.current().nextInt(reward.dropMax() - dropAmount + 1);
+        }
+        if (dropAmount <= 0) return;
 
         Item drop = block.getWorld().dropItemNaturally(block.getLocation().add(0.5, 0.35, 0.5), new ItemStack(dropMaterial, dropAmount));
         drop.setPickupDelay(0);
     }
 
     private Material resolveDropMaterial(Material brokenMaterial) {
-        MiningBlockDefinition definition = miningBlocks.get(brokenMaterial);
-        return definition != null ? definition.dropMaterial() : null;
+        MiningBlockReward reward = rewardsConfig.getReward(brokenMaterial);
+        return reward != null ? reward.dropMaterial() : null;
     }
 
-    private Material nextState(Material material) {
-        if (material == Material.STONE || material == Material.DEEPSLATE || material == Material.NETHERRACK) {
-            return Material.COBBLESTONE;
+    private boolean isValidMiningTool(Player player, CustomTool tool) {
+        if (tool == null || tool.getDiscipline() != ToolDiscipline.MINING) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Hold a mining pickaxe to mine blocks in your kingdom mine.");
+            return false;
         }
-        if (material == Material.COBBLESTONE) {
-            return Material.BEDROCK;
+        if (!ToolManager.getInstance().meetsLevelRequirement(player, tool)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "You need Mining level " + tool.getTier().getLevelRequirement() + " to use this pickaxe.");
+            return false;
         }
-        Material fallback = oreFallback.get(material);
-        if (fallback != null) {
-            return fallback;
-        }
-        return null;
+        return true;
     }
 
-    private record MiningBlockDefinition(Material dropMaterial, int xp, String questOreId) {
+    private boolean meetsLevelRequirement(Player player, MiningBlockReward reward) {
+        if (MiningManager.getInstance().getLevel(player) >= reward.levelRequirement()) return true;
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                "You need Mining level " + reward.levelRequirement() + " to mine that block.");
+        return false;
     }
 
 }
