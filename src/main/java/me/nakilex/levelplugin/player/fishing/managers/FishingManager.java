@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.fishing.managers;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.player.fishing.data.FishingQuality;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.boss.BarColor;
@@ -28,6 +29,8 @@ public class FishingManager implements LifeSkillProgression {
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> hideTasks = new HashMap<>();
     private final Map<UUID, Boolean> activeBars = new HashMap<>();
     private final Map<UUID, java.util.Set<String>> discoveredFish = new HashMap<>();
+    private final Map<UUID, Map<String, FishRecord>> fishRecords = new HashMap<>();
+    private final Map<UUID, Double> debugBiteSpeedMultipliers = new HashMap<>();
 
     private final int MAX_LEVEL = 100;
     private final int XP_PER_LEVEL_MULTIPLIER = 200;
@@ -46,6 +49,7 @@ public class FishingManager implements LifeSkillProgression {
         fishingLevels.putIfAbsent(uuid, 1);
         fishingXp.putIfAbsent(uuid, 0);
         discoveredFish.putIfAbsent(uuid, new java.util.HashSet<>());
+        fishRecords.putIfAbsent(uuid, new HashMap<>());
         updateBossBar(player);
     }
 
@@ -219,6 +223,49 @@ public class FishingManager implements LifeSkillProgression {
         return new java.util.HashSet<>(discoveredFish.getOrDefault(uuid, java.util.Collections.emptySet()));
     }
 
+    public CatchResult recordCatch(UUID uuid, String fishId, double size, FishingQuality quality) {
+        if (uuid == null || fishId == null || fishId.isBlank()) return new CatchResult(false, false);
+        FishingQuality safeQuality = quality == null ? FishingQuality.NORMAL : quality;
+        Map<String, FishRecord> records = fishRecords.computeIfAbsent(uuid, ignored -> new HashMap<>());
+        FishRecord previous = records.getOrDefault(fishId, new FishRecord(0, 0.0, FishingQuality.NORMAL));
+        boolean personalBest = size > previous.largestSize();
+        boolean qualityUpgrade = safeQuality.ordinal() > previous.bestQuality().ordinal();
+        records.put(fishId, new FishRecord(previous.caughtCount() + 1, Math.max(size, previous.largestSize()),
+                qualityUpgrade ? safeQuality : previous.bestQuality()));
+        return new CatchResult(personalBest, qualityUpgrade);
+    }
+
+    public FishRecord getFishRecord(UUID uuid, String fishId) {
+        return fishRecords.getOrDefault(uuid, Map.of()).getOrDefault(fishId, new FishRecord(0, 0.0, FishingQuality.NORMAL));
+    }
+
+    public Map<String, FishRecord> getFishRecords(UUID uuid) {
+        return new HashMap<>(fishRecords.getOrDefault(uuid, Map.of()));
+    }
+
+    public void setFishRecords(UUID uuid, Map<String, FishRecord> records) {
+        fishRecords.put(uuid, records == null ? new HashMap<>() : new HashMap<>(records));
+    }
+
+
+    public double getDebugBiteSpeedMultiplier(UUID uuid) {
+        if (uuid == null) return 1.0;
+        return debugBiteSpeedMultipliers.getOrDefault(uuid, 1.0);
+    }
+
+    public void setDebugBiteSpeedMultiplier(UUID uuid, double multiplier) {
+        if (uuid == null) return;
+        if (multiplier <= 1.0) debugBiteSpeedMultipliers.remove(uuid);
+        else debugBiteSpeedMultipliers.put(uuid, Math.min(100.0, multiplier));
+    }
+
+    public void clearDebugBiteSpeedMultiplier(UUID uuid) {
+        if (uuid != null) debugBiteSpeedMultipliers.remove(uuid);
+    }
+
+    public record FishRecord(int caughtCount, double largestSize, FishingQuality bestQuality) { }
+    public record CatchResult(boolean personalBest, boolean qualityUpgrade) { }
+
     public void setDiscoveredFish(UUID uuid, java.util.Collection<String> fishIds) {
         java.util.Set<String> set = new java.util.HashSet<>();
         if (fishIds != null) {
@@ -236,6 +283,8 @@ public class FishingManager implements LifeSkillProgression {
         fishingLevels.remove(uuid);
         fishingXp.remove(uuid);
         discoveredFish.remove(uuid);
+        fishRecords.remove(uuid);
+        debugBiteSpeedMultipliers.remove(uuid);
         if (plugin.getPlayerConfig() != null) {
             String path = "players." + uuid + ".fishing";
             plugin.getPlayerConfig().getConfig().set(path, null);

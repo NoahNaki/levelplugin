@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.enchanting.managers;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.items.data.CustomItem;
 import me.nakilex.levelplugin.items.tools.FarmingToolEnchant;
+import me.nakilex.levelplugin.items.tools.FishingToolEnchant;
 import me.nakilex.levelplugin.items.tools.WoodcuttingToolEnchant;
 import me.nakilex.levelplugin.items.tools.MiningToolEnchant;
 import me.nakilex.levelplugin.items.tools.ToolDiscipline;
@@ -69,6 +70,10 @@ public class EnchantManager {
                 int count = ToolManager.getInstance().getMiningEnchantCount(stack);
                 return BASE_COST * (int) Math.pow(2, count);
             }
+            if (tool.getDiscipline() == ToolDiscipline.FISHING) {
+                int count = ToolManager.getInstance().getFishingEnchantCount(stack);
+                return BASE_COST * (int) Math.pow(2, count);
+            }
         }
         CustomItem item = ItemManager.getInstance().getCustomItemFromItemStack(stack);
         return item != null ? getEnchantCost(item) : 0;
@@ -88,6 +93,10 @@ public class EnchantManager {
             }
             if (tool.getDiscipline() == ToolDiscipline.MINING) {
                 int count = ToolManager.getInstance().getMiningEnchantCount(stack);
+                return BASE_COST * (int) Math.pow(2, count + 1);
+            }
+            if (tool.getDiscipline() == ToolDiscipline.FISHING) {
+                int count = ToolManager.getInstance().getFishingEnchantCount(stack);
                 return BASE_COST * (int) Math.pow(2, count + 1);
             }
         }
@@ -226,6 +235,42 @@ public class EnchantManager {
             stack.setItemMeta(meta);
         }
         toolManager.setMiningEnchant(stack, enchant);
+    }
+
+
+    public FishingToolEnchant enchantFishingTool(Player player, ItemStack stack) {
+        if (stack == null) return null;
+        me.nakilex.levelplugin.items.tools.CustomTool tool = ToolManager.getInstance().getTool(stack);
+        if (tool == null || tool.getDiscipline() != ToolDiscipline.FISHING) return null;
+        FishingToolEnchant[] enchants = FishingToolEnchant.values();
+        FishingToolEnchant enchant = enchants[random.nextInt(enchants.length)];
+        applyFishingEnchant(stack, enchant);
+        ToolManager.getInstance().incrementFishingEnchantCount(stack);
+        ItemUtil.updateCustomToolTooltip(stack, player);
+        return enchant;
+    }
+
+    private void applyFishingEnchant(ItemStack stack, FishingToolEnchant enchant) {
+        if (stack == null || enchant == null) return;
+        ToolManager toolManager = ToolManager.getInstance();
+        applyToolEnchantPrefix(stack, toolManager.getFishingEnchant(stack) == null ? null
+                : toolManager.getFishingEnchant(stack).getDisplayName(), enchant.getDisplayName());
+        toolManager.setFishingEnchant(stack, enchant);
+    }
+
+    private void applyToolEnchantPrefix(ItemStack stack, String existingPrefix, String newPrefix) {
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        String displayName = meta.getDisplayName();
+        if (displayName == null || displayName.isBlank()) {
+            displayName = stack.getType().name().toLowerCase(Locale.ROOT).replace('_', ' ');
+            displayName = displayName.substring(0, 1).toUpperCase(Locale.ROOT) + displayName.substring(1);
+        }
+        if (existingPrefix != null && displayName.startsWith(existingPrefix + " ")) {
+            displayName = displayName.substring(existingPrefix.length() + 1);
+        }
+        meta.setDisplayName(newPrefix + " " + displayName);
+        stack.setItemMeta(meta);
     }
 
     private void applyBonus(CustomItem item, StatType stat, int amount) {

@@ -32,6 +32,8 @@ public class ToolManager {
     private final NamespacedKey woodcuttingEnchantCountKey = new NamespacedKey(Main.getInstance(), "woodcutting_enchant_count");
     private final NamespacedKey miningEnchantKey = new NamespacedKey(Main.getInstance(), "mining_enchant");
     private final NamespacedKey miningEnchantCountKey = new NamespacedKey(Main.getInstance(), "mining_enchant_count");
+    private final NamespacedKey fishingEnchantKey = new NamespacedKey(Main.getInstance(), "fishing_enchant");
+    private final NamespacedKey fishingEnchantCountKey = new NamespacedKey(Main.getInstance(), "fishing_enchant_count");
 
     public ToolManager() {
         instance = this;
@@ -87,7 +89,7 @@ public class ToolManager {
         CustomTool tool = new CustomTool(UUID.randomUUID(), name, mat, tier, discipline, nexoId);
         tools.add(tool);
         toolsByDiscipline.computeIfAbsent(discipline, k -> new ArrayList<>()).add(tool);
-        materialLookup.put(mat, tool);
+        materialLookup.putIfAbsent(mat, tool);
     }
 
     public List<CustomTool> getTools() {
@@ -291,6 +293,53 @@ public class ToolManager {
         container.set(miningEnchantCountKey, PersistentDataType.INTEGER, current + 1);
         stack.setItemMeta(meta);
     }
+
+    public FishingToolEnchant getFishingEnchant(ItemStack stack) {
+        return FishingToolEnchant.fromKey(getStringData(stack, fishingEnchantKey));
+    }
+
+    public int getFishingEnchantCount(ItemStack stack) {
+        return getIntData(stack, fishingEnchantCountKey);
+    }
+
+    public void setFishingEnchant(ItemStack stack, FishingToolEnchant enchant) {
+        setStringData(stack, fishingEnchantKey, enchant == null ? null : enchant.getKey());
+    }
+
+    public void incrementFishingEnchantCount(ItemStack stack) {
+        incrementIntData(stack, fishingEnchantCountKey);
+    }
+
+    private String getStringData(ItemStack stack, NamespacedKey key) {
+        if (stack == null || !stack.hasItemMeta()) return null;
+        ItemMeta meta = stack.getItemMeta();
+        return meta == null ? null : meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
+    }
+
+    private int getIntData(ItemStack stack, NamespacedKey key) {
+        if (stack == null || !stack.hasItemMeta()) return 0;
+        ItemMeta meta = stack.getItemMeta();
+        return meta == null ? 0 : meta.getPersistentDataContainer().getOrDefault(key, PersistentDataType.INTEGER, 0);
+    }
+
+    private void setStringData(ItemStack stack, NamespacedKey key, String value) {
+        if (stack == null || !stack.hasItemMeta()) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        if (value == null) meta.getPersistentDataContainer().remove(key);
+        else meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, value);
+        stack.setItemMeta(meta);
+    }
+
+    private void incrementIntData(ItemStack stack, NamespacedKey key) {
+        if (stack == null || !stack.hasItemMeta()) return;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return;
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        container.set(key, PersistentDataType.INTEGER, container.getOrDefault(key, PersistentDataType.INTEGER, 0) + 1);
+        stack.setItemMeta(meta);
+    }
+
     public ItemStack createToolItem(CustomTool tool, org.bukkit.entity.Player viewer) {
         ItemStack stack;
         String name = tool.getTier().getRarity().getColor() + tool.getName();

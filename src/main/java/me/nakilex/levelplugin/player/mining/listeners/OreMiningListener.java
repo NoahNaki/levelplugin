@@ -4,7 +4,16 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mob.utils.MobNameUtil;
 import me.nakilex.levelplugin.player.mining.config.MiningRewardsConfig;
 import me.nakilex.levelplugin.player.mining.managers.MiningManager;
+import me.nakilex.levelplugin.player.mining.items.MiningNodeVariant;
+import me.nakilex.levelplugin.items.tools.CustomTool;
+import me.nakilex.levelplugin.items.tools.MiningToolEnchant;
+import me.nakilex.levelplugin.items.tools.ToolDiscipline;
+import me.nakilex.levelplugin.items.tools.ToolManager;
+import me.nakilex.levelplugin.items.tools.ToolTier;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.DropPickupUtil;
 import org.bukkit.Material;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -13,6 +22,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
@@ -41,6 +51,12 @@ public class OreMiningListener implements Listener {
     // Track custom ore health when we handle mining ourselves
     private final Map<UUID, Integer> oreHealth = new HashMap<>();
     private final Map<UUID, Integer> oreMaxHealth = new HashMap<>();
+    private final Map<UUID, MiningNodeVariant> oreVariants = new HashMap<>();
+    private final Map<UUID, Long> weakPointExpiresAt = new HashMap<>();
+    private final Map<UUID, Long> lastHandledHitAt = new HashMap<>();
+    private final Set<UUID> announcedVariants = new HashSet<>();
+    private static final long WEAK_POINT_WINDOW_MS = 1_800L;
+    private static final long DUPLICATE_INTERACTION_GUARD_MS = 60L;
     private final Map<String, String> oreColors = Map.ofEntries(
             Map.entry("coal_ore", "§x§d§5§d§5§d§5"),
             Map.entry("copper_ore", "§x§f§c§9§a§8§2"),
@@ -130,8 +146,10 @@ public class OreMiningListener implements Listener {
         }
         if (!rewardsConfig.getConfig().contains("ores." + type)) return;
 
-        // Store base health so we can handle mining damage ourselves
-        int hp = (int) entity.getHealth();
+        // Store custom health and a node modifier while reusing the same ore entity pipeline.
+        MiningNodeVariant variant = rewardsConfig.rollNodeVariant();
+        int hp = Math.max(1, (int) Math.round(entity.getHealth() * rewardsConfig.getHealthMultiplier(variant)));
+        oreVariants.put(entity.getUniqueId(), variant);
         oreHealth.put(entity.getUniqueId(), hp);
         oreMaxHealth.put(entity.getUniqueId(), hp);
         final int maxHp = hp;
@@ -145,6 +163,7 @@ public class OreMiningListener implements Listener {
                 if (st != null) st.forEach(ArmorStand::remove);
                 org.bukkit.scheduler.BukkitTask t = hologramTasks.remove(entity.getUniqueId());
                 if (t != null) t.cancel();
+                cleanupOreState(entity.getUniqueId());
                 return;
             }
 
@@ -165,13 +184,11 @@ public class OreMiningListener implements Listener {
             List<ArmorStand> st = oreHolograms.computeIfAbsent(entity.getUniqueId(), k -> new ArrayList<>());
             if (playerNear) {
                 if (st.isEmpty()) {
-                    String prettyName = type.replace('_', ' ');
-                    prettyName = prettyName.substring(0,1).toUpperCase() + prettyName.substring(1);
-                    st.add(spawnStand(loc.clone().add(0, 2.9, 0), oreColors.getOrDefault(type, "§f") + prettyName)); // name/hp
+                    st.add(spawnStand(loc.clone().add(0, 2.9, 0), buildNodeName(type, variant))); // name/hp
                     st.add(spawnStand(loc.clone().add(0, 2.6, 0), "")); // requirement
                     // invisible divider line
                     st.add(spawnStand(loc.clone().add(0, 2.4, 0), "§r"));
-                    st.add(spawnStand(loc.clone().add(0, 2.2, 0), "§7Right-Click to start mining"));
+                    st.add(spawnStand(loc.clone().add(0, 2.2, 0), buildMiningPrompt(entity.getUniqueId(), nearest)));
                 }
                 if (st.size() >= 4) {
                     int current = currentHp;
@@ -183,6 +200,7 @@ public class OreMiningListener implements Listener {
                         int lvl = miningManager.getLevel(nearest);
                         String symbol = lvl >= reqLevel ? "§a✔" : "§c✘";
                         st.get(1).setCustomName(symbol + " §fMining Lv. Min: §e" + reqLevel);
+                        st.get(3).setCustomName(buildMiningPrompt(entity.getUniqueId(), nearest));
                     }
                 }
             } else {
@@ -205,7 +223,8 @@ public class OreMiningListener implements Listener {
         me.nakilex.levelplugin.items.tools.ToolTier tier = tool.getTier();
         int req = tier.getLevelRequirement();
         if (!me.nakilex.levelplugin.items.tools.ToolManager.getInstance().meetsLevelRequirement(player, tool)) {
-            player.sendMessage("§cYou need Mining level " + req + " to use this pickaxe!");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "You need Mining level " + req + " to use this pickaxe.");
             return false;
         }
         return true;
@@ -214,26 +233,36 @@ public class OreMiningListener implements Listener {
     private boolean checkOreLevel(Player player, String oreType) {
         int req = rewardsConfig.getLevelRequirement(oreType);
         if (req > 0 && miningManager.getLevel(player) < req) {
-            player.sendMessage("§cYou need Mining level " + req + " to mine this ore!");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "You need Mining level " + req + " to mine this ore.");
             return false;
         }
         return true;
     }
 
-    private final Map<Material, Integer> pickaxeDamage = Map.of(
-            Material.WOODEN_PICKAXE, 2,
-            Material.GOLDEN_PICKAXE, 2,
-            Material.STONE_PICKAXE, 3,
-            Material.IRON_PICKAXE, 4,
-            Material.DIAMOND_PICKAXE, 5,
-            Material.NETHERITE_PICKAXE, 6
-    );
-
-    private void handleOreHit(Player player, LivingEntity entity, String type, Material pick) {
+    private void handleOreHit(Player player, LivingEntity entity, String type, ItemStack pickaxe) {
         UUID id = entity.getUniqueId();
+        long now = System.currentTimeMillis();
+        Long previousHit = lastHandledHitAt.put(id, now);
+        if (previousHit != null && now - previousHit < DUPLICATE_INTERACTION_GUARD_MS) return;
+
         int hp = oreHealth.getOrDefault(id, (int) entity.getHealth());
-        int dmg = pickaxeDamage.getOrDefault(pick, 1);
-        hp -= dmg;
+        MiningNodeVariant variant = oreVariants.getOrDefault(id, MiningNodeVariant.NORMAL);
+        if (variant.isSpecial() && announcedVariants.add(id)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "You discovered a " + variant.getColor() + variant.getDisplayName() + ChatColor.GRAY + " ore node!");
+        }
+        miningManager.recordMomentumHit(player);
+        int damage = calculatePickaxeDamage(player, pickaxe);
+        boolean weakPoint = consumeWeakPoint(id, now);
+        if (weakPoint) {
+            damage = Math.max(damage + 1, (int) Math.round(damage * rewardsConfig.getWeakPointDamageMultiplier(variant)));
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "Weak point struck for " + ChatColor.YELLOW + damage + ChatColor.GREEN + " mining damage!");
+            entity.getWorld().playSound(entity.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_BREAK, 1.0f, 1.6f);
+            entity.getWorld().spawnParticle(Particle.CRIT, entity.getLocation().clone().add(0, 1.0, 0), 16, 0.4, 0.4, 0.4, 0.1);
+        }
+        hp -= damage;
         Location loc = entity.getLocation();
         Material partMat = oreParticles.getOrDefault(type, Material.STONE);
         loc.getWorld().spawnParticle(Particle.BLOCK_CRUMBLE,
@@ -253,25 +282,56 @@ public class OreMiningListener implements Listener {
             entity.setHealth(0); // triggers death event
         } else {
             oreHealth.put(id, hp);
+            tryOpenWeakPoint(id, variant, now);
         }
 
-        lastHitTime.put(id, System.currentTimeMillis());
+        lastHitTime.put(id, now);
         List<ArmorStand> st = oreHolograms.get(id);
         if (st != null && !st.isEmpty()) {
             int max = oreMaxHealth.getOrDefault(id, hp);
             st.get(0).setCustomName(buildBar(type, Math.max(hp,0), max));
+            if (st.size() >= 4) st.get(3).setCustomName(buildMiningPrompt(id, player));
             BukkitTask old = hpHideTasks.remove(id);
             if (old != null) old.cancel();
             hpHideTasks.put(id, plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
                 List<ArmorStand> stands = oreHolograms.get(id);
-                if (stands != null && !stands.isEmpty()) {
-                    String prettyName = type.replace('_', ' ');
-                    prettyName = prettyName.substring(0,1).toUpperCase()+prettyName.substring(1);
-                    stands.get(0).setCustomName(oreColors.getOrDefault(type, "§f") + prettyName);
-                }
+                if (stands != null && !stands.isEmpty()) stands.get(0).setCustomName(buildNodeName(type, variant));
                 hpHideTasks.remove(id);
             }, 120L));
         }
+    }
+
+    private int calculatePickaxeDamage(Player player, ItemStack pickaxe) {
+        CustomTool tool = ToolManager.getInstance().getTool(pickaxe);
+        ToolTier tier = tool != null && tool.getDiscipline() == ToolDiscipline.MINING ? tool.getTier() : null;
+        int tierDamage = tier == null ? 1 : tier.getMiningDamage();
+        return Math.max(1, (int) Math.round(tierDamage * miningManager.getMomentumDamageMultiplier(player)));
+    }
+
+    private boolean consumeWeakPoint(UUID oreId, long now) {
+        Long expiresAt = weakPointExpiresAt.remove(oreId);
+        return expiresAt != null && now <= expiresAt;
+    }
+
+    private void tryOpenWeakPoint(UUID oreId, MiningNodeVariant variant, long now) {
+        if (weakPointExpiresAt.containsKey(oreId)) return;
+        if (java.util.concurrent.ThreadLocalRandom.current().nextDouble() < rewardsConfig.getWeakPointChance(variant)) {
+            weakPointExpiresAt.put(oreId, now + WEAK_POINT_WINDOW_MS);
+        }
+    }
+
+    private String buildMiningPrompt(UUID oreId, Player player) {
+        Long expiresAt = weakPointExpiresAt.get(oreId);
+        if (expiresAt != null && System.currentTimeMillis() <= expiresAt) return "§e§l✦ WEAK POINT! §fStrike now!";
+        if (expiresAt != null) weakPointExpiresAt.remove(oreId);
+        String momentum = miningManager.getMomentumIndicator(player);
+        return momentum == null ? "§7Left-Click to start mining" : "§7Left-Click to mine  §8•  " + momentum;
+    }
+
+    private String buildNodeName(String type, MiningNodeVariant variant) {
+        String prettyName = MobNameUtil.toPrettyName(type);
+        if (variant == null || !variant.isSpecial()) return oreColors.getOrDefault(type, "§f") + prettyName;
+        return variant.getColor() + variant.getDisplayName() + " " + oreColors.getOrDefault(type, "§f") + prettyName;
     }
 
     // Prevent use of high-tier pickaxes on generic interaction
@@ -293,62 +353,31 @@ public class OreMiningListener implements Listener {
         }
     }
 
-    // Interacting with entities (e.g., ore mobs)
-    // Process entity interactions before other handlers react
+    // Right-clicking an ore should never mine it. Survival-mode mining uses the normal left-click damage event.
     @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST, ignoreCancelled = false)
     public void onEntityInteract(org.bukkit.event.player.PlayerInteractEntityEvent event) {
-        ItemStack item = event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
-                ? event.getPlayer().getInventory().getItemInMainHand()
-                : event.getPlayer().getInventory().getItemInOffHand();
-        if (item == null || !isPickaxe(item.getType())) return;
-        if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
-            event.setCancelled(true);
-            return;
-        }
-
-        if (!(event.getRightClicked() instanceof LivingEntity entity)) {
-            return;
-        }
-        String type = resolveOreType(entity);
-        if (type == null) return;
-        if (!rewardsConfig.getConfig().contains("ores." + type)) return;
-        if (!checkOreLevel(event.getPlayer(), type)) {
-            event.setCancelled(true);
-            return;
-        }
-
-        event.setCancelled(true);
-        handleOreHit(event.getPlayer(), entity, type, item.getType());
+        cancelRightClickOreInteraction(event.getPlayer(), event.getRightClicked(), event);
     }
 
-    // Same for interacting at a specific entity location
+    // Some entity models emit the more specific at-entity interaction event as well.
     @EventHandler(priority = org.bukkit.event.EventPriority.LOWEST, ignoreCancelled = false)
     public void onAtEntityInteract(org.bukkit.event.player.PlayerInteractAtEntityEvent event) {
-        ItemStack item = event.getHand() == org.bukkit.inventory.EquipmentSlot.HAND
-                ? event.getPlayer().getInventory().getItemInMainHand()
-                : event.getPlayer().getInventory().getItemInOffHand();
-        if (item == null || !isPickaxe(item.getType())) return;
-        if (!checkPickaxeLevel(event.getPlayer(), item.getType())) {
-            event.setCancelled(true);
-            return;
-        }
-
-        if (!(event.getRightClicked() instanceof LivingEntity entity)) {
-            return;
-        }
-        String type = resolveOreType(entity);
-        if (type == null) return;
-        if (!rewardsConfig.getConfig().contains("ores." + type)) return;
-        if (!checkOreLevel(event.getPlayer(), type)) {
-            event.setCancelled(true);
-            return;
-        }
-
-        event.setCancelled(true);
-        handleOreHit(event.getPlayer(), entity, type, item.getType());
+        cancelRightClickOreInteraction(event.getPlayer(), event.getRightClicked(), event);
     }
 
-    // Track player who damages an ore mob
+    private void cancelRightClickOreInteraction(Player player, org.bukkit.entity.Entity clicked, Cancellable event) {
+        if (!(clicked instanceof LivingEntity entity)) return;
+        String type = resolveOreType(entity);
+        if (type == null || !rewardsConfig.getConfig().contains("ores." + type)) return;
+        event.setCancelled(true);
+        ItemStack held = player.getInventory().getItemInMainHand();
+        if (held != null && isPickaxe(held.getType())) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "Left-click this ore with your pickaxe to mine it.");
+        }
+    }
+
+    // Survival-mode left-click mining arrives through the standard damage event.
     @EventHandler(priority = org.bukkit.event.EventPriority.HIGHEST, ignoreCancelled = false)
     public void onDamage(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;
@@ -369,7 +398,7 @@ public class OreMiningListener implements Listener {
         }
 
         event.setCancelled(true);
-        handleOreHit(player, le, type, held.getType());
+        handleOreHit(player, le, type, held);
     }
 
     // Cancel any other damage to ore mobs
@@ -401,22 +430,32 @@ public class OreMiningListener implements Listener {
         String type = resolveOreType(entity);
         if (type == null) return;
         if (!rewardsConfig.getConfig().contains("ores." + type)) return;
+        event.getDrops().clear();
+        event.setDroppedExp(0);
 
+        BukkitTask hologramTask = hologramTasks.remove(entity.getUniqueId());
+        if (hologramTask != null) hologramTask.cancel();
         List<ArmorStand> stands = oreHolograms.remove(entity.getUniqueId());
         if (stands != null) {
             stands.forEach(ArmorStand::remove);
         }
-        oreHealth.remove(entity.getUniqueId());
-        oreMaxHealth.remove(entity.getUniqueId());
-        BukkitTask hide = hpHideTasks.remove(entity.getUniqueId());
-        if (hide != null) hide.cancel();
-
-        Player p = damageTracker.remove(entity.getUniqueId());
+        UUID oreId = entity.getUniqueId();
+        MiningNodeVariant variant = oreVariants.getOrDefault(oreId, MiningNodeVariant.NORMAL);
+        Player p = damageTracker.get(oreId);
+        cleanupOreState(oreId);
         if (p == null) return;
 
-        int xp = rewardsConfig.getXP(type);
-        if (xp > 0) {
-            miningManager.addXP(p, xp);
+        int xp = (int) Math.round(rewardsConfig.getXP(type) * rewardsConfig.getXpMultiplier(variant));
+        ItemStack held = p.getInventory().getItemInMainHand();
+        if (ToolManager.getInstance().getMiningEnchant(held) == MiningToolEnchant.INSIGHT
+                && java.util.concurrent.ThreadLocalRandom.current().nextDouble() <= 0.30D) {
+            xp = (int) Math.round(xp * 1.60D);
+            ChatMessageUtil.send(p, ChatMessageUtil.MessageType.REWARD, "Insight granted bonus Mining XP!");
+        }
+        if (xp > 0) miningManager.addXP(p, xp);
+        if (variant.isSpecial()) {
+            ChatMessageUtil.send(p, ChatMessageUtil.MessageType.REWARD,
+                    variant.getColor() + variant.getDisplayName() + ChatColor.GOLD + " node rewards claimed!");
         }
         if (plugin.getQuestManager() != null) {
             plugin.getQuestManager().handleMineOre(p, type);
@@ -431,8 +470,23 @@ public class OreMiningListener implements Listener {
             if (max > amt) {
                 amt += java.util.concurrent.ThreadLocalRandom.current().nextInt(max - amt + 1);
             }
-            p.getInventory().addItem(mat.createItem(amt));
+            amt = Math.max(1, (int) Math.round(amt * rewardsConfig.getDropMultiplier(variant)));
+            DropPickupUtil.dropForPlayerWithDelayedAutoPickup(p, mat.createItem(amt), 20L);
         }
+    }
+
+
+    private void cleanupOreState(UUID oreId) {
+        oreHealth.remove(oreId);
+        oreMaxHealth.remove(oreId);
+        oreVariants.remove(oreId);
+        weakPointExpiresAt.remove(oreId);
+        lastHandledHitAt.remove(oreId);
+        announcedVariants.remove(oreId);
+        damageTracker.remove(oreId);
+        lastHitTime.remove(oreId);
+        BukkitTask hide = hpHideTasks.remove(oreId);
+        if (hide != null) hide.cancel();
     }
 
     /** Remove all active holograms and cancel tasks */
@@ -451,6 +505,14 @@ public class OreMiningListener implements Listener {
             }
         }
         oreHolograms.clear();
+        oreHealth.clear();
+        oreMaxHealth.clear();
+        oreVariants.clear();
+        weakPointExpiresAt.clear();
+        lastHandledHitAt.clear();
+        announcedVariants.clear();
+        damageTracker.clear();
+        lastHitTime.clear();
     }
 
     private String resolveOreType(LivingEntity entity) {

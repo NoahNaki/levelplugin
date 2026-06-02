@@ -65,6 +65,7 @@ public final class ProfileEntryUtil {
             }
             pm.setActiveSlot(pid, 0);
             PlayerConfig cfg = Main.getInstance().getPlayerConfig();
+            cfg.loadProfileLifeSkillData(pid, 0);
             org.bukkit.Location loc = cfg.getProfileLocation(pid, 0);
             if (loc != null) {
                 player.teleport(loc);
