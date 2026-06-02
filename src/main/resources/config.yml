@@ -152,6 +152,9 @@ fishing-mini-games:
       extreme: 6000
     sequence-length: 4
     use-movement: false
+    sound:
+      correct: block.amethyst_block.hit
+      wrong: block.anvil.land
   accurate_click:
     duration-ms:
       easy: 8000
