@@ -17,7 +17,6 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.FishHook;
@@ -48,12 +47,14 @@ public class FishingListener implements Listener {
 
     private static final int LAVA_BITE_MIN_TICKS = 20;
     private static final int LAVA_BITE_MAX_TICKS = 50;
+    private static final long RECENTLY_COMPLETED_MINI_GAME_MS = 2_000L;
 
     private final Main plugin;
     private final FishingRewardsConfig rewardsConfig;
     private final FishingManager fishingManager;
     private final FishingMiniGameManager miniGameManager;
     private final Map<UUID, org.bukkit.scheduler.BukkitTask> lavaBiteTasks = new HashMap<>();
+    private final Map<UUID, Long> recentlyCompletedMiniGame = new HashMap<>();
     private final Random random = new Random();
 
     public FishingListener(Main plugin, FishingRewardsConfig rewardsConfig, FishingManager fishingManager) {
@@ -71,23 +72,10 @@ public class FishingListener implements Listener {
         if (!miniGamesEnabled) miniGameManager.cancelSilently(uuid);
 
         if (miniGamesEnabled && miniGameManager.isPlaying(uuid)) {
-            switch (event.getState()) {
-                case REEL_IN, CAUGHT_FISH, FAILED_ATTEMPT, IN_GROUND -> {
-                    event.setCancelled(true);
-                    miniGameManager.logVanillaState(player,
-                            "Cancelled vanilla fishing state because mini-game is active: " + event.getState());
-                    return;
-                }
-                case FISHING -> {
-                    event.setCancelled(true);
-                    miniGameManager.logVanillaState(player,
-                            "Cancelled vanilla fishing state because mini-game is active: " + event.getState());
-                    return;
-                }
-                default -> {
-                    return;
-                }
-            }
+            event.setCancelled(true);
+            miniGameManager.logVanillaState(player,
+                    "Cancelled vanilla fishing state because mini-game is active: " + event.getState());
+            return;
         }
 
         switch (event.getState()) {
@@ -138,6 +126,7 @@ public class FishingListener implements Listener {
                 hookedFish != null && hookedFish.rarity() != null ? hookedFish.rarity().name() : "COMMON",
                 fishingManager.getLevel(player));
         miniGameManager.startRandom(player, hook, inLava, hookedFish, profile, debugContext, success -> {
+            markRecentlyCompletedMiniGame(uuid);
             if (!player.isOnline()) return;
             if (!success) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "The fish escaped!");
@@ -151,6 +140,7 @@ public class FishingListener implements Listener {
         clearLavaTask(uuid);
         if (miniGameManager.isEnabled()) {
             event.setCancelled(true);
+            if (hasRecentlyCompletedMiniGame(uuid)) return;
             if (!miniGameManager.isPlaying(uuid)) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                         "Wait for a bite and complete its fishing mini-game first.");
@@ -166,6 +156,20 @@ public class FishingListener implements Listener {
         } else {
             giveFishItem(player, fishItem);
         }
+    }
+
+    private void markRecentlyCompletedMiniGame(UUID uuid) {
+        long expiresAtMs = System.currentTimeMillis() + RECENTLY_COMPLETED_MINI_GAME_MS;
+        recentlyCompletedMiniGame.put(uuid, expiresAtMs);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> recentlyCompletedMiniGame.remove(uuid, expiresAtMs), 40L);
+    }
+
+    private boolean hasRecentlyCompletedMiniGame(UUID uuid) {
+        Long expiresAtMs = recentlyCompletedMiniGame.get(uuid);
+        if (expiresAtMs == null) return false;
+        if (System.currentTimeMillis() <= expiresAtMs) return true;
+        recentlyCompletedMiniGame.remove(uuid);
+        return false;
     }
 
     private ItemStack awardCatch(Player player, boolean inLava) {
@@ -279,15 +283,10 @@ public class FishingListener implements Listener {
         if (!miniGameManager.isPlaying(uuid)) return;
         switch (event.getAction()) {
             case LEFT_CLICK_AIR, LEFT_CLICK_BLOCK -> miniGameManager.click(uuid);
-            case RIGHT_CLICK_AIR, RIGHT_CLICK_BLOCK -> {
-                miniGameManager.rightClick(uuid);
-                if (event.getItem() != null && event.getItem().getType() == Material.FISHING_ROD) {
-                    event.setCancelled(true);
-                    return;
-                }
-            }
+            case RIGHT_CLICK_AIR, RIGHT_CLICK_BLOCK -> miniGameManager.rightClick(uuid);
             default -> { }
         }
+        event.setCancelled(true);
     }
 
     @EventHandler
