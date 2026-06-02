@@ -26,16 +26,22 @@ public class AnimatedLeaderboard {
     private final int cycleDuration;
     private final int rowCount;
     private final double animationSpeed;
+    private final List<BoardType> boardTypes;
     private final List<TextDisplay> allDisplays = new ArrayList<>();
     private final List<RowDisplay> rows = new ArrayList<>();
     private final List<TextDisplay> progressSegments = new ArrayList<>();
     private TextDisplay title;
-    private BoardType boardType = BoardType.STRONGHOLD_STAGE;
+    private BoardType boardType;
     private int progressTick = 0;
     private boolean transitioning = false;
     private BukkitTask tickTask;
 
     public AnimatedLeaderboard(JavaPlugin plugin, LeaderboardDataProvider dataProvider, Location origin, float scale, int cycleDuration, int rowCount, double animationSpeed) {
+        this(plugin, dataProvider, origin, scale, cycleDuration, rowCount, animationSpeed, List.of(BoardType.STRONGHOLD_STAGE, BoardType.POWER));
+    }
+
+    public AnimatedLeaderboard(JavaPlugin plugin, LeaderboardDataProvider dataProvider, Location origin, float scale,
+                               int cycleDuration, int rowCount, double animationSpeed, List<BoardType> boardTypes) {
         this.plugin = plugin;
         this.dataProvider = dataProvider;
         this.origin = origin;
@@ -43,6 +49,8 @@ public class AnimatedLeaderboard {
         this.cycleDuration = Math.max(20, cycleDuration);
         this.rowCount = rowCount;
         this.animationSpeed = Math.max(0.1, animationSpeed);
+        this.boardTypes = boardTypes == null || boardTypes.isEmpty() ? List.of(BoardType.STRONGHOLD_STAGE, BoardType.POWER) : List.copyOf(boardTypes);
+        this.boardType = this.boardTypes.get(0);
     }
 
     public void spawn() {
@@ -73,7 +81,7 @@ public class AnimatedLeaderboard {
         progressTick = 0;
     }
 
-    public void next() { transitionTo(boardType.next()); }
+    public void next() { transitionTo(nextBoardType()); }
 
     private void startProgressTask() {
         tickTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
@@ -81,7 +89,7 @@ public class AnimatedLeaderboard {
             progressTick++;
             renderProgress();
             if (progressTick >= cycleDuration) {
-                transitionTo(boardType.next());
+                transitionTo(nextBoardType());
             }
         }, 1L, 1L);
     }
@@ -233,20 +241,20 @@ public class AnimatedLeaderboard {
         return td;
     }
 
+    private BoardType nextBoardType() {
+        int currentIndex = boardTypes.indexOf(boardType);
+        return boardTypes.get((currentIndex + 1) % boardTypes.size());
+    }
+
     private Vector getSlideVector(double distance) {
-        return switch (normalizeYaw(origin.getYaw())) {
-            case 180 -> new Vector(-distance, 0, 0);
-            case 90 -> new Vector(0, 0, distance);
-            case 270 -> new Vector(0, 0, -distance);
-            default -> new Vector(distance, 0, 0);
-        };
+        double radians = Math.toRadians(origin.getYaw());
+        return new Vector(Math.cos(radians) * distance, 0, Math.sin(radians) * distance);
     }
 
     private int getRowDurationTicks() { return Math.max(4, (int) Math.round(10D / animationSpeed)); }
     private double getSlideDistance() { return 0.9D; }
-    private double localX(double x) { int yaw = normalizeYaw(origin.getYaw()); return yaw == 180 ? -x : (yaw == 0 ? x : 0); }
-    private double localZ(double x) { int yaw = normalizeYaw(origin.getYaw()); return yaw == 90 ? -x : yaw == 270 ? x : 0; }
-    private int normalizeYaw(float yaw) { int y = ((Math.round(yaw / 90f) * 90) % 360 + 360) % 360; return switch (y) { case 90, 180, 270 -> y; default -> 0; }; }
+    private double localX(double x) { return Math.cos(Math.toRadians(origin.getYaw())) * x; }
+    private double localZ(double x) { return -Math.sin(Math.toRadians(origin.getYaw())) * x; }
     private double ease(double t) { return (3 * t * t) - (2 * t * t * t); }
     private double clamp(double value, double min, double max) { return Math.max(min, Math.min(max, value)); }
 }

@@ -55,14 +55,6 @@ public class FishingManager implements LifeSkillProgression {
     }
 
     public void addXP(UUID uuid, int amount) {
-        if (getLevel(uuid) >= MAX_LEVEL) {
-            Player player = Bukkit.getPlayer(uuid);
-            if (player != null) {
-                markFishingActive(player);
-                updateBossBar(player);
-            }
-            return;
-        }
         int adjusted = amount;
         if (plugin.getPetManager() != null) {
             adjusted = plugin.getPetManager().applyActiveEffectMultiplier(uuid, PetEffectType.GATHERING_XP_BOOST, adjusted);

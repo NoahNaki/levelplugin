@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.environment;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.animatedlb.AnimatedLeaderboard;
+import me.nakilex.levelplugin.animatedlb.BoardType;
 import me.nakilex.levelplugin.animatedlb.LeaderboardDataProvider;
 import me.nakilex.levelplugin.animatedlb.MockLeaderboardDataProvider;
 import me.nakilex.levelplugin.animatedlb.PlayerStatsLeaderboardDataProvider;
@@ -108,6 +109,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final WorldPoint FINISHED_WORLD_SPAWN = new WorldPoint(3840, 108, -2934);
     private static final WorldPoint EMPTY_WORLD_SPAWN = projectFinishedToEmpty(FINISHED_WORLD_SPAWN);
     private static final WorldPoint KINGDOM_ANIMATED_LB = new WorldPoint(3810, 105, -3377);
+    // Authored against the finished kingdom template, then projected into each pasted empty-world instance.
+    private static final List<KingdomLeaderboardPlacement> LIFE_SKILL_LEADERBOARDS = List.of(
+            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3858, 74, -3006)), -90.0F, BoardType.MINING),
+            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3800, -99, -3018)), -90.0F, BoardType.FARMING),
+            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3664, -82, -3026)), 45.0F, BoardType.FISHING)
+    );
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
@@ -174,7 +181,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private BukkitTask buildTimerTask;
     private BukkitTask hologramRefreshTask;
     private final Map<String, List<String>> lastHologramLinesByTag = new HashMap<>();
-    private final Map<UUID, AnimatedLeaderboard> animatedLeaderboardsByOwner = new HashMap<>();
+    private final Map<UUID, List<AnimatedLeaderboard>> animatedLeaderboardsByOwner = new HashMap<>();
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
     private final Map<UUID, Integer> farmBuildingLevelByProfile = new HashMap<>();
@@ -1856,38 +1863,53 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         removeAnimatedLeaderboard(session.ownerId());
-        WorldPoint resolvedSourcePoint = resolveKingdomTemplatePoint(KINGDOM_ANIMATED_LB);
+        LeaderboardDataProvider provider = plugin instanceof Main main
+                ? new PlayerStatsLeaderboardDataProvider(main)
+                : new MockLeaderboardDataProvider();
+        List<AnimatedLeaderboard> boards = new ArrayList<>();
+
+        float configuredYaw = (float) plugin.getConfig().getDouble("animatedlb.yaw", 0.0D);
+        addAnimatedLeaderboard(session, provider, boards, KINGDOM_ANIMATED_LB, configuredYaw + 180.0F, null);
+        for (KingdomLeaderboardPlacement placement : LIFE_SKILL_LEADERBOARDS) {
+            addAnimatedLeaderboard(session, provider, boards, placement.point(), placement.yaw(), List.of(placement.type()));
+        }
+        animatedLeaderboardsByOwner.put(session.ownerId(), boards);
+    }
+
+    private void addAnimatedLeaderboard(EnvironmentAreaSession session, LeaderboardDataProvider provider,
+                                        List<AnimatedLeaderboard> boards, WorldPoint sourcePoint, float yaw,
+                                        List<BoardType> boardTypes) {
+        WorldPoint resolvedSourcePoint = resolveKingdomTemplatePoint(sourcePoint);
         Location origin = toPastedLocation(session.world(), resolvedSourcePoint, session.originX(), session.originY(), session.originZ());
         if (origin == null) {
             return;
         }
         origin.add(0.5D, 0.0D, 0.0D);
-        float yaw = (float) plugin.getConfig().getDouble("animatedlb.yaw", 0.0D);
-        origin.setYaw(yaw + 180.0F);
+        origin.setYaw(yaw);
         origin.setPitch(0.0F);
 
-        LeaderboardDataProvider provider = plugin instanceof Main main
-                ? new PlayerStatsLeaderboardDataProvider(main)
-                : new MockLeaderboardDataProvider();
-        AnimatedLeaderboard board = new AnimatedLeaderboard(
-                plugin,
-                provider,
-                origin,
+        AnimatedLeaderboard board = boardTypes == null
+                ? new AnimatedLeaderboard(plugin, provider, origin,
                 (float) plugin.getConfig().getDouble("animatedlb.scale", 0.85D),
                 plugin.getConfig().getInt("animatedlb.cycle-duration", 200),
                 plugin.getConfig().getInt("animatedlb.row-count", 10),
-                plugin.getConfig().getDouble("animatedlb.animation-speed", 1.0D));
+                plugin.getConfig().getDouble("animatedlb.animation-speed", 1.0D))
+                : new AnimatedLeaderboard(plugin, provider, origin,
+                (float) plugin.getConfig().getDouble("animatedlb.scale", 0.85D),
+                plugin.getConfig().getInt("animatedlb.cycle-duration", 200),
+                plugin.getConfig().getInt("animatedlb.row-count", 10),
+                plugin.getConfig().getDouble("animatedlb.animation-speed", 1.0D), boardTypes);
         board.spawn();
-        animatedLeaderboardsByOwner.put(session.ownerId(), board);
+        boards.add(board);
     }
 
     private void removeAnimatedLeaderboard(UUID ownerId) {
         if (ownerId == null) {
             return;
         }
-        AnimatedLeaderboard board = animatedLeaderboardsByOwner.remove(ownerId);
-        if (board != null) {
-            board.remove();
+        List<AnimatedLeaderboard> boards = animatedLeaderboardsByOwner.remove(ownerId);
+        if (boards != null) {
+            boards.forEach(AnimatedLeaderboard::remove);
         }
     }
 
@@ -2028,10 +2050,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 session.removeHolograms();
                     }
         }
-        for (AnimatedLeaderboard board : new ArrayList<>(animatedLeaderboardsByOwner.values())) {
-            if (board != null) {
-                board.remove();
-            }
+        for (List<AnimatedLeaderboard> boards : new ArrayList<>(animatedLeaderboardsByOwner.values())) {
+            boards.forEach(AnimatedLeaderboard::remove);
         }
         animatedLeaderboardsByOwner.clear();
         cleanupEnvironmentAreaCitizensClones();
@@ -2053,4 +2073,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             plugin.getLogger().info("[EnvironmentArea] Cleaned up " + removed + " session Citizens clones.");
         }
     }
+
+    private record KingdomLeaderboardPlacement(WorldPoint point, float yaw, BoardType type) {
+    }
+
 }

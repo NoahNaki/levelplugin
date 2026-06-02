@@ -252,7 +252,7 @@ public class LifeSkillRewardManager {
         }
         message += ".";
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD, message);
-        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.75f, 1.15f);
+        player.playSound(player.getLocation(), Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.6f, 1.2f);
         ChatFormatter.sendIndentedMessage(player, ChatColor.GREEN + "Rewards:");
         for (String line : buildRewardLines(newlyClaimed)) {
             ChatFormatter.sendIndentedMessage(player, line);
