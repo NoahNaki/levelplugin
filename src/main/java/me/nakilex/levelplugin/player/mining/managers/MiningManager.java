@@ -241,6 +241,11 @@ public class MiningManager implements LifeSkillProgression {
         miningXp.put(uuid, 0);
     }
 
+    /** Clears transient streak progress when the active profile changes. */
+    public void clearMomentum(UUID uuid) {
+        momentumStates.remove(uuid);
+    }
+
     /** Remove all mining progress for a player. */
     public void clearPlayerData(UUID uuid) {
         miningLevels.remove(uuid);

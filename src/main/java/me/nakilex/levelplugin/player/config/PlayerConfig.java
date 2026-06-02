@@ -1,14 +1,11 @@
 package me.nakilex.levelplugin.player.config;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.items.tools.ToolDiscipline;
-import me.nakilex.levelplugin.player.attributes.managers.LifeSkillRewardManager;
+import me.nakilex.levelplugin.player.attributes.lifeskill.LifeSkillProfileDataUtil;
 import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import me.nakilex.levelplugin.player.battlepass.BattlePassManager;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
-import me.nakilex.levelplugin.player.fishing.data.FishingQuality;
-import me.nakilex.levelplugin.player.fishing.managers.FishingManager;
 import me.nakilex.levelplugin.spells.input.SpellInputMode;
 import me.nakilex.levelplugin.spells.input.SpellInputType;
 import me.nakilex.levelplugin.spells.input.SpellKeybindSlot;
@@ -60,42 +57,17 @@ public class PlayerConfig {
     public void savePlayerData(UUID uuid) {
         StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(uuid);
         LevelManager levelManager = LevelManager.getInstance();
-        me.nakilex.levelplugin.player.mining.managers.MiningManager miningManager = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance();
-        me.nakilex.levelplugin.player.farming.managers.FarmingManager farmingManager = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance();
-        me.nakilex.levelplugin.player.fishing.managers.FishingManager fishingManager = me.nakilex.levelplugin.player.fishing.managers.FishingManager.getInstance();
-        me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager woodcuttingManager = me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance();
 
         String path = "players." + uuid.toString();
         // Use UUID-based lookups so offline players save correctly
         config.set(path + ".level", levelManager.getLevel(uuid));
         config.set(path + ".xp",    levelManager.getXP(uuid));
-        config.set(path + ".mining.level", miningManager.getLevel(uuid));
-        config.set(path + ".mining.xp",    miningManager.getXP(uuid));
-        config.set(path + ".farming.level", farmingManager.getLevel(uuid));
-        config.set(path + ".farming.xp",    farmingManager.getXP(uuid));
-        config.set(path + ".fishing.level", fishingManager.getLevel(uuid));
-        config.set(path + ".fishing.xp",    fishingManager.getXP(uuid));
-        config.set(path + ".woodcutting.level", woodcuttingManager.getLevel(uuid));
-        config.set(path + ".woodcutting.xp",    woodcuttingManager.getXP(uuid));
-        config.set(path + ".fishing.discovered", new ArrayList<>(fishingManager.getDiscoveredFish(uuid)));
-        config.set(path + ".fishing.records", null);
-        for (Map.Entry<String, FishingManager.FishRecord> entry : fishingManager.getFishRecords(uuid).entrySet()) {
-            String recordPath = path + ".fishing.records." + entry.getKey();
-            FishingManager.FishRecord record = entry.getValue();
-            config.set(recordPath + ".caught", record.caughtCount());
-            config.set(recordPath + ".largest", record.largestSize());
-            config.set(recordPath + ".quality", record.bestQuality().name());
-        }
-        LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
-        if (rewardManager != null) {
-            for (ToolDiscipline discipline : ToolDiscipline.values()) {
-                config.set(path + ".lifeskills." + discipline.name().toLowerCase() + ".claimed",
-                        new ArrayList<>(rewardManager.getClaimed(uuid, discipline)));
-            }
+        Integer activeSlot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(uuid);
+        if (activeSlot != null && activeSlot >= 0) {
+            saveProfileLifeSkillData(uuid, activeSlot);
         }
         config.set(path + ".skill_points", stats.skillPoints);
         SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
-        Integer activeSlot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance().getActiveSlot(uuid);
         if (activeSlot != null && activeSlot >= 0) {
             setProfileSpellPoints(uuid, activeSlot, progressionManager.getSpellPoints(uuid));
             setProfileSpellLevels(uuid, activeSlot, progressionManager.serializeSpellLevels(uuid, activeSlot));
@@ -156,32 +128,6 @@ public class PlayerConfig {
         if (playerClass == null) playerClass = PlayerClass.VILLAGER;
         int level = config.getInt(root + ".level", 1);
         int xp = config.getInt(root + ".xp", 0);
-        int miningLevel = config.getInt(root + ".mining.level", 1);
-        int miningXp = config.getInt(root + ".mining.xp", 0);
-        int farmingLevel = config.getInt(root + ".farming.level", 1);
-        int farmingXp = config.getInt(root + ".farming.xp", 0);
-        int fishingLevel = config.getInt(root + ".fishing.level", 1);
-        int fishingXp = config.getInt(root + ".fishing.xp", 0);
-        int woodcuttingLevel = config.getInt(root + ".woodcutting.level", 1);
-        int woodcuttingXp = config.getInt(root + ".woodcutting.xp", 0);
-        List<String> discoveredFish = config.getStringList(root + ".fishing.discovered");
-        Map<String, FishingManager.FishRecord> fishRecords = new HashMap<>();
-        ConfigurationSection fishingRecords = config.getConfigurationSection(root + ".fishing.records");
-        if (fishingRecords != null) {
-            for (String fishId : fishingRecords.getKeys(false)) {
-                String recordPath = root + ".fishing.records." + fishId;
-                FishingQuality quality;
-                try {
-                    quality = FishingQuality.valueOf(config.getString(recordPath + ".quality", "NORMAL"));
-                } catch (IllegalArgumentException ignored) {
-                    quality = FishingQuality.NORMAL;
-                }
-                fishRecords.put(fishId, new FishingManager.FishRecord(
-                        config.getInt(recordPath + ".caught", 0),
-                        config.getDouble(recordPath + ".largest", 0.0), quality));
-            }
-        }
-        LifeSkillRewardManager rewardManager = LifeSkillRewardManager.getInstance();
         int skillPoints = config.getInt(root + ".skill_points", 0);
         // Spell progression is profile-scoped and loaded on profile selection.
         List<String> unlockedList = config.getStringList(root + ".unlocked_classes");
@@ -189,27 +135,6 @@ public class PlayerConfig {
         LevelManager lm = LevelManager.getInstance();
         lm.setLevel(uuid, level);
         lm.addXP(uuid, xp);
-        me.nakilex.levelplugin.player.mining.managers.MiningManager mm = me.nakilex.levelplugin.player.mining.managers.MiningManager.getInstance();
-        mm.setLevel(uuid, miningLevel);
-        mm.addXP(uuid, miningXp);
-        me.nakilex.levelplugin.player.farming.managers.FarmingManager fm = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance();
-        fm.setLevel(uuid, farmingLevel);
-        fm.addXP(uuid, farmingXp);
-        me.nakilex.levelplugin.player.fishing.managers.FishingManager fim = me.nakilex.levelplugin.player.fishing.managers.FishingManager.getInstance();
-        fim.setLevel(uuid, fishingLevel);
-        fim.addXP(uuid, fishingXp);
-        fim.setDiscoveredFish(uuid, new HashSet<>(discoveredFish));
-        fim.setFishRecords(uuid, fishRecords);
-        me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager wcm = me.nakilex.levelplugin.player.woodcutting.managers.WoodcuttingManager.getInstance();
-        wcm.setLevel(uuid, woodcuttingLevel);
-        wcm.addXP(uuid, woodcuttingXp);
-        if (rewardManager != null) {
-            for (ToolDiscipline discipline : ToolDiscipline.values()) {
-                List<Integer> claimed = config.getIntegerList(root + ".lifeskills." + discipline.name().toLowerCase() + ".claimed");
-                rewardManager.setClaimed(uuid, discipline, new HashSet<>(claimed));
-            }
-        }
-
         StatsManager.PlayerStats stats = StatsManager.getInstance().getPlayerStats(uuid);
         stats.playerClass = playerClass;
         stats.skillPoints = skillPoints;
@@ -543,6 +468,47 @@ public class PlayerConfig {
         if (!config.isConfigurationSection("global_towns"))
             return java.util.Collections.emptySet();
         return config.getConfigurationSection("global_towns").getKeys(false);
+    }
+
+    // ----- Profile-Scoped Life Skills -----
+
+    public void saveProfileLifeSkillData(UUID uuid, int slot) {
+        LifeSkillProfileDataUtil.save(uuid, config, profileLifeSkillRoot(uuid, slot));
+        config.set(profileMigrationMarker(uuid), true);
+    }
+
+    public void initializeProfileLifeSkillData(UUID uuid, int slot) {
+        LifeSkillProfileDataUtil.initializeBlank(config, profileLifeSkillRoot(uuid, slot));
+    }
+
+    public void loadProfileLifeSkillData(UUID uuid, int slot) {
+        String profileRoot = profileLifeSkillRoot(uuid, slot);
+        if (!config.contains(profileRoot) && !config.getBoolean(profileMigrationMarker(uuid), false)
+                && hasLegacyLifeSkillData(uuid)) {
+            LifeSkillProfileDataUtil.migrateLegacy(config, "players." + uuid, profileRoot);
+            config.set(profileMigrationMarker(uuid), true);
+            saveConfig();
+        }
+        LifeSkillProfileDataUtil.load(uuid, config, profileRoot);
+    }
+
+    public void resetRuntimeLifeSkillData(UUID uuid) {
+        LifeSkillProfileDataUtil.resetRuntime(uuid);
+    }
+
+    private boolean hasLegacyLifeSkillData(UUID uuid) {
+        String root = "players." + uuid;
+        return config.contains(root + ".mining") || config.contains(root + ".farming")
+                || config.contains(root + ".fishing") || config.contains(root + ".woodcutting")
+                || config.contains(root + ".lifeskills");
+    }
+
+    private String profileLifeSkillRoot(UUID uuid, int slot) {
+        return "players." + uuid + ".profiles." + slot + ".lifeskills";
+    }
+
+    private String profileMigrationMarker(UUID uuid) {
+        return "players." + uuid + ".lifeskills_profile_migrated";
     }
 
     // ----- Profile Data -----
