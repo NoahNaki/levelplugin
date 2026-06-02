@@ -102,15 +102,27 @@ fishing-mini-games:
     fallback-text-ui: true
   enabled: [click, click_v2, hold, tension, dance, accurate_click]
   click:
-    duration-ms: 5000
+    duration-ms:
+      easy: 8000
+      normal: 6500
+      hard: 5000
+      extreme: 4000
     required-clicks: 12
   click_v2:
-    duration-ms: 5000
+    duration-ms:
+      easy: 8000
+      normal: 6500
+      hard: 5000
+      extreme: 4000
     start-progress: 0.35
     click-gain: 0.10
     decay-per-tick: 0.012
   hold:
-    duration-ms: 8000
+    duration-ms:
+      easy: 10000
+      normal: 8500
+      hard: 7000
+      extreme: 6000
     zone-width: 0.28
     judgement-width: 36
     burst-chance: 0.08
@@ -120,7 +132,11 @@ fishing-mini-games:
     click-gain: 0.08
     control-decay: 0.025
   tension:
-    duration-ms: 9000
+    duration-ms:
+      easy: 12000
+      normal: 9500
+      hard: 7500
+      extreme: 6500
     pull-per-tick: 0.012
     gain-per-tick: 0.018
     decay-per-tick: 0.025
@@ -128,11 +144,19 @@ fishing-mini-games:
     struggle-step: 0.035
     struggle-tension: 0.05
   dance:
-    duration-ms: 7000
+    duration-ms:
+      easy: 10000
+      normal: 8500
+      hard: 7000
+      extreme: 6000
     sequence-length: 4
     use-movement: false
   accurate_click:
-    duration-ms: 5000
+    duration-ms:
+      easy: 8000
+      normal: 6500
+      hard: 5000
+      extreme: 4000
     speed-per-tick: 0.035
     zone-width: 0.22
     bars: [BAR_1, BAR_2, BAR_3, BAR_4, BAR_5, BAR_6, BAR_7, BAR_8, BAR_9]

@@ -38,6 +38,7 @@ public class DanceFishingMiniGame extends AbstractFishingMiniGame {
         }
     }
     @Override public void handleClick() { accept(Movement.LEFT); }
+    @Override public boolean usesRightClickInput() { return true; }
     @Override public void handleRightClick() { accept(Movement.RIGHT); }
     @Override public void handleSneak(boolean sneaking) { if (sneaking) accept(Movement.JUMP); }
     @Override public void handleMovement(Movement movement) { if (useMovement) accept(movement); }

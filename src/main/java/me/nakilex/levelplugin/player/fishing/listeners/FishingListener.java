@@ -26,10 +26,14 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.inventory.ItemStack;
@@ -66,11 +70,21 @@ public class FishingListener implements Listener {
 
         if (miniGameManager.isPlaying(uuid)) {
             switch (event.getState()) {
-                case REEL_IN, FISHING, CAUGHT_FISH -> {
+                case REEL_IN, CAUGHT_FISH, FAILED_ATTEMPT, IN_GROUND -> {
                     event.setCancelled(true);
+                    miniGameManager.logVanillaState(player,
+                            "Cancelled vanilla fishing state because mini-game is active: " + event.getState());
                     return;
                 }
-                default -> { }
+                case FISHING -> {
+                    event.setCancelled(true);
+                    miniGameManager.logVanillaState(player,
+                            "Cancelled vanilla fishing state because mini-game is active: " + event.getState());
+                    return;
+                }
+                default -> {
+                    return;
+                }
             }
         }
 
@@ -78,6 +92,7 @@ public class FishingListener implements Listener {
             case FISHING -> handleCast(player, uuid, event.getHook());
             case BITE -> {
                 event.setCancelled(true);
+                miniGameManager.logVanillaState(player, "vanillaState=BITE, starting mini-game");
                 startMiniGame(player, uuid, event.getHook(),
                         isLavaFishingArea(player, event.getHook() != null ? event.getHook().getLocation() : null));
             }
@@ -113,8 +128,7 @@ public class FishingListener implements Listener {
                 hookedFish != null ? hookedFish.id() : "unknown",
                 hookedFish != null && hookedFish.rarity() != null ? hookedFish.rarity().name() : "COMMON",
                 fishingManager.getLevel(player));
-        miniGameManager.startRandom(player, profile, debugContext, success -> {
-            if (hook != null && hook.isValid()) hook.remove();
+        miniGameManager.startRandom(player, hook, inLava, hookedFish, profile, debugContext, success -> {
             if (!player.isOnline()) return;
             if (!success) {
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "The fish escaped!");
@@ -270,8 +284,32 @@ public class FishingListener implements Listener {
     }
 
     @EventHandler
+    public void onMiniGameHotbarChange(PlayerItemHeldEvent event) {
+        if (miniGameManager.isPlaying(event.getPlayer().getUniqueId())) event.setCancelled(true);
+    }
+
+    @EventHandler
+    public void onMiniGameSwapHands(PlayerSwapHandItemsEvent event) {
+        if (miniGameManager.isPlaying(event.getPlayer().getUniqueId())) event.setCancelled(true);
+    }
+
+    @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        UUID uuid = event.getPlayer().getUniqueId();
+        cancelPlayerSession(event.getPlayer());
+    }
+
+    @EventHandler
+    public void onDeath(PlayerDeathEvent event) {
+        cancelPlayerSession(event.getEntity());
+    }
+
+    @EventHandler
+    public void onWorldChange(PlayerChangedWorldEvent event) {
+        cancelPlayerSession(event.getPlayer());
+    }
+
+    private void cancelPlayerSession(Player player) {
+        UUID uuid = player.getUniqueId();
         clearLavaTask(uuid);
         miniGameManager.cancel(uuid);
     }
