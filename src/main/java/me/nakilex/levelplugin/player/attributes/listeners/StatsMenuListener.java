@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -31,14 +32,15 @@ public class StatsMenuListener implements Listener {
 
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (event.getView().getTitle().equals(LifeSkillGUI.TITLE)) {
-            LifeSkillGUI.handleWidgetClick(event, (Player) event.getWhoClicked());
-            return;
-        }
-
-        ToolDiscipline rewardDiscipline = LifeSkillRewardsGUI.disciplineFromTitle(event.getView().getTitle());
-        if (rewardDiscipline != null) {
-            LifeSkillRewardsGUI.handleWidgetClick(event, (Player) event.getWhoClicked(), rewardDiscipline);
+        String title = event.getView().getTitle();
+        ToolDiscipline rewardDiscipline = LifeSkillRewardsGUI.disciplineFromTitle(title);
+        if (isLifeSkillMenu(title, rewardDiscipline)) {
+            event.setCancelled(true);
+            if (title.equals(LifeSkillGUI.TITLE)) {
+                LifeSkillGUI.handleWidgetClick(event, (Player) event.getWhoClicked());
+            } else {
+                LifeSkillRewardsGUI.handleWidgetClick(event, (Player) event.getWhoClicked(), rewardDiscipline);
+            }
             return;
         }
 
@@ -166,6 +168,17 @@ public class StatsMenuListener implements Listener {
     }
 
 
+    @EventHandler
+    public void onInventoryDrag(InventoryDragEvent event) {
+        String title = event.getView().getTitle();
+        if (isLifeSkillMenu(title, LifeSkillRewardsGUI.disciplineFromTitle(title))) {
+            event.setCancelled(true);
+        }
+    }
+
+    private boolean isLifeSkillMenu(String title, ToolDiscipline rewardDiscipline) {
+        return LifeSkillGUI.TITLE.equals(title) || rewardDiscipline != null;
+    }
 
     // Method to play sound effects
     private void playSoundEffect(Player player, boolean isInvesting) {

@@ -73,7 +73,6 @@ public class LifeSkillRewardManager {
     private List<LifeSkillReward> createRewardList(String skillName) {
         List<LifeSkillReward> list = new ArrayList<>();
         list.addAll(List.of(
-                coinReward(1, skillName, 200),
                 giftReward(2, skillName, "blossom_bundle"),
                 statReward(3, skillName, StatType.VIT, 1, "+1 Vitality"),
                 coinReward(4, skillName, 400),
