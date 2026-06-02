@@ -242,7 +242,7 @@ public class FishingListener implements Listener {
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
                 AdvancementToastUtil.showToast(player, Material.GOLD_NUGGET,
                         "New Trophy Quality!", quality.getDisplayName() + " " + definition.displayName(),
-                        AdvancementDisplay.FrameType.CHALLENGE);
+                        AdvancementDisplay.FrameType.TASK);
                 SoundMelodyUtil.play(plugin, player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8f, TROPHY_QUALITY_MELODY);
             }, 24L);
         }
