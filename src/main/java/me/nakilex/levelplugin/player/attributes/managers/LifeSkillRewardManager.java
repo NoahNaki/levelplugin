@@ -15,6 +15,7 @@ import me.nakilex.levelplugin.player.mining.managers.MiningManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
 import org.bukkit.ChatColor;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -251,6 +252,7 @@ public class LifeSkillRewardManager {
         }
         message += ".";
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD, message);
+        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 0.75f, 1.15f);
         ChatFormatter.sendIndentedMessage(player, ChatColor.GREEN + "Rewards:");
         for (String line : buildRewardLines(newlyClaimed)) {
             ChatFormatter.sendIndentedMessage(player, line);
