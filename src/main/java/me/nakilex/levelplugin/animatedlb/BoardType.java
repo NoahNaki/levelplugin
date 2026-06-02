@@ -31,7 +31,7 @@ public enum BoardType {
     public String format(LeaderboardEntry entry) { return formatter.apply(entry, this); }
 
     private static String formatLifeSkill(LeaderboardEntry entry, BoardType ignored) {
-        return String.format("%,.0f XP • LV %.0f", entry.primaryValue(), entry.secondaryValue());
+        return String.format("%,.0f XP", entry.primaryValue());
     }
 
 }

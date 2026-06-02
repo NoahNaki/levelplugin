@@ -56,8 +56,10 @@ public class AnimatedLeaderboard {
     public void spawn() {
         remove();
         title = spawnText(0, 2.2, "");
-        for (int i = 0; i < 4; i++) {
-            progressSegments.add(spawnText((i - 1.5) * 0.52, 1.55, ""));
+        if (cyclesBoardTypes()) {
+            for (int i = 0; i < 4; i++) {
+                progressSegments.add(spawnText((i - 1.5) * 0.52, 1.55, ""));
+            }
         }
         for (int i = 0; i < rowCount; i++) {
             double y = 1.2 - (i * 0.24);
@@ -81,21 +83,27 @@ public class AnimatedLeaderboard {
         progressTick = 0;
     }
 
-    public void next() { transitionTo(nextBoardType()); }
+    public void next() {
+        if (cyclesBoardTypes()) transitionTo(nextBoardType());
+    }
 
     private void startProgressTask() {
         tickTask = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
             if (transitioning) return;
             progressTick++;
-            renderProgress();
-            if (progressTick >= cycleDuration) {
+            if (cyclesBoardTypes()) renderProgress();
+            if (progressTick < cycleDuration) return;
+            if (cyclesBoardTypes()) {
                 transitionTo(nextBoardType());
+            } else {
+                applyBoard(boardType);
+                progressTick = 0;
             }
         }, 1L, 1L);
     }
 
     private void transitionTo(BoardType next) {
-        if (transitioning) return;
+        if (transitioning || next == boardType) return;
         transitioning = true;
         progressTick = 0;
         animateTitleBounce(next, () -> animateRowsOut(() -> {
@@ -241,6 +249,8 @@ public class AnimatedLeaderboard {
         return td;
     }
 
+    private boolean cyclesBoardTypes() { return boardTypes.size() > 1; }
+
     private BoardType nextBoardType() {
         int currentIndex = boardTypes.indexOf(boardType);
         return boardTypes.get((currentIndex + 1) % boardTypes.size());
@@ -254,7 +264,7 @@ public class AnimatedLeaderboard {
     private int getRowDurationTicks() { return Math.max(4, (int) Math.round(10D / animationSpeed)); }
     private double getSlideDistance() { return 0.9D; }
     private double localX(double x) { return Math.cos(Math.toRadians(origin.getYaw())) * x; }
-    private double localZ(double x) { return -Math.sin(Math.toRadians(origin.getYaw())) * x; }
+    private double localZ(double x) { return Math.sin(Math.toRadians(origin.getYaw())) * x; }
     private double ease(double t) { return (3 * t * t) - (2 * t * t * t); }
     private double clamp(double value, double min, double max) { return Math.max(min, Math.min(max, value)); }
 }
