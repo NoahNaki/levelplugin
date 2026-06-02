@@ -81,6 +81,7 @@ animatedlb:
 
 # Interactive challenge selected when a fish bites. Difficulty scales with level, fish rarity, and rod tier.
 fishing-mini-games:
+  enabled: true
   debug: false
   difficulty:
     enabled: true
@@ -100,7 +101,7 @@ fishing-mini-games:
     # Glyph assets are managed externally in Nexo/pack/external_packs/levelplugin-fishing-games.
     enabled: true
     fallback-text-ui: true
-  enabled: [click, click_v2, hold, tension, dance, accurate_click]
+  types: [click, click_v2, hold, tension, dance, accurate_click]
   click:
     duration-ms:
       easy: 8000
@@ -110,10 +111,10 @@ fishing-mini-games:
     required-clicks: 12
   click_v2:
     duration-ms:
-      easy: 8000
-      normal: 6500
-      hard: 5000
-      extreme: 4000
+      easy: 9000
+      normal: 7500
+      hard: 6000
+      extreme: 5000
     start-progress: 0.35
     click-gain: 0.10
     decay-per-tick: 0.012

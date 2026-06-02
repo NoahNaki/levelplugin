@@ -11,6 +11,7 @@ public interface FishingMiniGame {
     void handleSneak(boolean sneaking);
     void handleMovement(Movement movement);
     void cancel();
+    default void cancelSilently() { cancel(); }
     boolean isFinished();
 
     enum Movement { LEFT, RIGHT, JUMP }

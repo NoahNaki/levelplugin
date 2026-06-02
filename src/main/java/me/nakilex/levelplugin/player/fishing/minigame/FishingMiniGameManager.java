@@ -36,10 +36,8 @@ public class FishingMiniGameManager {
     public void startRandom(Player player, FishHook hook, boolean inLava, FishDefinition hookedFish,
                             FishingDifficultyProfile profile, DebugContext debugContext,
                             Consumer<Boolean> completion) {
-        List<String> enabled = new ArrayList<>(plugin.getConfig().getStringList("fishing-mini-games.enabled"));
-        enabled.removeIf(type -> !isSupportedType(type));
-        if (enabled.isEmpty()) enabled.addAll(SUPPORTED_TYPES);
-        start(player, enabled.get(ThreadLocalRandom.current().nextInt(enabled.size())), hook, inLava,
+        List<String> enabledTypes = configuredTypes();
+        start(player, enabledTypes.get(ThreadLocalRandom.current().nextInt(enabledTypes.size())), hook, inLava,
                 hookedFish, profile, debugContext, completion);
     }
 
@@ -55,7 +53,7 @@ public class FishingMiniGameManager {
         if (!isSupportedType(normalizedType)) return false;
         FishingDifficultyProfile safeProfile = profile == null ? FishingDifficultyProfile.normal() : profile;
         UUID uuid = player.getUniqueId();
-        cancel(uuid);
+        cancelSilently(uuid);
         long durationMs = resolveDurationMs(normalizedType, safeProfile);
         long startedAtMs = System.currentTimeMillis();
         FishingMiniGameSession.Store store = new FishingMiniGameSession.Store(uuid, hook, inLava, hookedFish,
@@ -71,6 +69,21 @@ public class FishingMiniGameManager {
         logDebug(player, normalizedType, durationMs, safeProfile, debugContext);
         game.start();
         return true;
+    }
+
+    public boolean isEnabled() {
+        return plugin.getConfig().getBoolean("fishing-mini-games.enabled", true);
+    }
+
+    private List<String> configuredTypes() {
+        FileConfiguration config = plugin.getConfig();
+        List<String> enabledTypes = new ArrayList<>(config.getStringList("fishing-mini-games.types"));
+        if (enabledTypes.isEmpty() && config.isList("fishing-mini-games.enabled")) {
+            enabledTypes.addAll(config.getStringList("fishing-mini-games.enabled"));
+        }
+        enabledTypes.removeIf(type -> !isSupportedType(type));
+        if (enabledTypes.isEmpty()) enabledTypes.addAll(SUPPORTED_TYPES);
+        return enabledTypes;
     }
 
     private long resolveDurationMs(String type, FishingDifficultyProfile profile) {
@@ -129,13 +142,17 @@ public class FishingMiniGameManager {
     public void rightClick(UUID uuid) { FishingMiniGame game = getGame(uuid); if (game != null && game.usesRightClickInput()) game.handleRightClick(); }
     public void sneak(UUID uuid, boolean sneaking) { FishingMiniGame game = getGame(uuid); if (game != null) game.handleSneak(sneaking); }
     public void move(UUID uuid, FishingMiniGame.Movement movement) { FishingMiniGame game = getGame(uuid); if (game != null) game.handleMovement(movement); }
-    public void cancel(UUID uuid) {
+    public void cancel(UUID uuid) { cancel(uuid, true); }
+    public void cancelSilently(UUID uuid) { cancel(uuid, false); }
+    public void cancel(UUID uuid, boolean notifyFailure) {
         FishingMiniGameSession session = activeGames.remove(uuid);
         if (session == null) return;
         cleanupHook(session.store().hook());
-        if (!session.game().isFinished()) session.game().cancel();
+        if (session.game().isFinished()) return;
+        if (notifyFailure) session.game().cancel();
+        else session.game().cancelSilently();
     }
-    public void shutdown() { new ArrayList<>(activeGames.keySet()).forEach(this::cancel); }
+    public void shutdown() { new ArrayList<>(activeGames.keySet()).forEach(this::cancelSilently); }
 
     private FishingMiniGame getGame(UUID uuid) {
         FishingMiniGameSession session = activeGames.get(uuid);

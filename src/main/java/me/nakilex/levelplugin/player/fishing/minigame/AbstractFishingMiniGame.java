@@ -64,12 +64,17 @@ public abstract class AbstractFishingMiniGame implements FishingMiniGame {
     protected boolean timeoutSuccess() { return false; }
 
     protected final void finish(boolean success) {
+        finish(success, true);
+    }
+
+    private void finish(boolean success, boolean notifyCompletion) {
         if (finished) return;
         finished = true;
         if (task != null) task.cancel();
         if (bar != null) bar.removeAll();
         player.sendActionBar(Component.empty());
         player.clearTitle();
+        if (!notifyCompletion) return;
         if (player.isOnline()) {
             player.getWorld().playSound(player.getLocation(),
                     success ? Sound.ENTITY_EXPERIENCE_ORB_PICKUP : Sound.BLOCK_NOTE_BLOCK_BASS,
@@ -79,6 +84,7 @@ public abstract class AbstractFishingMiniGame implements FishingMiniGame {
     }
 
     @Override public void cancel() { finish(false); }
+    @Override public void cancelSilently() { finish(false, false); }
     @Override public boolean isFinished() { return finished; }
     @Override public void handleClick() { }
     @Override public void handleSneak(boolean sneaking) { }

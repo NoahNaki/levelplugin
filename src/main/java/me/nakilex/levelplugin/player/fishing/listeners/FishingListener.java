@@ -67,8 +67,10 @@ public class FishingListener implements Listener {
     public void onFish(PlayerFishEvent event) {
         Player player = event.getPlayer();
         UUID uuid = player.getUniqueId();
+        boolean miniGamesEnabled = miniGameManager.isEnabled();
+        if (!miniGamesEnabled) miniGameManager.cancelSilently(uuid);
 
-        if (miniGameManager.isPlaying(uuid)) {
+        if (miniGamesEnabled && miniGameManager.isPlaying(uuid)) {
             switch (event.getState()) {
                 case REEL_IN, CAUGHT_FISH, FAILED_ATTEMPT, IN_GROUND -> {
                     event.setCancelled(true);
@@ -89,12 +91,16 @@ public class FishingListener implements Listener {
         }
 
         switch (event.getState()) {
-            case FISHING -> handleCast(player, uuid, event.getHook());
+            case FISHING -> {
+                if (miniGamesEnabled) handleCast(player, uuid, event.getHook());
+            }
             case BITE -> {
-                event.setCancelled(true);
-                miniGameManager.logVanillaState(player, "vanillaState=BITE, starting mini-game");
-                startMiniGame(player, uuid, event.getHook(),
-                        isLavaFishingArea(player, event.getHook() != null ? event.getHook().getLocation() : null));
+                if (miniGamesEnabled) {
+                    event.setCancelled(true);
+                    miniGameManager.logVanillaState(player, "vanillaState=BITE, starting mini-game");
+                    startMiniGame(player, uuid, event.getHook(),
+                            isLavaFishingArea(player, event.getHook() != null ? event.getHook().getLocation() : null));
+                }
             }
             case REEL_IN -> {
                 if (miniGameManager.isPlaying(uuid)) event.setCancelled(true);
@@ -108,12 +114,15 @@ public class FishingListener implements Listener {
     private void handleCast(Player player, UUID uuid, FishHook hook) {
         if (miniGameManager.isPlaying(uuid)) return;
         clearLavaTask(uuid);
-        miniGameManager.cancel(uuid);
+        miniGameManager.cancelSilently(uuid);
         org.bukkit.Location hookLocation = hook != null ? hook.getLocation() : null;
         if (!isLavaFishingArea(player, hookLocation)) return;
         int delay = ThreadLocalRandom.current().nextInt(LAVA_BITE_MIN_TICKS, LAVA_BITE_MAX_TICKS + 1);
         lavaBiteTasks.put(uuid, Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            if (player.isOnline()) startMiniGame(player, uuid, hook, true);
+            if (!player.isOnline()) return;
+            if (!miniGameManager.isEnabled() || miniGameManager.isPlaying(uuid)) return;
+            if (hook == null || !hook.isValid()) return;
+            startMiniGame(player, uuid, hook, true);
         }, delay));
     }
 
@@ -140,11 +149,28 @@ public class FishingListener implements Listener {
 
     private void handleCatch(PlayerFishEvent event, Player player, UUID uuid) {
         clearLavaTask(uuid);
-        event.setCancelled(true);
-        if (!miniGameManager.isPlaying(uuid)) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "Wait for a bite and complete its fishing mini-game first.");
+        if (miniGameManager.isEnabled()) {
+            event.setCancelled(true);
+            if (!miniGameManager.isPlaying(uuid)) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                        "Wait for a bite and complete its fishing mini-game first.");
+            }
+            return;
         }
+
+        ItemStack fishItem = awardCatch(player,
+                isLavaFishingArea(player, event.getHook() != null ? event.getHook().getLocation() : null));
+        if (fishItem == null) return;
+        if (event.getCaught() instanceof Item item) {
+            item.setItemStack(fishItem);
+        } else {
+            giveFishItem(player, fishItem);
+        }
+    }
+
+    private ItemStack awardCatch(Player player, boolean inLava) {
+        ItemStack rod = resolveRod(player);
+        return awardSpecificCatch(player, rollHookedFish(player, inLava, resolveTier(rod)), inLava);
     }
 
     private FishDefinition rollHookedFish(Player player, boolean inLava, ToolTier tier) {
@@ -311,7 +337,7 @@ public class FishingListener implements Listener {
     private void cancelPlayerSession(Player player) {
         UUID uuid = player.getUniqueId();
         clearLavaTask(uuid);
-        miniGameManager.cancel(uuid);
+        miniGameManager.cancelSilently(uuid);
     }
 
     @EventHandler
