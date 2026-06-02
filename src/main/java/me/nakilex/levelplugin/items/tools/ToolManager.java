@@ -89,7 +89,7 @@ public class ToolManager {
         CustomTool tool = new CustomTool(UUID.randomUUID(), name, mat, tier, discipline, nexoId);
         tools.add(tool);
         toolsByDiscipline.computeIfAbsent(discipline, k -> new ArrayList<>()).add(tool);
-        materialLookup.put(mat, tool);
+        materialLookup.putIfAbsent(mat, tool);
     }
 
     public List<CustomTool> getTools() {

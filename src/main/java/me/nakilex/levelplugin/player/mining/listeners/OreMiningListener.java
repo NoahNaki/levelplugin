@@ -252,6 +252,7 @@ public class OreMiningListener implements Listener {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                     "You discovered a " + variant.getColor() + variant.getDisplayName() + ChatColor.GRAY + " ore node!");
         }
+        miningManager.recordMomentumHit(player);
         int damage = calculatePickaxeDamage(player, pickaxe);
         boolean weakPoint = consumeWeakPoint(id, now);
         if (weakPoint) {
@@ -452,7 +453,6 @@ public class OreMiningListener implements Listener {
             ChatMessageUtil.send(p, ChatMessageUtil.MessageType.REWARD, "Insight granted bonus Mining XP!");
         }
         if (xp > 0) miningManager.addXP(p, xp);
-        miningManager.recordMomentumOre(p);
         if (variant.isSpecial()) {
             ChatMessageUtil.send(p, ChatMessageUtil.MessageType.REWARD,
                     variant.getColor() + variant.getDisplayName() + ChatColor.GOLD + " node rewards claimed!");

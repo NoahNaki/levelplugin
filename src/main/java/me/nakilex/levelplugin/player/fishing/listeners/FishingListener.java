@@ -15,6 +15,8 @@ import me.nakilex.levelplugin.player.fishing.minigame.FishingMiniGame;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingMiniGameManager;
 import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.advancement.AdvancementToastUtil;
+import me.nakilex.levelplugin.advancement.model.AdvancementDisplay;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -72,6 +74,10 @@ public class FishingListener implements Listener {
         UUID uuid = player.getUniqueId();
         boolean miniGamesEnabled = miniGameManager.isEnabled();
         if (!miniGamesEnabled) miniGameManager.cancelSilently(uuid);
+        if (event.getState() == PlayerFishEvent.State.FISHING && !canUseRod(player, event.getHook())) {
+            event.setCancelled(true);
+            return;
+        }
 
         if (miniGamesEnabled && miniGameManager.isPlaying(uuid)) {
             event.setCancelled(true);
@@ -104,7 +110,7 @@ public class FishingListener implements Listener {
         clearLavaTask(uuid);
         miniGameManager.cancelSilently(uuid);
         ItemStack rod = resolveRod(player);
-        double biteSpeed = resolveBiteSpeed(rod);
+        double biteSpeed = resolveBiteSpeed(player, rod);
         if (hook != null) {
             hook.setMinWaitTime(scaleWaitTicks(100, biteSpeed));
             hook.setMaxWaitTime(scaleWaitTicks(600, biteSpeed));
@@ -204,7 +210,7 @@ public class FishingListener implements Listener {
         ItemStack fishItem = FishingItemUtil.createFishItem(definition, size);
 
         fishingManager.addXP(player, definition.xpReward());
-        fishingManager.discoverFish(player.getUniqueId(), definition.id());
+        boolean newlyDiscovered = fishingManager.discoverFish(player.getUniqueId(), definition.id());
         FishingManager.CatchResult catchResult = fishingManager.recordCatch(player.getUniqueId(), definition.id(), size, quality);
         if (plugin.getPlayerConfig() != null) plugin.getPlayerConfig().savePlayerData(player.getUniqueId());
         if (plugin.getQuestManager() != null) {
@@ -217,15 +223,26 @@ public class FishingListener implements Listener {
                 + expColor + "+" + definition.xpReward() + ChatColor.GRAY
                 + " <glyph:experience_orb_icon> Fishing EXP" + ChatColor.GRAY + ".";
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO, message);
+        if (newlyDiscovered) showCatalogMilestoneToast(player);
         if (catchResult.personalBest()) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
-                    "New personal record: " + ChatColor.WHITE + sizeLabel + " " + definition.displayName() + ChatColor.GOLD + "!");
+            AdvancementToastUtil.showToast(player, Material.COD, "New Personal Record!",
+                    sizeLabel + " " + definition.displayName(), AdvancementDisplay.FrameType.GOAL);
         }
         if (catchResult.qualityUpgrade() && quality != FishingQuality.NORMAL) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.REWARD,
-                    "New trophy quality: " + quality.getColor() + quality.getDisplayName() + ChatColor.GOLD + "!");
+            Bukkit.getScheduler().runTaskLater(plugin, () -> AdvancementToastUtil.showToast(player, Material.GOLD_NUGGET,
+                    "New Trophy Quality!", quality.getDisplayName() + " " + definition.displayName(),
+                    AdvancementDisplay.FrameType.CHALLENGE), 24L);
         }
         return fishItem;
+    }
+
+    private void showCatalogMilestoneToast(Player player) {
+        int discovered = fishingManager.getDiscoveredFish(player.getUniqueId()).size();
+        int total = rewardsConfig.getFish().size();
+        if (discovered != Math.min(5, total) && discovered != Math.min(10, total) && discovered != total) return;
+        Bukkit.getScheduler().runTaskLater(plugin, () -> AdvancementToastUtil.showToast(player, Material.BOOK,
+                "Fishing Catalog Milestone!", discovered + "/" + total + " species discovered",
+                AdvancementDisplay.FrameType.GOAL), 48L);
     }
 
     private void giveFishItem(Player player, ItemStack fishItem) {
@@ -267,14 +284,26 @@ public class FishingListener implements Listener {
         return Math.round(size * 10.0) / 10.0;
     }
 
+    private boolean canUseRod(Player player, FishHook hook) {
+        ItemStack rod = resolveRod(player);
+        CustomTool tool = ToolManager.getInstance().getTool(rod);
+        if (tool == null || tool.getDiscipline() != me.nakilex.levelplugin.items.tools.ToolDiscipline.FISHING
+                || ToolManager.getInstance().meetsLevelRequirement(player, tool)) return true;
+        if (hook != null && hook.isValid()) hook.remove();
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                "You need Fishing level " + tool.getTier().getLevelRequirement() + " to use this fishing rod.");
+        return false;
+    }
+
     private FishingToolEnchant getFishingEnchant(ItemStack rod) {
         return ToolManager.getInstance().getFishingEnchant(rod);
     }
 
-    private double resolveBiteSpeed(ItemStack rod) {
+    private double resolveBiteSpeed(Player player, ItemStack rod) {
         ToolTier tier = resolveTier(rod);
         double speed = tier == null ? 1.0 : Math.max(1.0, tier.getFishingSpeed());
         if (getFishingEnchant(rod) == FishingToolEnchant.LURE) speed *= 1.20;
+        speed *= fishingManager.getDebugBiteSpeedMultiplier(player.getUniqueId());
         return speed;
     }
 
@@ -323,6 +352,7 @@ public class FishingListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onMiniGameClick(PlayerInteractEvent event) {
+        if (event.getHand() != org.bukkit.inventory.EquipmentSlot.HAND) return;
         UUID uuid = event.getPlayer().getUniqueId();
         if (!miniGameManager.isPlaying(uuid)) return;
         switch (event.getAction()) {

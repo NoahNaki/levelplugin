@@ -30,6 +30,7 @@ public class FishingManager implements LifeSkillProgression {
     private final Map<UUID, Boolean> activeBars = new HashMap<>();
     private final Map<UUID, java.util.Set<String>> discoveredFish = new HashMap<>();
     private final Map<UUID, Map<String, FishRecord>> fishRecords = new HashMap<>();
+    private final Map<UUID, Double> debugBiteSpeedMultipliers = new HashMap<>();
 
     private final int MAX_LEVEL = 100;
     private final int XP_PER_LEVEL_MULTIPLIER = 200;
@@ -246,6 +247,22 @@ public class FishingManager implements LifeSkillProgression {
         fishRecords.put(uuid, records == null ? new HashMap<>() : new HashMap<>(records));
     }
 
+
+    public double getDebugBiteSpeedMultiplier(UUID uuid) {
+        if (uuid == null) return 1.0;
+        return debugBiteSpeedMultipliers.getOrDefault(uuid, 1.0);
+    }
+
+    public void setDebugBiteSpeedMultiplier(UUID uuid, double multiplier) {
+        if (uuid == null) return;
+        if (multiplier <= 1.0) debugBiteSpeedMultipliers.remove(uuid);
+        else debugBiteSpeedMultipliers.put(uuid, Math.min(100.0, multiplier));
+    }
+
+    public void clearDebugBiteSpeedMultiplier(UUID uuid) {
+        if (uuid != null) debugBiteSpeedMultipliers.remove(uuid);
+    }
+
     public record FishRecord(int caughtCount, double largestSize, FishingQuality bestQuality) { }
     public record CatchResult(boolean personalBest, boolean qualityUpgrade) { }
 
@@ -267,6 +284,7 @@ public class FishingManager implements LifeSkillProgression {
         fishingXp.remove(uuid);
         discoveredFish.remove(uuid);
         fishRecords.remove(uuid);
+        debugBiteSpeedMultipliers.remove(uuid);
         if (plugin.getPlayerConfig() != null) {
             String path = "players." + uuid + ".fishing";
             plugin.getPlayerConfig().getConfig().set(path, null);

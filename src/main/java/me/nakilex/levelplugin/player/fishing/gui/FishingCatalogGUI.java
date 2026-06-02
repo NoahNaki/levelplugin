@@ -95,20 +95,20 @@ public class FishingCatalogGUI implements Listener {
         ItemMeta meta = info.getItemMeta();
         if (meta != null) {
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Track every fish you can catch.");
-            lore.add(ChatColor.GRAY + "Unknown fish reveal after discovery.");
+            lore.add(ChatColor.GRAY + "Track every fish you catch on this profile.");
+            lore.add(ChatColor.GRAY + "Unknown species reveal after discovery.");
             int discovered = FishingManager.getInstance().getDiscoveredFish(player.getUniqueId()).size();
             int total = rewardsConfig.getFish().size();
             lore.add("");
-            lore.add(ChatColor.GOLD + "Collection Progress:");
-            lore.add(ChatColor.GRAY + "  " + discovered + "/" + total + " species discovered");
+            lore.add(TooltipUtil.sectionHeader("Collection Progress"));
+            lore.add(TooltipUtil.arrowLine(ChatColor.WHITE + "Species: " + ChatColor.YELLOW + discovered
+                    + ChatColor.GOLD + "/" + ChatColor.WHITE + total));
             lore.add(TooltipUtil.progressBar(discovered, total, 16));
             lore.add("");
-            lore.add(ChatColor.GOLD + "Milestones:");
-            lore.addAll(TooltipUtil.bulletList(
-                    milestone(discovered, Math.min(5, total), "Angler"),
-                    milestone(discovered, Math.min(10, total), "Collector"),
-                    milestone(discovered, total, "Master Angler")));
+            lore.add(TooltipUtil.sectionHeader("Catalog Milestones"));
+            lore.add(TooltipUtil.arrowLine(milestone(discovered, Math.min(5, total), "Angler")));
+            lore.add(TooltipUtil.arrowLine(milestone(discovered, Math.min(10, total), "Collector")));
+            lore.add(TooltipUtil.arrowLine(milestone(discovered, total, "Master Angler")));
             lore.add("");
             lore.addAll(TooltipUtil.clickInstructions("to return to rewards", null));
             meta.setLore(lore);
@@ -120,8 +120,9 @@ public class FishingCatalogGUI implements Listener {
 
     private String milestone(int discovered, int required, String title) {
         boolean complete = discovered >= required;
-        return (complete ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
-                + ChatColor.GRAY + title + ": " + Math.min(discovered, required) + "/" + required;
+        return (complete ? ChatColor.GREEN + "✔ " : ChatColor.DARK_GRAY + "✘ ")
+                + ChatColor.YELLOW + title + ChatColor.GRAY + ": " + ChatColor.WHITE
+                + Math.min(discovered, required) + ChatColor.GOLD + "/" + ChatColor.WHITE + required;
     }
 
     private ItemStack createDiscoveredItem(Player player, FishDefinition def) {
@@ -139,16 +140,16 @@ public class FishingCatalogGUI implements Listener {
         }
         lore.add("");
         FishingManager.FishRecord record = FishingManager.getInstance().getFishRecord(player.getUniqueId(), def.id());
-        lore.add(ChatColor.GOLD + "Trophy Records:");
-        lore.addAll(TooltipUtil.bulletList(
-                "Caught: " + record.caughtCount(),
-                "Largest: " + String.format("%.1f cm", record.largestSize()),
-                "Best Quality: " + record.bestQuality().getColor() + record.bestQuality().getDisplayName()));
+        lore.add(ChatColor.GRAY + "You caught this fish " + ChatColor.WHITE + record.caughtCount()
+                + "x" + ChatColor.GRAY + " on this profile.");
         lore.add("");
-        lore.add(ChatColor.GOLD + "Rewards:");
-        lore.addAll(TooltipUtil.bulletList(
-                "XP: +" + def.xpReward(),
-                "Value: " + def.sellValue() + " coins"));
+        lore.add(TooltipUtil.sectionHeader("Trophy Records"));
+        lore.add(TooltipUtil.statLine("Largest Catch", String.format("%.1f cm", record.largestSize()), ChatColor.WHITE));
+        lore.add(TooltipUtil.statLine("Best Quality", record.bestQuality().getDisplayName(), record.bestQuality().getColor()));
+        lore.add("");
+        lore.add(TooltipUtil.sectionHeader("Catch Rewards"));
+        lore.add(TooltipUtil.statLine("Fishing XP", "+" + def.xpReward(), ChatColor.WHITE));
+        lore.add(TooltipUtil.statLine("Base Value", def.sellValue() + " coins", ChatColor.WHITE));
         addRequirements(lore, def);
         meta.setLore(lore);
         item.setItemMeta(meta);
@@ -179,12 +180,13 @@ public class FishingCatalogGUI implements Listener {
             requirements.add("Requires highest tier rod");
         }
         if (!requirements.isEmpty()) {
-            lore.add(ChatColor.GRAY + "Requirements:");
-            lore.addAll(TooltipUtil.bulletList(requirements.toArray(new String[0])));
+            lore.add("");
+            lore.add(TooltipUtil.sectionHeader("Requirements"));
+            for (String requirement : requirements) lore.add(TooltipUtil.arrowLine(ChatColor.YELLOW + requirement));
         }
         if (def.rarity() != ItemRarity.COMMON) {
-            lore.add(ChatColor.GRAY + "Rarity: " + def.rarity().getColor()
-                    + def.rarity().name().toLowerCase(Locale.ROOT));
+            lore.add(TooltipUtil.statLine("Rarity",
+                    def.rarity().name().toLowerCase(Locale.ROOT), def.rarity().getColor()));
         }
     }
 

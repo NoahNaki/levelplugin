@@ -17,6 +17,8 @@ public class DanceFishingMiniGame extends AbstractFishingMiniGame {
     private final String correctSound;
     private final String wrongSound;
     private int index;
+    private long lastInputAtMs;
+    private static final long INPUT_DEBOUNCE_MS = 120L;
     public DanceFishingMiniGame(Main plugin, Player player, long durationMs, FileConfiguration c,
                                 FishingDifficultyProfile profile, Consumer<Boolean> completion) {
         super(plugin, player, durationMs, "Follow the fishing rhythm!", completion);
@@ -51,6 +53,9 @@ public class DanceFishingMiniGame extends AbstractFishingMiniGame {
     @Override public boolean usesMovementInput() { return useMovement; }
     @Override public void handleMovement(Movement movement) { if (useMovement) accept(movement); }
     private void accept(Movement movement) {
+        long now = System.currentTimeMillis();
+        if (now - lastInputAtMs < INPUT_DEBOUNCE_MS) return;
+        lastInputAtMs = now;
         if (movement != sequence.get(index)) {
             player.playSound(player.getLocation(), wrongSound, 1f, 0.8f);
             finish(false);

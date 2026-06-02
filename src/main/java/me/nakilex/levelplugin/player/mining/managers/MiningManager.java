@@ -31,9 +31,9 @@ public class MiningManager implements LifeSkillProgression {
     private final Map<UUID, TimedTierProgression> momentumStates = new HashMap<>();
 
     private static final int MOMENTUM_MAX_TIER = 5;
-    private static final int MOMENTUM_ORES_PER_TIER = 3;
+    private static final int MOMENTUM_HITS_PER_TIER = 3;
     private static final long MOMENTUM_TIMEOUT_MS = 12_000L;
-    private static final double MOMENTUM_DAMAGE_PER_TIER = 0.08;
+    private static final double MOMENTUM_DAMAGE_PER_TIER = 0.25;
 
     private final int MAX_LEVEL = 100;
     private final int XP_PER_LEVEL_MULTIPLIER = 200;
@@ -118,7 +118,7 @@ public class MiningManager implements LifeSkillProgression {
     }
 
 
-    public TimedTierProgression.Update recordMomentumOre(Player player) {
+    public TimedTierProgression.Update recordMomentumHit(Player player) {
         if (player == null) return new TimedTierProgression.Update(1, 0, false);
         TimedTierProgression.Update update = momentumState(player.getUniqueId()).recordActivity(System.currentTimeMillis());
         if (update.tierIncreased()) {
@@ -154,7 +154,7 @@ public class MiningManager implements LifeSkillProgression {
     }
 
     private TimedTierProgression createMomentumState() {
-        return new TimedTierProgression(MOMENTUM_MAX_TIER, MOMENTUM_ORES_PER_TIER, MOMENTUM_TIMEOUT_MS);
+        return new TimedTierProgression(MOMENTUM_MAX_TIER, MOMENTUM_HITS_PER_TIER, MOMENTUM_TIMEOUT_MS);
     }
 
     private void sendLevelUpMessage(Player player, int newLevel, int nextXp) {
