@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.player.woodcutting.animation.FallingTreeAnimator;
 import me.nakilex.levelplugin.player.woodcutting.drop.TreeDropService;
 import me.nakilex.levelplugin.player.woodcutting.protection.PlacedBlockTracker;
 import me.nakilex.levelplugin.player.woodcutting.replant.ReplantService;
+import me.nakilex.levelplugin.player.woodcutting.reward.WoodcuttingRewardService;
 import me.nakilex.levelplugin.player.woodcutting.tool.AxeDamageService;
 import me.nakilex.levelplugin.player.woodcutting.tool.AxeValidator;
 import me.nakilex.levelplugin.player.woodcutting.tree.TreeDetector;
@@ -30,10 +31,11 @@ public class WoodcuttingModule {
         AxeValidator axeValidator = new AxeValidator(config);
         AxeDamageService axeDamageService = new AxeDamageService(config);
         BlockDisplayFactory blockDisplayFactory = new BlockDisplayFactory(config);
-        this.fallingTreeAnimator = new FallingTreeAnimator(plugin, config, new FallDirectionResolver());
+        this.fallingTreeAnimator = new FallingTreeAnimator(plugin, config, new FallDirectionResolver(config));
         TreeDropService treeDropService = new TreeDropService();
         ReplantService replantService = new ReplantService(config);
-        WoodcuttingService service = new WoodcuttingService(config, axeDamageService, blockDisplayFactory, fallingTreeAnimator, treeDropService, replantService);
+        WoodcuttingRewardService rewardService = new WoodcuttingRewardService(config);
+        WoodcuttingService service = new WoodcuttingService(config, axeDamageService, blockDisplayFactory, fallingTreeAnimator, treeDropService, replantService, rewardService);
         this.listener = new WoodcuttingListener(plugin, config, treeTypeRegistry, axeValidator, treeDetector, service);
         plugin.getLogger().info("[Woodcutting] Module initialized");
     }

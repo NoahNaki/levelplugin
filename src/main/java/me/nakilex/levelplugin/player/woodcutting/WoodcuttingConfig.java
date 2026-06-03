@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.woodcutting.tree.TreeHeuristic;
 import me.nakilex.levelplugin.player.woodcutting.tree.TreeType;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -24,6 +25,13 @@ import java.util.stream.Collectors;
 import java.util.logging.Level;
 
 public class WoodcuttingConfig {
+    public enum DirectionMode { FREE, EIGHT, FOUR;
+        public static DirectionMode fromString(String raw) {
+            if (raw == null) return EIGHT;
+            try { return valueOf(raw.trim().toUpperCase(Locale.ROOT)); } catch (IllegalArgumentException ex) { return EIGHT; }
+        }
+    }
+
     public enum PoseMode { BOTH, CROUCH, STAND;
         public static PoseMode fromString(String raw) {
             if (raw == null) return BOTH;
@@ -80,10 +88,34 @@ public class WoodcuttingConfig {
     public double playerDamage() { return Math.max(0.0D, config.getDouble("woodcutting.animation.collision.player-damage", 6.0D)); }
     public double entityDamage() { return Math.max(0.0D, config.getDouble("woodcutting.animation.collision.entity-damage", 0.0D)); }
     public boolean collisionParticles() { return config.getBoolean("woodcutting.animation.collision.particles", true); }
+    public DirectionMode directionMode() { return DirectionMode.fromString(config.getString("woodcutting.animation.direction-mode", "EIGHT")); }
+    public boolean animationSoundsEnabled() { return config.getBoolean("woodcutting.animation.sounds.enabled", true); }
+    public Sound animationStartSound() { return sound("woodcutting.animation.sounds.start", Sound.BLOCK_WOOD_BREAK); }
+    public Sound animationFallingSound() { return sound("woodcutting.animation.sounds.falling", Sound.BLOCK_WOOD_STEP); }
+    public Sound animationImpactSound() { return sound("woodcutting.animation.sounds.impact", Sound.BLOCK_WOOD_PLACE); }
+    public double fallingSoundChance() { return clampChance(config.getDouble("woodcutting.animation.sounds.falling-chance", 0.12D)); }
+    public float animationSoundVolume() { return (float) Math.max(0.0D, config.getDouble("woodcutting.animation.sounds.volume", 0.8D)); }
+    public float animationSoundPitch() { return (float) Math.max(0.0D, config.getDouble("woodcutting.animation.sounds.pitch", 0.75D)); }
+    public boolean animationParticlesEnabled() { return config.getBoolean("woodcutting.animation.particles.enabled", true); }
+    public double fallingParticleChance() { return clampChance(config.getDouble("woodcutting.animation.particles.falling-chance", 0.08D)); }
+    public int fallingParticleAmount() { return Math.max(0, config.getInt("woodcutting.animation.particles.amount", 4)); }
+    public double fallingParticleSpread() { return Math.max(0.0D, config.getDouble("woodcutting.animation.particles.spread", 0.25D)); }
+    public int impactParticleAmount() { return Math.max(0, config.getInt("woodcutting.animation.particles.impact-amount", 24)); }
+    public boolean impactPlaceFallenBlocks() { return config.getBoolean("woodcutting.animation.impact.place-fallen-blocks", false); }
+    public boolean impactDestroyLeavesOnImpact() { return config.getBoolean("woodcutting.animation.impact.destroy-leaves-on-impact", false); }
+    public boolean impactDestroySoftBlocks() { return config.getBoolean("woodcutting.animation.impact.destroy-soft-blocks", false); }
     public DropMode dropMode() { return DropMode.fromString(config.getString("woodcutting.post-fall.drop-location", "LOCAL")); }
     public boolean autoReplantEnabled() { return config.getBoolean("woodcutting.post-fall.auto-replant.enabled", true); }
     public boolean replantLargeTrees() { return config.getBoolean("woodcutting.post-fall.auto-replant.large-trees", true); }
     public boolean protectSaplings() { return config.getBoolean("woodcutting.post-fall.auto-replant.protect-saplings", false); }
+    public boolean debug() { return config.getBoolean("woodcutting.debug", false); }
+    public int defaultXpPerLog() { return Math.max(0, config.getInt("woodcutting.rewards.xp-per-log", 6)); }
+    public int defaultXpPerLeaf() { return Math.max(0, config.getInt("woodcutting.rewards.xp-per-leaf", 0)); }
+    public double xpMultiplier() { return Math.max(0.0D, config.getDouble("woodcutting.rewards.xp-multiplier", 1.0D)); }
+    public int minimumXp() { return Math.max(0, config.getInt("woodcutting.rewards.minimum-xp", 8)); }
+    public int maximumXpPerTree() { return Math.max(0, config.getInt("woodcutting.rewards.maximum-xp-per-tree", 400)); }
+    public int levelRequired(TreeType type) { return Math.max(1, config.getInt(rewardTreePath(type, "level-required"), 1)); }
+    public int xpPerLog(TreeType type) { return Math.max(0, config.getInt(rewardTreePath(type, "xp-per-log"), defaultXpPerLog())); }
     public boolean allowCreative() { return config.getBoolean("woodcutting.break.allow-creative", false); }
     public boolean canChopIn(GameMode gameMode) { return gameMode != GameMode.CREATIVE || allowCreative(); }
     public Set<Material> tools() { return tools; }
@@ -117,6 +149,7 @@ public class WoodcuttingConfig {
         plugin.getLogger().info("[Woodcutting] Loaded tree types: " + treeTypes.size() + (treeTypes.isEmpty() ? "" : " " + treeTypeNames()));
         plugin.getLogger().info("[Woodcutting] OAK_LOG recognized: " + treeTypes.values().stream().anyMatch(type -> type.isLog(Material.OAK_LOG)));
         plugin.getLogger().info("[Woodcutting] DIAMOND_AXE recognized: " + tools.contains(Material.DIAMOND_AXE));
+        plugin.getLogger().info("[Woodcutting] Rewards loaded: " + config.isConfigurationSection("woodcutting.rewards"));
     }
 
     private List<String> rawStringList(String path) {
@@ -136,6 +169,25 @@ public class WoodcuttingConfig {
             if (!logs.isEmpty()) loaded.put(key.toUpperCase(Locale.ROOT), new TreeType(key.toUpperCase(Locale.ROOT), logs, leaves, sapling, heuristic));
         }
         return loaded;
+    }
+
+    private String rewardTreePath(TreeType type, String child) {
+        String key = type == null ? "" : type.key();
+        return "woodcutting.rewards.tree-types." + key + "." + child;
+    }
+
+    private double clampChance(double value) {
+        return Math.max(0.0D, Math.min(1.0D, value));
+    }
+
+    private Sound sound(String path, Sound fallback) {
+        String raw = config.getString(path);
+        if (raw == null || raw.isBlank()) return fallback;
+        try {
+            return Sound.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            return fallback;
+        }
     }
 
     private Set<Material> loadMaterials(String path) {

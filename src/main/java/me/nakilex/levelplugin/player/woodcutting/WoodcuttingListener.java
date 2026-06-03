@@ -36,45 +36,49 @@ public class WoodcuttingListener implements Listener {
         Player player = event.getPlayer();
         Block clicked = event.getBlock();
         ItemStack tool = player.getInventory().getItemInMainHand();
-        plugin.getLogger().info("[Woodcutting] BlockBreakEvent: player=" + player.getName()
+        debugLog("[Woodcutting] BlockBreakEvent: player=" + player.getName()
                 + " block=" + clicked.getType()
                 + " tool=" + (tool == null ? "AIR" : tool.getType())
                 + " mode=" + player.getGameMode());
 
         if (!config.enabled()) {
-            plugin.getLogger().info("[Woodcutting] Return: disabled");
+            debugLog("[Woodcutting] Return: disabled");
             return;
         }
         if (!config.canChopIn(player.getGameMode())) {
-            plugin.getLogger().info("[Woodcutting] Return: creative blocked");
+            debugLog("[Woodcutting] Return: creative blocked");
             return;
         }
         if (!treeTypeRegistry.isLog(clicked.getType())) {
-            plugin.getLogger().info("[Woodcutting] Return: block is not configured log");
+            debugLog("[Woodcutting] Return: block is not configured log");
             return;
         }
         if (!axeValidator.canUseAxe(player, tool)) {
-            plugin.getLogger().info("[Woodcutting] Return: invalid axe");
+            debugLog("[Woodcutting] Return: invalid axe");
             return;
         }
         if (!poseAllowed(player)) {
-            plugin.getLogger().info("[Woodcutting] Return: invalid pose");
+            debugLog("[Woodcutting] Return: invalid pose");
             return;
         }
 
         TreeDetectionResult result = treeDetector.detect(clicked, player);
         if (!result.valid()) {
-            plugin.getLogger().info("[Woodcutting] Detection failed for " + clicked.getType() + " at "
+            debugLog("[Woodcutting] Detection failed for " + clicked.getType() + " at "
                     + clicked.getX() + "," + clicked.getY() + "," + clicked.getZ() + ": "
                     + result.invalidReason() + " logs=" + result.logs().size() + " leaves=" + result.leaves().size());
-            plugin.getLogger().info("[Woodcutting] Return: detection invalid reason=" + result.invalidReason()
+            debugLog("[Woodcutting] Return: detection invalid reason=" + result.invalidReason()
                     + " logs=" + result.logs().size() + " leaves=" + result.leaves().size());
             return;
         }
-        plugin.getLogger().info("[Woodcutting] Detection valid logs=" + result.logs().size()
+        debugLog("[Woodcutting] Detection valid logs=" + result.logs().size()
                 + " leaves=" + result.leaves().size() + " type=" + result.type().key());
         event.setCancelled(true);
         woodcuttingService.startChop(player, result);
+    }
+
+    private void debugLog(String message) {
+        if (config.debug()) plugin.getLogger().info(message);
     }
 
     private boolean poseAllowed(Player player) {

@@ -22,6 +22,37 @@ drops:
 woodcutting:
   enabled: true
   enabled-by-default: true
+  debug: false
+
+  rewards:
+    xp-per-log: 6
+    xp-per-leaf: 0
+    xp-multiplier: 1.0
+    minimum-xp: 8
+    maximum-xp-per-tree: 400
+
+    tree-types:
+      OAK:
+        level-required: 1
+        xp-per-log: 6
+      BIRCH:
+        level-required: 1
+        xp-per-log: 6
+      SPRUCE:
+        level-required: 5
+        xp-per-log: 8
+      DARK_OAK:
+        level-required: 10
+        xp-per-log: 10
+      JUNGLE:
+        level-required: 15
+        xp-per-log: 12
+      ACACIA:
+        level-required: 20
+        xp-per-log: 14
+      CHERRY:
+        level-required: 25
+        xp-per-log: 16
 
   break:
     tools:
@@ -62,6 +93,28 @@ woodcutting:
     delta-time: 0.05
     ticks-per-frame: 1
     lying-delay-ticks: 20
+    direction-mode: EIGHT # FREE, EIGHT, FOUR
+
+    sounds:
+      enabled: true
+      start: BLOCK_WOOD_BREAK
+      falling: BLOCK_WOOD_STEP
+      impact: BLOCK_WOOD_PLACE
+      falling-chance: 0.12
+      volume: 0.8
+      pitch: 0.75
+
+    particles:
+      enabled: true
+      falling-chance: 0.08
+      amount: 4
+      spread: 0.25
+      impact-amount: 24
+
+    impact:
+      place-fallen-blocks: false
+      destroy-leaves-on-impact: false
+      destroy-soft-blocks: false
 
     collision:
       enabled: false

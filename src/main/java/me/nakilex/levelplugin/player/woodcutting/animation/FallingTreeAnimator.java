@@ -16,6 +16,7 @@ import org.joml.Vector3f;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class FallingTreeAnimator {
@@ -38,11 +39,14 @@ public class FallingTreeAnimator {
         Vector3f axis = new Vector3f((float) -direction.getZ(), 0.0f, (float) direction.getX()).normalize();
         Location pivot = tree.pivot();
         int treeHeight = tree.result().treeHeight();
-        plugin.getLogger().info("[Woodcutting] Animation pivot=" + format(pivot)
-                + " displays=" + tree.blocks().size()
-                + " direction=" + String.format("%.3f,%.3f", direction.getX(), direction.getZ())
-                + " axis=" + String.format("%.3f,%.3f,%.3f", axis.x, axis.y, axis.z)
-                + " height=" + treeHeight);
+        if (config.debug()) {
+            plugin.getLogger().info("[Woodcutting] Animation pivot=" + format(pivot)
+                    + " displays=" + tree.blocks().size()
+                    + " direction=" + String.format("%.3f,%.3f", direction.getX(), direction.getZ())
+                    + " axis=" + String.format("%.3f,%.3f,%.3f", axis.x, axis.y, axis.z)
+                    + " height=" + treeHeight);
+        }
+        playSound(pivot, config.animationStartSound());
 
         BukkitRunnable runnable = new BukkitRunnable() {
             double angle = Math.min(Math.PI / 2.0D, config.initialAngleRadians());
@@ -63,16 +67,16 @@ public class FallingTreeAnimator {
                     if (clamped >= Math.PI / 2.0D) {
                         cancel();
                         if (config.lyingDelayTicks() <= 0L) {
-                            completeOnce(tree, onComplete, completed);
+                            completeOnce(tree, onComplete, completed, pivot, direction);
                         } else {
                             BukkitTask delayed = plugin.getServer().getScheduler().runTaskLater(plugin,
-                                    () -> completeOnce(tree, onComplete, completed), config.lyingDelayTicks());
+                                    () -> completeOnce(tree, onComplete, completed, pivot, direction), config.lyingDelayTicks());
                             activeTasks.add(delayed);
                         }
                     }
                 } catch (Throwable throwable) {
                     plugin.getLogger().log(java.util.logging.Level.WARNING, "[Woodcutting] Animation failed; cleaning up displays", throwable);
-                    completeOnce(tree, onComplete, completed);
+                    completeOnce(tree, onComplete, completed, pivot, direction);
                     cancel();
                 }
             }
@@ -102,15 +106,47 @@ public class FallingTreeAnimator {
             displayBlock.display().setTransformation(transformation);
             displayBlock.display().setInterpolationDelay(0);
             displayBlock.display().setInterpolationDuration((int) config.ticksPerFrame());
+            playFallingPolish(displayBlock, delta);
         }
     }
 
-    private void completeOnce(DisplayTree tree, Runnable onComplete, AtomicBoolean completed) {
+    private void completeOnce(DisplayTree tree, Runnable onComplete, AtomicBoolean completed, Location pivot, Vector direction) {
         if (!completed.compareAndSet(false, true)) return;
+        playImpactPolish(tree, pivot, direction);
         tree.removeDisplays();
         activeTrees.remove(tree);
         activeTasks.removeIf(BukkitTask::isCancelled);
         onComplete.run();
+    }
+
+    private void playFallingPolish(DisplayTree.DisplayBlock displayBlock, Vector3f delta) {
+        if (!config.animationSoundsEnabled() && !config.animationParticlesEnabled()) return;
+        Location location = displayBlock.originalLocation().clone().add(delta.x, delta.y, delta.z);
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        if (config.animationSoundsEnabled() && random.nextDouble() < config.fallingSoundChance()) {
+            playSound(location, config.animationFallingSound());
+        }
+        if (config.animationParticlesEnabled() && location.getWorld() != null
+                && random.nextDouble() < config.fallingParticleChance() && config.fallingParticleAmount() > 0) {
+            double spread = config.fallingParticleSpread();
+            location.getWorld().spawnParticle(Particle.BLOCK, location, config.fallingParticleAmount(),
+                    spread, spread, spread, displayBlock.data());
+        }
+    }
+
+    private void playImpactPolish(DisplayTree tree, Location pivot, Vector direction) {
+        Location impact = pivot.clone().add(direction.clone().multiply(Math.max(1.0D, tree.result().treeHeight() / 2.0D)));
+        playSound(impact, config.animationImpactSound());
+        if (config.animationParticlesEnabled() && impact.getWorld() != null && config.impactParticleAmount() > 0) {
+            BlockData particleData = tree.blocks().isEmpty() ? tree.result().root().getBlockData() : tree.blocks().getFirst().data();
+            impact.getWorld().spawnParticle(Particle.BLOCK, impact, config.impactParticleAmount(),
+                    1.0D, 0.35D, 1.0D, particleData);
+        }
+    }
+
+    private void playSound(Location location, org.bukkit.Sound sound) {
+        if (!config.animationSoundsEnabled() || location == null || location.getWorld() == null || sound == null) return;
+        location.getWorld().playSound(location, sound, config.animationSoundVolume(), config.animationSoundPitch());
     }
 
     private void damageNearbyEntities(Player player, Location pivot, Vector direction, DisplayTree tree) {
