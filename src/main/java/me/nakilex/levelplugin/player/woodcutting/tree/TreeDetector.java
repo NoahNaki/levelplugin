@@ -34,7 +34,7 @@ public class TreeDetector {
 
         TreeBox box = TreeBox.fromRoot(root, type.heuristic());
         Set<Block> logs = findConnectedLogsInsideBox(clicked, box, type);
-        TreeParts treeParts = findTreePartsNearLogs(logs, box.expand(2), type);
+        TreeParts treeParts = findTreePartsNearLogs(logs, box.expand(config.leafBoxExpansion()), type);
         Set<Block> leaves = treeParts.leaves();
         Set<Block> attachedBlocks = treeParts.attachedBlocks();
 
@@ -74,45 +74,49 @@ public class TreeDetector {
     private TreeParts findTreePartsNearLogs(Set<Block> logs, TreeBox box, TreeType type) {
         Set<Block> leaves = new LinkedHashSet<>();
         Set<Block> attachedBlocks = new LinkedHashSet<>();
-        int radius = Math.max(1, config.mixedLeafRadius());
+        Set<Block> queuedLeaves = new HashSet<>();
+        Queue<Block> leafQueue = new ArrayDeque<>();
+
+        int seedRadius = Math.max(1, config.mixedLeafRadius());
         for (Block log : logs) {
-            for (int dx = -radius; dx <= radius; dx++) {
-                for (int dy = -radius; dy <= radius; dy++) {
-                    for (int dz = -radius; dz <= radius; dz++) {
-                        Block nearby = log.getRelative(dx, dy, dz);
-                        if (!box.contains(nearby)) continue;
-                        Material material = nearby.getType();
-                        boolean directLeaf = type.isLeaf(material);
-                        boolean directAttached = type.isAttachedNaturalBlock(material);
-                        boolean mixedLeaf = config.allowMixedLeaves()
-                                && treeTypeRegistry.isAnyConfiguredLeaf(material)
-                                && isCloseEnoughToDetectedTree(nearby, logs, leaves, radius);
-                        if (directLeaf || mixedLeaf) {
-                            leaves.add(nearby);
-                            if (leaves.size() > config.maxLeaves()) return new TreeParts(leaves, attachedBlocks);
-                        } else if (directAttached) {
-                            attachedBlocks.add(nearby);
-                        }
+            scanTreePartsAround(log, seedRadius, box, type, leaves, attachedBlocks, queuedLeaves, leafQueue);
+            if (leaves.size() > config.maxLeaves()) return new TreeParts(leaves, attachedBlocks);
+        }
+
+        expandCanopyFromDetectedLeaves(box, type, leaves, attachedBlocks, queuedLeaves, leafQueue);
+        return new TreeParts(leaves, attachedBlocks);
+    }
+
+    private void expandCanopyFromDetectedLeaves(TreeBox box, TreeType type, Set<Block> leaves, Set<Block> attachedBlocks,
+                                                Set<Block> queuedLeaves, Queue<Block> leafQueue) {
+        int expansionRadius = Math.max(1, config.canopyExpansionRadius());
+        while (!leafQueue.isEmpty() && leaves.size() <= config.maxLeaves()) {
+            scanTreePartsAround(leafQueue.poll(), expansionRadius, box, type, leaves, attachedBlocks, queuedLeaves, leafQueue);
+        }
+    }
+
+    private void scanTreePartsAround(Block center, int radius, TreeBox box, TreeType type, Set<Block> leaves,
+                                     Set<Block> attachedBlocks, Set<Block> queuedLeaves, Queue<Block> leafQueue) {
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dy = -radius; dy <= radius; dy++) {
+                for (int dz = -radius; dz <= radius; dz++) {
+                    if (dx == 0 && dy == 0 && dz == 0) continue;
+                    Block nearby = center.getRelative(dx, dy, dz);
+                    if (!box.contains(nearby)) continue;
+                    Material material = nearby.getType();
+                    if (matchesLeaf(type, material)) {
+                        if (leaves.add(nearby) && queuedLeaves.add(nearby)) leafQueue.add(nearby);
+                        if (leaves.size() > config.maxLeaves()) return;
+                    } else if (type.isAttachedNaturalBlock(material)) {
+                        attachedBlocks.add(nearby);
                     }
                 }
             }
         }
-        return new TreeParts(leaves, attachedBlocks);
     }
 
-    private boolean isCloseEnoughToDetectedTree(Block block, Set<Block> logs, Set<Block> detectedLeaves, int radius) {
-        return isCloseEnoughToAny(block, logs, radius) || isCloseEnoughToAny(block, detectedLeaves, radius);
-    }
-
-    private boolean isCloseEnoughToAny(Block block, Set<Block> candidates, int radius) {
-        int radiusSquared = radius * radius;
-        for (Block candidate : candidates) {
-            int dx = block.getX() - candidate.getX();
-            int dy = block.getY() - candidate.getY();
-            int dz = block.getZ() - candidate.getZ();
-            if ((dx * dx) + (dy * dy) + (dz * dz) <= radiusSquared) return true;
-        }
-        return false;
+    private boolean matchesLeaf(TreeType type, Material material) {
+        return type.isLeaf(material) || (config.allowMixedLeaves() && treeTypeRegistry.isAnyConfiguredLeaf(material));
     }
 
     private record TreeParts(Set<Block> leaves, Set<Block> attachedBlocks) {}

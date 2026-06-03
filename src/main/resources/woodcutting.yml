@@ -83,12 +83,14 @@ woodcutting:
   detection:
     minimum-logs: 2
     minimum-leaves: 4
-    max-logs: 220
-    max-leaves: 500
+    max-logs: 500
+    max-leaves: 2000
     ignore-player-placed-wood: false
     ignore-player-placed-leaves: false
     allow-mixed-leaves: true
-    mixed-leaf-radius: 3
+    mixed-leaf-radius: 4
+    leaf-box-expansion: 8
+    canopy-expansion-radius: 2
 
   animation:
     enabled: true
@@ -164,16 +166,16 @@ woodcutting:
       leaves: [OAK_LEAVES]
       attached-blocks: [BEE_NEST]
       sapling: OAK_SAPLING
-      diameter: 4
-      height: 12
+      diameter: 7
+      height: 18
 
     BIRCH:
       logs: [BIRCH_LOG, BIRCH_WOOD, STRIPPED_BIRCH_LOG, STRIPPED_BIRCH_WOOD]
       leaves: [BIRCH_LEAVES]
       attached-blocks: [BEE_NEST]
       sapling: BIRCH_SAPLING
-      diameter: 4
-      height: 12
+      diameter: 7
+      height: 18
 
     SPRUCE:
       logs: [SPRUCE_LOG, SPRUCE_WOOD, STRIPPED_SPRUCE_LOG, STRIPPED_SPRUCE_WOOD]
@@ -181,8 +183,8 @@ woodcutting:
       leaf-groups: [PINE_MIXED]
       attached-blocks: [VINE, MOSS_CARPET, PALE_MOSS_CARPET]
       sapling: SPRUCE_SAPLING
-      diameter: 8
-      height: 32
+      diameter: 12
+      height: 40
 
     PINE:
       logs: [SPRUCE_LOG, SPRUCE_WOOD, STRIPPED_SPRUCE_LOG, STRIPPED_SPRUCE_WOOD]
@@ -190,34 +192,34 @@ woodcutting:
       leaf-groups: [PINE_MIXED]
       attached-blocks: [VINE, MOSS_CARPET, PALE_MOSS_CARPET]
       sapling: SPRUCE_SAPLING
-      diameter: 8
-      height: 32
+      diameter: 12
+      height: 40
 
     DARK_OAK:
       logs: [DARK_OAK_LOG, DARK_OAK_WOOD, STRIPPED_DARK_OAK_LOG, STRIPPED_DARK_OAK_WOOD]
       leaves: [DARK_OAK_LEAVES]
       sapling: DARK_OAK_SAPLING
-      diameter: 6
-      height: 16
+      diameter: 10
+      height: 24
 
     JUNGLE:
       logs: [JUNGLE_LOG, JUNGLE_WOOD, STRIPPED_JUNGLE_LOG, STRIPPED_JUNGLE_WOOD]
       leaves: [JUNGLE_LEAVES]
       attached-blocks: [VINE, COCOA]
       sapling: JUNGLE_SAPLING
-      diameter: 8
-      height: 32
+      diameter: 12
+      height: 40
 
     ACACIA:
       logs: [ACACIA_LOG, ACACIA_WOOD, STRIPPED_ACACIA_LOG, STRIPPED_ACACIA_WOOD]
       leaves: [ACACIA_LEAVES]
       sapling: ACACIA_SAPLING
-      diameter: 7
-      height: 14
+      diameter: 9
+      height: 20
 
     CHERRY:
       logs: [CHERRY_LOG, CHERRY_WOOD, STRIPPED_CHERRY_LOG, STRIPPED_CHERRY_WOOD]
       leaves: [CHERRY_LEAVES]
       sapling: CHERRY_SAPLING
-      diameter: 7
-      height: 14
+      diameter: 9
+      height: 20

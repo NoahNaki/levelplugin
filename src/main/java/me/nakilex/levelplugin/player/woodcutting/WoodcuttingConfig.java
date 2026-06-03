@@ -72,12 +72,14 @@ public class WoodcuttingConfig {
     public boolean slowBreakEnabled() { return config.getBoolean("woodcutting.break.slow-break.enabled", false); }
     public int minimumLogs() { return Math.max(1, config.getInt("woodcutting.detection.minimum-logs", 4)); }
     public int minimumLeaves() { return Math.max(0, config.getInt("woodcutting.detection.minimum-leaves", 12)); }
-    public int maxLogs() { return Math.max(minimumLogs(), config.getInt("woodcutting.detection.max-logs", 220)); }
-    public int maxLeaves() { return Math.max(minimumLeaves(), config.getInt("woodcutting.detection.max-leaves", 500)); }
+    public int maxLogs() { return Math.max(minimumLogs(), config.getInt("woodcutting.detection.max-logs", 500)); }
+    public int maxLeaves() { return Math.max(minimumLeaves(), config.getInt("woodcutting.detection.max-leaves", 2000)); }
     public boolean ignorePlayerPlacedWood() { return config.getBoolean("woodcutting.detection.ignore-player-placed-wood", true); }
     public boolean ignorePlayerPlacedLeaves() { return config.getBoolean("woodcutting.detection.ignore-player-placed-leaves", true); }
     public boolean allowMixedLeaves() { return config.getBoolean("woodcutting.detection.allow-mixed-leaves", true); }
-    public int mixedLeafRadius() { return Math.max(1, config.getInt("woodcutting.detection.mixed-leaf-radius", 3)); }
+    public int mixedLeafRadius() { return Math.max(1, config.getInt("woodcutting.detection.mixed-leaf-radius", 4)); }
+    public int leafBoxExpansion() { return Math.max(0, config.getInt("woodcutting.detection.leaf-box-expansion", 8)); }
+    public int canopyExpansionRadius() { return Math.max(1, config.getInt("woodcutting.detection.canopy-expansion-radius", 2)); }
     public boolean animationEnabled() { return config.getBoolean("woodcutting.animation.enabled", true); }
     public double fallSpeed() { return Math.max(0.01D, config.getDouble("woodcutting.animation.fall-speed", 0.06D)); }
     public double initialAngleRadians() { return Math.toRadians(Math.max(0.1D, config.getDouble("woodcutting.animation.initial-angle-degrees", 3.0D))); }
