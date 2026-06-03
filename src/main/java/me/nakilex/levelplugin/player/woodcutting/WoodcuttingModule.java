@@ -20,6 +20,7 @@ public class WoodcuttingModule {
     private final TreeTypeRegistry treeTypeRegistry;
     private final PlacedBlockTracker placedBlockTracker;
     private final FallingTreeAnimator fallingTreeAnimator;
+    private final ReplantService replantService;
     private final WoodcuttingListener listener;
 
     public WoodcuttingModule(Main plugin) {
@@ -33,7 +34,7 @@ public class WoodcuttingModule {
         BlockDisplayFactory blockDisplayFactory = new BlockDisplayFactory(config);
         this.fallingTreeAnimator = new FallingTreeAnimator(plugin, config, new FallDirectionResolver(config));
         TreeDropService treeDropService = new TreeDropService();
-        ReplantService replantService = new ReplantService(config);
+        this.replantService = new ReplantService(plugin, config);
         WoodcuttingRewardService rewardService = new WoodcuttingRewardService(config);
         WoodcuttingService service = new WoodcuttingService(config, axeDamageService, blockDisplayFactory, fallingTreeAnimator, treeDropService, replantService, rewardService);
         this.listener = new WoodcuttingListener(plugin, config, treeTypeRegistry, axeValidator, treeDetector, service);
@@ -44,5 +45,8 @@ public class WoodcuttingModule {
     public WoodcuttingListener listener() { return listener; }
     public PlacedBlockTracker placedBlockTracker() { return placedBlockTracker; }
     public void reload() { config.reload(); }
-    public void shutdown() { fallingTreeAnimator.shutdown(); }
+    public void shutdown() {
+        fallingTreeAnimator.shutdown();
+        replantService.shutdown();
+    }
 }

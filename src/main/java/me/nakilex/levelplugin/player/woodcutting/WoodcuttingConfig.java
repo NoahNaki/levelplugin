@@ -108,6 +108,10 @@ public class WoodcuttingConfig {
     public boolean autoReplantEnabled() { return config.getBoolean("woodcutting.post-fall.auto-replant.enabled", true); }
     public boolean replantLargeTrees() { return config.getBoolean("woodcutting.post-fall.auto-replant.large-trees", true); }
     public boolean protectSaplings() { return config.getBoolean("woodcutting.post-fall.auto-replant.protect-saplings", false); }
+    public boolean exactRegrowEnabled() { return config.getBoolean("woodcutting.post-fall.exact-regrow.enabled", true); }
+    public long exactRegrowDelayTicks() { return Math.max(0L, config.getLong("woodcutting.post-fall.exact-regrow.delay-ticks", 1200L)); }
+    public boolean exactRegrowOnlyIfSpaceClear() { return config.getBoolean("woodcutting.post-fall.exact-regrow.only-if-space-clear", true); }
+    public boolean exactRegrowReplaceSaplings() { return config.getBoolean("woodcutting.post-fall.exact-regrow.replace-saplings", true); }
     public boolean debug() { return config.getBoolean("woodcutting.debug", false); }
     public int defaultXpPerLog() { return Math.max(0, config.getInt("woodcutting.rewards.xp-per-log", 6)); }
     public int defaultXpPerLeaf() { return Math.max(0, config.getInt("woodcutting.rewards.xp-per-leaf", 0)); }

@@ -131,6 +131,12 @@ woodcutting:
       large-trees: true
       protect-saplings: false
 
+    exact-regrow:
+      enabled: true
+      delay-ticks: 1200
+      only-if-space-clear: true
+      replace-saplings: true
+
   tree-types:
     OAK:
       logs: [OAK_LOG, OAK_WOOD, STRIPPED_OAK_LOG, STRIPPED_OAK_WOOD]
