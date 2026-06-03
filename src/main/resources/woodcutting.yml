@@ -18,3 +18,109 @@ drops:
   amount:
     min: 1
     max: 2
+
+woodcutting:
+  enabled: true
+  enabled-by-default: true
+
+  break:
+    tools:
+      - WOODEN_AXE
+      - STONE_AXE
+      - IRON_AXE
+      - GOLDEN_AXE
+      - DIAMOND_AXE
+      - NETHERITE_AXE
+    pose: BOTH # BOTH, CROUCH, STAND
+    max-height-above-root: 3
+    allow-creative: false
+
+    axe-damage:
+      proportional: true
+      multiplier: 1.0
+      leave-at-one-durability: true
+
+    slow-break:
+      enabled: false
+      time-multiplier: 1.0
+      max-seconds: 20
+      indicator: ACTIONBAR # NONE, ACTIONBAR, BOSSBAR
+
+  detection:
+    minimum-logs: 4
+    minimum-leaves: 12
+    max-logs: 220
+    max-leaves: 500
+    ignore-player-placed-wood: true
+    ignore-player-placed-leaves: true
+
+  animation:
+    enabled: true
+    fall-speed: 0.06
+    ticks-per-frame: 1
+    lying-delay-ticks: 20
+
+    collision:
+      enabled: false
+      min-angle-degrees: 15
+      player-damage: 6.0
+      entity-damage: 0.0
+      particles: true
+
+  post-fall:
+    drop-location: LOCAL # LOCAL, ORIGIN, INVENTORY, TURN_INTO_BLOCKS
+
+    auto-replant:
+      enabled: true
+      large-trees: true
+      protect-saplings: false
+
+  tree-types:
+    OAK:
+      logs: [OAK_LOG, OAK_WOOD, STRIPPED_OAK_LOG, STRIPPED_OAK_WOOD]
+      leaves: [OAK_LEAVES, BEE_NEST]
+      sapling: OAK_SAPLING
+      diameter: 4
+      height: 12
+
+    BIRCH:
+      logs: [BIRCH_LOG, BIRCH_WOOD, STRIPPED_BIRCH_LOG, STRIPPED_BIRCH_WOOD]
+      leaves: [BIRCH_LEAVES, BEE_NEST]
+      sapling: BIRCH_SAPLING
+      diameter: 4
+      height: 12
+
+    SPRUCE:
+      logs: [SPRUCE_LOG, SPRUCE_WOOD, STRIPPED_SPRUCE_LOG, STRIPPED_SPRUCE_WOOD]
+      leaves: [SPRUCE_LEAVES]
+      sapling: SPRUCE_SAPLING
+      diameter: 6
+      height: 24
+
+    DARK_OAK:
+      logs: [DARK_OAK_LOG, DARK_OAK_WOOD, STRIPPED_DARK_OAK_LOG, STRIPPED_DARK_OAK_WOOD]
+      leaves: [DARK_OAK_LEAVES]
+      sapling: DARK_OAK_SAPLING
+      diameter: 6
+      height: 16
+
+    JUNGLE:
+      logs: [JUNGLE_LOG, JUNGLE_WOOD, STRIPPED_JUNGLE_LOG, STRIPPED_JUNGLE_WOOD]
+      leaves: [JUNGLE_LEAVES, VINE, COCOA]
+      sapling: JUNGLE_SAPLING
+      diameter: 8
+      height: 32
+
+    ACACIA:
+      logs: [ACACIA_LOG, ACACIA_WOOD, STRIPPED_ACACIA_LOG, STRIPPED_ACACIA_WOOD]
+      leaves: [ACACIA_LEAVES]
+      sapling: ACACIA_SAPLING
+      diameter: 7
+      height: 14
+
+    CHERRY:
+      logs: [CHERRY_LOG, CHERRY_WOOD, STRIPPED_CHERRY_LOG, STRIPPED_CHERRY_WOOD]
+      leaves: [CHERRY_LEAVES]
+      sapling: CHERRY_SAPLING
+      diameter: 7
+      height: 14

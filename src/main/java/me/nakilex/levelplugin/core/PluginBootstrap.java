@@ -133,6 +133,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig farmingRewardsConfig;
     private me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig fishingRewardsConfig;
     private me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig woodcuttingConfig;
+    private me.nakilex.levelplugin.woodcutting.WoodcuttingModule treeFellingWoodcuttingModule;
     private GlobalBoosterManager boosterManager;
     private HorseManager horseManager;
     private PartyManager partyManager;
@@ -394,6 +395,7 @@ public class PluginBootstrap {
         farmingRewardsConfig = new me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig(plugin);
         fishingRewardsConfig = new me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig(plugin);
         woodcuttingConfig = new me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig(plugin);
+        treeFellingWoodcuttingModule = new me.nakilex.levelplugin.woodcutting.WoodcuttingModule(plugin);
         boolean boosterSystemEnabled = customConfig.getBoolean("features.booster-system", false);
         if (boosterSystemEnabled) {
             boosterManager = new GlobalBoosterManager(plugin, 2.0);
@@ -741,6 +743,11 @@ public class PluginBootstrap {
             plugin.getServer().getPluginManager().registerEvents(coinDungeonGUI, plugin);
         }
 
+        if (treeFellingWoodcuttingModule != null) {
+            plugin.getServer().getPluginManager().registerEvents(treeFellingWoodcuttingModule.listener(), plugin);
+            plugin.getServer().getPluginManager().registerEvents(treeFellingWoodcuttingModule.placedBlockTracker(), plugin);
+        }
+
         ListenerRegistry.registerListeners(
             plugin,
             blacksmithGUI,
@@ -921,6 +928,7 @@ public class PluginBootstrap {
             }
             playerConfig.saveAllPlayers();
         }
+        if (treeFellingWoodcuttingModule != null) treeFellingWoodcuttingModule.shutdown();
         if (storageManager != null) storageManager.saveAllStorages();
         if (guildVaultManager != null) guildVaultManager.saveAll();
         if (auctionHouseManager != null) auctionHouseManager.saveAuctionsSync();
@@ -987,6 +995,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.player.farming.config.FarmingRewardsConfig getFarmingRewardsConfig() { return farmingRewardsConfig; }
     public me.nakilex.levelplugin.player.fishing.config.FishingRewardsConfig getFishingRewardsConfig() { return fishingRewardsConfig; }
     public me.nakilex.levelplugin.player.woodcutting.config.WoodcuttingConfig getWoodcuttingConfig() { return woodcuttingConfig; }
+    public me.nakilex.levelplugin.woodcutting.WoodcuttingModule getTreeFellingWoodcuttingModule() { return treeFellingWoodcuttingModule; }
     public GlobalBoosterManager getBoosterManager() { return boosterManager; }
     public HorseManager getHorseManager() { return horseManager; }
     public PartyManager getPartyManager() { return partyManager; }
@@ -1148,6 +1157,9 @@ public class PluginBootstrap {
         }
         if (woodcuttingConfig != null) {
             woodcuttingConfig.reload();
+        }
+        if (treeFellingWoodcuttingModule != null) {
+            treeFellingWoodcuttingModule.reload();
         }
         if (configManager != null) {
             configManager.reloadLootChestsConfig();
