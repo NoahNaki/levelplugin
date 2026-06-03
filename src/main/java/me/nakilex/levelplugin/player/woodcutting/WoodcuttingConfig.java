@@ -77,9 +77,15 @@ public class WoodcuttingConfig {
     public boolean ignorePlayerPlacedWood() { return config.getBoolean("woodcutting.detection.ignore-player-placed-wood", true); }
     public boolean ignorePlayerPlacedLeaves() { return config.getBoolean("woodcutting.detection.ignore-player-placed-leaves", true); }
     public boolean allowMixedLeaves() { return config.getBoolean("woodcutting.detection.allow-mixed-leaves", true); }
-    public int mixedLeafRadius() { return Math.max(1, config.getInt("woodcutting.detection.mixed-leaf-radius", 4)); }
+    public boolean preventAirGapJumping() { return config.getBoolean("woodcutting.detection.prevent-air-gap-jumping", true); }
+    public int leafSeedRadius() { return Math.max(1, config.getInt("woodcutting.detection.leaf-seed-radius", config.getInt("woodcutting.detection.mixed-leaf-radius", 4))); }
+    public int mixedLeafRadius() { return leafSeedRadius(); }
     public int leafBoxExpansion() { return Math.max(0, config.getInt("woodcutting.detection.leaf-box-expansion", 8)); }
-    public int canopyExpansionRadius() { return Math.max(1, config.getInt("woodcutting.detection.canopy-expansion-radius", 2)); }
+    public int leafConnectivityRadius() {
+        int radius = config.getInt("woodcutting.detection.leaf-connectivity-radius", config.getInt("woodcutting.detection.canopy-expansion-radius", 1));
+        return preventAirGapJumping() ? 1 : Math.max(1, radius);
+    }
+    public int canopyExpansionRadius() { return leafConnectivityRadius(); }
     public boolean animationEnabled() { return config.getBoolean("woodcutting.animation.enabled", true); }
     public double fallSpeed() { return Math.max(0.01D, config.getDouble("woodcutting.animation.fall-speed", 0.06D)); }
     public double initialAngleRadians() { return Math.toRadians(Math.max(0.1D, config.getDouble("woodcutting.animation.initial-angle-degrees", 3.0D))); }
@@ -158,6 +164,15 @@ public class WoodcuttingConfig {
         plugin.getLogger().info("[Woodcutting] OAK_LOG recognized: " + treeTypes.values().stream().anyMatch(type -> type.isLog(Material.OAK_LOG)));
         plugin.getLogger().info("[Woodcutting] DIAMOND_AXE recognized: " + tools.contains(Material.DIAMOND_AXE));
         plugin.getLogger().info("[Woodcutting] Rewards loaded: " + config.isConfigurationSection("woodcutting.rewards"));
+        int configuredConnectivityRadius = config.getInt("woodcutting.detection.leaf-connectivity-radius", config.getInt("woodcutting.detection.canopy-expansion-radius", 1));
+        if (configuredConnectivityRadius > 1) {
+            String suffix = preventAirGapJumping() ? " It will be clamped to 1 because prevent-air-gap-jumping is enabled." : " This can merge nearby separate trees across air gaps.";
+            plugin.getLogger().warning("[Woodcutting] leaf-connectivity-radius/canopy-expansion-radius is " + configuredConnectivityRadius + "." + suffix);
+        }
+    }
+
+    public void debugLog(String message) {
+        if (debug()) plugin.getLogger().info(message);
     }
 
     private List<String> rawStringList(String path) {

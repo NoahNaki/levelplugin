@@ -88,9 +88,10 @@ woodcutting:
     ignore-player-placed-wood: false
     ignore-player-placed-leaves: false
     allow-mixed-leaves: true
-    mixed-leaf-radius: 4
+    prevent-air-gap-jumping: true
+    leaf-seed-radius: 4
+    leaf-connectivity-radius: 1
     leaf-box-expansion: 8
-    canopy-expansion-radius: 2
 
   animation:
     enabled: true
