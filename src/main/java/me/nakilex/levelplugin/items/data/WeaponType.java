@@ -7,6 +7,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.items.tools.ToolManager;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,6 +47,8 @@ public enum WeaponType {
      */
     public static WeaponType matchType(ItemStack item) {
         if (item == null || item.getType() == Material.AIR) return null;
+        ToolManager toolManager = ToolManager.getInstance();
+        if (toolManager != null && toolManager.isTaggedLifeSkillTool(item)) return null;
         Material mat = item.getType();
         if (item.hasItemMeta()) {
             ItemMeta meta = item.getItemMeta();
