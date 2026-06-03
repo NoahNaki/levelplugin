@@ -1,18 +1,18 @@
-package me.nakilex.levelplugin.woodcutting;
+package me.nakilex.levelplugin.player.woodcutting;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.woodcutting.animation.BlockDisplayFactory;
-import me.nakilex.levelplugin.woodcutting.animation.FallDirectionResolver;
-import me.nakilex.levelplugin.woodcutting.animation.FallingTreeAnimator;
-import me.nakilex.levelplugin.woodcutting.drop.TreeDropService;
-import me.nakilex.levelplugin.woodcutting.protection.PlacedBlockTracker;
-import me.nakilex.levelplugin.woodcutting.replant.ReplantService;
-import me.nakilex.levelplugin.woodcutting.tool.AxeDamageService;
-import me.nakilex.levelplugin.woodcutting.tool.AxeValidator;
-import me.nakilex.levelplugin.woodcutting.tree.TreeDetector;
-import me.nakilex.levelplugin.woodcutting.tree.TreeRootFinder;
-import me.nakilex.levelplugin.woodcutting.tree.TreeTypeRegistry;
-import me.nakilex.levelplugin.woodcutting.tree.TreeValidator;
+import me.nakilex.levelplugin.player.woodcutting.animation.BlockDisplayFactory;
+import me.nakilex.levelplugin.player.woodcutting.animation.FallDirectionResolver;
+import me.nakilex.levelplugin.player.woodcutting.animation.FallingTreeAnimator;
+import me.nakilex.levelplugin.player.woodcutting.drop.TreeDropService;
+import me.nakilex.levelplugin.player.woodcutting.protection.PlacedBlockTracker;
+import me.nakilex.levelplugin.player.woodcutting.replant.ReplantService;
+import me.nakilex.levelplugin.player.woodcutting.tool.AxeDamageService;
+import me.nakilex.levelplugin.player.woodcutting.tool.AxeValidator;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeDetector;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeRootFinder;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeTypeRegistry;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeValidator;
 
 public class WoodcuttingModule {
     private final WoodcuttingConfig config;
@@ -34,7 +34,8 @@ public class WoodcuttingModule {
         TreeDropService treeDropService = new TreeDropService();
         ReplantService replantService = new ReplantService(config);
         WoodcuttingService service = new WoodcuttingService(config, axeDamageService, blockDisplayFactory, fallingTreeAnimator, treeDropService, replantService);
-        this.listener = new WoodcuttingListener(config, treeTypeRegistry, axeValidator, treeDetector, service);
+        this.listener = new WoodcuttingListener(plugin, config, treeTypeRegistry, axeValidator, treeDetector, service);
+        plugin.getLogger().info("[Woodcutting] Module initialized");
     }
 
     public WoodcuttingConfig config() { return config; }

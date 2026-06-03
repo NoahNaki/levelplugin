@@ -1,4 +1,4 @@
-package me.nakilex.levelplugin.woodcutting.tree;
+package me.nakilex.levelplugin.player.woodcutting.tree;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -12,9 +12,10 @@ import java.util.List;
 import java.util.Set;
 
 public class TreeDetectionResult {
-    private static final TreeDetectionResult INVALID = new TreeDetectionResult(false, null, null, null, Set.of(), Set.of(), List.of(), false);
+    private static final TreeDetectionResult INVALID = new TreeDetectionResult(false, TreeDetectionInvalidReason.UNKNOWN_TREE_TYPE, null, null, null, Set.of(), Set.of(), List.of(), false);
 
     private final boolean valid;
+    private final TreeDetectionInvalidReason invalidReason;
     private final TreeType type;
     private final Block root;
     private final Block clicked;
@@ -23,9 +24,10 @@ public class TreeDetectionResult {
     private final List<CapturedBlock> snapshots;
     private final boolean largeTree;
 
-    private TreeDetectionResult(boolean valid, TreeType type, Block root, Block clicked, Set<Block> logs, Set<Block> leaves,
+    private TreeDetectionResult(boolean valid, TreeDetectionInvalidReason invalidReason, TreeType type, Block root, Block clicked, Set<Block> logs, Set<Block> leaves,
                                 List<CapturedBlock> snapshots, boolean largeTree) {
         this.valid = valid;
+        this.invalidReason = invalidReason;
         this.type = type;
         this.root = root;
         this.clicked = clicked;
@@ -37,6 +39,10 @@ public class TreeDetectionResult {
 
     public static TreeDetectionResult invalid() { return INVALID; }
 
+    public static TreeDetectionResult invalid(TreeDetectionInvalidReason reason, TreeType type, Block root, Block clicked, Set<Block> logs, Set<Block> leaves) {
+        return new TreeDetectionResult(false, reason == null ? TreeDetectionInvalidReason.UNKNOWN_TREE_TYPE : reason, type, root, clicked, logs, leaves, List.of(), false);
+    }
+
     public static TreeDetectionResult valid(TreeType type, Block root, Block clicked, Set<Block> logs, Set<Block> leaves, boolean largeTree) {
         Set<Block> all = new LinkedHashSet<>(logs);
         all.addAll(leaves);
@@ -44,10 +50,11 @@ public class TreeDetectionResult {
                 .map(block -> new CapturedBlock(block, block.getState(), block.getBlockData(), block.getLocation(),
                         block.getLocation().toVector().subtract(root.getLocation().toVector())))
                 .toList();
-        return new TreeDetectionResult(true, type, root, clicked, logs, leaves, snapshots, largeTree);
+        return new TreeDetectionResult(true, TreeDetectionInvalidReason.NONE, type, root, clicked, logs, leaves, snapshots, largeTree);
     }
 
     public boolean valid() { return valid; }
+    public TreeDetectionInvalidReason invalidReason() { return invalidReason; }
     public TreeType type() { return type; }
     public Block root() { return root; }
     public Block clicked() { return clicked; }

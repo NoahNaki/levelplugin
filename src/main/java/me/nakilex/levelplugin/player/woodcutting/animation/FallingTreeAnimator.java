@@ -1,7 +1,7 @@
-package me.nakilex.levelplugin.woodcutting.animation;
+package me.nakilex.levelplugin.player.woodcutting.animation;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.woodcutting.WoodcuttingConfig;
+import me.nakilex.levelplugin.player.woodcutting.WoodcuttingConfig;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.LivingEntity;

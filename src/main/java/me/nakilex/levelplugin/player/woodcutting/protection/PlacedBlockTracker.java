@@ -1,6 +1,6 @@
-package me.nakilex.levelplugin.woodcutting.protection;
+package me.nakilex.levelplugin.player.woodcutting.protection;
 
-import me.nakilex.levelplugin.woodcutting.tree.TreeTypeRegistry;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeTypeRegistry;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;

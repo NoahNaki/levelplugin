@@ -1,7 +1,7 @@
-package me.nakilex.levelplugin.woodcutting.replant;
+package me.nakilex.levelplugin.player.woodcutting.replant;
 
-import me.nakilex.levelplugin.woodcutting.WoodcuttingConfig;
-import me.nakilex.levelplugin.woodcutting.tree.TreeDetectionResult;
+import me.nakilex.levelplugin.player.woodcutting.WoodcuttingConfig;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeDetectionResult;
 import org.bukkit.Material;
 import org.bukkit.Tag;
 import org.bukkit.block.Block;

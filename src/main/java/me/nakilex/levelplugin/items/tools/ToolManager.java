@@ -124,6 +124,10 @@ public class ToolManager {
         return getTool(stack, true);
     }
 
+    public boolean isTaggedLifeSkillTool(ItemStack stack) {
+        return getTool(stack, false) != null;
+    }
+
     public CustomTool getTool(ItemStack stack, boolean allowMaterialFallback) {
         if (stack == null || !stack.hasItemMeta()) {
             return allowMaterialFallback ? getTool(stack != null ? stack.getType() : null) : null;

@@ -47,12 +47,12 @@ woodcutting:
       indicator: ACTIONBAR # NONE, ACTIONBAR, BOSSBAR
 
   detection:
-    minimum-logs: 4
-    minimum-leaves: 12
+    minimum-logs: 2
+    minimum-leaves: 4
     max-logs: 220
     max-leaves: 500
-    ignore-player-placed-wood: true
-    ignore-player-placed-leaves: true
+    ignore-player-placed-wood: false
+    ignore-player-placed-leaves: false
 
   animation:
     enabled: true

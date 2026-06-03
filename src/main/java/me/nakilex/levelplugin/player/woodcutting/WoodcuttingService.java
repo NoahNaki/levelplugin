@@ -1,12 +1,12 @@
-package me.nakilex.levelplugin.woodcutting;
+package me.nakilex.levelplugin.player.woodcutting;
 
-import me.nakilex.levelplugin.woodcutting.animation.BlockDisplayFactory;
-import me.nakilex.levelplugin.woodcutting.animation.DisplayTree;
-import me.nakilex.levelplugin.woodcutting.animation.FallingTreeAnimator;
-import me.nakilex.levelplugin.woodcutting.drop.TreeDropService;
-import me.nakilex.levelplugin.woodcutting.replant.ReplantService;
-import me.nakilex.levelplugin.woodcutting.tool.AxeDamageService;
-import me.nakilex.levelplugin.woodcutting.tree.TreeDetectionResult;
+import me.nakilex.levelplugin.player.woodcutting.animation.BlockDisplayFactory;
+import me.nakilex.levelplugin.player.woodcutting.animation.DisplayTree;
+import me.nakilex.levelplugin.player.woodcutting.animation.FallingTreeAnimator;
+import me.nakilex.levelplugin.player.woodcutting.drop.TreeDropService;
+import me.nakilex.levelplugin.player.woodcutting.replant.ReplantService;
+import me.nakilex.levelplugin.player.woodcutting.tool.AxeDamageService;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeDetectionResult;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;

@@ -1,6 +1,6 @@
-package me.nakilex.levelplugin.woodcutting.tool;
+package me.nakilex.levelplugin.player.woodcutting.tool;
 
-import me.nakilex.levelplugin.woodcutting.WoodcuttingConfig;
+import me.nakilex.levelplugin.player.woodcutting.WoodcuttingConfig;
 import org.bukkit.GameMode;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;

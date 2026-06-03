@@ -1,6 +1,6 @@
-package me.nakilex.levelplugin.woodcutting.tree;
+package me.nakilex.levelplugin.player.woodcutting.tree;
 
-import me.nakilex.levelplugin.woodcutting.WoodcuttingConfig;
+import me.nakilex.levelplugin.player.woodcutting.WoodcuttingConfig;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
@@ -25,17 +25,20 @@ public class TreeDetector {
 
     public TreeDetectionResult detect(Block clicked, Player player) {
         TreeType type = treeTypeRegistry.fromLog(clicked.getType());
-        if (type == null) return TreeDetectionResult.invalid();
+        if (type == null) return TreeDetectionResult.invalid(TreeDetectionInvalidReason.UNKNOWN_TREE_TYPE, null, null, clicked, Set.of(), Set.of());
         Block root = rootFinder.findRoot(clicked, type);
-        if (clicked.getY() - root.getY() > config.maxHeightAboveRoot()) return TreeDetectionResult.invalid();
+        if (clicked.getY() - root.getY() > config.maxHeightAboveRoot()) return TreeDetectionResult.invalid(TreeDetectionInvalidReason.CLICKED_TOO_HIGH, type, root, clicked, Set.of(), Set.of());
 
         TreeBox box = TreeBox.fromRoot(root, type.heuristic());
         Set<Block> logs = findConnectedLogsInsideBox(clicked, box, type);
         Set<Block> leaves = findLeavesNearLogs(logs, box.expand(2), type);
 
-        if (logs.size() < config.minimumLogs() || leaves.size() < config.minimumLeaves()) return TreeDetectionResult.invalid();
-        if (logs.size() > config.maxLogs() || leaves.size() > config.maxLeaves()) return TreeDetectionResult.invalid();
-        if (!treeValidator.looksNatural(root, logs, leaves, type)) return TreeDetectionResult.invalid();
+        if (logs.size() < config.minimumLogs()) return TreeDetectionResult.invalid(TreeDetectionInvalidReason.TOO_FEW_LOGS, type, root, clicked, logs, leaves);
+        if (leaves.size() < config.minimumLeaves()) return TreeDetectionResult.invalid(TreeDetectionInvalidReason.TOO_FEW_LEAVES, type, root, clicked, logs, leaves);
+        if (logs.size() > config.maxLogs()) return TreeDetectionResult.invalid(TreeDetectionInvalidReason.TOO_MANY_LOGS, type, root, clicked, logs, leaves);
+        if (leaves.size() > config.maxLeaves()) return TreeDetectionResult.invalid(TreeDetectionInvalidReason.TOO_MANY_LEAVES, type, root, clicked, logs, leaves);
+        TreeDetectionInvalidReason validationFailure = treeValidator.validationFailure(root, logs, leaves, type);
+        if (validationFailure != null) return TreeDetectionResult.invalid(validationFailure, type, root, clicked, logs, leaves);
         return TreeDetectionResult.valid(type, root, clicked, logs, leaves, treeValidator.isLargeTree(root, logs, type));
     }
 

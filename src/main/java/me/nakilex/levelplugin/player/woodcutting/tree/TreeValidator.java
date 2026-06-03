@@ -1,7 +1,7 @@
-package me.nakilex.levelplugin.woodcutting.tree;
+package me.nakilex.levelplugin.player.woodcutting.tree;
 
-import me.nakilex.levelplugin.woodcutting.WoodcuttingConfig;
-import me.nakilex.levelplugin.woodcutting.protection.PlacedBlockTracker;
+import me.nakilex.levelplugin.player.woodcutting.WoodcuttingConfig;
+import me.nakilex.levelplugin.player.woodcutting.protection.PlacedBlockTracker;
 import org.bukkit.block.Block;
 
 import java.util.Set;
@@ -16,14 +16,18 @@ public class TreeValidator {
     }
 
     public boolean looksNatural(Block root, Set<Block> logs, Set<Block> leaves, TreeType type) {
-        if (!hasVerticalTrunk(root, logs, type)) return false;
-        if (!hasLeavesNearTop(logs, leaves)) return false;
-        if (looksLikeFlatWall(logs)) return false;
-        if (looksLikeArtificialCube(logs)) return false;
-        if (!hasReasonableLeafRatio(logs, leaves)) return false;
-        if (config.ignorePlayerPlacedWood() && placedBlockTracker.tooManyPlaced(logs)) return false;
-        if (config.ignorePlayerPlacedLeaves() && placedBlockTracker.tooManyPlaced(leaves)) return false;
-        return true;
+        return validationFailure(root, logs, leaves, type) == null;
+    }
+
+    public TreeDetectionInvalidReason validationFailure(Block root, Set<Block> logs, Set<Block> leaves, TreeType type) {
+        if (!hasVerticalTrunk(root, logs, type)) return TreeDetectionInvalidReason.FAILED_NATURAL_VALIDATION;
+        if (!hasLeavesNearTop(logs, leaves)) return TreeDetectionInvalidReason.FAILED_NATURAL_VALIDATION;
+        if (looksLikeFlatWall(logs)) return TreeDetectionInvalidReason.FAILED_NATURAL_VALIDATION;
+        if (looksLikeArtificialCube(logs)) return TreeDetectionInvalidReason.FAILED_NATURAL_VALIDATION;
+        if (!hasReasonableLeafRatio(logs, leaves)) return TreeDetectionInvalidReason.FAILED_NATURAL_VALIDATION;
+        if (config.ignorePlayerPlacedWood() && placedBlockTracker.tooManyPlaced(logs)) return TreeDetectionInvalidReason.PLAYER_PLACED_REJECTED;
+        if (config.ignorePlayerPlacedLeaves() && placedBlockTracker.tooManyPlaced(leaves)) return TreeDetectionInvalidReason.PLAYER_PLACED_REJECTED;
+        return null;
     }
 
     public boolean isLargeTree(Block root, Set<Block> logs, TreeType type) { return type.canBeLargeTree() && hasTwoByTwoTrunk(root, logs); }

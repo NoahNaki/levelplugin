@@ -1,6 +1,6 @@
-package me.nakilex.levelplugin.woodcutting.tree;
+package me.nakilex.levelplugin.player.woodcutting.tree;
 
-import me.nakilex.levelplugin.woodcutting.WoodcuttingConfig;
+import me.nakilex.levelplugin.player.woodcutting.WoodcuttingConfig;
 import org.bukkit.Material;
 
 import java.util.Collection;

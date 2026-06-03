@@ -1,4 +1,4 @@
-package me.nakilex.levelplugin.woodcutting.drop;
+package me.nakilex.levelplugin.player.woodcutting.drop;
 
 public enum DropMode {
     LOCAL,

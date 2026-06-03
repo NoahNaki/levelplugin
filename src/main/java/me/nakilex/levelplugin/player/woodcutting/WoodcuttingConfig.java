@@ -1,9 +1,9 @@
-package me.nakilex.levelplugin.woodcutting;
+package me.nakilex.levelplugin.player.woodcutting;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.woodcutting.drop.DropMode;
-import me.nakilex.levelplugin.woodcutting.tree.TreeHeuristic;
-import me.nakilex.levelplugin.woodcutting.tree.TreeType;
+import me.nakilex.levelplugin.player.woodcutting.drop.DropMode;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeHeuristic;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeType;
 import org.bukkit.GameMode;
 import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
@@ -11,11 +11,15 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 import java.io.File;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.logging.Level;
 
 public class WoodcuttingConfig {
@@ -43,8 +47,10 @@ public class WoodcuttingConfig {
 
     public void reload() {
         this.config = YamlConfiguration.loadConfiguration(file);
+        applyBundledDefaults();
         this.tools = loadMaterials("woodcutting.break.tools");
         this.treeTypes = loadTreeTypes();
+        logLoadedState();
     }
 
     public boolean enabled() { return config.getBoolean("woodcutting.enabled", true) && config.getBoolean("woodcutting.enabled-by-default", true); }
@@ -77,6 +83,27 @@ public class WoodcuttingConfig {
     public boolean canChopIn(GameMode gameMode) { return gameMode != GameMode.CREATIVE || allowCreative(); }
     public Set<Material> tools() { return tools; }
     public Map<String, TreeType> treeTypes() { return treeTypes; }
+    public boolean isConfiguredTool(Material material) { return tools.contains(material); }
+    public String toolNames() { return tools.stream().map(Material::name).sorted().collect(Collectors.joining(", ")); }
+    public String treeTypeNames() { return treeTypes.keySet().stream().sorted().collect(Collectors.joining(", ")); }
+
+    private void applyBundledDefaults() {
+        try (InputStream stream = plugin.getResource("woodcutting.yml")) {
+            if (stream == null) return;
+            FileConfiguration defaults = YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
+            config.setDefaults(defaults);
+        } catch (Exception ex) {
+            plugin.getLogger().log(Level.WARNING, "[Woodcutting] Failed to load bundled woodcutting.yml defaults", ex);
+        }
+    }
+
+    private void logLoadedState() {
+        plugin.getLogger().info("[Woodcutting] Enabled: " + enabled());
+        plugin.getLogger().info("[Woodcutting] Loaded tools: " + tools.size() + (tools.isEmpty() ? "" : " " + toolNames()));
+        plugin.getLogger().info("[Woodcutting] Loaded tree types: " + treeTypes.size() + (treeTypes.isEmpty() ? "" : " " + treeTypeNames()));
+        plugin.getLogger().info("[Woodcutting] OAK_LOG recognized: " + treeTypes.values().stream().anyMatch(type -> type.isLog(Material.OAK_LOG)));
+        plugin.getLogger().info("[Woodcutting] DIAMOND_AXE recognized: " + tools.contains(Material.DIAMOND_AXE));
+    }
 
     private Map<String, TreeType> loadTreeTypes() {
         Map<String, TreeType> loaded = new LinkedHashMap<>();

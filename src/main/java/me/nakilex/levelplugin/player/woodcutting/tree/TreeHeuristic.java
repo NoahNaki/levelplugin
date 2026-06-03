@@ -1,4 +1,4 @@
-package me.nakilex.levelplugin.woodcutting.tree;
+package me.nakilex.levelplugin.player.woodcutting.tree;
 
 public record TreeHeuristic(int diameter, int height) {
     public TreeHeuristic {

@@ -1,6 +1,6 @@
-package me.nakilex.levelplugin.woodcutting.drop;
+package me.nakilex.levelplugin.player.woodcutting.drop;
 
-import me.nakilex.levelplugin.woodcutting.tree.TreeDetectionResult;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeDetectionResult;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;

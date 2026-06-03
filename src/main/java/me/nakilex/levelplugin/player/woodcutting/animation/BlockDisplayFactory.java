@@ -1,6 +1,6 @@
-package me.nakilex.levelplugin.woodcutting.animation;
+package me.nakilex.levelplugin.player.woodcutting.animation;
 
-import me.nakilex.levelplugin.woodcutting.tree.TreeDetectionResult;
+import me.nakilex.levelplugin.player.woodcutting.tree.TreeDetectionResult;
 import org.bukkit.Material;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.util.Vector;
