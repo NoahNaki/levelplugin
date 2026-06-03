@@ -196,10 +196,6 @@ public class ListenerRegistry {
                 plugin,
                 plugin.getFishingRewardsConfig(),
                 plugin.getFishingManager()), plugin);
-        pm.registerEvents(new me.nakilex.levelplugin.player.woodcutting.listeners.WoodcuttingNodeListener(
-                plugin,
-                plugin.getWoodcuttingManager(),
-                plugin.getWoodcuttingConfig()), plugin);
         pm.registerEvents(new LevelPluginCommandGuard(plugin, serverSelectionManager), plugin);
         pm.registerEvents(new PlayerJoinListener(
                 plugin.getLevelManager(),
