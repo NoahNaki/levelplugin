@@ -29,7 +29,7 @@ public class WoodcuttingModule {
         TreeDetector treeDetector = new TreeDetector(config, treeTypeRegistry, new TreeRootFinder(), treeValidator);
         AxeValidator axeValidator = new AxeValidator(config);
         AxeDamageService axeDamageService = new AxeDamageService(config);
-        BlockDisplayFactory blockDisplayFactory = new BlockDisplayFactory();
+        BlockDisplayFactory blockDisplayFactory = new BlockDisplayFactory(config);
         this.fallingTreeAnimator = new FallingTreeAnimator(plugin, config, new FallDirectionResolver());
         TreeDropService treeDropService = new TreeDropService();
         ReplantService replantService = new ReplantService(config);

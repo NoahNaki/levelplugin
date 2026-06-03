@@ -19,6 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.List;
 import java.util.stream.Collectors;
 import java.util.logging.Level;
 
@@ -46,6 +47,7 @@ public class WoodcuttingConfig {
     }
 
     public void reload() {
+        plugin.getLogger().info("[Woodcutting] Loading config from: " + file.getAbsolutePath());
         this.config = YamlConfiguration.loadConfiguration(file);
         applyBundledDefaults();
         this.tools = loadMaterials("woodcutting.break.tools");
@@ -68,6 +70,9 @@ public class WoodcuttingConfig {
     public boolean ignorePlayerPlacedLeaves() { return config.getBoolean("woodcutting.detection.ignore-player-placed-leaves", true); }
     public boolean animationEnabled() { return config.getBoolean("woodcutting.animation.enabled", true); }
     public double fallSpeed() { return Math.max(0.01D, config.getDouble("woodcutting.animation.fall-speed", 0.06D)); }
+    public double initialAngleRadians() { return Math.toRadians(Math.max(0.1D, config.getDouble("woodcutting.animation.initial-angle-degrees", 3.0D))); }
+    public double gravity() { return Math.max(0.0D, config.getDouble("woodcutting.animation.gravity", 9.81D)); }
+    public double animationDeltaTime() { return Math.max(0.001D, config.getDouble("woodcutting.animation.delta-time", 0.05D)); }
     public long ticksPerFrame() { return Math.max(1L, config.getLong("woodcutting.animation.ticks-per-frame", 1L)); }
     public long lyingDelayTicks() { return Math.max(0L, config.getLong("woodcutting.animation.lying-delay-ticks", 20L)); }
     public boolean collisionEnabled() { return config.getBoolean("woodcutting.animation.collision.enabled", false); }
@@ -89,20 +94,33 @@ public class WoodcuttingConfig {
 
     private void applyBundledDefaults() {
         try (InputStream stream = plugin.getResource("woodcutting.yml")) {
-            if (stream == null) return;
+            if (stream == null) {
+                plugin.getLogger().warning("[Woodcutting] Bundled woodcutting.yml resource is missing.");
+                return;
+            }
             FileConfiguration defaults = YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8));
             config.setDefaults(defaults);
+            config.options().copyDefaults(true);
+            config.save(file);
         } catch (Exception ex) {
-            plugin.getLogger().log(Level.WARNING, "[Woodcutting] Failed to load bundled woodcutting.yml defaults", ex);
+            plugin.getLogger().log(Level.WARNING, "[Woodcutting] Failed to apply bundled woodcutting.yml defaults", ex);
         }
     }
 
     private void logLoadedState() {
+        plugin.getLogger().info("[Woodcutting] Has woodcutting: " + config.isConfigurationSection("woodcutting"));
+        plugin.getLogger().info("[Woodcutting] Has woodcutting.tree-types: " + config.isConfigurationSection("woodcutting.tree-types"));
+        plugin.getLogger().info("[Woodcutting] Raw OAK logs: " + rawStringList("woodcutting.tree-types.OAK.logs"));
+        plugin.getLogger().info("[Woodcutting] Raw tools: " + rawStringList("woodcutting.break.tools"));
         plugin.getLogger().info("[Woodcutting] Enabled: " + enabled());
         plugin.getLogger().info("[Woodcutting] Loaded tools: " + tools.size() + (tools.isEmpty() ? "" : " " + toolNames()));
         plugin.getLogger().info("[Woodcutting] Loaded tree types: " + treeTypes.size() + (treeTypes.isEmpty() ? "" : " " + treeTypeNames()));
         plugin.getLogger().info("[Woodcutting] OAK_LOG recognized: " + treeTypes.values().stream().anyMatch(type -> type.isLog(Material.OAK_LOG)));
         plugin.getLogger().info("[Woodcutting] DIAMOND_AXE recognized: " + tools.contains(Material.DIAMOND_AXE));
+    }
+
+    private List<String> rawStringList(String path) {
+        return config.getStringList(path);
     }
 
     private Map<String, TreeType> loadTreeTypes() {

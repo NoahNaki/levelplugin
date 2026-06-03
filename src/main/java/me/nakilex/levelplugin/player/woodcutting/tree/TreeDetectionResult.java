@@ -63,6 +63,29 @@ public class TreeDetectionResult {
     public List<CapturedBlock> snapshots() { return snapshots; }
     public boolean wasLargeTree() { return largeTree; }
 
+    public Location pivotLocation() {
+        if (root == null) return null;
+        if (!largeTree) return root.getLocation().add(0.5D, 0.5D, 0.5D);
+
+        int rootY = root.getY();
+        List<Block> rootBlocks = logs.stream()
+                .filter(block -> block.getY() == rootY)
+                .filter(block -> Math.abs(block.getX() - root.getX()) <= 1 && Math.abs(block.getZ() - root.getZ()) <= 1)
+                .toList();
+        if (rootBlocks.size() < 2) return root.getLocation().add(0.5D, 0.5D, 0.5D);
+
+        double averageX = rootBlocks.stream().mapToDouble(Block::getX).average().orElse(root.getX()) + 0.5D;
+        double averageZ = rootBlocks.stream().mapToDouble(Block::getZ).average().orElse(root.getZ()) + 0.5D;
+        return new Location(root.getWorld(), averageX, rootY + 0.5D, averageZ);
+    }
+
+    public int treeHeight() {
+        if (logs.isEmpty()) return 1;
+        int minY = logs.stream().mapToInt(Block::getY).min().orElse(root == null ? 0 : root.getY());
+        int maxY = logs.stream().mapToInt(Block::getY).max().orElse(minY);
+        return Math.max(1, maxY - minY + 1);
+    }
+
     public Set<Block> allBlocks() {
         Set<Block> all = new LinkedHashSet<>(logs);
         all.addAll(leaves);

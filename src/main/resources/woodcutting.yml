@@ -57,6 +57,9 @@ woodcutting:
   animation:
     enabled: true
     fall-speed: 0.06
+    initial-angle-degrees: 3.0
+    gravity: 9.81
+    delta-time: 0.05
     ticks-per-frame: 1
     lying-delay-ticks: 20
 
