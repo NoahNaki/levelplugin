@@ -41,6 +41,9 @@ woodcutting:
       SPRUCE:
         level-required: 5
         xp-per-log: 8
+      PINE:
+        level-required: 5
+        xp-per-log: 8
       DARK_OAK:
         level-required: 10
         xp-per-log: 10
@@ -84,6 +87,8 @@ woodcutting:
     max-leaves: 500
     ignore-player-placed-wood: false
     ignore-player-placed-leaves: false
+    allow-mixed-leaves: true
+    mixed-leaf-radius: 3
 
   animation:
     enabled: true
@@ -137,17 +142,35 @@ woodcutting:
       only-if-space-clear: true
       replace-saplings: true
 
+  leaf-groups:
+    PINE_MIXED:
+      - SPRUCE_LEAVES
+      - DARK_OAK_LEAVES
+      - OAK_LEAVES
+      - MANGROVE_LEAVES
+      - AZALEA_LEAVES
+      - FLOWERING_AZALEA_LEAVES
+
+    TEMPERATE_MIXED:
+      - OAK_LEAVES
+      - BIRCH_LEAVES
+      - JUNGLE_LEAVES
+      - AZALEA_LEAVES
+      - FLOWERING_AZALEA_LEAVES
+
   tree-types:
     OAK:
       logs: [OAK_LOG, OAK_WOOD, STRIPPED_OAK_LOG, STRIPPED_OAK_WOOD]
-      leaves: [OAK_LEAVES, BEE_NEST]
+      leaves: [OAK_LEAVES]
+      attached-blocks: [BEE_NEST]
       sapling: OAK_SAPLING
       diameter: 4
       height: 12
 
     BIRCH:
       logs: [BIRCH_LOG, BIRCH_WOOD, STRIPPED_BIRCH_LOG, STRIPPED_BIRCH_WOOD]
-      leaves: [BIRCH_LEAVES, BEE_NEST]
+      leaves: [BIRCH_LEAVES]
+      attached-blocks: [BEE_NEST]
       sapling: BIRCH_SAPLING
       diameter: 4
       height: 12
@@ -155,9 +178,20 @@ woodcutting:
     SPRUCE:
       logs: [SPRUCE_LOG, SPRUCE_WOOD, STRIPPED_SPRUCE_LOG, STRIPPED_SPRUCE_WOOD]
       leaves: [SPRUCE_LEAVES]
+      leaf-groups: [PINE_MIXED]
+      attached-blocks: [VINE, MOSS_CARPET, PALE_MOSS_CARPET]
       sapling: SPRUCE_SAPLING
-      diameter: 6
-      height: 24
+      diameter: 8
+      height: 32
+
+    PINE:
+      logs: [SPRUCE_LOG, SPRUCE_WOOD, STRIPPED_SPRUCE_LOG, STRIPPED_SPRUCE_WOOD]
+      leaves: [SPRUCE_LEAVES]
+      leaf-groups: [PINE_MIXED]
+      attached-blocks: [VINE, MOSS_CARPET, PALE_MOSS_CARPET]
+      sapling: SPRUCE_SAPLING
+      diameter: 8
+      height: 32
 
     DARK_OAK:
       logs: [DARK_OAK_LOG, DARK_OAK_WOOD, STRIPPED_DARK_OAK_LOG, STRIPPED_DARK_OAK_WOOD]
@@ -168,7 +202,8 @@ woodcutting:
 
     JUNGLE:
       logs: [JUNGLE_LOG, JUNGLE_WOOD, STRIPPED_JUNGLE_LOG, STRIPPED_JUNGLE_WOOD]
-      leaves: [JUNGLE_LEAVES, VINE, COCOA]
+      leaves: [JUNGLE_LEAVES]
+      attached-blocks: [VINE, COCOA]
       sapling: JUNGLE_SAPLING
       diameter: 8
       height: 32

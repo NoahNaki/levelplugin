@@ -76,6 +76,8 @@ public class WoodcuttingConfig {
     public int maxLeaves() { return Math.max(minimumLeaves(), config.getInt("woodcutting.detection.max-leaves", 500)); }
     public boolean ignorePlayerPlacedWood() { return config.getBoolean("woodcutting.detection.ignore-player-placed-wood", true); }
     public boolean ignorePlayerPlacedLeaves() { return config.getBoolean("woodcutting.detection.ignore-player-placed-leaves", true); }
+    public boolean allowMixedLeaves() { return config.getBoolean("woodcutting.detection.allow-mixed-leaves", true); }
+    public int mixedLeafRadius() { return Math.max(1, config.getInt("woodcutting.detection.mixed-leaf-radius", 3)); }
     public boolean animationEnabled() { return config.getBoolean("woodcutting.animation.enabled", true); }
     public double fallSpeed() { return Math.max(0.01D, config.getDouble("woodcutting.animation.fall-speed", 0.06D)); }
     public double initialAngleRadians() { return Math.toRadians(Math.max(0.1D, config.getDouble("woodcutting.animation.initial-angle-degrees", 3.0D))); }
@@ -168,11 +170,34 @@ public class WoodcuttingConfig {
             String path = "woodcutting.tree-types." + key + ".";
             Set<Material> logs = loadMaterials(path + "logs");
             Set<Material> leaves = loadMaterials(path + "leaves");
+            Set<Material> attachedBlocks = loadMaterials(path + "attached-blocks");
+            for (String group : config.getStringList(path + "leaf-groups")) {
+                leaves.addAll(loadMaterials("woodcutting.leaf-groups." + group));
+            }
+            moveKnownAttachedBlocksOutOfLeaves(leaves, attachedBlocks);
             Material sapling = material(config.getString(path + "sapling"), Material.OAK_SAPLING);
             TreeHeuristic heuristic = new TreeHeuristic(config.getInt(path + "diameter", 4), config.getInt(path + "height", 12));
-            if (!logs.isEmpty()) loaded.put(key.toUpperCase(Locale.ROOT), new TreeType(key.toUpperCase(Locale.ROOT), logs, leaves, sapling, heuristic));
+            if (!logs.isEmpty()) loaded.put(key.toUpperCase(Locale.ROOT), new TreeType(key.toUpperCase(Locale.ROOT), logs, leaves, attachedBlocks, sapling, heuristic));
         }
         return loaded;
+    }
+
+    private void moveKnownAttachedBlocksOutOfLeaves(Set<Material> leaves, Set<Material> attachedBlocks) {
+        Set<Material> knownAttached = EnumSet.noneOf(Material.class);
+        for (String materialName : List.of(
+                "BEE_NEST", "VINE", "COCOA", "MOSS_CARPET", "PALE_MOSS_CARPET",
+                "HANGING_ROOTS", "WEEPING_VINES", "WEEPING_VINES_PLANT", "TWISTING_VINES",
+                "TWISTING_VINES_PLANT", "CAVE_VINES", "CAVE_VINES_PLANT", "GLOW_LICHEN"
+        )) {
+            Material material = material(materialName, null);
+            if (material != null) knownAttached.add(material);
+        }
+        for (Material material : Set.copyOf(leaves)) {
+            if (knownAttached.contains(material)) {
+                leaves.remove(material);
+                attachedBlocks.add(material);
+            }
+        }
     }
 
     private String rewardTreePath(TreeType type, String child) {

@@ -12,7 +12,8 @@ import java.util.List;
 import java.util.Set;
 
 public class TreeDetectionResult {
-    private static final TreeDetectionResult INVALID = new TreeDetectionResult(false, TreeDetectionInvalidReason.UNKNOWN_TREE_TYPE, null, null, null, Set.of(), Set.of(), List.of(), false);
+    private static final TreeDetectionResult INVALID = new TreeDetectionResult(false, TreeDetectionInvalidReason.UNKNOWN_TREE_TYPE,
+            null, null, null, Set.of(), Set.of(), Set.of(), List.of(), false);
 
     private final boolean valid;
     private final TreeDetectionInvalidReason invalidReason;
@@ -21,10 +22,12 @@ public class TreeDetectionResult {
     private final Block clicked;
     private final Set<Block> logs;
     private final Set<Block> leaves;
+    private final Set<Block> attachedBlocks;
     private final List<CapturedBlock> snapshots;
     private final boolean largeTree;
 
-    private TreeDetectionResult(boolean valid, TreeDetectionInvalidReason invalidReason, TreeType type, Block root, Block clicked, Set<Block> logs, Set<Block> leaves,
+    private TreeDetectionResult(boolean valid, TreeDetectionInvalidReason invalidReason, TreeType type, Block root, Block clicked,
+                                Set<Block> logs, Set<Block> leaves, Set<Block> attachedBlocks,
                                 List<CapturedBlock> snapshots, boolean largeTree) {
         this.valid = valid;
         this.invalidReason = invalidReason;
@@ -33,24 +36,29 @@ public class TreeDetectionResult {
         this.clicked = clicked;
         this.logs = Collections.unmodifiableSet(new LinkedHashSet<>(logs));
         this.leaves = Collections.unmodifiableSet(new LinkedHashSet<>(leaves));
+        this.attachedBlocks = Collections.unmodifiableSet(new LinkedHashSet<>(attachedBlocks));
         this.snapshots = List.copyOf(snapshots);
         this.largeTree = largeTree;
     }
 
     public static TreeDetectionResult invalid() { return INVALID; }
 
-    public static TreeDetectionResult invalid(TreeDetectionInvalidReason reason, TreeType type, Block root, Block clicked, Set<Block> logs, Set<Block> leaves) {
-        return new TreeDetectionResult(false, reason == null ? TreeDetectionInvalidReason.UNKNOWN_TREE_TYPE : reason, type, root, clicked, logs, leaves, List.of(), false);
+    public static TreeDetectionResult invalid(TreeDetectionInvalidReason reason, TreeType type, Block root, Block clicked,
+                                              Set<Block> logs, Set<Block> leaves, Set<Block> attachedBlocks) {
+        return new TreeDetectionResult(false, reason == null ? TreeDetectionInvalidReason.UNKNOWN_TREE_TYPE : reason,
+                type, root, clicked, logs, leaves, attachedBlocks, List.of(), false);
     }
 
-    public static TreeDetectionResult valid(TreeType type, Block root, Block clicked, Set<Block> logs, Set<Block> leaves, boolean largeTree) {
+    public static TreeDetectionResult valid(TreeType type, Block root, Block clicked, Set<Block> logs, Set<Block> leaves,
+                                            Set<Block> attachedBlocks, boolean largeTree) {
         Set<Block> all = new LinkedHashSet<>(logs);
         all.addAll(leaves);
+        all.addAll(attachedBlocks);
         List<CapturedBlock> snapshots = all.stream()
                 .map(block -> new CapturedBlock(block, block.getState(), block.getBlockData(), block.getLocation(),
                         block.getLocation().toVector().subtract(root.getLocation().toVector())))
                 .toList();
-        return new TreeDetectionResult(true, TreeDetectionInvalidReason.NONE, type, root, clicked, logs, leaves, snapshots, largeTree);
+        return new TreeDetectionResult(true, TreeDetectionInvalidReason.NONE, type, root, clicked, logs, leaves, attachedBlocks, snapshots, largeTree);
     }
 
     public boolean valid() { return valid; }
@@ -60,6 +68,7 @@ public class TreeDetectionResult {
     public Block clicked() { return clicked; }
     public Set<Block> logs() { return logs; }
     public Set<Block> leaves() { return leaves; }
+    public Set<Block> attachedBlocks() { return attachedBlocks; }
     public List<CapturedBlock> snapshots() { return snapshots; }
     public boolean wasLargeTree() { return largeTree; }
 
@@ -89,6 +98,7 @@ public class TreeDetectionResult {
     public Set<Block> allBlocks() {
         Set<Block> all = new LinkedHashSet<>(logs);
         all.addAll(leaves);
+        all.addAll(attachedBlocks);
         return all;
     }
 

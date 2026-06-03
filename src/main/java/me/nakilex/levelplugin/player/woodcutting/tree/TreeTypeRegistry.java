@@ -4,6 +4,8 @@ import me.nakilex.levelplugin.player.woodcutting.WoodcuttingConfig;
 import org.bukkit.Material;
 
 import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Set;
 
 public class TreeTypeRegistry {
     private final WoodcuttingConfig config;
@@ -19,8 +21,19 @@ public class TreeTypeRegistry {
 
     public boolean isWoodLike(Material material) {
         for (TreeType type : config.treeTypes().values()) {
-            if (type.isLog(material) || type.isLeafOrAttachedNaturalBlock(material)) return true;
+            if (type.isTreePart(material)) return true;
         }
+        return false;
+    }
+
+    public Set<Material> allConfiguredLeaves() {
+        Set<Material> leaves = EnumSet.noneOf(Material.class);
+        for (TreeType type : config.treeTypes().values()) leaves.addAll(type.leaves());
+        return leaves;
+    }
+
+    public boolean isAnyConfiguredLeaf(Material material) {
+        for (TreeType type : config.treeTypes().values()) if (type.isLeaf(material)) return true;
         return false;
     }
 
