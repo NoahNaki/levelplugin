@@ -10,8 +10,12 @@ import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 
 /**
+ * Legacy linear quest dialogue session retained for compatibility; active dialogue is now owned by
+ * {@link me.nakilex.levelplugin.dialogue.DialogueSessionManager}.
+ *
  * Tracks one player's progress through a simple linear quest dialogue.
  */
+@Deprecated
 public class QuestDialogueSession {
     public enum State {
         TYPING,

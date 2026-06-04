@@ -13,7 +13,8 @@ public class NPCDialogMoveListener implements Listener {
     }
 
     @EventHandler
-    public void onMove(PlayerMoveEvent event) {
+    public void onPlayerMove(PlayerMoveEvent event) {
+        // NPCDialogManager delegates to DialogueSessionManager, which ends as DialogueEndReason.OUT_OF_RANGE.
         dialogManager.checkDistance(event.getPlayer(), 25); // 5 blocks squared
     }
 }

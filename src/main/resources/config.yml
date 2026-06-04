@@ -79,6 +79,14 @@ animatedlb:
   row-count: 10
   animation-speed: 1.0
 
+# Optional resource-pack dialogue HUD foundation. The renderer is disabled until real HUD assets and wiring are complete.
+dialogue-hud:
+  resource-pack:
+    enabled: true
+    fallback-chat-renderer: true
+  renderer:
+    enabled: false
+
 # Interactive challenge selected when a fish bites. Difficulty scales with level, fish rarity, and rod tier.
 fishing-mini-games:
   debug: false
