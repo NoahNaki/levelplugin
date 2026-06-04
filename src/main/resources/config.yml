@@ -88,6 +88,10 @@ dialogue-hud:
     enabled: true
     mode: actionbar # actionbar / chat
     use-resource-pack-glyphs: true
+    # Use only for diagnosing glyph/font JSON issues; bypasses per-player resource-pack load checks.
+    debug-force-glyphs: false
+  debug:
+    log-pack-status: true
 
 # Interactive challenge selected when a fish bites. Difficulty scales with level, fish rarity, and rod tier.
 fishing-mini-games:

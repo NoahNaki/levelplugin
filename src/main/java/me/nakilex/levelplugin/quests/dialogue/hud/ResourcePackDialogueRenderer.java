@@ -13,6 +13,9 @@ import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
 
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /** Action-bar dialogue renderer with optional resource-pack glyph framing and readable text fallback. */
 public class ResourcePackDialogueRenderer implements QuestDialogueSession.Renderer, DialogueRenderer {
@@ -20,6 +23,7 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
     private static final int MAX_VISIBLE_ANSWERS = 3;
 
     private final DialogueHudResourcePackManager resourcePackManager;
+    private final Map<UUID, String> lastGlyphReasons = new ConcurrentHashMap<>();
 
     public ResourcePackDialogueRenderer(DialogueHudResourcePackManager resourcePackManager) {
         this.resourcePackManager = resourcePackManager;
@@ -30,7 +34,15 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
                 && resourcePackManager.rendererEnabled()
                 && resourcePackManager.actionBarMode()
                 && resourcePackManager.useResourcePackGlyphs()
-                && resourcePackManager.status().glyphUiEnabled();
+                && resourcePackManager.debugForceGlyphs()
+                && resourcePackManager.serverGlyphFilesReady();
+    }
+
+    public boolean canRenderGlyphUi(Player player) {
+        return resourcePackManager != null
+                && resourcePackManager.rendererEnabled()
+                && resourcePackManager.actionBarMode()
+                && resourcePackManager.playerCanUseGlyphs(player);
     }
 
     @Override
@@ -43,8 +55,12 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
                        List<Component> completedPageLines, Component visibleText, int pageLineIndex, int pageLineCount,
                        List<DialogueAnswer> answers, int selectedAnswerIndex, List<Component> replyLines) {
         if (player == null || resourcePackManager == null || !resourcePackManager.rendererEnabled()) return;
-        player.sendActionBar(canRenderGlyphUi()
-                ? glyphActionBar(speaker, completedPageLines, visibleText, pageLineIndex, pageLineCount, answers, selectedAnswerIndex, replyLines)
+        boolean glyphs = canRenderGlyphUi(player);
+        if (resourcePackManager.debugLogging()) {
+            resourcePackManagerDebug(player, glyphs);
+        }
+        player.sendActionBar(glyphs
+                ? glyphActionBar(player, speaker, completedPageLines, visibleText, pageLineIndex, pageLineCount, answers, selectedAnswerIndex, replyLines)
                 : plainActionBar(speaker, completedPageLines, visibleText, pageLineIndex, pageLineCount, answers, selectedAnswerIndex, replyLines));
     }
 
@@ -67,21 +83,22 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
     @Override
     public void clear(Player player) {
         if (player != null) {
+            lastGlyphReasons.remove(player.getUniqueId());
             player.sendActionBar(Component.empty());
             player.clearTitle();
         }
     }
 
-    private Component glyphActionBar(Component speaker, List<Component> completedPageLines, Component visibleText,
+    private Component glyphActionBar(Player player, Component speaker, List<Component> completedPageLines, Component visibleText,
                                      int pageLineIndex, int pageLineCount, List<DialogueAnswer> answers,
                                      int selectedAnswerIndex, List<Component> replyLines) {
         return DialogueHudGlyphs.background()
                 .append(DialogueHudGlyphs.offset(-8))
-                .append(renderSpeakerName(speaker))
+                .append(renderSpeakerName(player, speaker))
                 .append(Component.space())
                 .append(renderPageLines(lastLines(completedPageLines), visibleText))
                 .append(progressComponent(pageLineIndex, pageLineCount))
-                .append(answerSummary(answers, selectedAnswerIndex))
+                .append(answerSummary(answers, selectedAnswerIndex, true))
                 .append(replySummary(replyLines));
     }
 
@@ -93,7 +110,7 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
                 .append(Component.text("] ", NamedTextColor.DARK_GRAY))
                 .append(renderPageLines(lastLines(completedPageLines), visibleText))
                 .append(progressComponent(pageLineIndex, pageLineCount))
-                .append(answerSummary(answers, selectedAnswerIndex))
+                .append(answerSummary(answers, selectedAnswerIndex, false))
                 .append(replySummary(replyLines));
         return output;
     }
@@ -104,7 +121,11 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
     }
 
     public Component renderSpeakerName(Component speaker) {
-        if (canRenderGlyphUi()) {
+        return renderSpeakerName(null, speaker);
+    }
+
+    public Component renderSpeakerName(Player player, Component speaker) {
+        if (player != null && canRenderGlyphUi(player)) {
             return DialogueHudGlyphs.glyph(DialogueHudGlyphs.NAMEPLATE_LEFT)
                     .append(speaker == null ? Component.empty() : speaker.colorIfAbsent(NamedTextColor.YELLOW))
                     .append(DialogueHudGlyphs.glyph(DialogueHudGlyphs.NAMEPLATE_RIGHT));
@@ -130,13 +151,17 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
         Component output = Component.empty();
         if (answers == null) return output;
         for (int i = 0; i < answers.size(); i++) {
-            output = appendLine(output, renderAnswer(answers.get(i), i == selectedAnswer));
+            output = appendLine(output, renderAnswer(answers.get(i), i == selectedAnswer, false));
         }
         return output;
     }
 
     public Component renderAnswer(Component answer, boolean selected) {
-        Component selector = selected && canRenderGlyphUi()
+        return renderAnswer(answer, selected, canRenderGlyphUi());
+    }
+
+    private Component renderAnswer(Component answer, boolean selected, boolean useGlyphSelector) {
+        Component selector = selected && useGlyphSelector
                 ? DialogueHudGlyphs.selector()
                 : Component.text(selected ? "➤ " : "  ", selected ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY);
         return selector.append(answer == null ? Component.empty()
@@ -147,13 +172,23 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
         return DialogueHudGlyphs.background();
     }
 
-    private Component answerSummary(List<DialogueAnswer> answers, int selectedAnswerIndex) {
+    private void resourcePackManagerDebug(Player player, boolean glyphs) {
+        String reason = resourcePackManager.glyphDebugReason(player);
+        String message = (glyphs ? "glyphs" : "plain text") + ": " + reason;
+        String previous = lastGlyphReasons.put(player.getUniqueId(), message);
+        if (!message.equals(previous)) {
+            player.getServer().getLogger().info("Dialogue HUD render mode for " + player.getName() + " -> " + message);
+        }
+    }
+
+    private Component answerSummary(List<DialogueAnswer> answers, int selectedAnswerIndex, boolean useGlyphSelector) {
         if (answers == null || answers.isEmpty()) return Component.empty();
         Component output = Component.text("  Answers: ", NamedTextColor.AQUA);
         int limit = Math.min(MAX_VISIBLE_ANSWERS, answers.size());
         for (int i = 0; i < limit; i++) {
             if (i > 0) output = output.append(Component.text(" / ", NamedTextColor.DARK_GRAY));
-            output = output.append(renderAnswer(ChatUtil.formattedComponent((i + 1) + ". " + answers.get(i).text()), i == selectedAnswerIndex));
+            output = output.append(renderAnswer(ChatUtil.formattedComponent((i + 1) + ". " + answers.get(i).text()),
+                    i == selectedAnswerIndex, useGlyphSelector));
         }
         if (answers.size() > limit) {
             output = output.append(Component.text(" / …", NamedTextColor.DARK_GRAY));

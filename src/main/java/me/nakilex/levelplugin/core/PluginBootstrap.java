@@ -465,6 +465,11 @@ public class PluginBootstrap {
                         && dialogueHudResourcePackManager.fallbackChatRendererEnabled()
                         ? new me.nakilex.levelplugin.dialogue.render.ChatDialogueRenderer()
                         : new me.nakilex.levelplugin.quests.dialogue.hud.ResourcePackDialogueRenderer(dialogueHudResourcePackManager);
+        if (dialogueHudResourcePackManager != null && dialogueHudResourcePackManager.debugLogging()) {
+            plugin.getLogger().info("Dialogue renderer selected: " + dialogueRenderer.getClass().getSimpleName()
+                    + " (mode=" + dialogueHudResourcePackManager.rendererMode()
+                    + ", glyphs=" + dialogueHudResourcePackManager.useResourcePackGlyphs() + ")");
+        }
         dialogueSessionManager = new me.nakilex.levelplugin.dialogue.DialogueSessionManager(plugin, dialogueRenderer);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin, dialogueSessionManager);
         questDialogueManager = new me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager(plugin, dialogueSessionManager);

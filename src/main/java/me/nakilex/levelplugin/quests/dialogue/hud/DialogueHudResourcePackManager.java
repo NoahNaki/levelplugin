@@ -20,11 +20,14 @@ public final class DialogueHudResourcePackManager {
 
     private final Main plugin;
     private final ResourcePackFragmentInstaller installer;
+    private final DialogueHudPackStatusListener packStatusListener;
 
     private DialogueHudResourcePackManager(Main plugin) {
         this.plugin = plugin;
         this.installer = new ResourcePackFragmentInstaller(plugin, "dialogue HUD", BUNDLED_FRAGMENT,
                 EXTERNAL_PACK_FOLDER, configuredRequiredFiles(plugin));
+        this.packStatusListener = new DialogueHudPackStatusListener(plugin);
+        plugin.getServer().getPluginManager().registerEvents(packStatusListener, plugin);
     }
 
     public static DialogueHudResourcePackManager initialize(Main plugin) {
@@ -40,11 +43,15 @@ public final class DialogueHudResourcePackManager {
     public static DialogueHudResourcePackManager getInstance() { return instance; }
 
     public static boolean canRenderGlyphUi() {
-        return instance != null && instance.useResourcePackGlyphs() && instance.status().glyphUiEnabled();
+        return instance != null && instance.serverGlyphFilesReady() && instance.useResourcePackGlyphs();
     }
 
     public ResourcePackFragmentStatus status() {
         return installer.status(resourcePackEnabled(), fallbackChatRendererEnabled());
+    }
+
+    public DialogueHudPackStatusListener packStatusListener() {
+        return packStatusListener;
     }
 
     public boolean rendererEnabled() {
@@ -62,6 +69,32 @@ public final class DialogueHudResourcePackManager {
 
     public boolean useResourcePackGlyphs() {
         return plugin.getConfig().getBoolean("dialogue-hud.renderer.use-resource-pack-glyphs", true);
+    }
+
+    public boolean debugForceGlyphs() {
+        return plugin.getConfig().getBoolean("dialogue-hud.renderer.debug-force-glyphs", false);
+    }
+
+    public boolean debugLogging() {
+        return plugin.getConfig().getBoolean("dialogue-hud.debug.log-pack-status", true);
+    }
+
+    public boolean playerCanUseGlyphs(org.bukkit.entity.Player player) {
+        return serverGlyphFilesReady()
+                && useResourcePackGlyphs()
+                && (debugForceGlyphs() || packStatusListener.hasLoadedPack(player));
+    }
+
+    public boolean serverGlyphFilesReady() {
+        return status().glyphUiEnabled();
+    }
+
+    public String glyphDebugReason(org.bukkit.entity.Player player) {
+        if (!useResourcePackGlyphs()) return "renderer glyphs disabled in config";
+        if (!serverGlyphFilesReady()) return "server-side dialogue HUD pack files are incomplete or Nexo is unavailable";
+        if (debugForceGlyphs()) return "debug-force-glyphs enabled";
+        if (!packStatusListener.hasLoadedPack(player)) return "player has not reported SUCCESSFULLY_LOADED for the resource pack";
+        return "glyphs enabled";
     }
 
     public boolean fallbackChatRendererEnabled() {
@@ -89,13 +122,16 @@ public final class DialogueHudResourcePackManager {
                     + "' is missing; dialogue glyph HUD will stay unavailable until assets are added.");
         }
         if (!status.glyphUiEnabled()) {
-            plugin.getLogger().warning("Dialogue HUD resource-pack glyph UI is unavailable. Current dialogue rendering can fall back to chat.");
+            plugin.getLogger().warning("Dialogue HUD resource-pack glyph UI is unavailable. Action-bar rendering will use plain text.");
             status.requiredFiles().forEach((file, exists) -> {
                 if (!exists) {
                     plugin.getLogger().warning("Missing dialogue HUD resource-pack file in " + EXTERNAL_PACK_FOLDER
                             + ": " + file);
                 }
             });
+        } else {
+            plugin.getLogger().info("Dialogue HUD resource-pack files verified at " + status.installedPackPath()
+                    + ". Glyphs still require each player to successfully load the resource pack.");
         }
     }
 }

@@ -10,6 +10,8 @@ import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingDifficultyProfile;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingMiniGameManager;
 import me.nakilex.levelplugin.player.fishing.resourcepack.FishingResourcePackManager;
+import me.nakilex.levelplugin.quests.dialogue.hud.DialogueHudResourcePackManager;
+import me.nakilex.levelplugin.resourcepack.ResourcePackFragmentStatus;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -26,6 +28,7 @@ public class LevelPluginCommand implements TabExecutor {
     private static final String SUB_FISHING_PACK = "fishingpack";
     private static final String SUB_INFO = "info";
     private static final String SUB_FISHING = "fishing";
+    private static final String SUB_DIALOGUE_HUD = "dialoguehud";
     private static final String SUB_MINIGAME = "minigame";
     private static final String SUB_TEST = "test";
 
@@ -58,6 +61,11 @@ public class LevelPluginCommand implements TabExecutor {
             sendFishingPackInfo(sender);
             return true;
         }
+        if (SUB_DIALOGUE_HUD.equalsIgnoreCase(args[0]) && args.length >= 2 && SUB_INFO.equalsIgnoreCase(args[1])) {
+            Player target = args.length >= 3 ? plugin.getServer().getPlayerExact(args[2]) : sender instanceof Player player ? player : null;
+            sendDialogueHudInfo(sender, target);
+            return true;
+        }
         if (SUB_FISHING.equalsIgnoreCase(args[0]) && args.length >= 4
                 && SUB_MINIGAME.equalsIgnoreCase(args[1]) && SUB_TEST.equalsIgnoreCase(args[2])) {
             startFishingMiniGameTest(sender, args[3]);
@@ -83,6 +91,33 @@ public class LevelPluginCommand implements TabExecutor {
         sendStatus(sender, "assets/customfishing/font/offset_chars.json exists", status.offsetFontExists());
         sendStatus(sender, "Glyph UI enabled", status.glyphUiEnabled());
         sendStatus(sender, "Text fallback enabled", status.textFallbackEnabled());
+    }
+
+    private void sendDialogueHudInfo(CommandSender sender, Player target) {
+        DialogueHudResourcePackManager manager = DialogueHudResourcePackManager.getInstance();
+        if (manager == null) {
+            ChatMessageUtil.send(sender, MessageType.WARNING, "Dialogue HUD integration has not initialized yet.");
+            return;
+        }
+        ResourcePackFragmentStatus status = manager.status();
+        ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.AQUA + "Dialogue HUD integration status:");
+        sendStatus(sender, "Renderer enabled", manager.rendererEnabled());
+        ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + "Renderer mode: " + ChatColor.WHITE + manager.rendererMode());
+        sendStatus(sender, "Resource-pack glyphs allowed", manager.useResourcePackGlyphs());
+        sendStatus(sender, "Debug force glyphs", manager.debugForceGlyphs());
+        sendStatus(sender, "Server glyph files ready", manager.serverGlyphFilesReady());
+        sendStatus(sender, "Nexo external_packs exists", status.nexoExternalPacksExists());
+        sendStatus(sender, "levelplugin-dialogue-hud installed", status.installed());
+        status.requiredFiles().forEach((file, exists) -> sendStatus(sender, file + " exists", exists));
+        if (target != null) {
+            sendStatus(sender, target.getName() + " loaded server resource pack", manager.packStatusListener().hasLoadedPack(target));
+            sendStatus(sender, target.getName() + " can use dialogue glyphs", manager.playerCanUseGlyphs(target));
+            ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + "Glyph decision: " + ChatColor.WHITE
+                    + manager.glyphDebugReason(target));
+        } else {
+            ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY
+                    + "Run as a player or pass an online player name to inspect player pack-load state.");
+        }
     }
 
     private void startFishingMiniGameTest(CommandSender sender, String type) {
@@ -111,20 +146,26 @@ public class LevelPluginCommand implements TabExecutor {
 
     private void sendUsage(CommandSender sender, String label) {
         ChatMessageUtil.send(sender, MessageType.INFO,
-                "Usage: /" + label + " <reload|fishingpack info|fishing minigame test <type>>");
+                "Usage: /" + label + " <reload|fishingpack info|dialoguehud info [player]|fishing minigame test <type>>");
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             String input = args[0].toLowerCase(Locale.ROOT);
-            return List.of(SUB_RELOAD, SUB_FISHING_PACK, SUB_FISHING).stream()
+            return List.of(SUB_RELOAD, SUB_FISHING_PACK, SUB_DIALOGUE_HUD, SUB_FISHING).stream()
                     .filter(option -> option.startsWith(input))
                     .toList();
         }
-        if (args.length == 2 && SUB_FISHING_PACK.equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && (SUB_FISHING_PACK.equalsIgnoreCase(args[0]) || SUB_DIALOGUE_HUD.equalsIgnoreCase(args[0]))) {
             String input = args[1].toLowerCase(Locale.ROOT);
             return SUB_INFO.startsWith(input) ? List.of(SUB_INFO) : Collections.emptyList();
+        }
+        if (args.length == 3 && SUB_DIALOGUE_HUD.equalsIgnoreCase(args[0]) && SUB_INFO.equalsIgnoreCase(args[1])) {
+            return plugin.getServer().getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT)))
+                    .toList();
         }
         if (args.length == 2 && SUB_FISHING.equalsIgnoreCase(args[0])) {
             return matching(args[1], List.of(SUB_MINIGAME));
