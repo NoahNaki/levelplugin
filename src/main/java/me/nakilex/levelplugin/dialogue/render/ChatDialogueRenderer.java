@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+/** Chat-window renderer retained for explicit fallback/debug mode; action bar is the default dialogue channel. */
 public class ChatDialogueRenderer implements DialogueRenderer {
     private static final int CLEAR_LINES = 18;
     private final Set<UUID> conversations = new HashSet<>();

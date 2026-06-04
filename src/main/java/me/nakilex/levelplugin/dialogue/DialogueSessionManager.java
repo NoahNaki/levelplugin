@@ -32,14 +32,18 @@ public class DialogueSessionManager implements Listener {
     private final BukkitTask tickTask;
 
     public DialogueSessionManager(JavaPlugin plugin) {
-        this(plugin, new ChatDialogueRenderer(), new DialoguePlaceholderFormatter(), new DialogueConditionEvaluator());
+        this(plugin, new ChatDialogueRenderer());
+    }
+
+    public DialogueSessionManager(JavaPlugin plugin, DialogueRenderer renderer) {
+        this(plugin, renderer, new DialoguePlaceholderFormatter(), new DialogueConditionEvaluator());
     }
 
     public DialogueSessionManager(JavaPlugin plugin, DialogueRenderer renderer,
                                   DialoguePlaceholderFormatter formatter,
                                   DialogueConditionEvaluator conditionEvaluator) {
         this.plugin = plugin;
-        this.renderer = renderer;
+        this.renderer = renderer == null ? new ChatDialogueRenderer() : renderer;
         this.formatter = formatter;
         this.conditionEvaluator = conditionEvaluator;
         this.actionExecutor = new DialogueActionExecutor(plugin, formatter);

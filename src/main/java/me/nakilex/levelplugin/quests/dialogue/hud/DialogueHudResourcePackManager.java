@@ -40,7 +40,7 @@ public final class DialogueHudResourcePackManager {
     public static DialogueHudResourcePackManager getInstance() { return instance; }
 
     public static boolean canRenderGlyphUi() {
-        return instance != null && instance.status().glyphUiEnabled();
+        return instance != null && instance.useResourcePackGlyphs() && instance.status().glyphUiEnabled();
     }
 
     public ResourcePackFragmentStatus status() {
@@ -48,7 +48,20 @@ public final class DialogueHudResourcePackManager {
     }
 
     public boolean rendererEnabled() {
-        return plugin.getConfig().getBoolean("dialogue-hud.renderer.enabled", false);
+        return plugin.getConfig().getBoolean("dialogue-hud.renderer.enabled", true);
+    }
+
+    public String rendererMode() {
+        String mode = plugin.getConfig().getString("dialogue-hud.renderer.mode", "actionbar");
+        return mode == null || mode.isBlank() ? "actionbar" : mode.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    public boolean actionBarMode() {
+        return !"chat".equals(rendererMode());
+    }
+
+    public boolean useResourcePackGlyphs() {
+        return plugin.getConfig().getBoolean("dialogue-hud.renderer.use-resource-pack-glyphs", true);
     }
 
     public boolean fallbackChatRendererEnabled() {

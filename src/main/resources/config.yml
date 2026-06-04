@@ -79,13 +79,15 @@ animatedlb:
   row-count: 10
   animation-speed: 1.0
 
-# Optional resource-pack dialogue HUD foundation. The renderer is disabled until real HUD assets and wiring are complete.
+# Optional Lux-style dialogue HUD/action-bar foundation. Chat mode is intended for fallback/debug only.
 dialogue-hud:
   resource-pack:
     enabled: true
     fallback-chat-renderer: true
   renderer:
-    enabled: false
+    enabled: true
+    mode: actionbar # actionbar / chat
+    use-resource-pack-glyphs: true
 
 # Interactive challenge selected when a fish bites. Difficulty scales with level, fish rarity, and rod tier.
 fishing-mini-games:

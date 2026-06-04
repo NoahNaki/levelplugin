@@ -458,7 +458,14 @@ public class PluginBootstrap {
         questManager = new QuestManager(plugin, partyManager);
         battlePassManager = new BattlePassManager(plugin, questManager, itemManager);
         battlePassGUI = battlePassManager.getGui();
-        dialogueSessionManager = new me.nakilex.levelplugin.dialogue.DialogueSessionManager(plugin);
+        DialogueHudResourcePackManager dialogueHudResourcePackManager = DialogueHudResourcePackManager.getInstance();
+        me.nakilex.levelplugin.dialogue.DialogueRenderer dialogueRenderer =
+                dialogueHudResourcePackManager != null
+                        && "chat".equals(dialogueHudResourcePackManager.rendererMode())
+                        && dialogueHudResourcePackManager.fallbackChatRendererEnabled()
+                        ? new me.nakilex.levelplugin.dialogue.render.ChatDialogueRenderer()
+                        : new me.nakilex.levelplugin.quests.dialogue.hud.ResourcePackDialogueRenderer(dialogueHudResourcePackManager);
+        dialogueSessionManager = new me.nakilex.levelplugin.dialogue.DialogueSessionManager(plugin, dialogueRenderer);
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin, dialogueSessionManager);
         questDialogueManager = new me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager(plugin, dialogueSessionManager);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);

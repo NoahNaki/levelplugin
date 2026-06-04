@@ -21,5 +21,9 @@ public final class DialogueHudGlyphs {
 
     public static Component glyph(char glyph) { return Component.text(glyph).font(DIALOGUE_FONT); }
 
+    public static Component background() { return glyph(DIALOGUE_BACKGROUND); }
+
+    public static Component selector() { return glyph(SELECTOR_ARROW); }
+
     public static Component offset(int pixels) { return OffsetGlyphs.component(pixels, OFFSET_FONT); }
 }
