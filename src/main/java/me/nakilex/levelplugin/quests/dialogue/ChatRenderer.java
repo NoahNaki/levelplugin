@@ -12,12 +12,16 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
+ * Legacy quest chat renderer retained for compatibility; new runtime uses
+ * {@link me.nakilex.levelplugin.dialogue.render.ChatDialogueRenderer}.
+ *
  * Mirrors timed quest dialogue into the chat window without owning dialogue timing.
  *
  * <p>This is intentionally lighter than a packet-level chat history interceptor. It redraws a small
  * dialogue window as one chat component, keeping completed lines dimmed above the currently typing
  * line. The session renderer remains the single source of timing, formatting-safe slicing and state.
  */
+@Deprecated
 public class ChatRenderer implements QuestDialogueSession.Renderer {
     private static final int CLEAR_LINES = 20;
     private static final int HISTORY_LIMIT = 12;

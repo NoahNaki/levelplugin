@@ -13,7 +13,7 @@ import java.util.List;
  * Visible characters are stored separately from formatting so animations never split
  * legacy color codes, MiniMessage tags, or custom glyph placeholders.
  */
-final class QuestDialogueText {
+public final class QuestDialogueText {
     private static final int MAX_LINE_CHARACTERS = 58;
     private static final int COMMA_PAUSE_MILLIS = 110;
     private static final int SENTENCE_PAUSE_MILLIS = 210;
@@ -26,17 +26,17 @@ final class QuestDialogueText {
         this.visibleTokens = tokens.stream().filter(Token::visible).toList();
     }
 
-    static QuestDialogueText parse(String text) {
+    public static QuestDialogueText parse(String text) {
         List<Token> flattened = new ArrayList<>();
         flatten(ChatUtil.formattedComponent(text), Style.empty(), flattened);
         return new QuestDialogueText(wrap(flattened));
     }
 
-    Component fullComponent() {
+    public Component fullComponent() {
         return slice(visibleTokens.size());
     }
 
-    Component sliceForElapsed(long elapsedMillis, long typingMillis) {
+    public Component sliceForElapsed(long elapsedMillis, long typingMillis) {
         if (visibleTokens.isEmpty() || typingMillis <= 0) {
             return fullComponent();
         }
@@ -61,7 +61,7 @@ final class QuestDialogueText {
         return slice(visibleCharacters);
     }
 
-    long typingDuration(long baseTypingMillis) {
+    public long typingDuration(long baseTypingMillis) {
         long punctuationMillis = visibleTokens.stream()
                 .mapToLong(token -> punctuationPause(token.plainText()))
                 .sum();
