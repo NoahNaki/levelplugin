@@ -126,6 +126,10 @@ public class ToolManager {
         return getTool(stack, true);
     }
 
+    public boolean isTaggedLifeSkillTool(ItemStack stack) {
+        return getTool(stack, false) != null;
+    }
+
     public CustomTool getTool(ItemStack stack, boolean allowMaterialFallback) {
         if (stack == null || !stack.hasItemMeta()) {
             return allowMaterialFallback ? getTool(stack != null ? stack.getType() : null) : null;
@@ -359,7 +363,9 @@ public class ToolManager {
         if (meta != null) {
             meta.setUnbreakable(true);
             meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES, org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
-            stack.setItemMeta(meta);
+            ItemUtil.setItemMetaWithRarityTooltipStyle(stack, meta, tool.getTier().getRarity());
+        } else {
+            ItemUtil.applyRarityTooltipStyle(stack, tool.getTier().getRarity());
         }
         return stack;
     }

@@ -692,6 +692,18 @@ public class ItemUtil {
     }
 
     /**
+     * Apply item metadata, then re-apply the rarity tooltip border component.
+     * Paper item meta writes can replace component values, so callers that
+     * rebuild lore or flags should use this as their final write whenever the
+     * item needs a rarity-styled tooltip frame.
+     */
+    public static void setItemMetaWithRarityTooltipStyle(ItemStack stack, ItemMeta meta, ItemRarity rarity) {
+        if (stack == null || meta == null) return;
+        stack.setItemMeta(meta);
+        applyRarityTooltipStyle(stack, rarity);
+    }
+
+    /**
      * Resolve the original template material for a custom item, falling back
      * to the current material when no template is stored.
      */
@@ -780,7 +792,6 @@ public class ItemUtil {
             return;
         }
 
-        applyRarityTooltipStyle(stack, cItem.getRarity());
         centerGearName(stack);
 
         // Build the updated lore.
@@ -884,7 +895,7 @@ public class ItemUtil {
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE, ItemFlag.HIDE_DYE);
         meta.setUnbreakable(true);
-        stack.setItemMeta(meta);
+        setItemMetaWithRarityTooltipStyle(stack, meta, cItem.getRarity());
     }
 
 
@@ -1048,12 +1059,10 @@ public class ItemUtil {
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) return;
 
-        applyRarityTooltipStyle(stack, tier.getRarity());
         centerGearName(stack);
 
         List<String> lore = new ArrayList<>();
-        String rarityGlyph = "<glyph:" + tier.getRarity().name().toLowerCase() + ">";
-        lore.add(rarityGlyph + "<glyph:tool>");
+        lore.add(tier.getRarity().getSymbol() + "<glyph:tool>");
         lore.add("");
         ToolDiscipline discipline = customTool != null ? customTool.getDiscipline() : ToolDiscipline.MINING;
         int level = 0;
@@ -1117,7 +1126,7 @@ public class ItemUtil {
         meta.setUnbreakable(true);
         meta.setLore(lore);
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
-        stack.setItemMeta(meta);
+        setItemMetaWithRarityTooltipStyle(stack, meta, tier.getRarity());
     }
 
     /**

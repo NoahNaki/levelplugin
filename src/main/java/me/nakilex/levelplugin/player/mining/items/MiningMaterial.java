@@ -35,20 +35,4 @@ public enum MiningMaterial {
         return item;
     }
 
-    public static MiningMaterial fromOre(String ore) {
-        return switch (ore) {
-            case "coal_ore" -> COAL;
-            case "copper_ore" -> COPPER;
-            case "iron_ore" -> IRON;
-            case "gold_ore" -> GOLD;
-            case "quartz_ore" -> QUARTZ;
-            case "amethyst_ore" -> AMETHYST;
-            case "redstone_ore" -> REDSTONE;
-            case "lapis_ore" -> LAPIS;
-            case "diamond_ore" -> DIAMOND;
-            case "emerald_ore" -> EMERALD;
-            case "netherite_ore" -> NETHERITE;
-            default -> null;
-        };
-    }
 }

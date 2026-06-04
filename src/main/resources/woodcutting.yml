@@ -18,3 +18,209 @@ drops:
   amount:
     min: 1
     max: 2
+
+woodcutting:
+  enabled: true
+  enabled-by-default: true
+  debug: false
+
+  rewards:
+    xp-per-log: 6
+    xp-per-leaf: 0
+    xp-multiplier: 1.0
+    minimum-xp: 8
+    maximum-xp-per-tree: 400
+
+    tree-types:
+      OAK:
+        level-required: 1
+        xp-per-log: 6
+      BIRCH:
+        level-required: 1
+        xp-per-log: 6
+      SPRUCE:
+        level-required: 5
+        xp-per-log: 8
+      PINE:
+        level-required: 5
+        xp-per-log: 8
+      DARK_OAK:
+        level-required: 10
+        xp-per-log: 10
+      JUNGLE:
+        level-required: 15
+        xp-per-log: 12
+      ACACIA:
+        level-required: 20
+        xp-per-log: 14
+      CHERRY:
+        level-required: 25
+        xp-per-log: 16
+
+  break:
+    tools:
+      - WOODEN_AXE
+      - STONE_AXE
+      - IRON_AXE
+      - GOLDEN_AXE
+      - DIAMOND_AXE
+      - NETHERITE_AXE
+    pose: BOTH # BOTH, CROUCH, STAND
+    max-height-above-root: 3
+    allow-creative: false
+
+    axe-damage:
+      proportional: true
+      multiplier: 1.0
+      leave-at-one-durability: true
+
+    slow-break:
+      enabled: false
+      time-multiplier: 1.0
+      max-seconds: 20
+      indicator: ACTIONBAR # NONE, ACTIONBAR, BOSSBAR
+
+  detection:
+    minimum-logs: 2
+    minimum-leaves: 4
+    max-logs: 500
+    max-leaves: 2000
+    ignore-player-placed-wood: false
+    ignore-player-placed-leaves: false
+    allow-mixed-leaves: true
+    prevent-air-gap-jumping: true
+    leaf-seed-radius: 4
+    leaf-connectivity-radius: 1
+    leaf-box-expansion: 8
+
+  animation:
+    enabled: true
+    fall-speed: 0.06
+    initial-angle-degrees: 3.0
+    gravity: 9.81
+    delta-time: 0.05
+    ticks-per-frame: 1
+    lying-delay-ticks: 20
+    direction-mode: EIGHT # FREE, EIGHT, FOUR
+
+    sounds:
+      enabled: true
+      start: BLOCK_WOOD_BREAK
+      falling: BLOCK_WOOD_STEP
+      impact: BLOCK_WOOD_PLACE
+      falling-chance: 0.12
+      volume: 0.8
+      pitch: 0.75
+
+    particles:
+      enabled: true
+      falling-chance: 0.08
+      amount: 4
+      spread: 0.25
+      impact-amount: 24
+
+    impact:
+      place-fallen-blocks: false
+      destroy-leaves-on-impact: false
+      destroy-soft-blocks: false
+
+    collision:
+      enabled: false
+      min-angle-degrees: 15
+      player-damage: 6.0
+      entity-damage: 0.0
+      particles: true
+
+  post-fall:
+    drop-location: LOCAL # LOCAL, ORIGIN, INVENTORY, TURN_INTO_BLOCKS
+
+    auto-replant:
+      enabled: true
+      large-trees: true
+      protect-saplings: false
+
+    exact-regrow:
+      enabled: true
+      delay-ticks: 1200
+      only-if-space-clear: true
+      replace-saplings: true
+
+  leaf-groups:
+    PINE_MIXED:
+      - SPRUCE_LEAVES
+      - DARK_OAK_LEAVES
+      - OAK_LEAVES
+      - MANGROVE_LEAVES
+      - AZALEA_LEAVES
+      - FLOWERING_AZALEA_LEAVES
+
+    TEMPERATE_MIXED:
+      - OAK_LEAVES
+      - BIRCH_LEAVES
+      - JUNGLE_LEAVES
+      - AZALEA_LEAVES
+      - FLOWERING_AZALEA_LEAVES
+
+  tree-types:
+    OAK:
+      logs: [OAK_LOG, OAK_WOOD, STRIPPED_OAK_LOG, STRIPPED_OAK_WOOD]
+      leaves: [OAK_LEAVES]
+      attached-blocks: [BEE_NEST]
+      sapling: OAK_SAPLING
+      diameter: 7
+      height: 18
+
+    BIRCH:
+      logs: [BIRCH_LOG, BIRCH_WOOD, STRIPPED_BIRCH_LOG, STRIPPED_BIRCH_WOOD]
+      leaves: [BIRCH_LEAVES]
+      attached-blocks: [BEE_NEST]
+      sapling: BIRCH_SAPLING
+      diameter: 7
+      height: 18
+
+    SPRUCE:
+      logs: [SPRUCE_LOG, SPRUCE_WOOD, STRIPPED_SPRUCE_LOG, STRIPPED_SPRUCE_WOOD]
+      leaves: [SPRUCE_LEAVES]
+      leaf-groups: [PINE_MIXED]
+      attached-blocks: [VINE, MOSS_CARPET, PALE_MOSS_CARPET]
+      sapling: SPRUCE_SAPLING
+      diameter: 12
+      height: 40
+
+    PINE:
+      logs: [SPRUCE_LOG, SPRUCE_WOOD, STRIPPED_SPRUCE_LOG, STRIPPED_SPRUCE_WOOD]
+      leaves: [SPRUCE_LEAVES]
+      leaf-groups: [PINE_MIXED]
+      attached-blocks: [VINE, MOSS_CARPET, PALE_MOSS_CARPET]
+      sapling: SPRUCE_SAPLING
+      diameter: 12
+      height: 40
+
+    DARK_OAK:
+      logs: [DARK_OAK_LOG, DARK_OAK_WOOD, STRIPPED_DARK_OAK_LOG, STRIPPED_DARK_OAK_WOOD]
+      leaves: [DARK_OAK_LEAVES]
+      sapling: DARK_OAK_SAPLING
+      diameter: 10
+      height: 24
+
+    JUNGLE:
+      logs: [JUNGLE_LOG, JUNGLE_WOOD, STRIPPED_JUNGLE_LOG, STRIPPED_JUNGLE_WOOD]
+      leaves: [JUNGLE_LEAVES]
+      attached-blocks: [VINE, COCOA]
+      sapling: JUNGLE_SAPLING
+      diameter: 12
+      height: 40
+
+    ACACIA:
+      logs: [ACACIA_LOG, ACACIA_WOOD, STRIPPED_ACACIA_LOG, STRIPPED_ACACIA_WOOD]
+      leaves: [ACACIA_LEAVES]
+      sapling: ACACIA_SAPLING
+      diameter: 9
+      height: 20
+
+    CHERRY:
+      logs: [CHERRY_LOG, CHERRY_WOOD, STRIPPED_CHERRY_LOG, STRIPPED_CHERRY_WOOD]
+      leaves: [CHERRY_LEAVES]
+      sapling: CHERRY_SAPLING
+      diameter: 9
+      height: 20

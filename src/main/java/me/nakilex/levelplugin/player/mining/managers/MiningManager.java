@@ -61,14 +61,6 @@ public class MiningManager implements LifeSkillProgression {
     }
 
     public void addXP(UUID uuid, int amount) {
-        if (getLevel(uuid) >= MAX_LEVEL) {
-            Player player = Bukkit.getPlayer(uuid);
-            if (player != null) {
-                markMiningActive(player);
-                updateBossBar(player);
-            }
-            return;
-        }
         int adjusted = amount;
         if (plugin.getPetManager() != null) {
             adjusted = plugin.getPetManager().applyActiveEffectMultiplier(uuid, PetEffectType.GATHERING_XP_BOOST, adjusted);
@@ -247,6 +239,7 @@ public class MiningManager implements LifeSkillProgression {
     }
 
     /** Remove all mining progress for a player. */
+    @Override
     public void clearPlayerData(UUID uuid) {
         miningLevels.remove(uuid);
         miningXp.remove(uuid);

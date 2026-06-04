@@ -1,68 +1,213 @@
-ores:
-  coal_ore:
-    xp: 5
+# Rewards and progression for blocks inside the per-player kingdom mine.
+# Each configured block can award Mining XP, drop materials, advance an ore quest,
+# and transition to a replacement block until the vein reaches bedrock and regenerates.
+blocks:
+  STONE:
+    replacement: COBBLESTONE
+    xp: 2
     level: 1
     drop:
+      material: COBBLESTONE
+      min: 1
+      max: 1
+  COBBLESTONE:
+    replacement: BEDROCK
+    xp: 1
+    level: 1
+    drop:
+      material: COBBLESTONE
+      min: 1
+      max: 1
+  DEEPSLATE:
+    replacement: COBBLESTONE
+    xp: 2
+    level: 1
+    drop:
+      material: COBBLED_DEEPSLATE
+      min: 1
+      max: 1
+  NETHERRACK:
+    replacement: COBBLESTONE
+    xp: 2
+    level: 1
+  COAL_ORE:
+    replacement: STONE
+    xp: 5
+    level: 1
+    quest: coal_ore
+    drop:
+      material: COAL
       min: 1
       max: 3
-  copper_ore:
+  DEEPSLATE_COAL_ORE:
+    replacement: DEEPSLATE
+    xp: 6
+    level: 1
+    quest: coal_ore
+    drop:
+      material: COAL
+      min: 1
+      max: 3
+  COPPER_ORE:
+    replacement: STONE
     xp: 8
     level: 5
+    quest: copper_ore
     drop:
+      material: RAW_COPPER
       min: 1
       max: 3
-  iron_ore:
+  DEEPSLATE_COPPER_ORE:
+    replacement: DEEPSLATE
+    xp: 9
+    level: 5
+    quest: copper_ore
+    drop:
+      material: RAW_COPPER
+      min: 1
+      max: 3
+  IRON_ORE:
+    replacement: STONE
     xp: 12
     level: 10
+    quest: iron_ore
     drop:
+      material: RAW_IRON
       min: 1
       max: 3
-  gold_ore:
+  DEEPSLATE_IRON_ORE:
+    replacement: DEEPSLATE
+    xp: 13
+    level: 10
+    quest: iron_ore
+    drop:
+      material: RAW_IRON
+      min: 1
+      max: 3
+  GOLD_ORE:
+    replacement: STONE
     xp: 16
     level: 20
+    quest: gold_ore
     drop:
+      material: RAW_GOLD
       min: 1
       max: 2
-  quartz_ore:
+  DEEPSLATE_GOLD_ORE:
+    replacement: DEEPSLATE
+    xp: 17
+    level: 20
+    quest: gold_ore
+    drop:
+      material: RAW_GOLD
+      min: 1
+      max: 2
+  NETHER_GOLD_ORE:
+    replacement: NETHERRACK
+    xp: 17
+    level: 20
+    quest: gold_ore
+    drop:
+      material: RAW_GOLD
+      min: 1
+      max: 2
+  NETHER_QUARTZ_ORE:
+    replacement: NETHERRACK
     xp: 14
     level: 25
+    quest: quartz_ore
     drop:
+      material: QUARTZ
       min: 1
       max: 3
-  amethyst_ore:
+  AMETHYST_CLUSTER:
+    replacement: STONE
     xp: 18
     level: 30
+    quest: amethyst_ore
     drop:
+      material: AMETHYST_SHARD
       min: 1
       max: 2
-  redstone_ore:
-    xp: 20
-    level: 50
-    drop:
-      min: 2
-      max: 4
-  lapis_ore:
+  LAPIS_ORE:
+    replacement: STONE
     xp: 22
     level: 45
+    quest: lapis_ore
     drop:
+      material: LAPIS_LAZULI
       min: 2
       max: 4
-  diamond_ore:
+  DEEPSLATE_LAPIS_ORE:
+    replacement: DEEPSLATE
+    xp: 23
+    level: 45
+    quest: lapis_ore
+    drop:
+      material: LAPIS_LAZULI
+      min: 2
+      max: 4
+  REDSTONE_ORE:
+    replacement: STONE
+    xp: 20
+    level: 50
+    quest: redstone_ore
+    drop:
+      material: REDSTONE
+      min: 2
+      max: 4
+  DEEPSLATE_REDSTONE_ORE:
+    replacement: DEEPSLATE
+    xp: 21
+    level: 50
+    quest: redstone_ore
+    drop:
+      material: REDSTONE
+      min: 2
+      max: 4
+  DIAMOND_ORE:
+    replacement: STONE
     xp: 30
     level: 60
+    quest: diamond_ore
     drop:
+      material: DIAMOND
       min: 1
       max: 2
-  emerald_ore:
+  DEEPSLATE_DIAMOND_ORE:
+    replacement: DEEPSLATE
+    xp: 31
+    level: 60
+    quest: diamond_ore
+    drop:
+      material: DIAMOND
+      min: 1
+      max: 2
+  EMERALD_ORE:
+    replacement: STONE
     xp: 35
     level: 70
+    quest: emerald_ore
     drop:
+      material: EMERALD
       min: 1
       max: 2
-  netherite_ore:
+  DEEPSLATE_EMERALD_ORE:
+    replacement: DEEPSLATE
+    xp: 36
+    level: 70
+    quest: emerald_ore
+    drop:
+      material: EMERALD
+      min: 1
+      max: 2
+  ANCIENT_DEBRIS:
+    replacement: NETHERRACK
     xp: 50
     level: 80
+    quest: netherite_ore
     drop:
+      material: NETHERITE_SCRAP
       min: 1
       max: 1
 

@@ -66,7 +66,6 @@ public class ProfileManager {
         me.nakilex.levelplugin.player.config.PlayerConfig cfg =
                 me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
         cfg.clearProfileData(uuid, slot);
-        cfg.initializeProfileLifeSkillData(uuid, slot);
         cfg.setProfileName(uuid, slot, name);
         cfg.setProfilePlayTime(uuid, slot, 0);
         me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager
@@ -116,9 +115,7 @@ public class ProfileManager {
         if (plugin.getCodexManager() != null) {
             plugin.getCodexManager().clearPlayerData(uuid);
         }
-        if (plugin.getPlayerConfig() != null) {
-            plugin.getPlayerConfig().resetRuntimeLifeSkillData(uuid);
-        }
+        me.nakilex.levelplugin.player.attributes.lifeskill.LifeSkillRegistry.clearPlayerData(plugin, uuid);
         if (plugin.getHorseManager() != null) {
             plugin.getHorseManager().clearPlayerData(uuid);
         }
@@ -166,6 +163,12 @@ public class ProfileManager {
         if (wasActive) {
             wipePlayer(player);
             clearActiveSlot(uuid);
+        } else if (activeSlot.get(uuid) == null) {
+            // Profile entry intentionally clears the active slot before selection. Clear the
+            // root-level life-skill state as well so deleting from that screen cannot leave
+            // loaded progression or claimed rewards behind for the next profile.
+            me.nakilex.levelplugin.player.attributes.lifeskill.LifeSkillRegistry.clearPlayerData(
+                    me.nakilex.levelplugin.Main.getInstance(), uuid);
         }
         areaManager.removeKingdom(uuid);
         areaManager.clearProfileKingdomProgress(uuid, slot);
@@ -221,7 +224,6 @@ public class ProfileManager {
         cfg.setProfileInventory(id, slot, player.getInventory().getContents());
         cfg.setProfileArmor(id, slot, player.getInventory().getArmorContents());
         cfg.setProfileLocation(id, slot, player.getLocation());
-        cfg.saveProfileLifeSkillData(id, slot);
         SpellProgressionManager progressionManager = SpellProgressionManager.getInstance();
         cfg.setProfileSpellPoints(id, slot, progressionManager.getSpellPoints(id));
         cfg.setProfileSpellLevels(id, slot, progressionManager.serializeSpellLevels(id, slot));
