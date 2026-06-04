@@ -1,43 +1,37 @@
 package me.nakilex.levelplugin.player.fishing.resourcepack;
 
 import me.nakilex.levelplugin.Main;
-import org.bukkit.Bukkit;
+import me.nakilex.levelplugin.resourcepack.ResourcePackFragmentInstaller;
+import me.nakilex.levelplugin.resourcepack.ResourcePackFragmentStatus;
 
-import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystemAlreadyExistsException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.Map;
+import java.util.List;
 
 /** Installs and verifies the Nexo-managed fishing resource-pack fragment used by the glyph renderer. */
 public final class FishingResourcePackManager {
     private static final String BUNDLED_FRAGMENT = "resourcepack/fishing_games";
+    private static final String EXTERNAL_PACK_FOLDER = "levelplugin-fishing-games";
     private static final String FALLBACK_MESSAGE = "Could not install fishing mini-game resource-pack fragment into Nexo. Falling back to text UI.";
-    private static final String INSTALLED_MESSAGE = "Installed fishing mini-game resource-pack fragment into Nexo external_packs. Regenerate/reload Nexo pack to apply changes.";
+    private static final List<String> REQUIRED_FILES = List.of(
+            "pack.mcmeta",
+            "assets/customfishing/font/default.json",
+            "assets/customfishing/font/icons.json",
+            "assets/customfishing/font/offset_chars.json"
+    );
     private static FishingResourcePackManager instance;
 
     private final Main plugin;
-    private final Path nexoExternalPacks;
-    private final Path installedPack;
+    private final ResourcePackFragmentInstaller installer;
 
     private FishingResourcePackManager(Main plugin) {
         this.plugin = plugin;
-        Path pluginsDirectory = plugin.getDataFolder().toPath().getParent();
-        if (pluginsDirectory == null) pluginsDirectory = Path.of("plugins");
-        this.nexoExternalPacks = pluginsDirectory.resolve("Nexo/pack/external_packs");
-        this.installedPack = nexoExternalPacks.resolve("levelplugin-fishing-games");
+        this.installer = new ResourcePackFragmentInstaller(plugin, "fishing mini-game", BUNDLED_FRAGMENT,
+                EXTERNAL_PACK_FOLDER, REQUIRED_FILES);
     }
 
     public static FishingResourcePackManager initialize(Main plugin) {
         FishingResourcePackManager manager = new FishingResourcePackManager(plugin);
         instance = manager;
-        manager.installBundledFragment();
+        manager.installer.installBundledFragment();
         manager.logAvailability();
         return manager;
     }
@@ -49,78 +43,29 @@ public final class FishingResourcePackManager {
     }
 
     public FishingPackStatus status() {
-        boolean externalPacksExists = Files.isDirectory(nexoExternalPacks);
-        boolean installedDirectoryExists = Files.isDirectory(installedPack);
-        boolean packMetadataExists = Files.isRegularFile(installedPack.resolve("pack.mcmeta"));
-        boolean defaultFontExists = Files.isRegularFile(installedPack.resolve("assets/customfishing/font/default.json"));
-        boolean iconsFontExists = Files.isRegularFile(installedPack.resolve("assets/customfishing/font/icons.json"));
-        boolean offsetFontExists = Files.isRegularFile(installedPack.resolve("assets/customfishing/font/offset_chars.json"));
-        boolean glyphUiEnabled = plugin.getConfig().getBoolean("fishing-mini-games.resource-pack.enabled", true)
-                && Bukkit.getPluginManager().getPlugin("Nexo") != null
-                && externalPacksExists
-                && installedDirectoryExists
-                && packMetadataExists
-                && defaultFontExists
-                && iconsFontExists
-                && offsetFontExists;
-        return new FishingPackStatus(externalPacksExists, installedDirectoryExists,
-                packMetadataExists, defaultFontExists, iconsFontExists, offsetFontExists,
-                glyphUiEnabled,
+        ResourcePackFragmentStatus status = fragmentStatus();
+        return new FishingPackStatus(status.nexoExternalPacksExists(), status.installed(),
+                status.requiredFileExists("pack.mcmeta"),
+                status.requiredFileExists("assets/customfishing/font/default.json"),
+                status.requiredFileExists("assets/customfishing/font/icons.json"),
+                status.requiredFileExists("assets/customfishing/font/offset_chars.json"),
+                status.glyphUiEnabled(), status.fallbackEnabled());
+    }
+
+    public ResourcePackFragmentStatus fragmentStatus() {
+        return installer.status(
+                plugin.getConfig().getBoolean("fishing-mini-games.resource-pack.enabled", true),
                 plugin.getConfig().getBoolean("fishing-mini-games.resource-pack.fallback-text-ui", true));
-    }
-
-    /** Copies a bundled fragment when present; Nexo remains responsible for generating and sending the final pack. */
-    private void installBundledFragment() {
-        if (!Files.isDirectory(nexoExternalPacks)) return;
-        URL resource = plugin.getClass().getClassLoader().getResource(BUNDLED_FRAGMENT);
-        if (resource == null) return;
-        try {
-            URI uri = resource.toURI();
-            if ("jar".equalsIgnoreCase(uri.getScheme())) {
-                copyFromJar(uri);
-            } else {
-                copyTree(Path.of(uri));
-            }
-            plugin.getLogger().info(INSTALLED_MESSAGE);
-        } catch (IOException | URISyntaxException exception) {
-            plugin.getLogger().warning(FALLBACK_MESSAGE);
-            plugin.getLogger().warning("Fishing pack fragment installation failed: " + exception.getMessage());
-        }
-    }
-
-    private void copyFromJar(URI uri) throws IOException {
-        FileSystem fileSystem = null;
-        boolean closeFileSystem = false;
-        try {
-            try {
-                fileSystem = FileSystems.newFileSystem(uri, Map.of());
-                closeFileSystem = true;
-            } catch (FileSystemAlreadyExistsException ignored) {
-                fileSystem = FileSystems.getFileSystem(uri);
-            }
-            copyTree(fileSystem.getPath("/" + BUNDLED_FRAGMENT));
-        } finally {
-            if (closeFileSystem && fileSystem != null) fileSystem.close();
-        }
-    }
-
-    private void copyTree(Path source) throws IOException {
-        try (var paths = Files.walk(source)) {
-            for (Path path : paths.toList()) {
-                Path destination = installedPack.resolve(source.relativize(path).toString());
-                if (Files.isDirectory(path)) {
-                    Files.createDirectories(destination);
-                } else {
-                    Files.createDirectories(destination.getParent());
-                    Files.copy(path, destination, StandardCopyOption.REPLACE_EXISTING);
-                }
-            }
-        }
     }
 
     private void logAvailability() {
         if (!plugin.getConfig().getBoolean("fishing-mini-games.resource-pack.enabled", true)) return;
-        if (!status().glyphUiEnabled()) plugin.getLogger().warning(FALLBACK_MESSAGE);
+        ResourcePackFragmentStatus status = fragmentStatus();
+        if (!status.bundledResourceExists()) {
+            plugin.getLogger().warning("Bundled fishing resource-pack folder '" + BUNDLED_FRAGMENT
+                    + "' is missing; glyph fishing UI cannot be installed until assets are added.");
+        }
+        if (!status.glyphUiEnabled()) plugin.getLogger().warning(FALLBACK_MESSAGE);
     }
 
     public record FishingPackStatus(boolean nexoExternalPacksExists, boolean installed,

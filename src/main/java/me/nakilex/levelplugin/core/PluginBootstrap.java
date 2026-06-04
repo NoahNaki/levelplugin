@@ -94,6 +94,7 @@ import me.nakilex.levelplugin.utils.registeries.CommandRegistry;
 import me.nakilex.levelplugin.utils.registeries.ListenerRegistry;
 import me.nakilex.levelplugin.utils.registeries.TaskRegistry;
 import me.nakilex.levelplugin.player.fishing.resourcepack.FishingResourcePackManager;
+import me.nakilex.levelplugin.quests.dialogue.hud.DialogueHudResourcePackManager;
 import me.nakilex.levelplugin.fasttravel.FastTravelManager;
 import me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI;
 import me.nakilex.levelplugin.npc.system.NpcApi;
@@ -290,6 +291,7 @@ public class PluginBootstrap {
         initializePacketEvents();
         loadConfigFiles();
         FishingResourcePackManager.initialize(plugin);
+        DialogueHudResourcePackManager.initialize(plugin);
         setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);
         initializeManagers();
