@@ -8,9 +8,9 @@ import java.util.List;
 public interface DialogueRenderer {
     void begin(Player player, DialogueSession session);
 
-    void render(Player player, DialogueSession session, DialoguePage page, Component speaker, Component visibleText,
-                int lineNumber, int lineCount, List<DialogueAnswer> answers, int selectedAnswerIndex,
-                List<Component> replyLines);
+    void render(Player player, DialogueSession session, DialoguePage page, Component speaker,
+                List<Component> completedPageLines, Component visibleText, int pageLineIndex, int pageLineCount,
+                List<DialogueAnswer> answers, int selectedAnswerIndex, List<Component> replyLines);
 
     void clear(Player player, DialogueSession session, DialogueEndReason reason);
 }

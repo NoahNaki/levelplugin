@@ -90,7 +90,7 @@ public class DialogueSessionManager implements Listener {
         } else if (session.state() == DialogueSession.State.TYPING) {
             skipTyping(player);
         } else {
-            advancePage(player);
+            advanceLineOrPage(session);
         }
         return true;
     }
@@ -105,18 +105,12 @@ public class DialogueSessionManager implements Listener {
     public void advancePage(Player player) {
         DialogueSession session = getSession(player);
         if (session == null) return;
-        DialoguePage page = session.definition().page(session.pageId());
-        leavePage(session, page);
-        if (page.gotoPageId() == null || page.gotoPageId().isBlank()) {
-            endDialogue(player, DialogueEndReason.COMPLETE);
-        } else {
-            enterPage(session, page.gotoPageId());
-        }
+        advanceLineOrPage(session);
     }
 
     public void selectAnswer(Player player, int direction) {
         DialogueSession session = getSession(player);
-        if (session == null || session.visibleAnswers().isEmpty()) return;
+        if (session == null || session.state() != DialogueSession.State.ANSWERING || session.visibleAnswers().isEmpty()) return;
         session.select(session.selectedAnswerIndex() + direction);
         DialogueSound.UI_SELECT.play(player);
         render(session);
@@ -124,7 +118,7 @@ public class DialogueSessionManager implements Listener {
 
     public void confirmAnswer(Player player) {
         DialogueSession session = getSession(player);
-        if (session == null || session.visibleAnswers().isEmpty()) return;
+        if (session == null || session.state() != DialogueSession.State.ANSWERING || session.visibleAnswers().isEmpty()) return;
         DialogueAnswer answer = session.visibleAnswers().get(session.selectedAnswerIndex());
         if (answer.sound() != null) answer.sound().play(player);
         session.replyLines(answer.replyLines().stream().map(line -> formatter.component(player, line)).toList());
@@ -191,7 +185,7 @@ public class DialogueSessionManager implements Listener {
             if (session.state() == DialogueSession.State.TYPING && session.typingComplete(now)) {
                 session.enterWaiting(now);
             } else if (session.state() == DialogueSession.State.WAITING && session.waitComplete(now)) {
-                advancePage(session.player());
+                advanceLineOrPage(session);
                 continue;
             }
             render(session);
@@ -207,7 +201,31 @@ public class DialogueSessionManager implements Listener {
         page.preActions().forEach(action -> actionExecutor.execute(session.player(), session, action));
         session.enterPage(pageId, System.currentTimeMillis(), formatter, conditionEvaluator);
         DialogueSound.UI_CLICK.play(session.player());
+        if (!session.hasCurrentLine() && session.visibleAnswers().isEmpty()) {
+            finishPage(session, page);
+            return;
+        }
         render(session);
+    }
+
+    private void advanceLineOrPage(DialogueSession session) {
+        if (session.hasCurrentLine()) {
+            boolean advancedWithinPage = session.advanceLine(System.currentTimeMillis(), formatter);
+            if (advancedWithinPage || !session.visibleAnswers().isEmpty()) {
+                render(session);
+                return;
+            }
+        }
+        finishPage(session, session.definition().page(session.pageId()));
+    }
+
+    private void finishPage(DialogueSession session, DialoguePage page) {
+        leavePage(session, page);
+        if (page == null || page.gotoPageId() == null || page.gotoPageId().isBlank()) {
+            endDialogue(session.player(), DialogueEndReason.COMPLETE);
+        } else {
+            enterPage(session, page.gotoPageId());
+        }
     }
 
     private void leavePage(DialogueSession session, DialoguePage page) {
@@ -216,9 +234,14 @@ public class DialogueSessionManager implements Listener {
 
     private void render(DialogueSession session) {
         DialoguePage page = session.definition().page(session.pageId());
-        renderer.render(session.player(), session, page, formatter.component(session.player(), session.line().speakerName()),
-                session.visibleText(System.currentTimeMillis()), session.lineNumber(), session.lineCount(),
-                session.visibleAnswers(), session.selectedAnswerIndex(), session.replyLines());
+        List<DialogueAnswer> renderAnswers = session.state() == DialogueSession.State.ANSWERING
+                ? session.visibleAnswers()
+                : List.of();
+        renderer.render(session.player(), session, page, formatter.component(session.player(), session.speakerName()),
+                session.completedPageLines(), session.visibleText(System.currentTimeMillis()),
+                Math.min(session.pageLineIndex() + 1, Math.max(1, session.pageLineCount())), session.pageLineCount(),
+                renderAnswers, session.state() == DialogueSession.State.ANSWERING ? session.selectedAnswerIndex() : -1,
+                session.replyLines());
     }
 
     private boolean runsExitActions(DialogueEndReason reason) {
@@ -240,7 +263,7 @@ public class DialogueSessionManager implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onScroll(PlayerItemHeldEvent event) {
         DialogueSession session = getSession(event.getPlayer());
-        if (session == null || session.visibleAnswers().isEmpty()) return;
+        if (session == null || session.state() != DialogueSession.State.ANSWERING || session.visibleAnswers().isEmpty()) return;
         event.setCancelled(true);
         selectAnswer(event.getPlayer(), event.getNewSlot() > event.getPreviousSlot() ? 1 : -1);
     }
