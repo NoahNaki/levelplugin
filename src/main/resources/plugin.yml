@@ -344,6 +344,10 @@ commands:
     description: LevelPlugin administration command
     usage: /<command> <reload|fishingpack info|fishing minigame test <type>>
     permission: levelplugin.admin
+  levelrestart:
+    description: Safely restarts the server after deployment.
+    usage: /levelrestart
+    permission: levelplugin.admin.restart
   motd:
     description: Reload or preview the server MOTD
     usage: /motd <reload|preview>
@@ -451,4 +455,7 @@ commands:
 
 permissions:
   levelplugin.animatedlb:
+    default: op
+  levelplugin.admin.restart:
+    description: Allows restarting the server through LevelPlugin.
     default: op

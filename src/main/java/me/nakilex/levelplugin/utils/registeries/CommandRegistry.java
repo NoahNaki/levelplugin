@@ -124,6 +124,7 @@ import me.nakilex.levelplugin.advancement.commands.AdvancementAdminCommand;
 import me.nakilex.levelplugin.server.ConnectCommand;
 import me.nakilex.levelplugin.server.HubCommand;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
+import me.nakilex.levelplugin.server.commands.LevelRestartCommand;
 import org.bukkit.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -187,6 +188,8 @@ public class CommandRegistry {
                                         me.nakilex.levelplugin.debug.gui.WieldStyleDebugGUI wieldStyleDebugGUI,
                                         me.nakilex.levelplugin.debug.gui.ArcSlashDebugGUI arcSlashDebugGUI) {
 
+
+        plugin.getCommand("levelrestart").setExecutor(new LevelRestartCommand(plugin));
 
         AddPointsCommand addPointsCmd = new AddPointsCommand();
         plugin.getCommand("addpoints").setExecutor(addPointsCmd);
