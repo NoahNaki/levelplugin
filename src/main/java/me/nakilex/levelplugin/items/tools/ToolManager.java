@@ -314,7 +314,9 @@ public class ToolManager {
         if (meta != null) {
             meta.setUnbreakable(true);
             meta.addItemFlags(org.bukkit.inventory.ItemFlag.HIDE_ATTRIBUTES, org.bukkit.inventory.ItemFlag.HIDE_UNBREAKABLE);
-            stack.setItemMeta(meta);
+            ItemUtil.setItemMetaWithRarityTooltipStyle(stack, meta, tool.getTier().getRarity());
+        } else {
+            ItemUtil.applyRarityTooltipStyle(stack, tool.getTier().getRarity());
         }
         return stack;
     }
