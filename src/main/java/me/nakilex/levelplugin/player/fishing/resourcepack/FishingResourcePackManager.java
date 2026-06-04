@@ -71,10 +71,11 @@ public final class FishingResourcePackManager {
 
     /** Copies a bundled fragment when present; Nexo remains responsible for generating and sending the final pack. */
     private void installBundledFragment() {
-        if (!Files.isDirectory(nexoExternalPacks)) return;
-        URL resource = plugin.getClass().getClassLoader().getResource(BUNDLED_FRAGMENT);
-        if (resource == null) return;
+        if (Bukkit.getPluginManager().getPlugin("Nexo") == null) return;
         try {
+            Files.createDirectories(nexoExternalPacks);
+            URL resource = plugin.getClass().getClassLoader().getResource(BUNDLED_FRAGMENT);
+            if (resource == null) return;
             URI uri = resource.toURI();
             if ("jar".equalsIgnoreCase(uri.getScheme())) {
                 copyFromJar(uri);

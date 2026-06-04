@@ -51,6 +51,11 @@ public enum ToolTier {
         return miningSpeed;
     }
 
+    /** Converts the shared tier speed curve into ore-entity mining damage. */
+    public int getMiningDamage() {
+        return Math.max(1, Math.round(2.0f + ((miningSpeed - 1.0f) * 4.0f)));
+    }
+
     public float getHarvestYield() {
         return harvestYield;
     }

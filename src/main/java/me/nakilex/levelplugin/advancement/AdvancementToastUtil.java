@@ -3,6 +3,8 @@ package me.nakilex.levelplugin.advancement;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.advancement.model.Advancement;
 import me.nakilex.levelplugin.advancement.model.AdvancementDisplay;
+import me.nakilex.levelplugin.advancement.model.AdvancementKey;
+import me.nakilex.levelplugin.advancement.model.BaseAdvancement;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -15,6 +17,18 @@ import java.util.UUID;
 /** Emits a native Minecraft advancement toast by loading a temporary hidden advancement. */
 public final class AdvancementToastUtil {
     private AdvancementToastUtil() {}
+
+
+    /** Shows an ad-hoc toast while reusing the native temporary-advancement pipeline. */
+    public static void showToast(Player player, Material icon, String title, String description,
+                                 AdvancementDisplay.FrameType frameType) {
+        AdvancementDisplay display = new AdvancementDisplay.Builder(icon)
+                .title(title)
+                .descriptionLine(description)
+                .frameType(frameType)
+                .build();
+        showToast(player, new BaseAdvancement(new AdvancementKey("levelplugin", "notification"), display, 1, null));
+    }
 
     public static void showToast(Player player, Advancement advancement) {
         if (player == null || advancement == null) return;

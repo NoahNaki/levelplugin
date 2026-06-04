@@ -333,9 +333,13 @@ public class ProfileSelectionGUI implements Listener {
             FIRST_PROFILE_SLOT.remove(player.getUniqueId());
         }
 
+        if (active != null && !sameActive) {
+            pm.saveActiveProfile(player);
+        }
         player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());
         pm.setActiveSlot(player.getUniqueId(), index);
         me.nakilex.levelplugin.player.config.PlayerConfig cfg = Main.getInstance().getPlayerConfig();
+        cfg.loadProfileLifeSkillData(player.getUniqueId(), index);
         SpellProgressionManager.getInstance().loadProfileData(
                 player.getUniqueId(),
                 index,

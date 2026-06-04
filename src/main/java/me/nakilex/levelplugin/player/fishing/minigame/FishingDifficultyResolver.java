@@ -15,7 +15,7 @@ public final class FishingDifficultyResolver {
 
     public static FishingDifficultyProfile resolve(FileConfiguration config, int fishingLevel,
                                                     FishDefinition hookedFish, ToolTier rodTier) {
-        if (config == null || !config.getBoolean(ROOT + ".enabled", false) || hookedFish == null) {
+        if (config == null || !config.getBoolean(ROOT + ".enabled", true) || hookedFish == null) {
             return FishingDifficultyProfile.normal();
         }
         FishingMiniGameDifficulty tier = levelTier(config, fishingLevel)

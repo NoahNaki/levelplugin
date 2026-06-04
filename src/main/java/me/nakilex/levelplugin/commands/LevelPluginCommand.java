@@ -104,6 +104,7 @@ public class LevelPluginCommand implements TabExecutor {
         }
     }
 
+
     private void sendStatus(CommandSender sender, String label, boolean enabled) {
         ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + label + ": "
                 + (enabled ? ChatColor.GREEN + "yes" : ChatColor.RED + "no"));

@@ -14,6 +14,8 @@ import java.util.EnumMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Level;
+import java.util.concurrent.ThreadLocalRandom;
+import me.nakilex.levelplugin.player.mining.items.MiningNodeVariant;
 
 /** Loads config-backed rewards and progression requirements for kingdom-mine blocks. */
 public class MiningRewardsConfig {
@@ -42,6 +44,49 @@ public class MiningRewardsConfig {
 
     public MiningBlockReward getReward(Material blockMaterial) {
         return blockMaterial == null ? null : rewards.get(blockMaterial);
+    }
+
+
+    public MiningNodeVariant rollNodeVariant() {
+        if (ThreadLocalRandom.current().nextDouble() >= config.getDouble("nodes.special-chance", 0.18)) {
+            return MiningNodeVariant.NORMAL;
+        }
+        double totalWeight = 0.0;
+        for (MiningNodeVariant variant : MiningNodeVariant.values()) {
+            if (variant.isSpecial()) totalWeight += getVariantValue(variant, "weight", 1.0);
+        }
+        double roll = ThreadLocalRandom.current().nextDouble() * Math.max(0.01, totalWeight);
+        for (MiningNodeVariant variant : MiningNodeVariant.values()) {
+            if (!variant.isSpecial()) continue;
+            roll -= getVariantValue(variant, "weight", 1.0);
+            if (roll <= 0.0) return variant;
+        }
+        return MiningNodeVariant.NORMAL;
+    }
+
+    public double getHealthMultiplier(MiningNodeVariant variant) {
+        return getVariantValue(variant, "health-multiplier", 1.0);
+    }
+
+    public double getDropMultiplier(MiningNodeVariant variant) {
+        return getVariantValue(variant, "drop-multiplier", 1.0);
+    }
+
+    public double getXpMultiplier(MiningNodeVariant variant) {
+        return getVariantValue(variant, "xp-multiplier", 1.0);
+    }
+
+    public double getWeakPointChance(MiningNodeVariant variant) {
+        return getVariantValue(variant, "weak-point-chance", 0.22);
+    }
+
+    public double getWeakPointDamageMultiplier(MiningNodeVariant variant) {
+        return getVariantValue(variant, "weak-point-damage-multiplier", 2.5);
+    }
+
+    private double getVariantValue(MiningNodeVariant variant, String field, double fallback) {
+        MiningNodeVariant safeVariant = variant == null ? MiningNodeVariant.NORMAL : variant;
+        return config.getDouble("nodes.variants." + safeVariant.getKey() + "." + field, fallback);
     }
 
     public void reloadConfig() {

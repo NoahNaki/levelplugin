@@ -6,10 +6,13 @@ import org.bukkit.entity.Player;
 public interface FishingMiniGame {
     void start();
     void handleClick();
+    default boolean usesRightClickInput() { return false; }
     default void handleRightClick() { }
     void handleSneak(boolean sneaking);
+    default boolean usesMovementInput() { return false; }
     void handleMovement(Movement movement);
     void cancel();
+    default void cancelSilently() { cancel(); }
     boolean isFinished();
 
     enum Movement { LEFT, RIGHT, JUMP }
