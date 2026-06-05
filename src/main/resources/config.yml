@@ -89,6 +89,8 @@ dialogue-hud:
     mode: actionbar # actionbar / chat
     use-resource-pack-glyphs: true
     require-client-pack-loaded: true
+    background-offset: 0
+    text-offset-after-background: 8
     # Use only for diagnosing glyph/font JSON issues; bypasses per-player resource-pack load checks.
     debug-force-glyphs: false
   debug:

@@ -80,8 +80,9 @@ public class ResourcePackDialogueRenderer implements DialogueRenderer {
                                      int pageLineIndex, int pageLineCount, List<DialogueAnswer> answers,
                                      int selectedAnswerIndex, List<Component> replyLines) {
         return Component.empty()
+                .append(DialogueHudGlyphs.offset(resourcePackManager.backgroundOffset()))
                 .append(DialogueHudGlyphs.background())
-                .append(DialogueHudGlyphs.offset(-8))
+                .append(DialogueHudGlyphs.offset(resourcePackManager.textOffsetAfterBackground()))
                 .append(renderSpeakerName(player, speaker))
                 .append(Component.space())
                 .append(renderPageLines(lastLines(completedPageLines), visibleText))

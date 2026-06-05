@@ -4,17 +4,34 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.resourcepack.ResourcePackFragmentInstaller;
 import me.nakilex.levelplugin.resourcepack.ResourcePackFragmentStatus;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Installs and verifies the optional Nexo external pack fragment for the future dialogue HUD. */
 public final class DialogueHudResourcePackManager {
     private static final String BUNDLED_FRAGMENT = "resourcepack/dialogue_hud";
     private static final String EXTERNAL_PACK_FOLDER = "levelplugin-dialogue-hud";
+    public static final String DIALOGUE_FONT_JSON = "assets/levelplugin_dialogue/font/dialogue.json";
+    public static final String OFFSET_FONT_JSON = "assets/levelplugin_dialogue/font/offset_chars.json";
+    public static final String BACKGROUND_TEXTURE = "assets/levelplugin_dialogue/textures/dialogue/dialogue_background.png";
+    public static final String BACKGROUND_PROVIDER_FILE = "levelplugin_dialogue:dialogue/dialogue_background.png";
+    private static final String BACKGROUND_GLYPH = Character.toString(DialogueHudGlyphs.DIALOGUE_BACKGROUND);
+    private static final Pattern JSON_OBJECT_PATTERN = Pattern.compile("\\{[^{}]*}", Pattern.DOTALL);
+
     private static final List<String> DEFAULT_REQUIRED_FILES = List.of(
             "pack.mcmeta",
-            "assets/levelplugin_dialogue/font/dialogue.json",
-            "assets/levelplugin_dialogue/font/offset_chars.json"
+            DIALOGUE_FONT_JSON,
+            OFFSET_FONT_JSON,
+            BACKGROUND_TEXTURE
     );
     private static DialogueHudResourcePackManager instance;
 
@@ -79,6 +96,14 @@ public final class DialogueHudResourcePackManager {
         return plugin.getConfig().getBoolean("dialogue-hud.debug.log-pack-status", true);
     }
 
+    public int backgroundOffset() {
+        return plugin.getConfig().getInt("dialogue-hud.renderer.background-offset", 0);
+    }
+
+    public int textOffsetAfterBackground() {
+        return plugin.getConfig().getInt("dialogue-hud.renderer.text-offset-after-background", 8);
+    }
+
     public boolean canRenderGlyphUi(org.bukkit.entity.Player player) {
         return rendererEnabled()
                 && actionBarMode()
@@ -110,6 +135,153 @@ public final class DialogueHudResourcePackManager {
     public boolean fallbackChatRendererEnabled() {
         return plugin.getConfig().getBoolean("dialogue-hud.resource-pack.fallback-chat-renderer", true);
     }
+
+    public Path installedPackPath() {
+        return installer.installedPackPath();
+    }
+
+    public Path dialogueFontJsonPath() {
+        return installedPackPath().resolve(DIALOGUE_FONT_JSON);
+    }
+
+    public Path dialogueBackgroundPath() {
+        return installedPackPath().resolve(BACKGROUND_TEXTURE);
+    }
+
+    public BackgroundGlyphDebug backgroundGlyphDebug() {
+        Path texturePath = dialogueBackgroundPath();
+        Path fontPath = dialogueFontJsonPath();
+        List<String> warnings = new ArrayList<>();
+        boolean textureExists = Files.isRegularFile(texturePath);
+        Integer width = null;
+        Integer height = null;
+        Boolean fullyTransparent = null;
+
+        if (!textureExists) {
+            warnings.add("dialogue_background.png is missing");
+        } else {
+            try {
+                BufferedImage image = ImageIO.read(texturePath.toFile());
+                if (image == null) {
+                    warnings.add("dialogue_background.png could not be decoded as an image");
+                } else {
+                    width = image.getWidth();
+                    height = image.getHeight();
+                    fullyTransparent = isFullyTransparent(image);
+                    if (width < 32 || height < 16) {
+                        warnings.add("dialogue_background.png is smaller than 32x16");
+                    }
+                    if (fullyTransparent) {
+                        warnings.add("dialogue_background.png is fully transparent");
+                    }
+                }
+            } catch (IOException exception) {
+                warnings.add("dialogue_background.png could not be read: " + exception.getMessage());
+            }
+        }
+
+        boolean fontExists = Files.isRegularFile(fontPath);
+        FontProviderDebug provider = null;
+        if (!fontExists) {
+            warnings.add("dialogue.json is missing");
+        } else {
+            try {
+                provider = findBackgroundProvider(Files.readString(fontPath, StandardCharsets.UTF_8));
+                if (provider == null) {
+                    warnings.add("dialogue.json has no provider containing \\uE100");
+                } else {
+                    if (provider.height() != null && provider.height() < 16) {
+                        warnings.add("dialogue background provider height is smaller than 16");
+                    }
+                    if (provider.ascent() != null && provider.height() != null && provider.ascent() > provider.height()) {
+                        warnings.add("dialogue background provider ascent is greater than height");
+                    }
+                    if (provider.file() == null || !BACKGROUND_PROVIDER_FILE.equals(provider.file())) {
+                        warnings.add("dialogue background provider file should be " + BACKGROUND_PROVIDER_FILE);
+                    }
+                }
+            } catch (IOException exception) {
+                warnings.add("dialogue.json could not be read: " + exception.getMessage());
+            }
+        }
+
+        return new BackgroundGlyphDebug(texturePath, textureExists, width, height, fullyTransparent,
+                fontPath, fontExists, provider, List.copyOf(warnings));
+    }
+
+    private FontProviderDebug findBackgroundProvider(String json) {
+        Matcher matcher = JSON_OBJECT_PATTERN.matcher(json);
+        while (matcher.find()) {
+            String object = matcher.group();
+            String chars = extractJsonArray(object, "chars");
+            if (chars != null && containsBackgroundGlyph(chars)) {
+                return new FontProviderDebug(fontPathDisplay(dialogueFontJsonPath()),
+                        extractJsonString(object, "file"),
+                        extractJsonInt(object, "ascent"),
+                        extractJsonInt(object, "height"),
+                        chars.replace('\n', ' ').replace('\r', ' ').trim());
+            }
+        }
+        return null;
+    }
+
+    private static boolean containsBackgroundGlyph(String chars) {
+        String lower = chars.toLowerCase(java.util.Locale.ROOT);
+        return chars.contains(BACKGROUND_GLYPH) || lower.contains("\\ue100");
+    }
+
+    private static String extractJsonString(String object, String key) {
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\"([^\"]*)\"").matcher(object);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private static Integer extractJsonInt(String object, String key) {
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*(-?\\d+)").matcher(object);
+        return matcher.find() ? Integer.parseInt(matcher.group(1)) : null;
+    }
+
+    private static String extractJsonArray(String object, String key) {
+        Matcher matcher = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\\[(.*?)]", Pattern.DOTALL).matcher(object);
+        return matcher.find() ? matcher.group(1) : null;
+    }
+
+    private static boolean isFullyTransparent(BufferedImage image) {
+        if (!image.getColorModel().hasAlpha()) return false;
+        for (int y = 0; y < image.getHeight(); y++) {
+            for (int x = 0; x < image.getWidth(); x++) {
+                if (((image.getRGB(x, y) >>> 24) & 0xFF) != 0) return false;
+            }
+        }
+        return true;
+    }
+
+    private static String fontPathDisplay(Path path) {
+        return path == null ? "unknown" : path.toString();
+    }
+
+    public record BackgroundGlyphDebug(
+            Path texturePath,
+            boolean textureExists,
+            Integer width,
+            Integer height,
+            Boolean fullyTransparent,
+            Path fontPath,
+            boolean fontExists,
+            FontProviderDebug provider,
+            List<String> warnings
+    ) {
+        public String size() {
+            return width == null || height == null ? "unknown" : width + "x" + height;
+        }
+    }
+
+    public record FontProviderDebug(
+            String providerFilePath,
+            String file,
+            Integer ascent,
+            Integer height,
+            String chars
+    ) { }
 
     private boolean resourcePackEnabled() {
         return plugin.getConfig().getBoolean("dialogue-hud.resource-pack.enabled", true);
