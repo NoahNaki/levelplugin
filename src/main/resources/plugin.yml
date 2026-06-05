@@ -318,6 +318,10 @@ commands:
   debug:
     description: Developer debug tools
     usage: /debug [mobinfo|tps|siege|buildmat|buildspeed|drops|coindrops|coinpull|hand|chatgame|expedition|dungeonexpedition|spellinput|spellcooldown|spellmanacost|beaconentity|particle|particlepath|particlepreset|petpull|spellpull|inventorydebug|rewardbomb|cityowner|citymax|stronghold|strongholdxp|gemdungeonsweep|wield]
+  dialoguedebug:
+    description: Temporary developer tools for rendering Lux-style dialogue pages
+    usage: /dialoguedebug <reload|render <dialogueId> <pageId>>
+    permission: levelplugin.admin
   se:
     description: Spawn an entity with ModelEngine models for testing
     usage: /se <entity> <model...> | /se list | /se inspect [verbose] | /se anim <name|shoot|attack> [loop] | /se animdebug <name> [loop]

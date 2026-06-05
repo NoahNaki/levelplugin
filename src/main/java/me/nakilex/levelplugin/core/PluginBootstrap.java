@@ -214,6 +214,7 @@ public class PluginBootstrap {
     private BattlePassManager battlePassManager;
     private BattlePassGUI battlePassGUI;
     private me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager;
+    private me.nakilex.levelplugin.dialogue.DialogueManager luxDialogueManager;
     private me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager questDialogueManager;
     private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
@@ -456,6 +457,7 @@ public class PluginBootstrap {
         battlePassManager = new BattlePassManager(plugin, questManager, itemManager);
         battlePassGUI = battlePassManager.getGui();
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
+        luxDialogueManager = new me.nakilex.levelplugin.dialogue.DialogueManager(plugin);
         questDialogueManager = new me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
         if (arenaQueueManager != null) {
@@ -674,6 +676,10 @@ public class PluginBootstrap {
             wieldStyleDebugGUI,
             arcSlashDebugGUI
         );
+        me.nakilex.levelplugin.dialogue.DialogueDebugCommand dialogueDebugCommand =
+                new me.nakilex.levelplugin.dialogue.DialogueDebugCommand(luxDialogueManager);
+        plugin.getCommand("dialoguedebug").setExecutor(dialogueDebugCommand);
+        plugin.getCommand("dialoguedebug").setTabCompleter(dialogueDebugCommand);
         plugin.getCommand("pweather").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalWeatherCommand(playerEnvironmentService));
         plugin.getCommand("ptime").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalTimeCommand(playerEnvironmentService));
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
@@ -1072,6 +1078,7 @@ public class PluginBootstrap {
     public BattlePassManager getBattlePassManager() { return battlePassManager; }
     public BattlePassGUI getBattlePassGUI() { return battlePassGUI; }
     public me.nakilex.levelplugin.npc.dialog.NPCDialogManager getDialogManager() { return dialogManager; }
+    public me.nakilex.levelplugin.dialogue.DialogueManager getLuxDialogueManager() { return luxDialogueManager; }
     public me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager getQuestDialogueManager() { return questDialogueManager; }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return scoreboardManager; }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return beaconManager; }
