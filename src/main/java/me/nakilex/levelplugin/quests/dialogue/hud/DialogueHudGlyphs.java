@@ -9,6 +9,11 @@ public final class DialogueHudGlyphs {
     public static final Key DIALOGUE_FONT = Key.key("levelplugin_dialogue", "dialogue");
     public static final Key OFFSET_FONT = Key.key("levelplugin_dialogue", "offset_chars");
     public static final Key VANILLA_FONT = Key.key("minecraft", "default");
+    public static final Key LINE_1_FONT = Key.key("levelplugin_dialogue", "line_1");
+    public static final Key LINE_2_FONT = Key.key("levelplugin_dialogue", "line_2");
+    public static final Key LINE_3_FONT = Key.key("levelplugin_dialogue", "line_3");
+    public static final Key ANSWER_1_FONT = Key.key("levelplugin_dialogue", "answer_1");
+    public static final Key ANSWER_2_FONT = Key.key("levelplugin_dialogue", "answer_2");
     public static final char DEFAULT_NEGATIVE_OFFSET = '\uF800';
     public static final char DEFAULT_POSITIVE_OFFSET = '\uF801';
 
@@ -72,6 +77,25 @@ public final class DialogueHudGlyphs {
     }
 
     /** Resets normal readable text back to Minecraft's default font when it is adjacent to HUD glyphs. */
+    public static Component lineText(int lineIndex, Component text) {
+        Key font = switch (lineIndex) {
+            case 0 -> LINE_1_FONT;
+            case 1 -> LINE_2_FONT;
+            case 2 -> LINE_3_FONT;
+            default -> LINE_3_FONT;
+        };
+        return (text == null ? Component.empty() : text).font(font);
+    }
+
+    public static Component answerText(int answerIndex, Component text) {
+        Key font = switch (answerIndex) {
+            case 0 -> ANSWER_1_FONT;
+            case 1 -> ANSWER_2_FONT;
+            default -> ANSWER_2_FONT;
+        };
+        return (text == null ? Component.empty() : text).font(font);
+    }
+
     public static Component defaultFont(Component component) {
         return component == null ? Component.empty() : component.font(VANILLA_FONT);
     }

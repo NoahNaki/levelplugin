@@ -24,6 +24,11 @@ public final class DialogueHudResourcePackManager {
     public static final String DIALOGUE_FONT_JSON = "assets/levelplugin_dialogue/font/dialogue.json";
     public static final String OFFSET_FONT_JSON = "assets/levelplugin_dialogue/font/offset_chars.json";
     public static final String BACKGROUND_TEXTURE = "assets/levelplugin_dialogue/textures/dialogue/dialogue_background.png";
+    public static final String LINE_1_FONT_JSON = "assets/levelplugin_dialogue/font/line_1.json";
+    public static final String LINE_2_FONT_JSON = "assets/levelplugin_dialogue/font/line_2.json";
+    public static final String LINE_3_FONT_JSON = "assets/levelplugin_dialogue/font/line_3.json";
+    public static final String ANSWER_1_FONT_JSON = "assets/levelplugin_dialogue/font/answer_1.json";
+    public static final String ANSWER_2_FONT_JSON = "assets/levelplugin_dialogue/font/answer_2.json";
     public static final String BACKGROUND_PROVIDER_FILE = "levelplugin_dialogue:dialogue/dialogue_background.png";
     private static final String BACKGROUND_GLYPH = Character.toString(DialogueHudGlyphs.DIALOGUE_BACKGROUND);
     private static final Pattern JSON_OBJECT_PATTERN = Pattern.compile("\\{[^{}]*}", Pattern.DOTALL);
@@ -34,7 +39,12 @@ public final class DialogueHudResourcePackManager {
             "pack.mcmeta",
             DIALOGUE_FONT_JSON,
             OFFSET_FONT_JSON,
-            BACKGROUND_TEXTURE
+            BACKGROUND_TEXTURE,
+            LINE_1_FONT_JSON,
+            LINE_2_FONT_JSON,
+            LINE_3_FONT_JSON,
+            ANSWER_1_FONT_JSON,
+            ANSWER_2_FONT_JSON
     );
     private static DialogueHudResourcePackManager instance;
 
