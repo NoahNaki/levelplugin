@@ -96,8 +96,17 @@ dialogue-hud:
   debug:
     log-pack-status: true
   layout:
-    start-offset: 320
+    anchor-offset: 320
     offsets:
+      name: 0
+      name-background: 20
+      dialogue-background: 0
+      dialogue-line: 10
+      answer-background: 140
+      answer-line: 153
+      arrow: 133
+      character: -16
+      fog: 0
       # Lux-style offsets repeat one invisible glyph per pixel instead of binary F801/F802/F804 steps.
       # These are only used if the active offset_chars.json cannot be auto-detected from a space/advances provider.
       negative-char: "\uF800"
@@ -105,22 +114,21 @@ dialogue-hud:
     dialogue:
       width: 209
       height: 57
-      text-x: 22
-      text-reset-extra: 0
       max-lines: 3
-    nameplate:
-      enabled: true
-      x: 18
-      y-offset: 0
-      mid-width: 2
-      text-padding: 5
     answers:
       enabled: true
-      x: 245
-      background-width: 134
-      text-x: 14
+      width: 134
       gap: 10
       max-visible: 2
+    nameplate:
+      enabled: true
+      mid-width: 2
+      text-padding: 5
+    character:
+      enabled: false
+    fog:
+      enabled: false
+
 
 # Interactive challenge selected when a fish bites. Difficulty scales with level, fish rarity, and rod tier.
 fishing-mini-games:

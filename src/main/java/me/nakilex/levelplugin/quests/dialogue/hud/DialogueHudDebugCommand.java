@@ -162,57 +162,67 @@ public final class DialogueHudDebugCommand implements TabExecutor {
         Main plugin = Main.getInstance();
         if (plugin == null) return;
 
+        int anchor = plugin.getConfig().getInt("dialogue-hud.layout.anchor-offset", 320);
+        int dialogueOffset = plugin.getConfig().getInt("dialogue-hud.layout.offsets.dialogue-background", 0);
+        int dialogueLineOffset = plugin.getConfig().getInt("dialogue-hud.layout.offsets.dialogue-line", 10);
+        int nameBackgroundOffset = plugin.getConfig().getInt("dialogue-hud.layout.offsets.name-background", 20);
+        int nameOffset = plugin.getConfig().getInt("dialogue-hud.layout.offsets.name", 0);
+        int answerBackgroundOffset = plugin.getConfig().getInt("dialogue-hud.layout.offsets.answer-background", 140);
+        int answerLineOffset = plugin.getConfig().getInt("dialogue-hud.layout.offsets.answer-line", 153);
+        int arrowOffset = plugin.getConfig().getInt("dialogue-hud.layout.offsets.arrow", 133);
         int dialogueWidth = plugin.getConfig().getInt("dialogue-hud.layout.dialogue.width", 209);
-        int textX = plugin.getConfig().getInt("dialogue-hud.layout.dialogue.text-x", 22);
-        int nameplateX = plugin.getConfig().getInt("dialogue-hud.layout.nameplate.x", 18);
-        int answerWidth = plugin.getConfig().getInt("dialogue-hud.layout.answers.background-width", 134);
-        int answerTextX = plugin.getConfig().getInt("dialogue-hud.layout.answers.text-x", 14);
+        int answerWidth = plugin.getConfig().getInt("dialogue-hud.layout.answers.width", 134);
 
-        ChatMessageUtil.send(sender, MessageType.INFO, "Sending dialogue HUD layered layout test to " + target.getName() + ".");
+        ChatMessageUtil.send(sender, MessageType.INFO, "Sending anchored dialogue HUD layout test to " + target.getName() + ".");
 
-        // 0 ticks: dialogue box only.
-        target.sendActionBar(DialogueHudGlyphs.background());
+        // 0 ticks: anchored dialogue background only.
+        target.sendActionBar(Component.empty()
+                .append(DialogueHudGlyphs.offset(anchor))
+                .append(anchored(dialogueOffset, DialogueHudGlyphs.background(), dialogueWidth)));
 
-        // 20 ticks: dialogue box + text layered inside the box.
+        // 20 ticks: anchored dialogue background + independently anchored dialogue text.
         target.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (target.isOnline()) {
-                target.sendActionBar(DialogueHudGlyphs.background()
-                        .append(DialogueHudGlyphs.offset(-dialogueWidth + textX))
-                        .append(DialogueHudGlyphs.defaultText("Text inside box", NamedTextColor.WHITE)));
+                target.sendActionBar(Component.empty()
+                        .append(DialogueHudGlyphs.offset(anchor))
+                        .append(anchored(dialogueOffset, DialogueHudGlyphs.background(), dialogueWidth))
+                        .append(anchored(dialogueLineOffset, DialogueHudGlyphs.defaultText("Text inside box", NamedTextColor.WHITE))));
             }
         }, 20L);
 
-        // 40 ticks: dialogue box + nameplate layer returned to the dialogue start.
+        // 40 ticks: anchored nameplate background + independently anchored name text.
         target.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (target.isOnline()) {
-                target.sendActionBar(DialogueHudGlyphs.background()
-                        .append(DialogueHudGlyphs.offset(-dialogueWidth + nameplateX))
-                        .append(DialogueHudGlyphs.nameplateLeft())
-                        .append(DialogueHudGlyphs.nameplateMiddle())
-                        .append(DialogueHudGlyphs.nameplateMiddle())
-                        .append(DialogueHudGlyphs.nameplateRight()));
+                String name = "Janitor Ilta";
+                Component nameBackground = debugNameplateBackground(plugin, name);
+                target.sendActionBar(Component.empty()
+                        .append(DialogueHudGlyphs.offset(anchor))
+                        .append(anchored(nameBackgroundOffset, nameBackground, debugNameplateWidth(plugin, name)))
+                        .append(anchored(nameOffset, DialogueHudGlyphs.defaultText(name, NamedTextColor.YELLOW))));
             }
         }, 40L);
 
-        // 60 ticks: answer box only.
+        // 60 ticks: anchored answer background only.
         target.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (target.isOnline()) {
-                target.sendActionBar(DialogueHudGlyphs.answerBackground());
+                target.sendActionBar(Component.empty()
+                        .append(DialogueHudGlyphs.offset(anchor))
+                        .append(anchored(answerBackgroundOffset, DialogueHudGlyphs.answerBackground(), answerWidth)));
             }
         }, 60L);
 
-        // 80 ticks: answer box + selected arrow/text layered inside the box.
+        // 80 ticks: anchored answer background + text + selected arrow.
         target.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (target.isOnline()) {
-                target.sendActionBar(DialogueHudGlyphs.answerBackground()
-                        .append(DialogueHudGlyphs.offset(-answerWidth + answerTextX))
-                        .append(DialogueHudGlyphs.selector())
-                        .append(DialogueHudGlyphs.offset(6))
-                        .append(DialogueHudGlyphs.defaultText("1. Test Answer", NamedTextColor.WHITE)));
+                target.sendActionBar(Component.empty()
+                        .append(DialogueHudGlyphs.offset(anchor))
+                        .append(anchored(answerBackgroundOffset, DialogueHudGlyphs.answerBackground(), answerWidth))
+                        .append(anchored(answerLineOffset, DialogueHudGlyphs.defaultText("1. Test Answer", NamedTextColor.WHITE)))
+                        .append(anchored(arrowOffset, DialogueHudGlyphs.selector())));
             }
         }, 80L);
 
-        // 100 ticks: full configured layout with dialogue, nameplate, and answers.
+        // 100 ticks: full configured layout with independently anchored layers.
         target.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (target.isOnline()) {
                 DialogueHudLayout layout = new DialogueHudLayout(plugin, manager);
@@ -225,6 +235,38 @@ public final class DialogueHudDebugCommand implements TabExecutor {
                         0));
             }
         }, 100L);
+    }
+
+    private static Component anchored(int offset, Component component) {
+        return anchored(offset, component, DialogueTextWidth.width(component));
+    }
+
+    private static Component anchored(int offset, Component component, int width) {
+        if (component == null || component.equals(Component.empty())) return Component.empty();
+        return Component.empty()
+                .append(DialogueHudGlyphs.offset(offset))
+                .append(component)
+                .append(DialogueHudGlyphs.offset(-offset - Math.max(0, width)));
+    }
+
+    private static Component debugNameplateBackground(Main plugin, String text) {
+        int repeats = debugNameplateMiddleRepeats(plugin, text);
+        Component background = Component.empty().append(DialogueHudGlyphs.nameplateLeft());
+        for (int i = 0; i < repeats; i++) {
+            background = background.append(DialogueHudGlyphs.nameplateMiddle());
+        }
+        return background.append(DialogueHudGlyphs.nameplateRight());
+    }
+
+    private static int debugNameplateWidth(Main plugin, String text) {
+        int midWidth = Math.max(1, plugin.getConfig().getInt("dialogue-hud.layout.nameplate.mid-width", 2));
+        return 3 + debugNameplateMiddleRepeats(plugin, text) * midWidth + 3;
+    }
+
+    private static int debugNameplateMiddleRepeats(Main plugin, String text) {
+        int padding = plugin.getConfig().getInt("dialogue-hud.layout.nameplate.text-padding", 5);
+        int midWidth = Math.max(1, plugin.getConfig().getInt("dialogue-hud.layout.nameplate.mid-width", 2));
+        return Math.max(1, (DialogueTextWidth.width(text) + padding * 2) / midWidth);
     }
 
     private static void sendStatus(CommandSender sender, String label, boolean enabled) {
