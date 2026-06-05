@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.quests.dialogue.hud;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.dialogue.DialogueAnswer;
 import me.nakilex.levelplugin.resourcepack.ResourcePackFragmentStatus;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
@@ -162,35 +163,68 @@ public final class DialogueHudDebugCommand implements TabExecutor {
         if (plugin == null) return;
 
         int dialogueWidth = plugin.getConfig().getInt("dialogue-hud.layout.dialogue.width", 209);
-        int textX = plugin.getConfig().getInt("dialogue-hud.layout.dialogue.text-x", 18);
+        int textX = plugin.getConfig().getInt("dialogue-hud.layout.dialogue.text-x", 22);
+        int nameplateX = plugin.getConfig().getInt("dialogue-hud.layout.nameplate.x", 18);
         int answerWidth = plugin.getConfig().getInt("dialogue-hud.layout.answers.background-width", 134);
-        int answerTextX = plugin.getConfig().getInt("dialogue-hud.layout.answers.text-x", 10);
+        int answerTextX = plugin.getConfig().getInt("dialogue-hud.layout.answers.text-x", 14);
 
         ChatMessageUtil.send(sender, MessageType.INFO, "Sending dialogue HUD layered layout test to " + target.getName() + ".");
+
+        // 0 ticks: dialogue box only.
         target.sendActionBar(DialogueHudGlyphs.background());
+
+        // 20 ticks: dialogue box + text layered inside the box.
         target.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (target.isOnline()) {
                 target.sendActionBar(DialogueHudGlyphs.background()
                         .append(DialogueHudGlyphs.offset(-dialogueWidth + textX))
-                        .append(DialogueHudGlyphs.defaultFont(Component.text("Text inside box", NamedTextColor.WHITE))));
+                        .append(DialogueHudGlyphs.defaultText("Text inside box", NamedTextColor.WHITE)));
             }
         }, 20L);
+
+        // 40 ticks: dialogue box + nameplate layer returned to the dialogue start.
         target.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (target.isOnline()) {
-                target.sendActionBar(DialogueHudGlyphs.nameplateLeft()
+                target.sendActionBar(DialogueHudGlyphs.background()
+                        .append(DialogueHudGlyphs.offset(-dialogueWidth + nameplateX))
+                        .append(DialogueHudGlyphs.nameplateLeft())
                         .append(DialogueHudGlyphs.nameplateMiddle())
                         .append(DialogueHudGlyphs.nameplateMiddle())
                         .append(DialogueHudGlyphs.nameplateRight()));
             }
         }, 40L);
+
+        // 60 ticks: answer box only.
+        target.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (target.isOnline()) {
+                target.sendActionBar(DialogueHudGlyphs.answerBackground());
+            }
+        }, 60L);
+
+        // 80 ticks: answer box + selected arrow/text layered inside the box.
         target.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (target.isOnline()) {
                 target.sendActionBar(DialogueHudGlyphs.answerBackground()
                         .append(DialogueHudGlyphs.offset(-answerWidth + answerTextX))
                         .append(DialogueHudGlyphs.selector())
-                        .append(DialogueHudGlyphs.defaultFont(Component.text(" 1. Test Answer", NamedTextColor.WHITE))));
+                        .append(DialogueHudGlyphs.offset(6))
+                        .append(DialogueHudGlyphs.defaultText("1. Test Answer", NamedTextColor.WHITE)));
             }
-        }, 60L);
+        }, 80L);
+
+        // 100 ticks: full configured layout with dialogue, nameplate, and answers.
+        target.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (target.isOnline()) {
+                DialogueHudLayout layout = new DialogueHudLayout(plugin, manager);
+                target.sendActionBar(layout.compose(
+                        Component.text("Janitor Ilta", NamedTextColor.YELLOW),
+                        List.of(Component.text("Text inside the dialogue box.", NamedTextColor.WHITE)),
+                        null,
+                        List.of(DialogueAnswer.of("continue", "Continue", null),
+                                DialogueAnswer.of("leave", "Leave", null)),
+                        0));
+            }
+        }, 100L);
     }
 
     private static void sendStatus(CommandSender sender, String label, boolean enabled) {
