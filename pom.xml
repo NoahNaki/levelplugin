@@ -15,6 +15,8 @@
 
     <properties>
         <java.version>21</java.version>
+        <adventure.version>4.17.0</adventure.version>
+        <packetevents.version>2.10.1</packetevents.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
@@ -114,7 +116,14 @@
         <dependency>
             <groupId>com.github.retrooper</groupId>
             <artifactId>packetevents-spigot</artifactId>
-            <version>2.10.1</version>
+            <version>${packetevents.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Direct API dependency keeps IDE imports stable on fresh machines; PacketEvents is still provided by the server. -->
+        <dependency>
+            <groupId>com.github.retrooper</groupId>
+            <artifactId>packetevents-api</artifactId>
+            <version>${packetevents.version}</version>
             <scope>provided</scope>
         </dependency>
 
@@ -158,16 +167,23 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Adventure legacy serializer -->
+        <!-- Adventure API is provided by Paper, but declared directly so IDEs resolve net.kyori imports reliably. -->
+        <dependency>
+            <groupId>net.kyori</groupId>
+            <artifactId>adventure-api</artifactId>
+            <version>${adventure.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Adventure text serializers used by ChatUtil and dialogue formatting. -->
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-serializer-legacy</artifactId>
-            <version>4.17.0</version>
+            <version>${adventure.version}</version>
         </dependency>
         <dependency>
             <groupId>net.kyori</groupId>
             <artifactId>adventure-text-minimessage</artifactId>
-            <version>4.17.0</version>
+            <version>${adventure.version}</version>
         </dependency>
 
         <!-- Bungee Chat (needed to compile Paper API due to deprecated BaseComponent refs) -->
