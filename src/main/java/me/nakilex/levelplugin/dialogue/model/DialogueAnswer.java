@@ -10,7 +10,7 @@ public record DialogueAnswer(
         String text,
         List<String> gotoTargets,
         List<String> replyMessages,
-        String sound,
+        DialogueSoundSpec sound,
         List<String> conditions,
         List<String> actions
 ) {
@@ -19,10 +19,11 @@ public record DialogueAnswer(
         gotoTargets = gotoTargets == null ? List.of() : List.copyOf(gotoTargets);
         replyMessages = replyMessages == null ? List.of() : List.copyOf(replyMessages);
         conditions = conditions == null ? List.of() : List.copyOf(conditions);
+        sound = sound == null ? DialogueSoundSpec.empty() : sound;
         actions = actions == null ? List.of() : List.copyOf(actions);
     }
 
     public String firstGotoTarget() {
-        return gotoTargets.isEmpty() ? null : gotoTargets.getFirst();
+        return gotoTargets.isEmpty() ? null : gotoTargets.get(0);
     }
 }

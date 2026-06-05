@@ -12,10 +12,11 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * Standalone registry for Lux-style dialogue definitions loaded from the dialogues folder.
+ * Standalone registry for Lux-style dialogue definitions loaded from the Dialogues folder.
  */
 public class DialogueManager {
-    private static final String DIALOGUES_FOLDER = "dialogues";
+    private static final String PRIMARY_DIALOGUES_FOLDER = "Dialogues";
+    private static final String LEGACY_DIALOGUES_FOLDER = "dialogues";
 
     private final JavaPlugin plugin;
     private final DialogueConfigLoader loader;
@@ -44,16 +45,30 @@ public class DialogueManager {
 
     public void reload() {
         Map<String, DialogueDefinition> loaded = new LinkedHashMap<>();
-        File folder = new File(plugin.getDataFolder(), DIALOGUES_FOLDER);
-        if (!folder.exists() && !folder.mkdirs()) {
-            plugin.getLogger().warning("[DialogueManager] Could not create dialogues folder: " + folder.getPath());
+        File primaryFolder = new File(plugin.getDataFolder(), PRIMARY_DIALOGUES_FOLDER);
+        File legacyFolder = new File(plugin.getDataFolder(), LEGACY_DIALOGUES_FOLDER);
+
+        if (!primaryFolder.exists() && !legacyFolder.exists() && !primaryFolder.mkdirs()) {
+            plugin.getLogger().warning("[DialogueManager] Could not create dialogues folder: " + primaryFolder.getPath());
             definitions.clear();
             return;
         }
 
-        File[] files = folder.listFiles((dir, name) -> name.toLowerCase(Locale.ROOT).endsWith(".yml"));
+        if (legacyFolder.exists()) {
+            loadFolder(legacyFolder, loaded);
+        }
+        if (!sameFile(primaryFolder, legacyFolder) && primaryFolder.exists()) {
+            loadFolder(primaryFolder, loaded);
+        }
+
+        definitions.clear();
+        definitions.putAll(loaded);
+        plugin.getLogger().info("[DialogueManager] Loaded " + definitions.size() + " dialogue definition(s).");
+    }
+
+    private void loadFolder(File folder, Map<String, DialogueDefinition> loaded) {
+        File[] files = folder.listFiles((dir, name) -> isDialogueConfigFile(name));
         if (files == null) {
-            definitions.clear();
             return;
         }
 
@@ -70,9 +85,18 @@ public class DialogueManager {
                         + ": " + exception.getMessage());
             }
         }
+    }
 
-        definitions.clear();
-        definitions.putAll(loaded);
-        plugin.getLogger().info("[DialogueManager] Loaded " + definitions.size() + " dialogue definition(s).");
+    private static boolean isDialogueConfigFile(String name) {
+        String lower = name == null ? "" : name.toLowerCase(Locale.ROOT);
+        return lower.endsWith(".yml") || lower.endsWith(".yaml");
+    }
+
+    private static boolean sameFile(File first, File second) {
+        try {
+            return first.getCanonicalFile().equals(second.getCanonicalFile());
+        } catch (java.io.IOException ignored) {
+            return first.equals(second);
+        }
     }
 }

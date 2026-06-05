@@ -20,15 +20,13 @@ public record DialogueRenderContext(
         String nameColor,
         String infoColor,
         int contentOffsetPixels,
-        int nameOffsetPixels,
-        int lineSpacingPixels
+        int nameOffsetPixels
 ) {
     private static final String DEFAULT_TEXT_COLOR = "#f5edd7";
     private static final String DEFAULT_NAME_COLOR = "#f7d486";
     private static final String DEFAULT_INFO_COLOR = "#b8ad94";
     private static final int DEFAULT_CONTENT_OFFSET_PIXELS = -180;
     private static final int DEFAULT_NAME_OFFSET_PIXELS = -148;
-    private static final int DEFAULT_LINE_SPACING_PIXELS = 8;
 
     public DialogueRenderContext {
         textColor = blankToDefault(textColor, DEFAULT_TEXT_COLOR);
@@ -53,8 +51,7 @@ public record DialogueRenderContext(
                 stringValue(colors, DEFAULT_NAME_COLOR, "name", "characterName", "speaker"),
                 stringValue(colors, DEFAULT_INFO_COLOR, "info", "steadyInfo", "steadyInfoLine"),
                 intValue(offsets, DEFAULT_CONTENT_OFFSET_PIXELS, "content", "contentOffset", "text", "x"),
-                intValue(offsets, DEFAULT_NAME_OFFSET_PIXELS, "name", "nameOffset", "nameX"),
-                intValue(offsets, DEFAULT_LINE_SPACING_PIXELS, "lineSpacing", "line-spacing", "line_spacing")
+                intValue(offsets, DEFAULT_NAME_OFFSET_PIXELS, "name", "nameOffset", "nameX")
         );
     }
 

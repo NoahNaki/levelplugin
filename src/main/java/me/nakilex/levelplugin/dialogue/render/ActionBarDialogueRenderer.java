@@ -6,7 +6,6 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Player;
 
-import java.util.List;
 
 /**
  * Static Lux-style actionbar renderer for a single loaded dialogue page.
@@ -57,17 +56,13 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
 
     private Component pageText(DialoguePage page, DialogueRenderContext context) {
         Component text = Component.empty();
-        List<String> lines = page.lines();
-        for (int i = 0; i < lines.size(); i++) {
-            if (i > 0) {
-                text = text.append(DialogueOffsetGlyphs.component(context.lineSpacingPixels()))
-                        .append(coloredText(LINE_SEPARATOR));
-            }
-            text = text.append(coloredText(context.textColor() + lines.get(i)));
+        String dialogueText = String.join(" ", page.lines()).trim();
+        if (!dialogueText.isEmpty()) {
+            text = text.append(coloredText(context.textColor() + dialogueText));
         }
 
         if (page.steadyInfoLine() != null && !page.steadyInfoLine().isBlank()) {
-            if (!lines.isEmpty()) {
+            if (!dialogueText.isEmpty()) {
                 text = text.append(coloredText(LINE_SEPARATOR));
             }
             text = text.append(dialogueGlyph(DialogueGlyphs.ARROW))

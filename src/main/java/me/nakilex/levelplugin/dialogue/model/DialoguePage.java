@@ -31,6 +31,6 @@ public record DialoguePage(
     }
 
     public String firstGotoTarget() {
-        return gotoTargets.isEmpty() ? null : gotoTargets.getFirst();
+        return gotoTargets.isEmpty() ? null : gotoTargets.get(0);
     }
 }

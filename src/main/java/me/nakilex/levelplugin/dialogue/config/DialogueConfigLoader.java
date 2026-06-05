@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.dialogue.model.DialogueImages;
 import me.nakilex.levelplugin.dialogue.model.DialogueOffsets;
 import me.nakilex.levelplugin.dialogue.model.DialoguePage;
 import me.nakilex.levelplugin.dialogue.model.DialogueSettings;
+import me.nakilex.levelplugin.dialogue.model.DialogueSoundSpec;
 import me.nakilex.levelplugin.dialogue.model.DialogueSounds;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -98,7 +99,7 @@ public class DialogueConfigLoader {
             if (answer == null) {
                 String text = section.getString(answerId);
                 if (text != null) {
-                    answers.put(answerId, new DialogueAnswer(answerId, text, List.of(), List.of(), null, List.of(), List.of()));
+                    answers.put(answerId, new DialogueAnswer(answerId, text, List.of(), List.of(), DialogueSoundSpec.empty(), List.of(), List.of()));
                 }
                 continue;
             }
@@ -107,11 +108,34 @@ public class DialogueConfigLoader {
                     firstString(answer, null, "text", "Text", "message", "Message"),
                     stringList(answer, "goto", "Goto", "go-to", "go_to", "next", "Next"),
                     stringList(answer, "reply", "replies", "replyMessages", "reply-messages", "reply_messages", "messages"),
-                    firstString(answer, null, "sound", "Sound"),
+                    soundSpec(answer, "sound", "Sound"),
                     stringList(answer, "conditions", "condition", "Conditions"),
                     stringList(answer, "actions", "action", "Actions")
             ));
         }
+    }
+
+    private static DialogueSoundSpec soundSpec(ConfigurationSection section, String... paths) {
+        if (section == null || paths == null) {
+            return DialogueSoundSpec.empty();
+        }
+        for (String path : paths) {
+            if (!section.contains(path)) {
+                continue;
+            }
+            ConfigurationSection soundSection = section.getConfigurationSection(path);
+            if (soundSection != null) {
+                return new DialogueSoundSpec(toRawMap(soundSection));
+            }
+            Object value = section.get(path);
+            if (value instanceof Map<?, ?> map) {
+                return new DialogueSoundSpec(immutableMap(map));
+            }
+            if (value != null) {
+                return DialogueSoundSpec.ofId(String.valueOf(value));
+            }
+        }
+        return DialogueSoundSpec.empty();
     }
 
     private static ConfigurationSection firstSection(ConfigurationSection section, String... paths) {
