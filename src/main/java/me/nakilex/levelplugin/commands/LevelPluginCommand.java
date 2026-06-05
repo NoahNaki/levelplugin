@@ -11,7 +11,7 @@ import me.nakilex.levelplugin.player.fishing.minigame.FishingDifficultyProfile;
 import me.nakilex.levelplugin.player.fishing.minigame.FishingMiniGameManager;
 import me.nakilex.levelplugin.player.fishing.resourcepack.FishingResourcePackManager;
 import me.nakilex.levelplugin.quests.dialogue.hud.DialogueHudResourcePackManager;
-import me.nakilex.levelplugin.resourcepack.ResourcePackFragmentStatus;
+import me.nakilex.levelplugin.quests.dialogue.hud.DialogueHudDebugCommand;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -99,25 +99,7 @@ public class LevelPluginCommand implements TabExecutor {
             ChatMessageUtil.send(sender, MessageType.WARNING, "Dialogue HUD integration has not initialized yet.");
             return;
         }
-        ResourcePackFragmentStatus status = manager.status();
-        ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.AQUA + "Dialogue HUD integration status:");
-        sendStatus(sender, "Renderer enabled", manager.rendererEnabled());
-        ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + "Renderer mode: " + ChatColor.WHITE + manager.rendererMode());
-        sendStatus(sender, "Resource-pack glyphs allowed", manager.useResourcePackGlyphs());
-        sendStatus(sender, "Debug force glyphs", manager.debugForceGlyphs());
-        sendStatus(sender, "Server glyph files ready", manager.serverGlyphFilesReady());
-        sendStatus(sender, "Nexo external_packs exists", status.nexoExternalPacksExists());
-        sendStatus(sender, "levelplugin-dialogue-hud installed", status.installed());
-        status.requiredFiles().forEach((file, exists) -> sendStatus(sender, file + " exists", exists));
-        if (target != null) {
-            sendStatus(sender, target.getName() + " loaded server resource pack", manager.packStatusListener().hasLoadedPack(target));
-            sendStatus(sender, target.getName() + " can use dialogue glyphs", manager.playerCanUseGlyphs(target));
-            ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + "Glyph decision: " + ChatColor.WHITE
-                    + manager.glyphDebugReason(target));
-        } else {
-            ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY
-                    + "Run as a player or pass an online player name to inspect player pack-load state.");
-        }
+        DialogueHudDebugCommand.sendDebug(sender, manager, target);
     }
 
     private void startFishingMiniGameTest(CommandSender sender, String type) {

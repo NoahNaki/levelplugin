@@ -42,10 +42,6 @@ public final class DialogueHudResourcePackManager {
 
     public static DialogueHudResourcePackManager getInstance() { return instance; }
 
-    public static boolean canRenderGlyphUi() {
-        return instance != null && instance.serverGlyphFilesReady() && instance.useResourcePackGlyphs();
-    }
-
     public ResourcePackFragmentStatus status() {
         return installer.status(resourcePackEnabled(), fallbackChatRendererEnabled());
     }
@@ -71,6 +67,10 @@ public final class DialogueHudResourcePackManager {
         return plugin.getConfig().getBoolean("dialogue-hud.renderer.use-resource-pack-glyphs", true);
     }
 
+    public boolean requireClientPackLoaded() {
+        return plugin.getConfig().getBoolean("dialogue-hud.renderer.require-client-pack-loaded", true);
+    }
+
     public boolean debugForceGlyphs() {
         return plugin.getConfig().getBoolean("dialogue-hud.renderer.debug-force-glyphs", false);
     }
@@ -79,10 +79,16 @@ public final class DialogueHudResourcePackManager {
         return plugin.getConfig().getBoolean("dialogue-hud.debug.log-pack-status", true);
     }
 
-    public boolean playerCanUseGlyphs(org.bukkit.entity.Player player) {
-        return serverGlyphFilesReady()
+    public boolean canRenderGlyphUi(org.bukkit.entity.Player player) {
+        return rendererEnabled()
+                && actionBarMode()
+                && serverGlyphFilesReady()
                 && useResourcePackGlyphs()
-                && (debugForceGlyphs() || packStatusListener.hasLoadedPack(player));
+                && (debugForceGlyphs() || !requireClientPackLoaded() || packStatusListener.hasLoadedPack(player));
+    }
+
+    public boolean playerCanUseGlyphs(org.bukkit.entity.Player player) {
+        return canRenderGlyphUi(player);
     }
 
     public boolean serverGlyphFilesReady() {
@@ -90,11 +96,15 @@ public final class DialogueHudResourcePackManager {
     }
 
     public String glyphDebugReason(org.bukkit.entity.Player player) {
+        if (!rendererEnabled()) return "renderer disabled in config";
+        if (!actionBarMode()) return "renderer mode is chat";
         if (!useResourcePackGlyphs()) return "renderer glyphs disabled in config";
         if (!serverGlyphFilesReady()) return "server-side dialogue HUD pack files are incomplete or Nexo is unavailable";
         if (debugForceGlyphs()) return "debug-force-glyphs enabled";
-        if (!packStatusListener.hasLoadedPack(player)) return "player has not reported SUCCESSFULLY_LOADED for the resource pack";
-        return "glyphs enabled";
+        if (requireClientPackLoaded() && !packStatusListener.hasLoadedPack(player)) {
+            return "player has not reported SUCCESSFULLY_LOADED for the resource pack";
+        }
+        return requireClientPackLoaded() ? "glyphs enabled" : "glyphs enabled without client load requirement";
     }
 
     public boolean fallbackChatRendererEnabled() {

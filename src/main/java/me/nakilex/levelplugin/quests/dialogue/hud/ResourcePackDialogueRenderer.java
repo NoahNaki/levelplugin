@@ -5,8 +5,7 @@ import me.nakilex.levelplugin.dialogue.DialogueEndReason;
 import me.nakilex.levelplugin.dialogue.DialoguePage;
 import me.nakilex.levelplugin.dialogue.DialogueRenderer;
 import me.nakilex.levelplugin.dialogue.DialogueSession;
-import me.nakilex.levelplugin.quests.dialogue.QuestDialogueLine;
-import me.nakilex.levelplugin.quests.dialogue.QuestDialogueSession;
+import me.nakilex.levelplugin.dialogue.render.ChatDialogueRenderer;
 import me.nakilex.levelplugin.utils.ChatUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -18,24 +17,16 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** Action-bar dialogue renderer with optional resource-pack glyph framing and readable text fallback. */
-public class ResourcePackDialogueRenderer implements QuestDialogueSession.Renderer, DialogueRenderer {
+public class ResourcePackDialogueRenderer implements DialogueRenderer {
     private static final int MAX_VISIBLE_PAGE_LINES = 2;
     private static final int MAX_VISIBLE_ANSWERS = 3;
 
     private final DialogueHudResourcePackManager resourcePackManager;
+    private final ChatDialogueRenderer chatFallback = new ChatDialogueRenderer();
     private final Map<UUID, String> lastGlyphReasons = new ConcurrentHashMap<>();
 
     public ResourcePackDialogueRenderer(DialogueHudResourcePackManager resourcePackManager) {
         this.resourcePackManager = resourcePackManager;
-    }
-
-    public boolean canRenderGlyphUi() {
-        return resourcePackManager != null
-                && resourcePackManager.rendererEnabled()
-                && resourcePackManager.actionBarMode()
-                && resourcePackManager.useResourcePackGlyphs()
-                && resourcePackManager.debugForceGlyphs()
-                && resourcePackManager.serverGlyphFilesReady();
     }
 
     public boolean canRenderGlyphUi(Player player) {
@@ -59,9 +50,17 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
         if (resourcePackManager.debugLogging()) {
             resourcePackManagerDebug(player, glyphs);
         }
-        player.sendActionBar(glyphs
+        Component output = glyphs
                 ? glyphActionBar(player, speaker, completedPageLines, visibleText, pageLineIndex, pageLineCount, answers, selectedAnswerIndex, replyLines)
-                : plainActionBar(speaker, completedPageLines, visibleText, pageLineIndex, pageLineCount, answers, selectedAnswerIndex, replyLines));
+                : plainActionBar(speaker, completedPageLines, visibleText, pageLineIndex, pageLineCount, answers, selectedAnswerIndex, replyLines);
+        try {
+            player.sendActionBar(output);
+        } catch (RuntimeException exception) {
+            if (resourcePackManager.fallbackChatRendererEnabled()) {
+                chatFallback.render(player, session, page, speaker, completedPageLines, visibleText, pageLineIndex,
+                        pageLineCount, answers, selectedAnswerIndex, replyLines);
+            }
+        }
     }
 
     @Override
@@ -69,18 +68,6 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
         clear(player);
     }
 
-    @Override
-    public void render(Player player, QuestDialogueLine line, Component speaker, Component visibleText,
-                       QuestDialogueSession.State state, int lineNumber, int lineCount) {
-        if (player == null) return;
-        Component message = Component.text("[", NamedTextColor.DARK_GRAY)
-                .append(speaker.colorIfAbsent(NamedTextColor.YELLOW))
-                .append(Component.text("] ", NamedTextColor.DARK_GRAY))
-                .append(visibleText.colorIfAbsent(NamedTextColor.WHITE));
-        player.sendActionBar(message);
-    }
-
-    @Override
     public void clear(Player player) {
         if (player != null) {
             lastGlyphReasons.remove(player.getUniqueId());
@@ -157,7 +144,7 @@ public class ResourcePackDialogueRenderer implements QuestDialogueSession.Render
     }
 
     public Component renderAnswer(Component answer, boolean selected) {
-        return renderAnswer(answer, selected, canRenderGlyphUi());
+        return renderAnswer(answer, selected, false);
     }
 
     private Component renderAnswer(Component answer, boolean selected, boolean useGlyphSelector) {

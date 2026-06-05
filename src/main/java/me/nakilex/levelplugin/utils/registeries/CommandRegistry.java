@@ -33,6 +33,7 @@ import me.nakilex.levelplugin.pet.gui.PetGUI;
 import me.nakilex.levelplugin.pet.gui.PetSummonGUI;
 import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
+import me.nakilex.levelplugin.quests.dialogue.hud.DialogueHudDebugCommand;
 import me.nakilex.levelplugin.debug.commands.SpawnEntityModelCommand;
 import me.nakilex.levelplugin.debug.commands.MageFireballDebugCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
@@ -420,6 +421,9 @@ public class CommandRegistry {
         LevelPluginCommand levelPluginCommand = new LevelPluginCommand(plugin);
         plugin.getCommand("levelplugin").setExecutor(levelPluginCommand);
         plugin.getCommand("levelplugin").setTabCompleter(levelPluginCommand);
+        DialogueHudDebugCommand dialogueHudDebugCommand = new DialogueHudDebugCommand();
+        plugin.getCommand("dialoguehuddebug").setExecutor(dialogueHudDebugCommand);
+        plugin.getCommand("dialoguehuddebug").setTabCompleter(dialogueHudDebugCommand);
         plugin.getCommand("motd").setExecutor(new me.nakilex.levelplugin.motd.MotdCommand(motdManager));
         me.nakilex.levelplugin.fakeblock.FakeGateCommand fakeGateCmd =
                 new me.nakilex.levelplugin.fakeblock.FakeGateCommand(plugin);
