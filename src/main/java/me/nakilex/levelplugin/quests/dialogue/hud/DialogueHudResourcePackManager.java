@@ -13,6 +13,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,6 +27,8 @@ public final class DialogueHudResourcePackManager {
     public static final String BACKGROUND_PROVIDER_FILE = "levelplugin_dialogue:dialogue/dialogue_background.png";
     private static final String BACKGROUND_GLYPH = Character.toString(DialogueHudGlyphs.DIALOGUE_BACKGROUND);
     private static final Pattern JSON_OBJECT_PATTERN = Pattern.compile("\\{[^{}]*}", Pattern.DOTALL);
+    private static final Pattern ADVANCES_PATTERN = Pattern.compile("\"advances\"\\s*:\\s*\\{(.*?)}", Pattern.DOTALL);
+    private static final Pattern ADVANCE_ENTRY_PATTERN = Pattern.compile("\"((?:\\\\.|[^\"\\\\])*)\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)");
 
     private static final List<String> DEFAULT_REQUIRED_FILES = List.of(
             "pack.mcmeta",
@@ -54,6 +57,7 @@ public final class DialogueHudResourcePackManager {
             manager.installer.installBundledFragment();
             manager.logAvailability();
         }
+        manager.configureDialogueOffsetGlyphs();
         return manager;
     }
 
@@ -104,6 +108,16 @@ public final class DialogueHudResourcePackManager {
         return plugin.getConfig().getInt("dialogue-hud.renderer.text-offset-after-background", 8);
     }
 
+    public String configuredNegativeOffsetGlyph() {
+        return plugin.getConfig().getString("dialogue-hud.layout.offsets.negative-char",
+                DialogueHudGlyphs.unicode(DialogueHudGlyphs.DEFAULT_NEGATIVE_OFFSET));
+    }
+
+    public String configuredPositiveOffsetGlyph() {
+        return plugin.getConfig().getString("dialogue-hud.layout.offsets.positive-char",
+                DialogueHudGlyphs.unicode(DialogueHudGlyphs.DEFAULT_POSITIVE_OFFSET));
+    }
+
     public boolean canRenderGlyphUi(org.bukkit.entity.Player player) {
         return rendererEnabled()
                 && actionBarMode()
@@ -146,6 +160,57 @@ public final class DialogueHudResourcePackManager {
 
     public Path dialogueBackgroundPath() {
         return installedPackPath().resolve(BACKGROUND_TEXTURE);
+    }
+
+    public Path offsetFontJsonPath() {
+        return installedPackPath().resolve(OFFSET_FONT_JSON);
+    }
+
+    public OffsetGlyphDebug offsetGlyphDebug() {
+        Optional<OffsetGlyphPair> detected = detectOffsetGlyphs();
+        return new OffsetGlyphDebug(offsetFontJsonPath(), Files.isRegularFile(offsetFontJsonPath()),
+                DialogueHudGlyphs.negativeOffsetGlyph(), DialogueHudGlyphs.positiveOffsetGlyph(),
+                DialogueHudGlyphs.offsetSource(), detected.orElse(null));
+    }
+
+    private void configureDialogueOffsetGlyphs() {
+        Optional<OffsetGlyphPair> detected = detectOffsetGlyphs();
+        if (detected.isPresent()) {
+            OffsetGlyphPair pair = detected.get();
+            DialogueHudGlyphs.configureOffsetGlyphs(pair.negative(), pair.positive(), "detected from offset_chars.json advances");
+            return;
+        }
+
+        char negative = parseConfiguredGlyph(configuredNegativeOffsetGlyph(), DialogueHudGlyphs.DEFAULT_NEGATIVE_OFFSET);
+        char positive = parseConfiguredGlyph(configuredPositiveOffsetGlyph(), DialogueHudGlyphs.DEFAULT_POSITIVE_OFFSET);
+        DialogueHudGlyphs.configureOffsetGlyphs(negative, positive, "config/default dialogue-hud.layout.offsets");
+    }
+
+    private Optional<OffsetGlyphPair> detectOffsetGlyphs() {
+        Path path = offsetFontJsonPath();
+        if (!Files.isRegularFile(path)) return Optional.empty();
+        try {
+            String json = Files.readString(path, StandardCharsets.UTF_8);
+            Matcher advancesMatcher = ADVANCES_PATTERN.matcher(json);
+            while (advancesMatcher.find()) {
+                Matcher entryMatcher = ADVANCE_ENTRY_PATTERN.matcher(advancesMatcher.group(1));
+                Character negative = null;
+                Character positive = null;
+                while (entryMatcher.find()) {
+                    String key = decodeJsonString(entryMatcher.group(1));
+                    if (key == null || key.isEmpty()) continue;
+                    double advance = Double.parseDouble(entryMatcher.group(2));
+                    if (advance < 0 && negative == null) negative = key.charAt(0);
+                    if (advance > 0 && positive == null) positive = key.charAt(0);
+                    if (negative != null && positive != null) {
+                        return Optional.of(new OffsetGlyphPair(negative, positive));
+                    }
+                }
+            }
+        } catch (IOException | NumberFormatException ignored) {
+            return Optional.empty();
+        }
+        return Optional.empty();
     }
 
     public BackgroundGlyphDebug backgroundGlyphDebug() {
@@ -230,6 +295,53 @@ public final class DialogueHudResourcePackManager {
         return chars.contains(BACKGROUND_GLYPH) || lower.contains("\\ue100");
     }
 
+    private static char parseConfiguredGlyph(String configured, char fallback) {
+        if (configured == null || configured.isBlank()) return fallback;
+        String value = configured.trim();
+        if (value.startsWith("\\u") || value.startsWith("\\U")) {
+            try {
+                return (char) Integer.parseInt(value.substring(2), 16);
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return value.charAt(0);
+    }
+
+    private static String decodeJsonString(String value) {
+        if (value == null) return null;
+        StringBuilder output = new StringBuilder();
+        for (int i = 0; i < value.length(); i++) {
+            char current = value.charAt(i);
+            if (current != '\\' || i + 1 >= value.length()) {
+                output.append(current);
+                continue;
+            }
+            char escaped = value.charAt(++i);
+            switch (escaped) {
+                case 'u', 'U' -> {
+                    if (i + 4 < value.length()) {
+                        try {
+                            output.append((char) Integer.parseInt(value.substring(i + 1, i + 5), 16));
+                            i += 4;
+                        } catch (NumberFormatException exception) {
+                            output.append(escaped);
+                        }
+                    } else {
+                        output.append(escaped);
+                    }
+                }
+                case 'n' -> output.append('\n');
+                case 'r' -> output.append('\r');
+                case 't' -> output.append('\t');
+                case 'b' -> output.append('\b');
+                case 'f' -> output.append('\f');
+                default -> output.append(escaped);
+            }
+        }
+        return output.toString();
+    }
+
     private static String extractJsonString(String object, String key) {
         Matcher matcher = Pattern.compile("\"" + Pattern.quote(key) + "\"\\s*:\\s*\"([^\"]*)\"").matcher(object);
         return matcher.find() ? matcher.group(1) : null;
@@ -282,6 +394,17 @@ public final class DialogueHudResourcePackManager {
             Integer height,
             String chars
     ) { }
+
+    public record OffsetGlyphDebug(
+            Path fontPath,
+            boolean fontExists,
+            char activeNegative,
+            char activePositive,
+            String source,
+            OffsetGlyphPair detectedPair
+    ) { }
+
+    public record OffsetGlyphPair(char negative, char positive) { }
 
     private boolean resourcePackEnabled() {
         return plugin.getConfig().getBoolean("dialogue-hud.resource-pack.enabled", true);

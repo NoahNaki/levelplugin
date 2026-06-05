@@ -82,7 +82,24 @@ public final class DialogueHudDebugCommand implements TabExecutor {
                 + DialogueHudGlyphs.DIALOGUE_FONT.asString());
         ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + "offset font key: " + ChatColor.WHITE
                 + DialogueHudGlyphs.OFFSET_FONT.asString());
+        sendOffsetDebug(sender, manager.offsetGlyphDebug());
         sendBackgroundDebug(sender, manager.backgroundGlyphDebug());
+    }
+
+    private static void sendOffsetDebug(CommandSender sender, DialogueHudResourcePackManager.OffsetGlyphDebug debug) {
+        ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.AQUA + "Dialogue offset glyph debug:");
+        sendStatus(sender, "offset_chars.json exists", debug.fontExists());
+        ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + "offset_chars.json path: " + ChatColor.WHITE + debug.fontPath());
+        ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + "active negative offset glyph: " + ChatColor.WHITE
+                + DialogueHudGlyphs.unicode(debug.activeNegative()));
+        ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + "active positive offset glyph: " + ChatColor.WHITE
+                + DialogueHudGlyphs.unicode(debug.activePositive()));
+        ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + "offset glyph source: " + ChatColor.WHITE + debug.source());
+        if (debug.detectedPair() != null) {
+            ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + "detected offset pair: " + ChatColor.WHITE
+                    + DialogueHudGlyphs.unicode(debug.detectedPair().negative()) + " / "
+                    + DialogueHudGlyphs.unicode(debug.detectedPair().positive()));
+        }
     }
 
     private static void sendBackgroundDebug(CommandSender sender, DialogueHudResourcePackManager.BackgroundGlyphDebug debug) {

@@ -97,6 +97,11 @@ dialogue-hud:
     log-pack-status: true
   layout:
     start-offset: 420
+    offsets:
+      # Lux-style offsets repeat one invisible glyph per pixel instead of binary F801/F802/F804 steps.
+      # These are only used if the active offset_chars.json cannot be auto-detected from a space/advances provider.
+      negative-char: "\uF800"
+      positive-char: "\uF801"
     dialogue:
       width: 209
       height: 57

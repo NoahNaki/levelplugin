@@ -1,6 +1,5 @@
 package me.nakilex.levelplugin.quests.dialogue.hud;
 
-import me.nakilex.levelplugin.utils.glyph.OffsetGlyphs;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
@@ -10,6 +9,12 @@ public final class DialogueHudGlyphs {
     public static final Key DIALOGUE_FONT = Key.key("levelplugin_dialogue", "dialogue");
     public static final Key OFFSET_FONT = Key.key("levelplugin_dialogue", "offset_chars");
     public static final Key VANILLA_FONT = Key.key("minecraft", "default");
+    public static final char DEFAULT_NEGATIVE_OFFSET = '\uF800';
+    public static final char DEFAULT_POSITIVE_OFFSET = '\uF801';
+
+    private static volatile char negativeOffset = DEFAULT_NEGATIVE_OFFSET;
+    private static volatile char positiveOffset = DEFAULT_POSITIVE_OFFSET;
+    private static volatile String offsetSource = "defaults";
 
     public static final char DIALOGUE_BACKGROUND = '\uE100';
     public static final char ANSWER_BACKGROUND = '\uE101';
@@ -44,7 +49,27 @@ public final class DialogueHudGlyphs {
 
     public static Component fogBackground() { return glyph(FOG_BACKGROUND); }
 
-    public static Component offset(int pixels) { return OffsetGlyphs.component(pixels, OFFSET_FONT); }
+    public static Component offset(int pixels) {
+        if (pixels == 0) return Component.empty();
+        char offsetGlyph = pixels < 0 ? negativeOffset : positiveOffset;
+        return Component.text(Character.toString(offsetGlyph).repeat(Math.abs(pixels))).font(OFFSET_FONT);
+    }
+
+    public static void configureOffsetGlyphs(char negative, char positive, String source) {
+        negativeOffset = negative;
+        positiveOffset = positive;
+        offsetSource = source == null || source.isBlank() ? "configured" : source;
+    }
+
+    public static char negativeOffsetGlyph() { return negativeOffset; }
+
+    public static char positiveOffsetGlyph() { return positiveOffset; }
+
+    public static String offsetSource() { return offsetSource; }
+
+    public static String unicode(char glyph) {
+        return String.format("\\u%04X", (int) glyph);
+    }
 
     /** Resets normal readable text back to Minecraft's default font when it is adjacent to HUD glyphs. */
     public static Component defaultFont(Component component) {
