@@ -79,7 +79,8 @@ public class ResourcePackDialogueRenderer implements DialogueRenderer {
     private Component glyphActionBar(Player player, Component speaker, List<Component> completedPageLines, Component visibleText,
                                      int pageLineIndex, int pageLineCount, List<DialogueAnswer> answers,
                                      int selectedAnswerIndex, List<Component> replyLines) {
-        return DialogueHudGlyphs.background()
+        return Component.empty()
+                .append(DialogueHudGlyphs.background())
                 .append(DialogueHudGlyphs.offset(-8))
                 .append(renderSpeakerName(player, speaker))
                 .append(Component.space())
@@ -113,9 +114,10 @@ public class ResourcePackDialogueRenderer implements DialogueRenderer {
 
     public Component renderSpeakerName(Player player, Component speaker) {
         if (player != null && canRenderGlyphUi(player)) {
-            return DialogueHudGlyphs.glyph(DialogueHudGlyphs.NAMEPLATE_LEFT)
-                    .append(speaker == null ? Component.empty() : speaker.colorIfAbsent(NamedTextColor.YELLOW))
-                    .append(DialogueHudGlyphs.glyph(DialogueHudGlyphs.NAMEPLATE_RIGHT));
+            return Component.empty()
+                    .append(DialogueHudGlyphs.nameplateLeft())
+                    .append(DialogueHudGlyphs.defaultFont(speaker == null ? Component.empty() : speaker.colorIfAbsent(NamedTextColor.YELLOW)))
+                    .append(DialogueHudGlyphs.nameplateRight());
         }
         return speaker == null ? Component.empty() : speaker.colorIfAbsent(NamedTextColor.YELLOW);
     }
