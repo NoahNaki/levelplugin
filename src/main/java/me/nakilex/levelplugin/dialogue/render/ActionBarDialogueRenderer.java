@@ -17,12 +17,22 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
     private static final int NAME_MID_REPEAT_PADDING = 2;
     private static final String LINE_SEPARATOR = "  ";
 
+    private final DialogueActionBarSender actionBarSender;
+
+    public ActionBarDialogueRenderer() {
+        this(new DialogueActionBarSender());
+    }
+
+    public ActionBarDialogueRenderer(DialogueActionBarSender actionBarSender) {
+        this.actionBarSender = actionBarSender == null ? new DialogueActionBarSender() : actionBarSender;
+    }
+
     @Override
     public void render(Player player, DialogueRenderContext context) {
         if (player == null || context == null || context.page() == null) {
             return;
         }
-        player.sendActionBar(render(context));
+        actionBarSender.send(player, render(context));
     }
 
     public Component render(DialogueRenderContext context) {

@@ -3,9 +3,9 @@ package me.nakilex.levelplugin.dialogue;
 import me.nakilex.levelplugin.dialogue.model.DialogueDefinition;
 import me.nakilex.levelplugin.dialogue.model.DialoguePage;
 import me.nakilex.levelplugin.dialogue.render.ActionBarDialogueRenderer;
+import me.nakilex.levelplugin.dialogue.render.DialogueActionBarSender;
 import me.nakilex.levelplugin.dialogue.render.DialogueRenderContext;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -26,22 +26,24 @@ import java.util.UUID;
  * Temporary developer command for manually previewing static Lux-style dialogue pages.
  */
 public class DialogueDebugCommand implements TabExecutor {
-    private static final long RENDER_PERIOD_TICKS = 2L;
+    private static final long RENDER_PERIOD_TICKS = 1L;
     private static final int RENDER_DURATION_TICKS = 20 * 10;
 
     private final JavaPlugin plugin;
     private final DialogueManager dialogueManager;
     private final ActionBarDialogueRenderer renderer;
+    private final DialogueActionBarSender actionBarSender;
     private final Map<UUID, BukkitTask> activeRenderTasks = new HashMap<>();
 
     public DialogueDebugCommand(JavaPlugin plugin, DialogueManager dialogueManager) {
-        this(plugin, dialogueManager, new ActionBarDialogueRenderer());
+        this(plugin, dialogueManager, new DialogueActionBarSender());
     }
 
-    public DialogueDebugCommand(JavaPlugin plugin, DialogueManager dialogueManager, ActionBarDialogueRenderer renderer) {
+    public DialogueDebugCommand(JavaPlugin plugin, DialogueManager dialogueManager, DialogueActionBarSender actionBarSender) {
         this.plugin = plugin;
         this.dialogueManager = dialogueManager;
-        this.renderer = renderer == null ? new ActionBarDialogueRenderer() : renderer;
+        this.actionBarSender = actionBarSender == null ? new DialogueActionBarSender() : actionBarSender;
+        this.renderer = new ActionBarDialogueRenderer(this.actionBarSender);
     }
 
     @Override
@@ -53,7 +55,8 @@ public class DialogueDebugCommand implements TabExecutor {
 
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "reload" -> reload(sender);
-            case "render" -> render(sender, label, args);
+            case "render" -> render(sender, label, args, true);
+            case "renderonce" -> render(sender, label, args, false);
             case "stop" -> stop(sender);
             default -> sendUsage(sender, label);
         }
@@ -74,14 +77,14 @@ public class DialogueDebugCommand implements TabExecutor {
         }
 
         if (cancelRenderTask(player.getUniqueId())) {
-            player.sendActionBar(Component.empty());
+            actionBarSender.clear(player);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Stopped dialogue preview.");
         } else {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "No active dialogue preview.");
         }
     }
 
-    private void render(CommandSender sender, String label, String[] args) {
+    private void render(CommandSender sender, String label, String[] args, boolean repeat) {
         if (!(sender instanceof Player player)) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
                     "Only players can render dialogue previews.");
@@ -89,7 +92,7 @@ public class DialogueDebugCommand implements TabExecutor {
         }
         if (args.length < 3) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Usage: /" + label + " render <dialogueId> <pageId>");
+                    "Usage: /" + label + " " + args[0].toLowerCase(Locale.ROOT) + " <dialogueId> <pageId>");
             return;
         }
 
@@ -114,10 +117,14 @@ public class DialogueDebugCommand implements TabExecutor {
             return;
         }
 
-        startRenderTask(player, dialogue, page);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Rendering dialogue " + ChatColor.WHITE + dialogue.id() + ChatColor.GREEN
-                        + " page " + ChatColor.WHITE + page.id() + ChatColor.GREEN + " for 10 seconds.");
+        if (repeat) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                    "Rendering dialogue " + ChatColor.WHITE + dialogue.id() + ChatColor.GREEN
+                            + " page " + ChatColor.WHITE + page.id() + ChatColor.GREEN + " for 10 seconds.");
+            startRenderTask(player, dialogue, page);
+        } else {
+            renderer.render(player, DialogueRenderContext.of(dialogue, page));
+        }
     }
 
     private void startRenderTask(Player player, DialogueDefinition dialogue, DialoguePage page) {
@@ -129,14 +136,14 @@ public class DialogueDebugCommand implements TabExecutor {
             @Override
             public void run() {
                 if (!player.isOnline()) {
-                    cancelActiveTask(playerId, this);
+                    cancelActiveTask(playerId, this, false);
                     return;
                 }
 
                 renderer.render(player, context);
                 ticksRemaining -= RENDER_PERIOD_TICKS;
                 if (ticksRemaining <= 0) {
-                    cancelActiveTask(playerId, this);
+                    cancelActiveTask(playerId, this, true);
                 }
             }
         }.runTaskTimer(plugin, 0L, RENDER_PERIOD_TICKS);
@@ -152,9 +159,15 @@ public class DialogueDebugCommand implements TabExecutor {
         return true;
     }
 
-    private void cancelActiveTask(UUID playerId, BukkitRunnable runnable) {
+    private void cancelActiveTask(UUID playerId, BukkitRunnable runnable, boolean clearActionBar) {
         runnable.cancel();
         activeRenderTasks.remove(playerId);
+        if (clearActionBar) {
+            Player player = plugin.getServer().getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                actionBarSender.clear(player);
+            }
+        }
     }
 
     private DialoguePage findPageIgnoreCase(DialogueDefinition dialogue, String pageId) {
@@ -173,18 +186,21 @@ public class DialogueDebugCommand implements TabExecutor {
                 "/" + label + " render <dialogueId> <pageId>" + ChatColor.GRAY
                         + " - Preview a static dialogue page for 10 seconds.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "/" + label + " renderonce <dialogueId> <pageId>" + ChatColor.GRAY
+                        + " - Send a static dialogue page once.");
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "/" + label + " stop" + ChatColor.GRAY + " - Stop your active dialogue preview.");
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return matching(List.of("render", "reload", "stop"), args[0]);
+            return matching(List.of("render", "renderonce", "reload", "stop"), args[0]);
         }
-        if (args.length == 2 && "render".equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && isRenderSubcommand(args[0])) {
             return matching(dialogueManager.getDialogues().stream().map(DialogueDefinition::id).toList(), args[1]);
         }
-        if (args.length == 3 && "render".equalsIgnoreCase(args[0])) {
+        if (args.length == 3 && isRenderSubcommand(args[0])) {
             DialogueDefinition dialogue = dialogueManager.getDialogue(args[1]);
             if (dialogue == null) {
                 return List.of();
@@ -192,6 +208,10 @@ public class DialogueDebugCommand implements TabExecutor {
             return matching(dialogue.pages().keySet().stream().toList(), args[2]);
         }
         return List.of();
+    }
+
+    private boolean isRenderSubcommand(String subcommand) {
+        return "render".equalsIgnoreCase(subcommand) || "renderonce".equalsIgnoreCase(subcommand);
     }
 
     private List<String> matching(List<String> values, String input) {
