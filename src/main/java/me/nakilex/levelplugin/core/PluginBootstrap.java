@@ -677,7 +677,7 @@ public class PluginBootstrap {
             arcSlashDebugGUI
         );
         me.nakilex.levelplugin.dialogue.DialogueDebugCommand dialogueDebugCommand =
-                new me.nakilex.levelplugin.dialogue.DialogueDebugCommand(luxDialogueManager);
+                new me.nakilex.levelplugin.dialogue.DialogueDebugCommand(plugin, luxDialogueManager);
         plugin.getCommand("dialoguedebug").setExecutor(dialogueDebugCommand);
         plugin.getCommand("dialoguedebug").setTabCompleter(dialogueDebugCommand);
         plugin.getCommand("pweather").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalWeatherCommand(playerEnvironmentService));
