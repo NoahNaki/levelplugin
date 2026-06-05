@@ -95,6 +95,23 @@ dialogue-hud:
     debug-force-glyphs: false
   debug:
     log-pack-status: true
+  layout:
+    start-offset: 420
+    dialogue:
+      width: 209
+      height: 57
+      text-x: 18
+      max-lines: 3
+    nameplate:
+      enabled: true
+      x: 24
+      mid-width: 2
+    answers:
+      enabled: true
+      x: 140
+      background-width: 134
+      text-x: 10
+      max-visible: 3
 
 # Interactive challenge selected when a fish bites. Difficulty scales with level, fish rarity, and rod tier.
 fishing-mini-games:

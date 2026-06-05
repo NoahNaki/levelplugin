@@ -40,6 +40,14 @@ public final class DialogueHudDebugCommand implements TabExecutor {
             return true;
         }
 
+        if (args.length >= 1 && "layout".equalsIgnoreCase(args[0])) {
+            Player target = args.length >= 2 ? sender.getServer().getPlayerExact(args[1])
+                    : sender instanceof Player player ? player : null;
+            sendDebug(sender, manager, target);
+            sendLayoutTest(sender, manager, target);
+            return true;
+        }
+
         Player target = args.length >= 1 ? sender.getServer().getPlayerExact(args[0])
                 : sender instanceof Player player ? player : null;
         sendDebug(sender, manager, target);
@@ -128,6 +136,46 @@ public final class DialogueHudDebugCommand implements TabExecutor {
         }, 80L);
     }
 
+    private static void sendLayoutTest(CommandSender sender, DialogueHudResourcePackManager manager, Player target) {
+        if (target == null) {
+            ChatMessageUtil.send(sender, MessageType.WARNING, "Use /dialoguehuddebug layout <player> from console.");
+            return;
+        }
+        Main plugin = Main.getInstance();
+        if (plugin == null) return;
+
+        int dialogueWidth = plugin.getConfig().getInt("dialogue-hud.layout.dialogue.width", 209);
+        int textX = plugin.getConfig().getInt("dialogue-hud.layout.dialogue.text-x", 18);
+        int answerWidth = plugin.getConfig().getInt("dialogue-hud.layout.answers.background-width", 134);
+        int answerTextX = plugin.getConfig().getInt("dialogue-hud.layout.answers.text-x", 10);
+
+        ChatMessageUtil.send(sender, MessageType.INFO, "Sending dialogue HUD layered layout test to " + target.getName() + ".");
+        target.sendActionBar(DialogueHudGlyphs.background());
+        target.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (target.isOnline()) {
+                target.sendActionBar(DialogueHudGlyphs.background()
+                        .append(DialogueHudGlyphs.offset(-dialogueWidth + textX))
+                        .append(DialogueHudGlyphs.defaultFont(Component.text("Text inside box", NamedTextColor.WHITE))));
+            }
+        }, 20L);
+        target.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (target.isOnline()) {
+                target.sendActionBar(DialogueHudGlyphs.nameplateLeft()
+                        .append(DialogueHudGlyphs.nameplateMiddle())
+                        .append(DialogueHudGlyphs.nameplateMiddle())
+                        .append(DialogueHudGlyphs.nameplateRight()));
+            }
+        }, 40L);
+        target.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (target.isOnline()) {
+                target.sendActionBar(DialogueHudGlyphs.answerBackground()
+                        .append(DialogueHudGlyphs.offset(-answerWidth + answerTextX))
+                        .append(DialogueHudGlyphs.selector())
+                        .append(DialogueHudGlyphs.defaultFont(Component.text(" 1. Test Answer", NamedTextColor.WHITE))));
+            }
+        }, 60L);
+    }
+
     private static void sendStatus(CommandSender sender, String label, boolean enabled) {
         ChatMessageUtil.send(sender, MessageType.INFO, ChatColor.GRAY + label + ": "
                 + (enabled ? ChatColor.GREEN + "yes" : ChatColor.RED + "no"));
@@ -139,13 +187,14 @@ public final class DialogueHudDebugCommand implements TabExecutor {
             String input = args[0].toLowerCase(Locale.ROOT);
             List<String> completions = new ArrayList<>();
             if ("background".startsWith(input)) completions.add("background");
+            if ("layout".startsWith(input)) completions.add("layout");
             sender.getServer().getOnlinePlayers().stream()
                     .map(Player::getName)
                     .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(input))
                     .forEach(completions::add);
             return completions;
         }
-        if (args.length == 2 && "background".equalsIgnoreCase(args[0])) {
+        if (args.length == 2 && ("background".equalsIgnoreCase(args[0]) || "layout".equalsIgnoreCase(args[0]))) {
             String input = args[1].toLowerCase(Locale.ROOT);
             return sender.getServer().getOnlinePlayers().stream()
                     .map(Player::getName)

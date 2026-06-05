@@ -346,7 +346,7 @@ commands:
     permission: levelplugin.admin
   dialoguehuddebug:
     description: Debug dialogue HUD renderer and resource-pack glyph activation state
-    usage: /dialoguehuddebug [player|background [player]]
+    usage: /dialoguehuddebug [player|background [player]|layout [player]]
     permission: levelplugin.admin
   motd:
     description: Reload or preview the server MOTD

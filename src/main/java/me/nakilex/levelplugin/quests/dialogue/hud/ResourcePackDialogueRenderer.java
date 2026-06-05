@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.utils.ChatUtil;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
 import java.util.Map;
@@ -22,11 +23,13 @@ public class ResourcePackDialogueRenderer implements DialogueRenderer {
     private static final int MAX_VISIBLE_ANSWERS = 3;
 
     private final DialogueHudResourcePackManager resourcePackManager;
+    private final DialogueHudLayout layout;
     private final ChatDialogueRenderer chatFallback = new ChatDialogueRenderer();
     private final Map<UUID, String> lastGlyphReasons = new ConcurrentHashMap<>();
 
-    public ResourcePackDialogueRenderer(DialogueHudResourcePackManager resourcePackManager) {
+    public ResourcePackDialogueRenderer(JavaPlugin plugin, DialogueHudResourcePackManager resourcePackManager) {
         this.resourcePackManager = resourcePackManager;
+        this.layout = new DialogueHudLayout(plugin, resourcePackManager);
     }
 
     public boolean canRenderGlyphUi(Player player) {
@@ -51,7 +54,7 @@ public class ResourcePackDialogueRenderer implements DialogueRenderer {
             resourcePackManagerDebug(player, glyphs);
         }
         Component output = glyphs
-                ? glyphActionBar(player, speaker, completedPageLines, visibleText, pageLineIndex, pageLineCount, answers, selectedAnswerIndex, replyLines)
+                ? layout.compose(speaker, completedPageLines, visibleText, answers, selectedAnswerIndex)
                 : plainActionBar(speaker, completedPageLines, visibleText, pageLineIndex, pageLineCount, answers, selectedAnswerIndex, replyLines);
         try {
             player.sendActionBar(output);
@@ -74,21 +77,6 @@ public class ResourcePackDialogueRenderer implements DialogueRenderer {
             player.sendActionBar(Component.empty());
             player.clearTitle();
         }
-    }
-
-    private Component glyphActionBar(Player player, Component speaker, List<Component> completedPageLines, Component visibleText,
-                                     int pageLineIndex, int pageLineCount, List<DialogueAnswer> answers,
-                                     int selectedAnswerIndex, List<Component> replyLines) {
-        return Component.empty()
-                .append(DialogueHudGlyphs.offset(resourcePackManager.backgroundOffset()))
-                .append(DialogueHudGlyphs.background())
-                .append(DialogueHudGlyphs.offset(resourcePackManager.textOffsetAfterBackground()))
-                .append(renderSpeakerName(player, speaker))
-                .append(Component.space())
-                .append(renderPageLines(lastLines(completedPageLines), visibleText))
-                .append(progressComponent(pageLineIndex, pageLineCount))
-                .append(answerSummary(answers, selectedAnswerIndex, true))
-                .append(replySummary(replyLines));
     }
 
     private Component plainActionBar(Component speaker, List<Component> completedPageLines, Component visibleText,

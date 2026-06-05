@@ -464,7 +464,7 @@ public class PluginBootstrap {
                         && "chat".equals(dialogueHudResourcePackManager.rendererMode())
                         && dialogueHudResourcePackManager.fallbackChatRendererEnabled()
                         ? new me.nakilex.levelplugin.dialogue.render.ChatDialogueRenderer()
-                        : new me.nakilex.levelplugin.quests.dialogue.hud.ResourcePackDialogueRenderer(dialogueHudResourcePackManager);
+                        : new me.nakilex.levelplugin.quests.dialogue.hud.ResourcePackDialogueRenderer(plugin, dialogueHudResourcePackManager);
         if (dialogueHudResourcePackManager != null && dialogueHudResourcePackManager.debugLogging()) {
             plugin.getLogger().info("Dialogue renderer selected: " + dialogueRenderer.getClass().getSimpleName()
                     + " (mode=" + dialogueHudResourcePackManager.rendererMode()
