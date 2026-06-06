@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.dialogue.model.DialogueDefinition;
 import me.nakilex.levelplugin.dialogue.model.DialoguePage;
 import me.nakilex.levelplugin.dialogue.render.ActionBarDialogueRenderer;
 import me.nakilex.levelplugin.dialogue.render.DialogueActionBarSender;
+import me.nakilex.levelplugin.dialogue.render.DialogueGlyphs;
 import me.nakilex.levelplugin.dialogue.render.DialogueRenderContext;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
@@ -28,10 +29,6 @@ import java.util.UUID;
 public class DialogueDebugCommand implements TabExecutor {
     private static final long RENDER_PERIOD_TICKS = 1L;
     private static final int RENDER_DURATION_TICKS = 20 * 10;
-
-    private final JavaPlugin plugin;
-    private final DialogueManager dialogueManager;
-    private final ActionBarDialogueRenderer renderer;
     private static final List<String> TUNING_KEYS = List.of(
             DialogueRenderContext.TUNE_DIALOGUE_BACKGROUND_OFFSET,
             DialogueRenderContext.TUNE_DIALOGUE_TEXT_OFFSET,
@@ -41,6 +38,9 @@ public class DialogueDebugCommand implements TabExecutor {
             DialogueRenderContext.TUNE_INFO_TEXT_OFFSET
     );
 
+    private final JavaPlugin plugin;
+    private final DialogueManager dialogueManager;
+    private final ActionBarDialogueRenderer renderer;
     private final DialogueActionBarSender actionBarSender;
     private final Map<UUID, BukkitTask> activeRenderTasks = new HashMap<>();
     private final Map<UUID, Map<String, Integer>> tuningByPlayer = new HashMap<>();
@@ -67,6 +67,7 @@ public class DialogueDebugCommand implements TabExecutor {
             case "reload" -> reload(sender);
             case "render" -> render(sender, label, args, true);
             case "renderonce" -> render(sender, label, args, false);
+            case "inspect" -> inspect(sender, label, args);
             case "tune" -> tune(sender, label, args);
             case "stop" -> stop(sender);
             default -> sendUsage(sender, label);
@@ -108,34 +109,65 @@ public class DialogueDebugCommand implements TabExecutor {
         }
 
         cancelRenderTask(player.getUniqueId());
-
-        String dialogueId = args[1];
-        String pageId = args[2];
-        DialogueDefinition dialogue = dialogueManager.getDialogue(dialogueId);
-        if (dialogue == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Dialogue '" + dialogueId + "' does not exist.");
-            return;
-        }
-
-        DialoguePage page = dialogue.pages().get(pageId);
-        if (page == null) {
-            page = findPageIgnoreCase(dialogue, pageId);
-        }
-        if (page == null) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
-                    "Page '" + pageId + "' does not exist in dialogue '" + dialogue.id() + "'.");
+        PageLookup lookup = resolvePage(player, args[1], args[2]);
+        if (lookup == null) {
             return;
         }
 
         if (repeat) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                    "Rendering dialogue " + ChatColor.WHITE + dialogue.id() + ChatColor.GREEN
-                            + " page " + ChatColor.WHITE + page.id() + ChatColor.GREEN + " for 10 seconds.");
-            startRenderTask(player, dialogue, page);
+                    "Rendering dialogue " + ChatColor.WHITE + lookup.dialogue().id() + ChatColor.GREEN
+                            + " page " + ChatColor.WHITE + lookup.page().id() + ChatColor.GREEN + " for 10 seconds.");
+            startRenderTask(player, lookup.dialogue(), lookup.page());
         } else {
-            renderer.render(player, renderContext(player, dialogue, page));
+            renderer.render(player, renderContext(player, lookup.dialogue(), lookup.page()));
         }
+    }
+
+    private void inspect(CommandSender sender, String label, String[] args) {
+        if (args.length < 3) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                    "Usage: /" + label + " inspect <dialogueId> <pageId>");
+            return;
+        }
+
+        PageLookup lookup = resolvePage(sender, args[1], args[2]);
+        if (lookup == null) {
+            return;
+        }
+
+        DialogueRenderContext context = sender instanceof Player player
+                ? renderContext(player, lookup.dialogue(), lookup.page())
+                : DialogueRenderContext.of(lookup.dialogue(), lookup.page());
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                ChatColor.YELLOW + "Dialogue HUD Inspect");
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "Dialogue: " + ChatColor.WHITE + lookup.dialogue().id());
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "Page: " + ChatColor.WHITE + lookup.page().id());
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "Offsets: " + ChatColor.WHITE
+                        + "dialogueBackground=" + context.dialogueBackgroundOffsetPixels()
+                        + ", dialogueText=" + context.dialogueTextOffsetPixels()
+                        + ", character=" + context.characterOffsetPixels()
+                        + ", nameBackground=" + context.nameBackgroundOffsetPixels()
+                        + ", nameText=" + context.nameTextOffsetPixels()
+                        + ", infoText=" + context.infoTextOffsetPixels());
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "Glyph widths: " + ChatColor.WHITE
+                        + "dialogue=" + DialogueGlyphs.DIALOGUE_WIDTH
+                        + ", answer=" + DialogueGlyphs.ANSWER_WIDTH
+                        + ", character=" + DialogueGlyphs.CHARACTER_WIDTH
+                        + ", arrow=" + DialogueGlyphs.ARROW_WIDTH
+                        + ", nameStart=" + DialogueGlyphs.NAME_START_WIDTH
+                        + ", nameMid=" + DialogueGlyphs.NAME_MID_WIDTH
+                        + ", nameEnd=" + DialogueGlyphs.NAME_END_WIDTH
+                        + ", fog=" + DialogueGlyphs.FOG_WIDTH);
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "Flags: " + ChatColor.WHITE
+                        + "fog=" + context.fogEnabled()
+                        + ", characterBox=" + context.characterBoxEnabled()
+                        + ", nameBox=" + context.nameBoxEnabled());
     }
 
     private void tune(CommandSender sender, String label, String[] args) {
@@ -223,6 +255,26 @@ public class DialogueDebugCommand implements TabExecutor {
         }
     }
 
+    private PageLookup resolvePage(CommandSender sender, String dialogueId, String pageId) {
+        DialogueDefinition dialogue = dialogueManager.getDialogue(dialogueId);
+        if (dialogue == null) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                    "Dialogue '" + dialogueId + "' does not exist.");
+            return null;
+        }
+
+        DialoguePage page = dialogue.pages().get(pageId);
+        if (page == null) {
+            page = findPageIgnoreCase(dialogue, pageId);
+        }
+        if (page == null) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                    "Page '" + pageId + "' does not exist in dialogue '" + dialogue.id() + "'.");
+            return null;
+        }
+        return new PageLookup(dialogue, page);
+    }
+
     private DialoguePage findPageIgnoreCase(DialogueDefinition dialogue, String pageId) {
         for (DialoguePage page : dialogue.pages().values()) {
             if (page.id().equalsIgnoreCase(pageId)) {
@@ -235,6 +287,9 @@ public class DialogueDebugCommand implements TabExecutor {
     private void sendUsage(CommandSender sender, String label) {
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "/" + label + " reload" + ChatColor.GRAY + " - Reload Lux-style dialogue YAML.");
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "/" + label + " inspect <dialogueId> <pageId>" + ChatColor.GRAY
+                        + " - Print dialogue HUD diagnostics.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "/" + label + " render <dialogueId> <pageId>" + ChatColor.GRAY
                         + " - Preview a static dialogue page for 10 seconds.");
@@ -251,15 +306,15 @@ public class DialogueDebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return matching(List.of("render", "renderonce", "reload", "stop", "tune"), args[0]);
+            return matching(List.of("render", "renderonce", "inspect", "reload", "stop", "tune"), args[0]);
         }
         if (args.length == 2 && "tune".equalsIgnoreCase(args[0])) {
             return matching(TUNING_KEYS, args[1]);
         }
-        if (args.length == 2 && isRenderSubcommand(args[0])) {
+        if (args.length == 2 && usesDialoguePage(args[0])) {
             return matching(dialogueManager.getDialogues().stream().map(DialogueDefinition::id).toList(), args[1]);
         }
-        if (args.length == 3 && isRenderSubcommand(args[0])) {
+        if (args.length == 3 && usesDialoguePage(args[0])) {
             DialogueDefinition dialogue = dialogueManager.getDialogue(args[1]);
             if (dialogue == null) {
                 return List.of();
@@ -278,8 +333,10 @@ public class DialogueDebugCommand implements TabExecutor {
         return null;
     }
 
-    private boolean isRenderSubcommand(String subcommand) {
-        return "render".equalsIgnoreCase(subcommand) || "renderonce".equalsIgnoreCase(subcommand);
+    private boolean usesDialoguePage(String subcommand) {
+        return "render".equalsIgnoreCase(subcommand)
+                || "renderonce".equalsIgnoreCase(subcommand)
+                || "inspect".equalsIgnoreCase(subcommand);
     }
 
     private List<String> matching(List<String> values, String input) {
@@ -291,5 +348,8 @@ public class DialogueDebugCommand implements TabExecutor {
             }
         }
         return matches;
+    }
+
+    private record PageLookup(DialogueDefinition dialogue, DialoguePage page) {
     }
 }

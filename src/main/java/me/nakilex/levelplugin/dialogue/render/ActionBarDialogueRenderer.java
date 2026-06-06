@@ -16,7 +16,6 @@ import java.util.List;
  */
 public class ActionBarDialogueRenderer implements DialogueRenderer {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
-    private static final int MAX_DIALOGUE_LINES = 5;
     private static final String IMAGE_COLOR = "#ffffff";
     private static final String LINE_SEPARATOR = "  ";
 
@@ -70,8 +69,8 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         }
 
         List<String> lines = context.page().lines();
-        for (int i = 0; i < Math.min(lines.size(), MAX_DIALOGUE_LINES); i++) {
-            hud = hud.append(dialogueLine(i + 1, lines.get(i), context));
+        if (!lines.isEmpty()) {
+            hud = hud.append(dialogueLine(1, lines.get(0), context));
         }
 
         if (context.page().steadyInfoLine() != null && !context.page().steadyInfoLine().isBlank()) {
@@ -97,6 +96,9 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
     }
 
     private Component dialogueLine(int lineNumber, String line, DialogueRenderContext context) {
+        if (lineNumber != 1) {
+            return Component.empty();
+        }
         int offset = context.dialogueTextOffsetPixels();
         return textLayer(offset, context.textColor(), line);
     }

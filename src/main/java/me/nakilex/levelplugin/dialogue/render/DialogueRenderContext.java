@@ -62,7 +62,7 @@ public record DialogueRenderContext(
         return new DialogueRenderContext(
                 dialogue,
                 page,
-                booleanValue(settings, true, "fog", "fogEnabled", "showFog", "backgroundFog"),
+                booleanValue(settings, false, "fog", "fogEnabled", "showFog", "backgroundFog"),
                 booleanValue(character, true, "enabled", "show", "showCharacter", "characterBox", "characterBoxEnabled"),
                 booleanValue(settings, true, "nameBox", "nameBoxEnabled", "showName", "showNameBox"),
                 stringValue(character, dialogue == null ? "" : dialogue.id(), "name", "displayName", "display-name", "Name"),

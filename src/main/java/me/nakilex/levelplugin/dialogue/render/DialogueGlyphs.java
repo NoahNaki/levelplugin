@@ -17,14 +17,14 @@ public final class DialogueGlyphs {
     public static final String FOG = "\uE106";
     public static final String CHARACTER_BACKGROUND = "\uE107";
 
-    public static final int DIALOGUE_WIDTH = 420;
-    public static final int CHARACTER_WIDTH = 64;
-    public static final int ANSWER_WIDTH = 220;
-    public static final int ARROW_WIDTH = 16;
-    public static final int NAME_START_WIDTH = 8;
+    public static final int DIALOGUE_WIDTH = 209;
+    public static final int CHARACTER_WIDTH = 32;
+    public static final int ANSWER_WIDTH = 134;
+    public static final int ARROW_WIDTH = 14;
+    public static final int NAME_START_WIDTH = 3;
     public static final int NAME_MID_WIDTH = 2;
-    public static final int NAME_END_WIDTH = 8;
-    public static final int FOG_WIDTH = 1536;
+    public static final int NAME_END_WIDTH = 3;
+    public static final int FOG_WIDTH = 256;
 
     private DialogueGlyphs() {
     }
