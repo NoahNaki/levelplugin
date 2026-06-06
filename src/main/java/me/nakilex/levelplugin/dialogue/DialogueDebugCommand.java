@@ -30,9 +30,8 @@ import java.util.UUID;
  * Temporary developer command for manually previewing static Lux-style dialogue pages.
  */
 public class DialogueDebugCommand implements TabExecutor {
-    private static final long RENDER_PERIOD_TICKS = 2L;
+    private static final long RENDER_PERIOD_TICKS = 1L;
     private static final int RENDER_DURATION_TICKS = 20 * 10;
-    private static final int RENDER_KEEPALIVE_TICKS = 20;
     private static final List<String> TUNING_KEYS = List.of(
             DialogueRenderContext.TUNE_DIALOGUE_BACKGROUND_OFFSET,
             DialogueRenderContext.TUNE_DIALOGUE_TEXT_OFFSET,
@@ -69,7 +68,6 @@ public class DialogueDebugCommand implements TabExecutor {
     private final ActionBarDialogueRenderer renderer;
     private final DialogueActionBarSender actionBarSender;
     private final Map<UUID, BukkitTask> activeRenderTasks = new HashMap<>();
-    private final Map<UUID, String> lastRenderedHud = new HashMap<>();
     private final Map<UUID, Map<String, Integer>> tuningByPlayer = new HashMap<>();
 
     public DialogueDebugCommand(JavaPlugin plugin, DialogueManager dialogueManager) {
@@ -336,7 +334,6 @@ public class DialogueDebugCommand implements TabExecutor {
         String miniMessage = renderer.renderMiniMessage(context);
         BukkitTask task = new BukkitRunnable() {
             private int ticksRemaining = RENDER_DURATION_TICKS;
-            private int ticksSinceLastSend = RENDER_KEEPALIVE_TICKS;
 
             @Override
             public void run() {
@@ -345,11 +342,7 @@ public class DialogueDebugCommand implements TabExecutor {
                     return;
                 }
 
-                if (sendCachedMiniMessage(player, miniMessage, ticksSinceLastSend >= RENDER_KEEPALIVE_TICKS)) {
-                    ticksSinceLastSend = 0;
-                } else {
-                    ticksSinceLastSend += RENDER_PERIOD_TICKS;
-                }
+                actionBarSender.sendMiniMessage(player, miniMessage);
                 ticksRemaining -= RENDER_PERIOD_TICKS;
                 if (ticksRemaining <= 0) {
                     cancelActiveTask(playerId, this, true);
@@ -363,7 +356,6 @@ public class DialogueDebugCommand implements TabExecutor {
         UUID playerId = player.getUniqueId();
         BukkitTask task = new BukkitRunnable() {
             private int ticksRemaining = RENDER_DURATION_TICKS;
-            private int ticksSinceLastSend = RENDER_KEEPALIVE_TICKS;
 
             @Override
             public void run() {
@@ -372,11 +364,7 @@ public class DialogueDebugCommand implements TabExecutor {
                     return;
                 }
 
-                if (sendCachedMiniMessage(player, miniMessage, ticksSinceLastSend >= RENDER_KEEPALIVE_TICKS)) {
-                    ticksSinceLastSend = 0;
-                } else {
-                    ticksSinceLastSend += RENDER_PERIOD_TICKS;
-                }
+                actionBarSender.sendMiniMessage(player, miniMessage);
                 ticksRemaining -= RENDER_PERIOD_TICKS;
                 if (ticksRemaining <= 0) {
                     cancelActiveTask(playerId, this, true);
@@ -387,7 +375,6 @@ public class DialogueDebugCommand implements TabExecutor {
     }
 
     private boolean cancelRenderTask(UUID playerId) {
-        lastRenderedHud.remove(playerId);
         BukkitTask task = activeRenderTasks.remove(playerId);
         if (task == null) {
             return false;
@@ -396,21 +383,9 @@ public class DialogueDebugCommand implements TabExecutor {
         return true;
     }
 
-    private boolean sendCachedMiniMessage(Player player, String miniMessage, boolean force) {
-        UUID playerId = player.getUniqueId();
-        String previous = lastRenderedHud.get(playerId);
-        if (!force && miniMessage.equals(previous)) {
-            return false;
-        }
-        actionBarSender.sendMiniMessage(player, miniMessage);
-        lastRenderedHud.put(playerId, miniMessage);
-        return true;
-    }
-
     private void cancelActiveTask(UUID playerId, BukkitRunnable runnable, boolean clearActionBar) {
         runnable.cancel();
         activeRenderTasks.remove(playerId);
-        lastRenderedHud.remove(playerId);
         if (clearActionBar) {
             Player player = plugin.getServer().getPlayer(playerId);
             if (player != null && player.isOnline()) {

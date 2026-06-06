@@ -52,7 +52,7 @@ public record DialogueRenderContext(
     private static final int DEFAULT_NAME_BACKGROUND_OFFSET_PIXELS = -148;
     private static final int DEFAULT_NAME_TEXT_OFFSET_PIXELS = -140;
     private static final int DEFAULT_INFO_TEXT_OFFSET_PIXELS = -160;
-    private static final int DEFAULT_ARROW_OFFSET_PIXELS = -188;
+    private static final int DEFAULT_ARROW_OFFSET_PIXELS = -95;
 
     public DialogueRenderContext {
         textColor = blankToDefault(textColor, DEFAULT_TEXT_COLOR);

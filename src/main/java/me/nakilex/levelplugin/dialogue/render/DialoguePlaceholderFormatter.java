@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.dialogue.render;
 
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import org.bukkit.ChatColor;
 
 import java.util.Locale;
 import java.util.regex.Matcher;
@@ -17,6 +18,17 @@ public final class DialoguePlaceholderFormatter {
 
     public static String miniMessageText(String text) {
         return escapeMiniMessage(plainText(text));
+    }
+
+    public static String miniMessageDialogueText(String text) {
+        return escapeMiniMessage(plainDialogueText(text));
+    }
+
+    public static String plainDialogueText(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        return stripLegacyCodes(ChatColor.translateAlternateColorCodes('&', text));
     }
 
     public static String plainText(String text) {

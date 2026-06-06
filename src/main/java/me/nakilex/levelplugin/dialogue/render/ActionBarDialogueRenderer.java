@@ -109,7 +109,7 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
 
     private String dialogueLineLayer(int lineNumber, String text, DialogueRenderContext context) {
         int offset = context.lineOffsetPixels(lineNumber);
-        int textWidth = DialogueTextWidth.width(DialoguePlaceholderFormatter.plainText(text));
+        int textWidth = DialogueTextWidth.width(DialoguePlaceholderFormatter.plainDialogueText(text));
         return offset(offset)
                 + dialogueLine(lineNumber, text)
                 + offset(-offset - textWidth);
@@ -118,7 +118,7 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
     private String dialogueLine(int lineNumber, String text) {
         String font = DialogueGlyphs.LINE_FONT_PREFIX + lineNumber;
         return colorOpen(DIALOGUE_TEXT_COLOR)
-                + font(font, DialoguePlaceholderFormatter.miniMessageText(text))
+                + font(font, DialoguePlaceholderFormatter.miniMessageDialogueText(text))
                 + colorClose();
     }
 
