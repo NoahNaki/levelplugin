@@ -17,6 +17,8 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -38,7 +40,23 @@ public class DialogueDebugCommand implements TabExecutor {
             DialogueRenderContext.TUNE_NAME_TEXT_OFFSET,
             DialogueRenderContext.TUNE_INFO_TEXT_OFFSET
     );
-    private static final List<String> FONT_TESTS = List.of("offset", "dialogue", "default", "line1", "all");
+    private static final List<String> FONT_TESTS = List.of("offset", "dialogue", "default", "line1", "line2", "line3", "line4", "all");
+    private static final Path NEXO_DIALOGUE_PACK_ROOT = Path.of(
+            "plugins", "Nexo", "pack", "external_packs", "levelplugin-dialogue-hud",
+            "assets", "levelplugin_dialogue"
+    );
+    private static final List<String> NEXO_DIALOGUE_PACK_FILES = List.of(
+            "font/dialogue.json",
+            "font/offset_chars.json",
+            "font/levelplugin_dialogue_default.json",
+            "font/levelplugin_dialogue_line_1.json",
+            "font/levelplugin_dialogue_line_2.json",
+            "font/levelplugin_dialogue_line_3.json",
+            "font/levelplugin_dialogue_line_4.json",
+            "textures/font/levelplugin_dialogue_font.png",
+            "textures/font/levelplugin_dialogue_nonlatin.png",
+            "textures/font/levelplugin_dialogue_accented.png"
+    );
 
     private final JavaPlugin plugin;
     private final DialogueManager dialogueManager;
@@ -70,6 +88,7 @@ public class DialogueDebugCommand implements TabExecutor {
             case "render" -> render(sender, label, args, true);
             case "renderonce" -> render(sender, label, args, false);
             case "inspect" -> inspect(sender, label, args);
+            case "fontinspect" -> fontInspect(sender);
             case "fonttest" -> fontTest(sender, label, args);
             case "tune" -> tune(sender, label, args);
             case "stop" -> stop(sender);
@@ -195,8 +214,23 @@ public class DialogueDebugCommand implements TabExecutor {
             return;
         }
 
-        actionBarSender.sendMiniMessage(player, message.miniMessage());
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, message.description());
+        cancelRenderTask(player.getUniqueId());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, message.description() + " Repeating for 10 seconds.");
+        startMiniMessageTask(player, message.miniMessage());
+    }
+
+    private void fontInspect(CommandSender sender) {
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                ChatColor.YELLOW + "Dialogue font pack inspect: " + ChatColor.WHITE + NEXO_DIALOGUE_PACK_ROOT);
+        plugin.getLogger().info("Dialogue font pack inspect: " + NEXO_DIALOGUE_PACK_ROOT.toAbsolutePath());
+        for (String relativePath : NEXO_DIALOGUE_PACK_FILES) {
+            Path path = NEXO_DIALOGUE_PACK_ROOT.resolve(relativePath);
+            boolean exists = Files.isRegularFile(path);
+            String status = exists ? ChatColor.GREEN + "FOUND" : ChatColor.RED + "MISSING";
+            ChatMessageUtil.send(sender, exists ? ChatMessageUtil.MessageType.SUCCESS : ChatMessageUtil.MessageType.ERROR,
+                    status + ChatColor.GRAY + " - " + ChatColor.WHITE + relativePath);
+            plugin.getLogger().info((exists ? "FOUND" : "MISSING") + " dialogue pack file: " + path.toAbsolutePath());
+        }
     }
 
     private FontTestMessage fontTestMessage(String test) {
@@ -214,9 +248,10 @@ public class DialogueDebugCommand implements TabExecutor {
             case "default" -> new FontTestMessage(
                     "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + ">Hello default font</font>",
                     "Sent default dialogue text font test. Text should be readable with no boxes.");
-            case "line1" -> new FontTestMessage(
-                    "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "1>Hello line one</font>",
-                    "Sent line 1 dialogue font test. Text should be readable with no boxes.");
+            case "line1" -> lineFontTestMessage(1, "Hello line one");
+            case "line2" -> lineFontTestMessage(2, "Hello line two");
+            case "line3" -> lineFontTestMessage(3, "Hello line three");
+            case "line4" -> lineFontTestMessage(4, "Hello line four");
             case "all" -> new FontTestMessage(
                     "<font:" + DialogueGlyphs.OFFSET_FONT_TAG + ">"
                             + DialogueOffsetGlyphs.POSITIVE_ONE_PIXEL.repeat(8)
@@ -227,10 +262,18 @@ public class DialogueDebugCommand implements TabExecutor {
                             + "</font>"
                             + "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + "> dialogue glyph test </font>"
                             + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "1>line_1 font test</font> "
-                            + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "2>line_2 font test</font>",
+                            + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "2>line_2 font test</font> "
+                            + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "3>line_3 font test</font> "
+                            + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "4>line_4 font test</font>",
                     "Sent combined dialogue font test. If offset glyphs are visible boxes, fix the resource pack fonts first.");
             default -> null;
         };
+    }
+
+    private FontTestMessage lineFontTestMessage(int lineNumber, String text) {
+        return new FontTestMessage(
+                "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + lineNumber + ">" + text + "</font>",
+                "Sent line " + lineNumber + " dialogue font test. Text should be readable with no boxes.");
     }
 
     private void tune(CommandSender sender, String label, String[] args) {
@@ -298,6 +341,28 @@ public class DialogueDebugCommand implements TabExecutor {
         activeRenderTasks.put(playerId, task);
     }
 
+    private void startMiniMessageTask(Player player, String miniMessage) {
+        UUID playerId = player.getUniqueId();
+        BukkitTask task = new BukkitRunnable() {
+            private int ticksRemaining = RENDER_DURATION_TICKS;
+
+            @Override
+            public void run() {
+                if (!player.isOnline()) {
+                    cancelActiveTask(playerId, this, false);
+                    return;
+                }
+
+                actionBarSender.sendMiniMessage(player, miniMessage);
+                ticksRemaining -= RENDER_PERIOD_TICKS;
+                if (ticksRemaining <= 0) {
+                    cancelActiveTask(playerId, this, true);
+                }
+            }
+        }.runTaskTimer(plugin, 0L, RENDER_PERIOD_TICKS);
+        activeRenderTasks.put(playerId, task);
+    }
+
     private boolean cancelRenderTask(UUID playerId) {
         BukkitTask task = activeRenderTasks.remove(playerId);
         if (task == null) {
@@ -354,8 +419,11 @@ public class DialogueDebugCommand implements TabExecutor {
                 "/" + label + " inspect <dialogueId> <pageId>" + ChatColor.GRAY
                         + " - Print dialogue HUD diagnostics.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
-                "/" + label + " fonttest <offset|dialogue|default|line1|all>" + ChatColor.GRAY
-                        + " - Send isolated dialogue font and offset diagnostics.");
+                "/" + label + " fontinspect" + ChatColor.GRAY
+                        + " - Check Nexo dialogue font pack files.");
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "/" + label + " fonttest <offset|dialogue|default|line1|line2|line3|line4|all>" + ChatColor.GRAY
+                        + " - Repeat isolated dialogue font diagnostics for 10 seconds.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "/" + label + " render <dialogueId> <pageId>" + ChatColor.GRAY
                         + " - Preview a static dialogue page for 10 seconds.");
@@ -372,7 +440,7 @@ public class DialogueDebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return matching(List.of("render", "renderonce", "inspect", "fonttest", "reload", "stop", "tune"), args[0]);
+            return matching(List.of("render", "renderonce", "inspect", "fontinspect", "fonttest", "reload", "stop", "tune"), args[0]);
         }
         if (args.length == 2 && "tune".equalsIgnoreCase(args[0])) {
             return matching(TUNING_KEYS, args[1]);

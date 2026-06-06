@@ -71,8 +71,8 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         }
 
         List<String> lines = context.page().lines();
-        if (!lines.isEmpty()) {
-            hud.append(dialogueLineLayer(1, context.textColor(), lines.get(0), context));
+        for (int i = 0; i < Math.min(lines.size(), 4); i++) {
+            hud.append(dialogueLineLayer(i + 1, context.textColor(), lines.get(i), context));
         }
 
         if (context.page().steadyInfoLine() != null && !context.page().steadyInfoLine().isBlank()) {
@@ -112,9 +112,6 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
     }
 
     private String dialogueLineLayer(int lineNumber, String color, String text, DialogueRenderContext context) {
-        if (lineNumber != 1) {
-            return "";
-        }
         int offset = context.dialogueTextOffsetPixels();
         int textWidth = DialogueTextWidth.width(text);
         return offset(offset)
