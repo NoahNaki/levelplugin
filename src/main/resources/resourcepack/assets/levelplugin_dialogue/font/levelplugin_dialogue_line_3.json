@@ -4,7 +4,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:font/levelplugin_dialogue_font.png",
       "ascent": 11,
-      "height": 8,
+      "height": 32,
       "chars": [
         " !\"#$%&'()*+,-./0123456789:;<=>?",
         "@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_",
@@ -15,7 +15,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:font/levelplugin_dialogue_accented.png",
       "ascent": 11,
-      "height": 8,
+      "height": 32,
       "chars": [
         "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞß",
         "àáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿ"
@@ -25,7 +25,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:font/levelplugin_dialogue_nonlatin.png",
       "ascent": 11,
-      "height": 8,
+      "height": 32,
       "chars": [
         "АБВГДЕЁЖЗИЙКЛМНОПРСТУФХЦЧШЩЪЫЬЭЮЯ",
         "абвгдеёжзийклмнопрстуфхцчшщъыьэюя"
