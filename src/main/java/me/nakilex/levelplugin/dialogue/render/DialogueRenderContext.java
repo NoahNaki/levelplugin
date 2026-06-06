@@ -19,14 +19,29 @@ public record DialogueRenderContext(
         String textColor,
         String nameColor,
         String infoColor,
-        int contentOffsetPixels,
-        int nameOffsetPixels
+        int dialogueBackgroundOffsetPixels,
+        int dialogueTextOffsetPixels,
+        int characterOffsetPixels,
+        int nameBackgroundOffsetPixels,
+        int nameTextOffsetPixels,
+        int infoTextOffsetPixels
 ) {
+    public static final String TUNE_DIALOGUE_BACKGROUND_OFFSET = "dialogueBackgroundOffset";
+    public static final String TUNE_DIALOGUE_TEXT_OFFSET = "dialogueTextOffset";
+    public static final String TUNE_CHARACTER_OFFSET = "characterOffset";
+    public static final String TUNE_NAME_BACKGROUND_OFFSET = "nameBackgroundOffset";
+    public static final String TUNE_NAME_TEXT_OFFSET = "nameTextOffset";
+    public static final String TUNE_INFO_TEXT_OFFSET = "infoTextOffset";
+
     private static final String DEFAULT_TEXT_COLOR = "#f5edd7";
     private static final String DEFAULT_NAME_COLOR = "#f7d486";
     private static final String DEFAULT_INFO_COLOR = "#b8ad94";
-    private static final int DEFAULT_CONTENT_OFFSET_PIXELS = -180;
-    private static final int DEFAULT_NAME_OFFSET_PIXELS = -148;
+    private static final int DEFAULT_DIALOGUE_BACKGROUND_OFFSET_PIXELS = -210;
+    private static final int DEFAULT_DIALOGUE_TEXT_OFFSET_PIXELS = -180;
+    private static final int DEFAULT_CHARACTER_OFFSET_PIXELS = -205;
+    private static final int DEFAULT_NAME_BACKGROUND_OFFSET_PIXELS = -148;
+    private static final int DEFAULT_NAME_TEXT_OFFSET_PIXELS = -140;
+    private static final int DEFAULT_INFO_TEXT_OFFSET_PIXELS = -180;
 
     public DialogueRenderContext {
         textColor = blankToDefault(textColor, DEFAULT_TEXT_COLOR);
@@ -40,6 +55,10 @@ public record DialogueRenderContext(
         Map<String, Object> colors = dialogue == null ? Map.of() : dialogue.colors().values();
         Map<String, Object> offsets = dialogue == null ? Map.of() : dialogue.offsets().values();
 
+        int legacyContentOffset = intValue(offsets, DEFAULT_DIALOGUE_TEXT_OFFSET_PIXELS,
+                "content", "contentOffset", "text", "x");
+        int legacyNameOffset = intValue(offsets, DEFAULT_NAME_TEXT_OFFSET_PIXELS, "name", "nameOffset", "nameX");
+
         return new DialogueRenderContext(
                 dialogue,
                 page,
@@ -50,9 +69,46 @@ public record DialogueRenderContext(
                 stringValue(colors, DEFAULT_TEXT_COLOR, "text", "line", "lines", "dialogueText"),
                 stringValue(colors, DEFAULT_NAME_COLOR, "name", "characterName", "speaker"),
                 stringValue(colors, DEFAULT_INFO_COLOR, "info", "steadyInfo", "steadyInfoLine"),
-                intValue(offsets, DEFAULT_CONTENT_OFFSET_PIXELS, "content", "contentOffset", "text", "x"),
-                intValue(offsets, DEFAULT_NAME_OFFSET_PIXELS, "name", "nameOffset", "nameX")
+                intValue(offsets, DEFAULT_DIALOGUE_BACKGROUND_OFFSET_PIXELS,
+                        TUNE_DIALOGUE_BACKGROUND_OFFSET, "dialogue-background", "dialogueBackground"),
+                intValue(offsets, legacyContentOffset, TUNE_DIALOGUE_TEXT_OFFSET, "dialogue-text", "dialogueText"),
+                intValue(offsets, DEFAULT_CHARACTER_OFFSET_PIXELS, TUNE_CHARACTER_OFFSET, "character", "characterX"),
+                intValue(offsets, DEFAULT_NAME_BACKGROUND_OFFSET_PIXELS,
+                        TUNE_NAME_BACKGROUND_OFFSET, "name-background", "nameBackground"),
+                intValue(offsets, legacyNameOffset, TUNE_NAME_TEXT_OFFSET, "name-text", "nameText"),
+                intValue(offsets, DEFAULT_INFO_TEXT_OFFSET_PIXELS, TUNE_INFO_TEXT_OFFSET, "info-text", "infoText")
         );
+    }
+
+    public DialogueRenderContext withTuning(Map<String, Integer> tuning) {
+        if (tuning == null || tuning.isEmpty()) {
+            return this;
+        }
+        return new DialogueRenderContext(
+                dialogue,
+                page,
+                fogEnabled,
+                characterBoxEnabled,
+                nameBoxEnabled,
+                characterName,
+                textColor,
+                nameColor,
+                infoColor,
+                tuning.getOrDefault(TUNE_DIALOGUE_BACKGROUND_OFFSET, dialogueBackgroundOffsetPixels),
+                tuning.getOrDefault(TUNE_DIALOGUE_TEXT_OFFSET, dialogueTextOffsetPixels),
+                tuning.getOrDefault(TUNE_CHARACTER_OFFSET, characterOffsetPixels),
+                tuning.getOrDefault(TUNE_NAME_BACKGROUND_OFFSET, nameBackgroundOffsetPixels),
+                tuning.getOrDefault(TUNE_NAME_TEXT_OFFSET, nameTextOffsetPixels),
+                tuning.getOrDefault(TUNE_INFO_TEXT_OFFSET, infoTextOffsetPixels)
+        );
+    }
+
+    public int contentOffsetPixels() {
+        return dialogueTextOffsetPixels;
+    }
+
+    public int nameOffsetPixels() {
+        return nameTextOffsetPixels;
     }
 
     private static String blankToDefault(String value, String fallback) {

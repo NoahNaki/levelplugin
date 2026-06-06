@@ -32,8 +32,18 @@ public class DialogueDebugCommand implements TabExecutor {
     private final JavaPlugin plugin;
     private final DialogueManager dialogueManager;
     private final ActionBarDialogueRenderer renderer;
+    private static final List<String> TUNING_KEYS = List.of(
+            DialogueRenderContext.TUNE_DIALOGUE_BACKGROUND_OFFSET,
+            DialogueRenderContext.TUNE_DIALOGUE_TEXT_OFFSET,
+            DialogueRenderContext.TUNE_CHARACTER_OFFSET,
+            DialogueRenderContext.TUNE_NAME_BACKGROUND_OFFSET,
+            DialogueRenderContext.TUNE_NAME_TEXT_OFFSET,
+            DialogueRenderContext.TUNE_INFO_TEXT_OFFSET
+    );
+
     private final DialogueActionBarSender actionBarSender;
     private final Map<UUID, BukkitTask> activeRenderTasks = new HashMap<>();
+    private final Map<UUID, Map<String, Integer>> tuningByPlayer = new HashMap<>();
 
     public DialogueDebugCommand(JavaPlugin plugin, DialogueManager dialogueManager) {
         this(plugin, dialogueManager, new DialogueActionBarSender());
@@ -57,6 +67,7 @@ public class DialogueDebugCommand implements TabExecutor {
             case "reload" -> reload(sender);
             case "render" -> render(sender, label, args, true);
             case "renderonce" -> render(sender, label, args, false);
+            case "tune" -> tune(sender, label, args);
             case "stop" -> stop(sender);
             default -> sendUsage(sender, label);
         }
@@ -123,13 +134,55 @@ public class DialogueDebugCommand implements TabExecutor {
                             + " page " + ChatColor.WHITE + page.id() + ChatColor.GREEN + " for 10 seconds.");
             startRenderTask(player, dialogue, page);
         } else {
-            renderer.render(player, DialogueRenderContext.of(dialogue, page));
+            renderer.render(player, renderContext(player, dialogue, page));
         }
+    }
+
+    private void tune(CommandSender sender, String label, String[] args) {
+        if (!(sender instanceof Player player)) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                    "Only players can tune dialogue preview offsets.");
+            return;
+        }
+        if (args.length < 3) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Usage: /" + label + " tune <key> <value>");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Keys: " + ChatColor.WHITE + String.join(", ", TUNING_KEYS));
+            return;
+        }
+
+        String key = findTuningKey(args[1]);
+        if (key == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Unknown tuning key '" + args[1] + "'.");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Keys: " + ChatColor.WHITE + String.join(", ", TUNING_KEYS));
+            return;
+        }
+
+        int value;
+        try {
+            value = Integer.parseInt(args[2]);
+        } catch (NumberFormatException exception) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Tuning value must be a whole number.");
+            return;
+        }
+
+        tuningByPlayer.computeIfAbsent(player.getUniqueId(), ignored -> new HashMap<>()).put(key, value);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Set " + ChatColor.WHITE + key + ChatColor.GREEN + " to " + ChatColor.WHITE + value + ChatColor.GREEN + ".");
+    }
+
+    private DialogueRenderContext renderContext(Player player, DialogueDefinition dialogue, DialoguePage page) {
+        return DialogueRenderContext.of(dialogue, page)
+                .withTuning(tuningByPlayer.get(player.getUniqueId()));
     }
 
     private void startRenderTask(Player player, DialogueDefinition dialogue, DialoguePage page) {
         UUID playerId = player.getUniqueId();
-        DialogueRenderContext context = DialogueRenderContext.of(dialogue, page);
+        DialogueRenderContext context = renderContext(player, dialogue, page);
         BukkitTask task = new BukkitRunnable() {
             private int ticksRemaining = RENDER_DURATION_TICKS;
 
@@ -189,13 +242,19 @@ public class DialogueDebugCommand implements TabExecutor {
                 "/" + label + " renderonce <dialogueId> <pageId>" + ChatColor.GRAY
                         + " - Send a static dialogue page once.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "/" + label + " tune <key> <value>" + ChatColor.GRAY
+                        + " - Tune your preview offsets in memory.");
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "/" + label + " stop" + ChatColor.GRAY + " - Stop your active dialogue preview.");
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return matching(List.of("render", "renderonce", "reload", "stop"), args[0]);
+            return matching(List.of("render", "renderonce", "reload", "stop", "tune"), args[0]);
+        }
+        if (args.length == 2 && "tune".equalsIgnoreCase(args[0])) {
+            return matching(TUNING_KEYS, args[1]);
         }
         if (args.length == 2 && isRenderSubcommand(args[0])) {
             return matching(dialogueManager.getDialogues().stream().map(DialogueDefinition::id).toList(), args[1]);
@@ -208,6 +267,15 @@ public class DialogueDebugCommand implements TabExecutor {
             return matching(dialogue.pages().keySet().stream().toList(), args[2]);
         }
         return List.of();
+    }
+
+    private String findTuningKey(String input) {
+        for (String key : TUNING_KEYS) {
+            if (key.equalsIgnoreCase(input)) {
+                return key;
+            }
+        }
+        return null;
     }
 
     private boolean isRenderSubcommand(String subcommand) {
