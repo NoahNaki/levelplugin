@@ -1,0 +1,13 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "levelplugin_dialogue:dialogue/fog.png",
+      "ascent": 185,
+      "height": 256,
+      "chars": [
+        ""
+      ]
+    }
+  ]
+}

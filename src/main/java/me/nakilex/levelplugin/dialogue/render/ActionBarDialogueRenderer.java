@@ -1,10 +1,11 @@
 package me.nakilex.levelplugin.dialogue.render;
 
-import me.nakilex.levelplugin.dialogue.model.DialoguePage;
+import me.nakilex.levelplugin.dialogue.model.DialogueAnswer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -12,7 +13,6 @@ import java.util.List;
  */
 public class ActionBarDialogueRenderer implements DialogueRenderer {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
-    private static final String IMAGE_COLOR = "#ffffff";
     private static final String DIALOGUE_TEXT_COLOR = "#1e1e1e";
 
     private final DialogueActionBarSender actionBarSender;
@@ -40,20 +40,23 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
 
         StringBuilder hud = new StringBuilder();
         if (context.fogEnabled()) {
-            hud.append(imageLayer(IMAGE_COLOR, 0, DialogueGlyphs.FOG, DialogueGlyphs.FOG_WIDTH));
+            hud.append(imageLayer(context.dialogueBackgroundColor(), 0,
+                    DialogueGlyphs.FOG_FONT, DialogueGlyphs.FOG, DialogueGlyphs.FOG_WIDTH));
         }
 
         hud.append(backgroundLayer(
-                IMAGE_COLOR,
+                context.dialogueBackgroundColor(),
                 context.dialogueBackgroundOffsetPixels(),
+                DialogueGlyphs.DIALOGUE_BACKGROUND_FONT,
                 DialogueGlyphs.DIALOGUE_BACKGROUND,
                 DialogueGlyphs.DIALOGUE_WIDTH
         ));
 
         if (context.characterBoxEnabled()) {
             hud.append(imageLayer(
-                    IMAGE_COLOR,
+                    context.characterBackgroundColor(),
                     context.characterOffsetPixels(),
+                    DialogueGlyphs.CHARACTER_BACKGROUND_FONT,
                     DialogueGlyphs.CHARACTER_BACKGROUND,
                     DialogueGlyphs.CHARACTER_WIDTH
             ));
@@ -72,8 +75,10 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
 
         if (context.page().steadyInfoLine() != null && !context.page().steadyInfoLine().isBlank()) {
             hud.append(infoLine(context.page().steadyInfoLine(), context));
-            hud.append(arrowLayer(context));
+            hud.append(arrowLayer(context.arrowOffsetPixels(), context.arrowColor()));
         }
+
+        hud.append(answerPreview(context));
         return hud.toString();
     }
 
@@ -81,18 +86,18 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         return MINI_MESSAGE.deserialize(renderMiniMessage(context));
     }
 
-    private String imageLayer(String color, int offset, String glyph, int width) {
+    private String imageLayer(String color, int offset, String font, String glyph, int width) {
         return colorOpen(color)
                 + offset(offset)
-                + font(DialogueGlyphs.DIALOGUE_FONT_TAG, glyph)
+                + font(font, glyph)
                 + offset(-offset - width)
                 + colorClose();
     }
 
-    private String backgroundLayer(String color, int offset, String glyph, int width) {
+    private String backgroundLayer(String color, int offset, String font, String glyph, int width) {
         return colorOpen(color)
                 + offset(offset - width)
-                + font(DialogueGlyphs.DIALOGUE_FONT_TAG, glyph)
+                + font(font, glyph)
                 + offset(-offset - width)
                 + colorClose();
     }
@@ -104,11 +109,12 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         int boxWidth = DialogueGlyphs.NAME_START_WIDTH
                 + (midRepeats * DialogueGlyphs.NAME_MID_WIDTH)
                 + DialogueGlyphs.NAME_END_WIDTH;
-        return imageLayer(IMAGE_COLOR, context.nameBackgroundOffsetPixels(), glyph, boxWidth);
+        return imageLayer(context.nameBackgroundColor(), context.nameBackgroundOffsetPixels(),
+                DialogueGlyphs.NAME_BOX_FONT, glyph, boxWidth);
     }
 
     private String dialogueLineLayer(int lineNumber, String text, DialogueRenderContext context) {
-        int offset = context.lineOffsetPixels(lineNumber);
+        int offset = context.dialogueTextOffsetPixels();
         int textWidth = DialogueTextWidth.width(DialoguePlaceholderFormatter.plainDialogueText(text));
         return offset(offset)
                 + dialogueLine(lineNumber, text)
@@ -131,13 +137,47 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
                 + offset(-offset - textWidth);
     }
 
-    private String arrowLayer(DialogueRenderContext context) {
-        int offset = context.arrowOffsetPixels();
+    private String arrowLayer(int offset, String color) {
         return offset(offset)
-                + colorOpen(context.infoColor())
-                + font(DialogueGlyphs.DIALOGUE_FONT_TAG, DialogueGlyphs.ARROW)
+                + colorOpen(color)
+                + font(DialogueGlyphs.ARROW_FONT, DialogueGlyphs.ARROW)
                 + colorClose()
                 + offset(-offset - DialogueGlyphs.ARROW_WIDTH);
+    }
+
+    private String answerPreview(DialogueRenderContext context) {
+        if (context.page().answers().isEmpty()) {
+            return "";
+        }
+
+        StringBuilder answers = new StringBuilder();
+        answers.append(imageLayer(
+                context.answerBackgroundColor(),
+                context.answerBackgroundOffsetPixels(),
+                DialogueGlyphs.ANSWER_BACKGROUND_FONT,
+                DialogueGlyphs.ANSWER_BACKGROUND,
+                DialogueGlyphs.ANSWER_WIDTH
+        ));
+
+        List<DialogueAnswer> visibleAnswers = new ArrayList<>(context.page().answers().values());
+        int answerCount = Math.min(visibleAnswers.size(), 3);
+        for (int i = 0; i < answerCount; i++) {
+            answers.append(answerLine(i + 1, visibleAnswers.get(i).text(), context));
+        }
+        answers.append(arrowLayer(context.answerArrowOffsetPixels(), context.arrowColor()));
+        return answers.toString();
+    }
+
+    private String answerLine(int answerNumber, String text, DialogueRenderContext context) {
+        String safeText = DialoguePlaceholderFormatter.plainDialogueText(text);
+        int offset = context.answerLineOffsetPixels();
+        int textWidth = DialogueTextWidth.width(safeText);
+        return offset(offset)
+                + colorOpen(DIALOGUE_TEXT_COLOR)
+                + font(DialogueGlyphs.ANSWER_FONT_PREFIX + answerNumber,
+                DialoguePlaceholderFormatter.miniMessageDialogueText(text))
+                + colorClose()
+                + offset(-offset - textWidth);
     }
 
     private String textLayer(int offset, String color, String text, String font) {
@@ -173,5 +213,4 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
     private String colorClose() {
         return "</color>";
     }
-
 }

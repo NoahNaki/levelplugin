@@ -40,10 +40,9 @@ public class DialogueDebugCommand implements TabExecutor {
             DialogueRenderContext.TUNE_NAME_TEXT_OFFSET,
             DialogueRenderContext.TUNE_INFO_TEXT_OFFSET,
             DialogueRenderContext.TUNE_ARROW_OFFSET,
-            DialogueRenderContext.TUNE_LINE_1_OFFSET,
-            DialogueRenderContext.TUNE_LINE_2_OFFSET,
-            DialogueRenderContext.TUNE_LINE_3_OFFSET,
-            DialogueRenderContext.TUNE_LINE_4_OFFSET
+            DialogueRenderContext.TUNE_ANSWER_BACKGROUND_OFFSET,
+            DialogueRenderContext.TUNE_ANSWER_LINE_OFFSET,
+            DialogueRenderContext.TUNE_ANSWER_ARROW_OFFSET
     );
     private static final List<String> FONT_TESTS = List.of("offset", "dialogue", "default", "line1", "line2", "line3", "line4", "all");
     private static final Path NEXO_DIALOGUE_PACK_ROOT = Path.of(
@@ -52,12 +51,29 @@ public class DialogueDebugCommand implements TabExecutor {
     );
     private static final List<String> NEXO_DIALOGUE_PACK_FILES = List.of(
             "font/dialogue.json",
+            "font/dialogue_background.json",
+            "font/answer_background.json",
+            "font/character_background.json",
+            "font/arrow.json",
+            "font/fog.json",
+            "font/name_box.json",
             "font/offset_chars.json",
             "font/levelplugin_dialogue_default.json",
             "font/levelplugin_dialogue_line_1.json",
             "font/levelplugin_dialogue_line_2.json",
             "font/levelplugin_dialogue_line_3.json",
             "font/levelplugin_dialogue_line_4.json",
+            "font/levelplugin_dialogue_answer_1.json",
+            "font/levelplugin_dialogue_answer_2.json",
+            "font/levelplugin_dialogue_answer_3.json",
+            "textures/dialogue/dialogue_background.png",
+            "textures/dialogue/answer_background.png",
+            "textures/dialogue/character_background.png",
+            "textures/dialogue/arrow.png",
+            "textures/dialogue/fog.png",
+            "textures/dialogue/name_start.png",
+            "textures/dialogue/name_mid.png",
+            "textures/dialogue/name_end.png",
             "textures/font/levelplugin_dialogue_font.png",
             "textures/font/levelplugin_dialogue_nonlatin.png",
             "textures/font/levelplugin_dialogue_accented.png"
@@ -181,10 +197,9 @@ public class DialogueDebugCommand implements TabExecutor {
                         + ", nameText=" + context.nameTextOffsetPixels()
                         + ", infoText=" + context.infoTextOffsetPixels()
                         + ", arrow=" + context.arrowOffsetPixels()
-                        + ", line1=" + context.line1OffsetPixels()
-                        + ", line2=" + context.line2OffsetPixels()
-                        + ", line3=" + context.line3OffsetPixels()
-                        + ", line4=" + context.line4OffsetPixels());
+                        + ", answerBackground=" + context.answerBackgroundOffsetPixels()
+                        + ", answerLine=" + context.answerLineOffsetPixels()
+                        + ", answerArrow=" + context.answerArrowOffsetPixels());
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "Glyph widths: " + ChatColor.WHITE
                         + "dialogue=" + DialogueGlyphs.DIALOGUE_WIDTH

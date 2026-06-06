@@ -1,0 +1,31 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "levelplugin_dialogue:dialogue/name_start.png",
+      "ascent": 43,
+      "height": 14,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "levelplugin_dialogue:dialogue/name_mid.png",
+      "ascent": 43,
+      "height": 14,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "levelplugin_dialogue:dialogue/name_end.png",
+      "ascent": 43,
+      "height": 14,
+      "chars": [
+        ""
+      ]
+    }
+  ]
+}

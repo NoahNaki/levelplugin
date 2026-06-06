@@ -1,0 +1,13 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "levelplugin_dialogue:dialogue/arrow.png",
+      "ascent": -1,
+      "height": 8,
+      "chars": [
+        ""
+      ]
+    }
+  ]
+}
