@@ -1,13 +1,8 @@
 package me.nakilex.levelplugin.dialogue.render;
 
 import me.nakilex.levelplugin.dialogue.model.DialoguePage;
-import me.nakilex.levelplugin.utils.ChatFormatter;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
-import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Player;
 
 import java.util.List;
@@ -16,9 +11,9 @@ import java.util.List;
  * Static Lux-style actionbar renderer for a single loaded dialogue page.
  */
 public class ActionBarDialogueRenderer implements DialogueRenderer {
-    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final String IMAGE_COLOR = "#ffffff";
+    private static final String DIALOGUE_TEXT_COLOR = "#1e1e1e";
 
     private final DialogueActionBarSender actionBarSender;
 
@@ -72,11 +67,12 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
 
         List<String> lines = context.page().lines();
         for (int i = 0; i < Math.min(lines.size(), 4); i++) {
-            hud.append(dialogueLineLayer(i + 1, context.textColor(), lines.get(i), context));
+            hud.append(dialogueLineLayer(i + 1, lines.get(i), context));
         }
 
         if (context.page().steadyInfoLine() != null && !context.page().steadyInfoLine().isBlank()) {
             hud.append(infoLine(context.page().steadyInfoLine(), context));
+            hud.append(arrowLayer(context));
         }
         return hud.toString();
     }
@@ -102,7 +98,7 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
     }
 
     private String nameBoxLayer(String characterName, DialogueRenderContext context) {
-        int nameWidth = DialogueTextWidth.width(characterName);
+        int nameWidth = DialogueTextWidth.width(DialoguePlaceholderFormatter.plainText(characterName));
         int midRepeats = Math.max(1, (int) Math.ceil(nameWidth / 2.0));
         String glyph = DialogueGlyphs.NAME_START + DialogueGlyphs.NAME_MID.repeat(midRepeats) + DialogueGlyphs.NAME_END;
         int boxWidth = DialogueGlyphs.NAME_START_WIDTH
@@ -111,32 +107,42 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         return imageLayer(IMAGE_COLOR, context.nameBackgroundOffsetPixels(), glyph, boxWidth);
     }
 
-    private String dialogueLineLayer(int lineNumber, String color, String text, DialogueRenderContext context) {
-        int offset = context.dialogueTextOffsetPixels();
-        int textWidth = DialogueTextWidth.width(text);
+    private String dialogueLineLayer(int lineNumber, String text, DialogueRenderContext context) {
+        int offset = context.lineOffsetPixels(lineNumber);
+        int textWidth = DialogueTextWidth.width(DialoguePlaceholderFormatter.plainText(text));
         return offset(offset)
-                + dialogueLine(lineNumber, color, text)
+                + dialogueLine(lineNumber, text)
                 + offset(-offset - textWidth);
     }
 
-    private String dialogueLine(int lineNumber, String color, String text) {
+    private String dialogueLine(int lineNumber, String text) {
         String font = DialogueGlyphs.LINE_FONT_PREFIX + lineNumber;
-        return colorOpen(color)
-                + font(font, escapeMiniMessage(text))
+        return colorOpen(DIALOGUE_TEXT_COLOR)
+                + font(font, DialoguePlaceholderFormatter.miniMessageText(text))
                 + colorClose();
     }
 
     private String infoLine(String infoLine, DialogueRenderContext context) {
-        String text = font(DialogueGlyphs.DIALOGUE_FONT_TAG, DialogueGlyphs.ARROW)
-                + text(context.infoColor(), " " + infoLine, DialogueGlyphs.DEFAULT_TEXT_FONT);
-        int textWidth = DialogueGlyphs.ARROW_WIDTH + DialogueTextWidth.width(" " + infoLine);
+        String text = " " + infoLine;
+        int textWidth = DialogueTextWidth.width(DialoguePlaceholderFormatter.plainText(text));
         int offset = context.infoTextOffsetPixels();
-        return offset(offset) + text + offset(-offset - textWidth);
+        return offset(offset)
+                + text(context.infoColor(), text, DialogueGlyphs.DEFAULT_TEXT_FONT)
+                + offset(-offset - textWidth);
+    }
+
+    private String arrowLayer(DialogueRenderContext context) {
+        int offset = context.arrowOffsetPixels();
+        return offset(offset)
+                + colorOpen(context.infoColor())
+                + font(DialogueGlyphs.DIALOGUE_FONT_TAG, DialogueGlyphs.ARROW)
+                + colorClose()
+                + offset(-offset - DialogueGlyphs.ARROW_WIDTH);
     }
 
     private String textLayer(int offset, String color, String text, String font) {
         String safeText = text == null ? "" : text;
-        int textWidth = DialogueTextWidth.width(safeText);
+        int textWidth = DialogueTextWidth.width(DialoguePlaceholderFormatter.plainText(safeText));
         return offset(offset)
                 + text(color, safeText, font)
                 + offset(-offset - textWidth);
@@ -144,7 +150,7 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
 
     private String text(String color, String text, String font) {
         return colorOpen(color)
-                + font(font, escapeMiniMessage(text))
+                + font(font, DialoguePlaceholderFormatter.miniMessageText(text))
                 + colorClose();
     }
 
@@ -161,47 +167,11 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
     }
 
     private String colorOpen(String color) {
-        return "<color:" + normalizeMiniMessageColor(color) + ">";
+        return "<color:" + DialoguePlaceholderFormatter.miniMessageColor(color, "#ffffff") + ">";
     }
 
     private String colorClose() {
         return "</color>";
     }
 
-    private String normalizeMiniMessageColor(String color) {
-        if (color == null || color.isBlank()) {
-            return "#ffffff";
-        }
-        return color.trim();
-    }
-
-    private String escapeMiniMessage(String text) {
-        if (text == null || text.isEmpty()) {
-            return "";
-        }
-        return text.replace("\\", "\\\\").replace("<", "\\<");
-    }
-
-    @Deprecated
-    private Component dialogueGlyph(String glyph) {
-        return Component.text(glyph).font(DialogueGlyphs.DIALOGUE_FONT);
-    }
-
-    @Deprecated
-    private Component coloredGlyph(String color, Key font, String glyph) {
-        return Component.text(glyph).font(font).color(parseColor(color));
-    }
-
-    @Deprecated
-    private Component coloredText(String text) {
-        return LEGACY.deserialize(ChatFormatter.colorize(text == null ? "" : text));
-    }
-
-    private TextColor parseColor(String color) {
-        if (color == null || color.isBlank()) {
-            return NamedTextColor.WHITE;
-        }
-        TextColor parsed = TextColor.fromHexString(color.trim());
-        return parsed == null ? NamedTextColor.WHITE : parsed;
-    }
 }

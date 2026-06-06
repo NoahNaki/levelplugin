@@ -24,7 +24,12 @@ public record DialogueRenderContext(
         int characterOffsetPixels,
         int nameBackgroundOffsetPixels,
         int nameTextOffsetPixels,
-        int infoTextOffsetPixels
+        int infoTextOffsetPixels,
+        int arrowOffsetPixels,
+        int line1OffsetPixels,
+        int line2OffsetPixels,
+        int line3OffsetPixels,
+        int line4OffsetPixels
 ) {
     public static final String TUNE_DIALOGUE_BACKGROUND_OFFSET = "dialogueBackgroundOffset";
     public static final String TUNE_DIALOGUE_TEXT_OFFSET = "dialogueTextOffset";
@@ -32,16 +37,22 @@ public record DialogueRenderContext(
     public static final String TUNE_NAME_BACKGROUND_OFFSET = "nameBackgroundOffset";
     public static final String TUNE_NAME_TEXT_OFFSET = "nameTextOffset";
     public static final String TUNE_INFO_TEXT_OFFSET = "infoTextOffset";
+    public static final String TUNE_ARROW_OFFSET = "arrowOffset";
+    public static final String TUNE_LINE_1_OFFSET = "line1Offset";
+    public static final String TUNE_LINE_2_OFFSET = "line2Offset";
+    public static final String TUNE_LINE_3_OFFSET = "line3Offset";
+    public static final String TUNE_LINE_4_OFFSET = "line4Offset";
 
-    private static final String DEFAULT_TEXT_COLOR = "#f5edd7";
+    private static final String DEFAULT_TEXT_COLOR = "#1e1e1e";
     private static final String DEFAULT_NAME_COLOR = "#f7d486";
     private static final String DEFAULT_INFO_COLOR = "#b8ad94";
     private static final int DEFAULT_DIALOGUE_BACKGROUND_OFFSET_PIXELS = -210;
-    private static final int DEFAULT_DIALOGUE_TEXT_OFFSET_PIXELS = -180;
+    private static final int DEFAULT_DIALOGUE_TEXT_OFFSET_PIXELS = -165;
     private static final int DEFAULT_CHARACTER_OFFSET_PIXELS = -205;
     private static final int DEFAULT_NAME_BACKGROUND_OFFSET_PIXELS = -148;
     private static final int DEFAULT_NAME_TEXT_OFFSET_PIXELS = -140;
-    private static final int DEFAULT_INFO_TEXT_OFFSET_PIXELS = -180;
+    private static final int DEFAULT_INFO_TEXT_OFFSET_PIXELS = -160;
+    private static final int DEFAULT_ARROW_OFFSET_PIXELS = -188;
 
     public DialogueRenderContext {
         textColor = blankToDefault(textColor, DEFAULT_TEXT_COLOR);
@@ -76,7 +87,12 @@ public record DialogueRenderContext(
                 intValue(offsets, DEFAULT_NAME_BACKGROUND_OFFSET_PIXELS,
                         TUNE_NAME_BACKGROUND_OFFSET, "name-background", "nameBackground"),
                 intValue(offsets, legacyNameOffset, TUNE_NAME_TEXT_OFFSET, "name-text", "nameText"),
-                intValue(offsets, DEFAULT_INFO_TEXT_OFFSET_PIXELS, TUNE_INFO_TEXT_OFFSET, "info-text", "infoText")
+                intValue(offsets, DEFAULT_INFO_TEXT_OFFSET_PIXELS, TUNE_INFO_TEXT_OFFSET, "info-text", "infoText"),
+                intValue(offsets, DEFAULT_ARROW_OFFSET_PIXELS, TUNE_ARROW_OFFSET, "arrow", "arrowX", "arrow-offset"),
+                intValue(offsets, legacyContentOffset, TUNE_LINE_1_OFFSET, "line1", "line-1", "line1OffsetY"),
+                intValue(offsets, legacyContentOffset, TUNE_LINE_2_OFFSET, "line2", "line-2", "line2OffsetY"),
+                intValue(offsets, legacyContentOffset, TUNE_LINE_3_OFFSET, "line3", "line-3", "line3OffsetY"),
+                intValue(offsets, legacyContentOffset, TUNE_LINE_4_OFFSET, "line4", "line-4", "line4OffsetY")
         );
     }
 
@@ -99,7 +115,12 @@ public record DialogueRenderContext(
                 tuning.getOrDefault(TUNE_CHARACTER_OFFSET, characterOffsetPixels),
                 tuning.getOrDefault(TUNE_NAME_BACKGROUND_OFFSET, nameBackgroundOffsetPixels),
                 tuning.getOrDefault(TUNE_NAME_TEXT_OFFSET, nameTextOffsetPixels),
-                tuning.getOrDefault(TUNE_INFO_TEXT_OFFSET, infoTextOffsetPixels)
+                tuning.getOrDefault(TUNE_INFO_TEXT_OFFSET, infoTextOffsetPixels),
+                tuning.getOrDefault(TUNE_ARROW_OFFSET, arrowOffsetPixels),
+                tuning.getOrDefault(TUNE_LINE_1_OFFSET, line1OffsetPixels),
+                tuning.getOrDefault(TUNE_LINE_2_OFFSET, line2OffsetPixels),
+                tuning.getOrDefault(TUNE_LINE_3_OFFSET, line3OffsetPixels),
+                tuning.getOrDefault(TUNE_LINE_4_OFFSET, line4OffsetPixels)
         );
     }
 
@@ -109,6 +130,16 @@ public record DialogueRenderContext(
 
     public int nameOffsetPixels() {
         return nameTextOffsetPixels;
+    }
+
+    public int lineOffsetPixels(int lineNumber) {
+        return switch (lineNumber) {
+            case 1 -> line1OffsetPixels;
+            case 2 -> line2OffsetPixels;
+            case 3 -> line3OffsetPixels;
+            case 4 -> line4OffsetPixels;
+            default -> dialogueTextOffsetPixels;
+        };
     }
 
     private static String blankToDefault(String value, String fallback) {
