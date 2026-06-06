@@ -38,6 +38,7 @@ public class DialogueDebugCommand implements TabExecutor {
             DialogueRenderContext.TUNE_NAME_TEXT_OFFSET,
             DialogueRenderContext.TUNE_INFO_TEXT_OFFSET
     );
+    private static final List<String> FONT_TESTS = List.of("offset", "dialogue", "default", "line1", "all");
 
     private final JavaPlugin plugin;
     private final DialogueManager dialogueManager;
@@ -69,7 +70,7 @@ public class DialogueDebugCommand implements TabExecutor {
             case "render" -> render(sender, label, args, true);
             case "renderonce" -> render(sender, label, args, false);
             case "inspect" -> inspect(sender, label, args);
-            case "fonttest" -> fontTest(sender);
+            case "fonttest" -> fontTest(sender, label, args);
             case "tune" -> tune(sender, label, args);
             case "stop" -> stop(sender);
             default -> sendUsage(sender, label);
@@ -172,24 +173,64 @@ public class DialogueDebugCommand implements TabExecutor {
                         + ", nameBox=" + context.nameBoxEnabled());
     }
 
-    private void fontTest(CommandSender sender) {
+    private void fontTest(CommandSender sender, String label, String[] args) {
         if (!(sender instanceof Player player)) {
             ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
                     "Only players can run dialogue font tests.");
             return;
         }
+        if (args.length < 2) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Usage: /" + label + " fonttest <" + String.join("|", FONT_TESTS) + ">");
+            return;
+        }
 
-        String miniMessage = "<font:" + DialogueGlyphs.OFFSET_FONT_TAG + ">"
-                + DialogueOffsetGlyphs.POSITIVE_ONE_PIXEL.repeat(8)
-                + "</font>"
-                + "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + ">offset test</font> "
-                + "<font:" + DialogueGlyphs.DIALOGUE_FONT_TAG + ">" + DialogueGlyphs.DIALOGUE_BACKGROUND + "</font>"
-                + "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + "> dialogue glyph test </font>"
-                + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "1>line_1 font test</font> "
-                + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "2>line_2 font test</font>";
-        actionBarSender.sendMiniMessage(player, miniMessage);
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Sent dialogue font test. If offset glyphs are visible boxes, fix the resource pack fonts first.");
+        String test = args[1].toLowerCase(Locale.ROOT);
+        FontTestMessage message = fontTestMessage(test);
+        if (message == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+                    "Unknown font test '" + args[1] + "'.");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    "Tests: " + ChatColor.WHITE + String.join(", ", FONT_TESTS));
+            return;
+        }
+
+        actionBarSender.sendMiniMessage(player, message.miniMessage());
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, message.description());
+    }
+
+    private FontTestMessage fontTestMessage(String test) {
+        return switch (test) {
+            case "offset" -> new FontTestMessage(
+                    "A<font:" + DialogueGlyphs.OFFSET_FONT_TAG + ">"
+                            + DialogueOffsetGlyphs.POSITIVE_ONE_PIXEL.repeat(5)
+                            + "</font>B",
+                    "Sent offset font test. A and B should have a tiny gap with no visible boxes.");
+            case "dialogue" -> new FontTestMessage(
+                    "<font:" + DialogueGlyphs.DIALOGUE_FONT_TAG + ">"
+                            + DialogueGlyphs.DIALOGUE_BACKGROUND
+                            + "</font>",
+                    "Sent dialogue glyph font test. The dialogue background should appear.");
+            case "default" -> new FontTestMessage(
+                    "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + ">Hello default font</font>",
+                    "Sent default dialogue text font test. Text should be readable with no boxes.");
+            case "line1" -> new FontTestMessage(
+                    "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "1>Hello line one</font>",
+                    "Sent line 1 dialogue font test. Text should be readable with no boxes.");
+            case "all" -> new FontTestMessage(
+                    "<font:" + DialogueGlyphs.OFFSET_FONT_TAG + ">"
+                            + DialogueOffsetGlyphs.POSITIVE_ONE_PIXEL.repeat(8)
+                            + "</font>"
+                            + "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + ">offset test</font> "
+                            + "<font:" + DialogueGlyphs.DIALOGUE_FONT_TAG + ">"
+                            + DialogueGlyphs.DIALOGUE_BACKGROUND
+                            + "</font>"
+                            + "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + "> dialogue glyph test </font>"
+                            + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "1>line_1 font test</font> "
+                            + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "2>line_2 font test</font>",
+                    "Sent combined dialogue font test. If offset glyphs are visible boxes, fix the resource pack fonts first.");
+            default -> null;
+        };
     }
 
     private void tune(CommandSender sender, String label, String[] args) {
@@ -313,8 +354,8 @@ public class DialogueDebugCommand implements TabExecutor {
                 "/" + label + " inspect <dialogueId> <pageId>" + ChatColor.GRAY
                         + " - Print dialogue HUD diagnostics.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
-                "/" + label + " fonttest" + ChatColor.GRAY
-                        + " - Send dialogue font and offset diagnostics.");
+                "/" + label + " fonttest <offset|dialogue|default|line1|all>" + ChatColor.GRAY
+                        + " - Send isolated dialogue font and offset diagnostics.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "/" + label + " render <dialogueId> <pageId>" + ChatColor.GRAY
                         + " - Preview a static dialogue page for 10 seconds.");
@@ -335,6 +376,9 @@ public class DialogueDebugCommand implements TabExecutor {
         }
         if (args.length == 2 && "tune".equalsIgnoreCase(args[0])) {
             return matching(TUNING_KEYS, args[1]);
+        }
+        if (args.length == 2 && "fonttest".equalsIgnoreCase(args[0])) {
+            return matching(FONT_TESTS, args[1]);
         }
         if (args.length == 2 && usesDialoguePage(args[0])) {
             return matching(dialogueManager.getDialogues().stream().map(DialogueDefinition::id).toList(), args[1]);
@@ -376,5 +420,8 @@ public class DialogueDebugCommand implements TabExecutor {
     }
 
     private record PageLookup(DialogueDefinition dialogue, DialoguePage page) {
+    }
+
+    private record FontTestMessage(String miniMessage, String description) {
     }
 }
