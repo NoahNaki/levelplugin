@@ -6,6 +6,7 @@ import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.entity.Player;
 
@@ -16,8 +17,8 @@ import java.util.List;
  */
 public class ActionBarDialogueRenderer implements DialogueRenderer {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final String IMAGE_COLOR = "#ffffff";
-    private static final String LINE_SEPARATOR = "  ";
 
     private final DialogueActionBarSender actionBarSender;
 
@@ -34,20 +35,20 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         if (player == null || context == null || context.page() == null) {
             return;
         }
-        actionBarSender.send(player, render(context));
+        actionBarSender.sendMiniMessage(player, renderMiniMessage(context));
     }
 
-    public Component render(DialogueRenderContext context) {
+    public String renderMiniMessage(DialogueRenderContext context) {
         if (context == null || context.page() == null) {
-            return Component.empty();
+            return "";
         }
 
-        Component hud = Component.empty();
+        StringBuilder hud = new StringBuilder();
         if (context.fogEnabled()) {
-            hud = hud.append(imageLayer(IMAGE_COLOR, 0, DialogueGlyphs.FOG, DialogueGlyphs.FOG_WIDTH));
+            hud.append(imageLayer(IMAGE_COLOR, 0, DialogueGlyphs.FOG, DialogueGlyphs.FOG_WIDTH));
         }
 
-        hud = hud.append(imageLayer(
+        hud.append(backgroundLayer(
                 IMAGE_COLOR,
                 context.dialogueBackgroundOffsetPixels(),
                 DialogueGlyphs.DIALOGUE_BACKGROUND,
@@ -55,7 +56,7 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         ));
 
         if (context.characterBoxEnabled()) {
-            hud = hud.append(imageLayer(
+            hud.append(imageLayer(
                     IMAGE_COLOR,
                     context.characterOffsetPixels(),
                     DialogueGlyphs.CHARACTER_BACKGROUND,
@@ -64,28 +65,43 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         }
 
         if (context.nameBoxEnabled() && context.characterName() != null && !context.characterName().isBlank()) {
-            hud = hud.append(nameBoxLayer(context.characterName(), context))
-                    .append(textLayer(context.nameTextOffsetPixels(), context.nameColor(), context.characterName()));
+            hud.append(nameBoxLayer(context.characterName(), context));
+            hud.append(textLayer(context.nameTextOffsetPixels(), context.nameColor(), context.characterName(),
+                    DialogueGlyphs.DEFAULT_TEXT_FONT));
         }
 
         List<String> lines = context.page().lines();
         if (!lines.isEmpty()) {
-            hud = hud.append(dialogueLine(1, lines.get(0), context));
+            hud.append(dialogueLineLayer(1, context.textColor(), lines.get(0), context));
         }
 
         if (context.page().steadyInfoLine() != null && !context.page().steadyInfoLine().isBlank()) {
-            hud = hud.append(infoLine(context.page().steadyInfoLine(), context));
+            hud.append(infoLine(context.page().steadyInfoLine(), context));
         }
-        return hud;
+        return hud.toString();
     }
 
-    private Component imageLayer(String color, int offset, String glyph, int glyphWidth) {
-        return offset(offset)
-                .append(coloredGlyph(color, DialogueGlyphs.DIALOGUE_FONT, glyph))
-                .append(offset(-offset - glyphWidth));
+    public Component render(DialogueRenderContext context) {
+        return MINI_MESSAGE.deserialize(renderMiniMessage(context));
     }
 
-    private Component nameBoxLayer(String characterName, DialogueRenderContext context) {
+    private String imageLayer(String color, int offset, String glyph, int width) {
+        return colorOpen(color)
+                + offset(offset)
+                + font(DialogueGlyphs.DIALOGUE_FONT_TAG, glyph)
+                + offset(-offset - width)
+                + colorClose();
+    }
+
+    private String backgroundLayer(String color, int offset, String glyph, int width) {
+        return colorOpen(color)
+                + offset(offset - width)
+                + font(DialogueGlyphs.DIALOGUE_FONT_TAG, glyph)
+                + offset(-offset - width)
+                + colorClose();
+    }
+
+    private String nameBoxLayer(String characterName, DialogueRenderContext context) {
         int nameWidth = DialogueTextWidth.width(characterName);
         int midRepeats = Math.max(1, (int) Math.ceil(nameWidth / 2.0));
         String glyph = DialogueGlyphs.NAME_START + DialogueGlyphs.NAME_MID.repeat(midRepeats) + DialogueGlyphs.NAME_END;
@@ -95,44 +111,91 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         return imageLayer(IMAGE_COLOR, context.nameBackgroundOffsetPixels(), glyph, boxWidth);
     }
 
-    private Component dialogueLine(int lineNumber, String line, DialogueRenderContext context) {
+    private String dialogueLineLayer(int lineNumber, String color, String text, DialogueRenderContext context) {
         if (lineNumber != 1) {
-            return Component.empty();
+            return "";
         }
         int offset = context.dialogueTextOffsetPixels();
-        return textLayer(offset, context.textColor(), line);
+        int textWidth = DialogueTextWidth.width(text);
+        return offset(offset)
+                + dialogueLine(lineNumber, color, text)
+                + offset(-offset - textWidth);
     }
 
-    private Component infoLine(String infoLine, DialogueRenderContext context) {
-        Component text = dialogueGlyph(DialogueGlyphs.ARROW)
-                .append(coloredText(" " + context.infoColor() + infoLine));
+    private String dialogueLine(int lineNumber, String color, String text) {
+        String font = DialogueGlyphs.LINE_FONT_PREFIX + lineNumber;
+        return colorOpen(color)
+                + font(font, escapeMiniMessage(text))
+                + colorClose();
+    }
+
+    private String infoLine(String infoLine, DialogueRenderContext context) {
+        String text = font(DialogueGlyphs.DIALOGUE_FONT_TAG, DialogueGlyphs.ARROW)
+                + text(context.infoColor(), " " + infoLine, DialogueGlyphs.DEFAULT_TEXT_FONT);
         int textWidth = DialogueGlyphs.ARROW_WIDTH + DialogueTextWidth.width(" " + infoLine);
         int offset = context.infoTextOffsetPixels();
-        return offset(offset)
-                .append(text)
-                .append(offset(-offset - textWidth));
+        return offset(offset) + text + offset(-offset - textWidth);
     }
 
-    private Component textLayer(int offset, String color, String text) {
+    private String textLayer(int offset, String color, String text, String font) {
         String safeText = text == null ? "" : text;
         int textWidth = DialogueTextWidth.width(safeText);
         return offset(offset)
-                .append(coloredText(color + safeText))
-                .append(offset(-offset - textWidth));
+                + text(color, safeText, font)
+                + offset(-offset - textWidth);
     }
 
-    private Component offset(int pixels) {
-        return DialogueOffsetGlyphs.component(pixels);
+    private String text(String color, String text, String font) {
+        return colorOpen(color)
+                + font(font, escapeMiniMessage(text))
+                + colorClose();
     }
 
+    private String offset(int pixels) {
+        if (pixels == 0) {
+            return "";
+        }
+        String glyph = pixels < 0 ? DialogueOffsetGlyphs.NEGATIVE_ONE_PIXEL : DialogueOffsetGlyphs.POSITIVE_ONE_PIXEL;
+        return font(DialogueGlyphs.OFFSET_FONT_TAG, glyph.repeat(Math.abs(pixels)));
+    }
+
+    private String font(String font, String content) {
+        return "<font:" + font + ">" + content + "</font>";
+    }
+
+    private String colorOpen(String color) {
+        return "<color:" + normalizeMiniMessageColor(color) + ">";
+    }
+
+    private String colorClose() {
+        return "</color>";
+    }
+
+    private String normalizeMiniMessageColor(String color) {
+        if (color == null || color.isBlank()) {
+            return "#ffffff";
+        }
+        return color.trim();
+    }
+
+    private String escapeMiniMessage(String text) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        return text.replace("\\", "\\\\").replace("<", "\\<");
+    }
+
+    @Deprecated
     private Component dialogueGlyph(String glyph) {
         return Component.text(glyph).font(DialogueGlyphs.DIALOGUE_FONT);
     }
 
+    @Deprecated
     private Component coloredGlyph(String color, Key font, String glyph) {
         return Component.text(glyph).font(font).color(parseColor(color));
     }
 
+    @Deprecated
     private Component coloredText(String text) {
         return LEGACY.deserialize(ChatFormatter.colorize(text == null ? "" : text));
     }

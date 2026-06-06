@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.dialogue.model.DialoguePage;
 import me.nakilex.levelplugin.dialogue.render.ActionBarDialogueRenderer;
 import me.nakilex.levelplugin.dialogue.render.DialogueActionBarSender;
 import me.nakilex.levelplugin.dialogue.render.DialogueGlyphs;
+import me.nakilex.levelplugin.dialogue.render.DialogueOffsetGlyphs;
 import me.nakilex.levelplugin.dialogue.render.DialogueRenderContext;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
@@ -68,6 +69,7 @@ public class DialogueDebugCommand implements TabExecutor {
             case "render" -> render(sender, label, args, true);
             case "renderonce" -> render(sender, label, args, false);
             case "inspect" -> inspect(sender, label, args);
+            case "fonttest" -> fontTest(sender);
             case "tune" -> tune(sender, label, args);
             case "stop" -> stop(sender);
             default -> sendUsage(sender, label);
@@ -168,6 +170,26 @@ public class DialogueDebugCommand implements TabExecutor {
                         + "fog=" + context.fogEnabled()
                         + ", characterBox=" + context.characterBoxEnabled()
                         + ", nameBox=" + context.nameBoxEnabled());
+    }
+
+    private void fontTest(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                    "Only players can run dialogue font tests.");
+            return;
+        }
+
+        String miniMessage = "<font:" + DialogueGlyphs.OFFSET_FONT_TAG + ">"
+                + DialogueOffsetGlyphs.POSITIVE_ONE_PIXEL.repeat(8)
+                + "</font>"
+                + "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + ">offset test</font> "
+                + "<font:" + DialogueGlyphs.DIALOGUE_FONT_TAG + ">" + DialogueGlyphs.DIALOGUE_BACKGROUND + "</font>"
+                + "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + "> dialogue glyph test </font>"
+                + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "1>line_1 font test</font> "
+                + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "2>line_2 font test</font>";
+        actionBarSender.sendMiniMessage(player, miniMessage);
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Sent dialogue font test. If offset glyphs are visible boxes, fix the resource pack fonts first.");
     }
 
     private void tune(CommandSender sender, String label, String[] args) {
@@ -291,6 +313,9 @@ public class DialogueDebugCommand implements TabExecutor {
                 "/" + label + " inspect <dialogueId> <pageId>" + ChatColor.GRAY
                         + " - Print dialogue HUD diagnostics.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "/" + label + " fonttest" + ChatColor.GRAY
+                        + " - Send dialogue font and offset diagnostics.");
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "/" + label + " render <dialogueId> <pageId>" + ChatColor.GRAY
                         + " - Preview a static dialogue page for 10 seconds.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
@@ -306,7 +331,7 @@ public class DialogueDebugCommand implements TabExecutor {
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
-            return matching(List.of("render", "renderonce", "inspect", "reload", "stop", "tune"), args[0]);
+            return matching(List.of("render", "renderonce", "inspect", "fonttest", "reload", "stop", "tune"), args[0]);
         }
         if (args.length == 2 && "tune".equalsIgnoreCase(args[0])) {
             return matching(TUNING_KEYS, args[1]);

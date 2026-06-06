@@ -8,6 +8,11 @@ import net.kyori.adventure.key.Key;
 public final class DialogueGlyphs {
     public static final Key DIALOGUE_FONT = Key.key("levelplugin_dialogue", "dialogue");
 
+    public static final String DIALOGUE_FONT_TAG = "levelplugin_dialogue:dialogue";
+    public static final String OFFSET_FONT_TAG = "levelplugin_dialogue:offset_chars";
+    public static final String DEFAULT_TEXT_FONT = "levelplugin_dialogue:levelplugin_dialogue_default";
+    public static final String LINE_FONT_PREFIX = "levelplugin_dialogue:levelplugin_dialogue_line_";
+
     public static final String DIALOGUE_BACKGROUND = "\uE100";
     public static final String ANSWER_BACKGROUND = "\uE101";
     public static final String ARROW = "\uE102";
