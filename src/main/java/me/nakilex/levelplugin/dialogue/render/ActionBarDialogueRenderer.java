@@ -38,11 +38,11 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
 
         StringBuilder hud = new StringBuilder();
         if (context.fogEnabled()) {
-            hud.append(imageLayer(context.dialogueBackgroundColor(), 0,
+            hud.append(luxImageLayer(context.dialogueBackgroundColor(), 0,
                     DialogueGlyphs.FOG_FONT, DialogueGlyphs.FOG, DialogueGlyphs.FOG_WIDTH));
         }
 
-        hud.append(backgroundLayer(
+        hud.append(luxImageLayer(
                 context.dialogueBackgroundColor(),
                 context.dialogueBackgroundOffsetPixels(),
                 DialogueGlyphs.DIALOGUE_BACKGROUND_FONT,
@@ -50,8 +50,14 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
                 DialogueGlyphs.DIALOGUE_WIDTH
         ));
 
+        if (context.nameBoxEnabled() && context.characterName() != null && !context.characterName().isBlank()) {
+            hud.append(nameBoxLayer(context.characterName(), context));
+            hud.append(textLayer(context.nameTextOffsetPixels(), context.nameColor(), context.characterName(),
+                    DialogueGlyphs.DEFAULT_TEXT_FONT));
+        }
+
         if (context.characterBoxEnabled()) {
-            hud.append(imageLayer(
+            hud.append(luxImageLayer(
                     context.characterBackgroundColor(),
                     context.characterOffsetPixels(),
                     DialogueGlyphs.CHARACTER_BACKGROUND_FONT,
@@ -60,16 +66,7 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
             ));
         }
 
-        if (context.nameBoxEnabled() && context.characterName() != null && !context.characterName().isBlank()) {
-            hud.append(nameBoxLayer(context.characterName(), context));
-            hud.append(textLayer(context.nameTextOffsetPixels(), context.nameColor(), context.characterName(),
-                    DialogueGlyphs.DEFAULT_TEXT_FONT));
-        }
-
-        List<String> lines = context.page().lines();
-        for (int i = 0; i < Math.min(lines.size(), 4); i++) {
-            hud.append(dialogueLineLayer(i + 1, lines.get(i), context));
-        }
+        hud.append(dialogueLines(context));
 
         if (context.page().steadyInfoLine() != null && !context.page().steadyInfoLine().isBlank()) {
             hud.append(infoLine(context.page().steadyInfoLine(), context));
@@ -83,19 +80,11 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         return MINI_MESSAGE.deserialize(renderMiniMessage(context));
     }
 
-    private String imageLayer(String color, int offset, String font, String glyph, int width) {
+    private String luxImageLayer(String color, int offset, String font, String glyph, int width) {
         return colorOpen(color)
                 + offset(offset)
                 + font(font, glyph)
-                + offset(-offset - width)
-                + colorClose();
-    }
-
-    private String backgroundLayer(String color, int offset, String font, String glyph, int width) {
-        return colorOpen(color)
-                + offset(offset - width)
-                + font(font, glyph)
-                + offset(-offset - width)
+                + offset((-offset) - width)
                 + colorClose();
     }
 
@@ -106,16 +95,24 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         int boxWidth = DialogueGlyphs.NAME_START_WIDTH
                 + (midRepeats * DialogueGlyphs.NAME_MID_WIDTH)
                 + DialogueGlyphs.NAME_END_WIDTH;
-        return imageLayer(context.nameBackgroundColor(), context.nameBackgroundOffsetPixels(),
+        return luxImageLayer(context.nameBackgroundColor(), context.nameBackgroundOffsetPixels(),
                 DialogueGlyphs.NAME_BOX_FONT, glyph, boxWidth);
     }
 
-    private String dialogueLineLayer(int lineNumber, String text, DialogueRenderContext context) {
-        int offset = context.dialogueTextOffsetPixels();
-        int textWidth = DialogueTextWidth.width(DialoguePlaceholderFormatter.plainDialogueText(text));
-        return offset(offset)
-                + dialogueLine(lineNumber, text)
-                + offset(-offset - textWidth);
+    private String dialogueLines(DialogueRenderContext context) {
+        List<String> lines = context.page().lines();
+        if (lines.isEmpty()) {
+            return "";
+        }
+
+        StringBuilder text = new StringBuilder(offset(context.dialogueTextOffsetPixels()));
+        for (int i = 0; i < Math.min(lines.size(), 4); i++) {
+            String line = lines.get(i);
+            text.append(dialogueLine(i + 1, line));
+            text.append(offset(-DialogueTextWidth.width(DialoguePlaceholderFormatter.plainDialogueText(line))));
+        }
+        text.append(offset(-context.dialogueTextOffsetPixels()));
+        return text.toString();
     }
 
     private String dialogueLine(int lineNumber, String text) {

@@ -199,6 +199,12 @@ public class DialogueDebugCommand implements TabExecutor {
                         + "fog=" + context.fogEnabled()
                         + ", characterBox=" + context.characterBoxEnabled()
                         + ", nameBox=" + context.nameBoxEnabled());
+
+        String miniMessage = renderer.renderMiniMessage(context);
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                "Render MiniMessage length: " + ChatColor.WHITE + miniMessage.length());
+        String preview = miniMessage.substring(0, Math.min(300, miniMessage.length()));
+        plugin.getLogger().info("Dialogue render preview (first 300 chars): " + preview);
     }
 
     private void fontTest(CommandSender sender, String label, String[] args) {
