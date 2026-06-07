@@ -2,27 +2,27 @@
   "providers": [
     {
       "type": "bitmap",
-      "file": "levelplugin_dialogue:dialogue/dialogue.png",
+      "file": "levelplugin_dialogue:dialogue/dialogue_background.png",
       "ascent": 37,
-      "height": 256,
+      "height": 57,
       "chars": [
         ""
       ]
     },
     {
       "type": "bitmap",
-      "file": "levelplugin_dialogue:dialogue/answer.png",
+      "file": "levelplugin_dialogue:dialogue/answer_background.png",
       "ascent": 81,
-      "height": 256,
+      "height": 37,
       "chars": [
         ""
       ]
     },
     {
       "type": "bitmap",
-      "file": "levelplugin_dialogue:dialogue/hand.png",
+      "file": "levelplugin_dialogue:dialogue/arrow.png",
       "ascent": -1,
-      "height": 256,
+      "height": 8,
       "chars": [
         ""
       ]
@@ -31,7 +31,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:dialogue/name_start.png",
       "ascent": 43,
-      "height": 256,
+      "height": 14,
       "chars": [
         ""
       ]
@@ -40,7 +40,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:dialogue/name_mid.png",
       "ascent": 43,
-      "height": 256,
+      "height": 14,
       "chars": [
         ""
       ]
@@ -49,7 +49,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:dialogue/name_end.png",
       "ascent": 43,
-      "height": 256,
+      "height": 14,
       "chars": [
         ""
       ]
@@ -65,9 +65,9 @@
     },
     {
       "type": "bitmap",
-      "file": "levelplugin_dialogue:dialogue/character.png",
+      "file": "levelplugin_dialogue:dialogue/character_background.png",
       "ascent": 60,
-      "height": 256,
+      "height": 32,
       "chars": [
         ""
       ]
@@ -76,7 +76,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:dialogue/kingdom_hand.png",
       "ascent": -1,
-      "height": 256,
+      "height": 8,
       "chars": [
         ""
       ]
@@ -85,7 +85,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:dialogue/kingdom_dialogue.png",
       "ascent": 45,
-      "height": 256,
+      "height": 57,
       "chars": [
         ""
       ]
@@ -94,7 +94,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:dialogue/kingdom_answer.png",
       "ascent": 83,
-      "height": 256,
+      "height": 37,
       "chars": [
         ""
       ]
@@ -103,7 +103,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:dialogue/kingdom_character.png",
       "ascent": 60,
-      "height": 256,
+      "height": 32,
       "chars": [
         ""
       ]
@@ -112,7 +112,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:dialogue/kingdom_name_start.png",
       "ascent": 43,
-      "height": 256,
+      "height": 14,
       "chars": [
         ""
       ]
@@ -121,7 +121,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:dialogue/kingdom_name_mid.png",
       "ascent": 43,
-      "height": 256,
+      "height": 14,
       "chars": [
         ""
       ]
@@ -130,7 +130,7 @@
       "type": "bitmap",
       "file": "levelplugin_dialogue:dialogue/kingdom_name_end.png",
       "ascent": 43,
-      "height": 256,
+      "height": 14,
       "chars": [
         ""
       ]

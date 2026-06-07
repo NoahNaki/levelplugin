@@ -20,6 +20,7 @@ public record DialogueRenderContext(
         String nameColor,
         String infoColor,
         String dialogueBackgroundColor,
+        String fogColor,
         String characterBackgroundColor,
         String nameBackgroundColor,
         String arrowColor,
@@ -51,6 +52,7 @@ public record DialogueRenderContext(
     private static final String DEFAULT_INFO_COLOR = "#b8ad94";
     private static final String DEFAULT_IMAGE_COLOR = "#ffffff";
     private static final String DEFAULT_DIALOGUE_BACKGROUND_COLOR = "#f8ffe0";
+    private static final String DEFAULT_FOG_COLOR = "#000000";
     private static final String DEFAULT_NAME_BACKGROUND_COLOR = "#f8ffe0";
     private static final String DEFAULT_ARROW_COLOR = "#cdff29";
     private static final int DEFAULT_DIALOGUE_BACKGROUND_OFFSET_PIXELS = 0;
@@ -69,6 +71,7 @@ public record DialogueRenderContext(
         nameColor = blankToDefault(nameColor, DEFAULT_NAME_COLOR);
         infoColor = blankToDefault(infoColor, DEFAULT_INFO_COLOR);
         dialogueBackgroundColor = blankToDefault(dialogueBackgroundColor, DEFAULT_DIALOGUE_BACKGROUND_COLOR);
+        fogColor = blankToDefault(fogColor, DEFAULT_FOG_COLOR);
         characterBackgroundColor = blankToDefault(characterBackgroundColor, DEFAULT_IMAGE_COLOR);
         nameBackgroundColor = blankToDefault(nameBackgroundColor, DEFAULT_NAME_BACKGROUND_COLOR);
         arrowColor = blankToDefault(arrowColor, DEFAULT_ARROW_COLOR);
@@ -97,6 +100,7 @@ public record DialogueRenderContext(
                 stringValue(colors, DEFAULT_INFO_COLOR, "info", "steadyInfo", "steadyInfoLine"),
                 stringValue(colors, DEFAULT_DIALOGUE_BACKGROUND_COLOR,
                         "dialogue-background", "dialogueBackground", "dialogue_background"),
+                stringValue(colors, DEFAULT_FOG_COLOR, "fog", "fogColor", "fog-color"),
                 stringValue(colors, DEFAULT_IMAGE_COLOR,
                         "character-background", "characterBackground", "character_background"),
                 stringValue(colors, DEFAULT_NAME_BACKGROUND_COLOR,
@@ -138,6 +142,7 @@ public record DialogueRenderContext(
                 nameColor,
                 infoColor,
                 dialogueBackgroundColor,
+                fogColor,
                 characterBackgroundColor,
                 nameBackgroundColor,
                 arrowColor,

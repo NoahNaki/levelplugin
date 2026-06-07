@@ -39,7 +39,7 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
 
         StringBuilder hud = new StringBuilder();
         if (context.fogEnabled()) {
-            hud.append(luxImageLayer(context.dialogueBackgroundColor(), 0,
+            hud.append(luxImageLayer(context.fogColor(), 0,
                     DialogueGlyphs.FOG_FONT, DialogueGlyphs.FOG, DialogueGlyphs.FOG_WIDTH));
         }
 

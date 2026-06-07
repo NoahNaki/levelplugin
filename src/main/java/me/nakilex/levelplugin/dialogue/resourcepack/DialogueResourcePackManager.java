@@ -32,14 +32,22 @@ public final class DialogueResourcePackManager {
             "font/levelplugin_dialogue_answer_3.json",
             "font/levelplugin_dialogue_character_name.json",
             "font/levelplugin_dialogue_info.json",
-            "textures/dialogue/dialogue.png",
-            "textures/dialogue/answer.png",
-            "textures/dialogue/character.png",
-            "textures/dialogue/hand.png",
+            "textures/dialogue/dialogue_background.png",
+            "textures/dialogue/answer_background.png",
+            "textures/dialogue/character_background.png",
+            "textures/dialogue/arrow.png",
             "textures/dialogue/fog.png",
             "textures/dialogue/name_start.png",
             "textures/dialogue/name_mid.png",
-            "textures/dialogue/name_end.png"
+            "textures/dialogue/name_end.png",
+            "textures/dialogue/kingdom_dialogue.png",
+            "textures/dialogue/kingdom_answer.png",
+            "textures/dialogue/kingdom_character.png",
+            "textures/dialogue/kingdom_hand.png",
+            "textures/dialogue/kingdom_name_start.png",
+            "textures/dialogue/kingdom_name_mid.png",
+            "textures/dialogue/kingdom_name_end.png",
+            "textures/font/levelplugin_dialogue_font.png"
     );
 
     private static DialogueResourcePackManager instance;

@@ -37,6 +37,13 @@ public final class DialogueGlyphs {
     public static final String NAME_END = "\uE105";
     public static final String FOG = "\uE106";
     public static final String CHARACTER_BACKGROUND = "\uE107";
+    public static final String KINGDOM_HAND = "\uE108";
+    public static final String KINGDOM_DIALOGUE = "\uE109";
+    public static final String KINGDOM_ANSWER = "\uE10A";
+    public static final String KINGDOM_CHARACTER = "\uE10B";
+    public static final String KINGDOM_NAME_START = "\uE10C";
+    public static final String KINGDOM_NAME_MID = "\uE10D";
+    public static final String KINGDOM_NAME_END = "\uE10E";
 
     public static final int DIALOGUE_WIDTH = 209;
     public static final int CHARACTER_WIDTH = 32;
