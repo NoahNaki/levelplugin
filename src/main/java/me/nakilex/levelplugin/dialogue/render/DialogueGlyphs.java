@@ -9,16 +9,15 @@ public final class DialogueGlyphs {
     public static final Key DIALOGUE_FONT = Key.key("levelplugin_dialogue", "dialogue");
 
     public static final String DIALOGUE_FONT_TAG = "levelplugin_dialogue:dialogue";
-    public static final String DIALOGUE_BACKGROUND_FONT = "levelplugin_dialogue:dialogue_background";
-    public static final String ANSWER_BACKGROUND_FONT = "levelplugin_dialogue:answer_background";
-    public static final String CHARACTER_BACKGROUND_FONT = "levelplugin_dialogue:character_background";
-    public static final String ARROW_FONT = "levelplugin_dialogue:arrow";
-    public static final String FOG_FONT = "levelplugin_dialogue:fog";
-    public static final String NAME_BOX_FONT = "levelplugin_dialogue:name_box";
+    public static final String DIALOGUE_BACKGROUND_FONT = DIALOGUE_FONT_TAG;
+    public static final String ANSWER_BACKGROUND_FONT = DIALOGUE_FONT_TAG;
+    public static final String CHARACTER_BACKGROUND_FONT = DIALOGUE_FONT_TAG;
+    public static final String ARROW_FONT = DIALOGUE_FONT_TAG;
+    public static final String FOG_FONT = DIALOGUE_FONT_TAG;
+    public static final String NAME_BOX_FONT = DIALOGUE_FONT_TAG;
     public static final String OFFSET_FONT_TAG = "levelplugin_dialogue:offset_chars";
     public static final String DEFAULT_TEXT_FONT = "levelplugin_dialogue:levelplugin_dialogue_default";
     public static final String LINE_FONT_PREFIX = "levelplugin_dialogue:levelplugin_dialogue_line_";
-    public static final String ANSWER_FONT_PREFIX = "levelplugin_dialogue:levelplugin_dialogue_answer_";
 
     public static final String DIALOGUE_BACKGROUND = "\uE100";
     public static final String ANSWER_BACKGROUND = "\uE101";

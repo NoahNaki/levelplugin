@@ -1,11 +1,9 @@
 package me.nakilex.levelplugin.dialogue.render;
 
-import me.nakilex.levelplugin.dialogue.model.DialogueAnswer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -78,7 +76,6 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
             hud.append(arrowLayer(context.arrowOffsetPixels(), context.arrowColor()));
         }
 
-        hud.append(answerPreview(context));
         return hud.toString();
     }
 
@@ -143,41 +140,6 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
                 + font(DialogueGlyphs.ARROW_FONT, DialogueGlyphs.ARROW)
                 + colorClose()
                 + offset(-offset - DialogueGlyphs.ARROW_WIDTH);
-    }
-
-    private String answerPreview(DialogueRenderContext context) {
-        if (context.page().answers().isEmpty()) {
-            return "";
-        }
-
-        StringBuilder answers = new StringBuilder();
-        answers.append(imageLayer(
-                context.answerBackgroundColor(),
-                context.answerBackgroundOffsetPixels(),
-                DialogueGlyphs.ANSWER_BACKGROUND_FONT,
-                DialogueGlyphs.ANSWER_BACKGROUND,
-                DialogueGlyphs.ANSWER_WIDTH
-        ));
-
-        List<DialogueAnswer> visibleAnswers = new ArrayList<>(context.page().answers().values());
-        int answerCount = Math.min(visibleAnswers.size(), 3);
-        for (int i = 0; i < answerCount; i++) {
-            answers.append(answerLine(i + 1, visibleAnswers.get(i).text(), context));
-        }
-        answers.append(arrowLayer(context.answerArrowOffsetPixels(), context.arrowColor()));
-        return answers.toString();
-    }
-
-    private String answerLine(int answerNumber, String text, DialogueRenderContext context) {
-        String safeText = DialoguePlaceholderFormatter.plainDialogueText(text);
-        int offset = context.answerLineOffsetPixels();
-        int textWidth = DialogueTextWidth.width(safeText);
-        return offset(offset)
-                + colorOpen(DIALOGUE_TEXT_COLOR)
-                + font(DialogueGlyphs.ANSWER_FONT_PREFIX + answerNumber,
-                DialoguePlaceholderFormatter.miniMessageDialogueText(text))
-                + colorClose()
-                + offset(-offset - textWidth);
     }
 
     private String textLayer(int offset, String color, String text, String font) {
