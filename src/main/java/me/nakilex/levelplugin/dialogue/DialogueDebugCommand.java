@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.dialogue;
 
 import me.nakilex.levelplugin.dialogue.model.DialogueDefinition;
+import me.nakilex.levelplugin.dialogue.resourcepack.DialogueResourcePackManager;
 import me.nakilex.levelplugin.dialogue.model.DialoguePage;
 import me.nakilex.levelplugin.dialogue.render.ActionBarDialogueRenderer;
 import me.nakilex.levelplugin.dialogue.render.DialogueActionBarSender;
@@ -49,54 +50,7 @@ public class DialogueDebugCommand implements TabExecutor {
             "name_box", "default", "line1", "line2", "line3", "line4", "line5", "answer1", "answer2",
             "answer3", "character_name", "info", "all"
     );
-    private static final Path NEXO_DIALOGUE_PACK_ROOT = Path.of(
-            "plugins", "Nexo", "pack", "external_packs", "levelplugin-dialogue-hud",
-            "assets", "levelplugin_dialogue"
-    );
-    private static final List<String> NEXO_DIALOGUE_PACK_FILES = List.of(
-            "font/dialogue.json",
-            "font/offset_chars.json",
-            "font/dialogue_background.json",
-            "font/answer_background.json",
-            "font/character_background.json",
-            "font/hand.json",
-            "font/fog.json",
-            "font/name_box.json",
-            "font/kingdom_dialogue.json",
-            "font/kingdom_answer.json",
-            "font/kingdom_character.json",
-            "font/kingdom_hand.json",
-            "font/kingdom_name_box.json",
-            "font/levelplugin_dialogue_default.json",
-            "font/levelplugin_dialogue_line_1.json",
-            "font/levelplugin_dialogue_line_2.json",
-            "font/levelplugin_dialogue_line_3.json",
-            "font/levelplugin_dialogue_line_4.json",
-            "font/levelplugin_dialogue_line_5.json",
-            "font/levelplugin_dialogue_answer_1.json",
-            "font/levelplugin_dialogue_answer_2.json",
-            "font/levelplugin_dialogue_answer_3.json",
-            "font/levelplugin_dialogue_character_name.json",
-            "font/levelplugin_dialogue_info.json",
-            "textures/dialogue/dialogue.png",
-            "textures/dialogue/answer.png",
-            "textures/dialogue/character.png",
-            "textures/dialogue/hand.png",
-            "textures/dialogue/fog.png",
-            "textures/dialogue/name_start.png",
-            "textures/dialogue/name_mid.png",
-            "textures/dialogue/name_end.png",
-            "textures/dialogue/kingdom_dialogue.png",
-            "textures/dialogue/kingdom_answer.png",
-            "textures/dialogue/kingdom_character.png",
-            "textures/dialogue/kingdom_hand.png",
-            "textures/dialogue/kingdom_name_start.png",
-            "textures/dialogue/kingdom_name_mid.png",
-            "textures/dialogue/kingdom_name_end.png",
-            "textures/font/levelplugin_dialogue_font.png",
-            "textures/font/levelplugin_dialogue_nonlatin.png",
-            "textures/font/levelplugin_dialogue_accented.png"
-    );
+    private static final List<String> NEXO_DIALOGUE_PACK_FILES = DialogueResourcePackManager.EXPECTED_ASSET_FILES;
 
     private final JavaPlugin plugin;
     private final DialogueManager dialogueManager;
@@ -270,17 +224,23 @@ public class DialogueDebugCommand implements TabExecutor {
     }
 
     private void fontInspect(CommandSender sender) {
+        Path assetsRoot = dialoguePackAssetsRoot();
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
-                ChatColor.YELLOW + "Dialogue font pack inspect: " + ChatColor.WHITE + NEXO_DIALOGUE_PACK_ROOT);
-        plugin.getLogger().info("Dialogue font pack inspect: " + NEXO_DIALOGUE_PACK_ROOT.toAbsolutePath());
+                ChatColor.YELLOW + "Dialogue font pack inspect: " + ChatColor.WHITE + assetsRoot);
+        plugin.getLogger().info("Dialogue font pack inspect: " + assetsRoot.toAbsolutePath());
         for (String relativePath : NEXO_DIALOGUE_PACK_FILES) {
-            Path path = NEXO_DIALOGUE_PACK_ROOT.resolve(relativePath);
+            Path path = assetsRoot.resolve(relativePath);
             boolean exists = Files.isRegularFile(path);
             String status = exists ? ChatColor.GREEN + "FOUND" : ChatColor.RED + "MISSING";
             ChatMessageUtil.send(sender, exists ? ChatMessageUtil.MessageType.SUCCESS : ChatMessageUtil.MessageType.ERROR,
                     status + ChatColor.GRAY + " - " + ChatColor.WHITE + relativePath);
             plugin.getLogger().info((exists ? "FOUND" : "MISSING") + " dialogue pack file: " + path.toAbsolutePath());
         }
+    }
+
+    private Path dialoguePackAssetsRoot() {
+        DialogueResourcePackManager manager = DialogueResourcePackManager.getInstance();
+        return manager == null ? DialogueResourcePackManager.defaultAssetsRoot() : manager.assetsRoot();
     }
 
     private FontTestMessage fontTestMessage(String test) {

@@ -80,6 +80,12 @@ animatedlb:
   animation-speed: 1.0
 
 # Interactive challenge selected when a fish bites. Difficulty scales with level, fish rarity, and rod tier.
+
+# Lux-style dialogue HUD resource-pack fragment installed into Nexo external_packs/levelplugin-dialogue-hud.
+dialogue:
+  resource-pack:
+    enabled: true
+
 fishing-mini-games:
   enabled: true
   debug: false
