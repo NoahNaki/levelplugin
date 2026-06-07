@@ -60,7 +60,7 @@ public record DialogueRenderContext(
     private static final int DEFAULT_NAME_TEXT_OFFSET_PIXELS = 0;
     private static final int DEFAULT_INFO_TEXT_OFFSET_PIXELS = 12;
     private static final int DEFAULT_ARROW_OFFSET_PIXELS = -7;
-    private static final int DEFAULT_ANSWER_BACKGROUND_OFFSET_PIXELS = 140;
+    private static final int DEFAULT_ANSWER_BACKGROUND_OFFSET_PIXELS = 135;
     private static final int DEFAULT_ANSWER_LINE_OFFSET_PIXELS = 13;
     private static final int DEFAULT_ANSWER_ARROW_OFFSET_PIXELS = -7;
 
@@ -88,7 +88,7 @@ public record DialogueRenderContext(
         return new DialogueRenderContext(
                 dialogue,
                 page,
-                booleanValue(settings, false, "fog", "fogEnabled", "showFog", "backgroundFog"),
+                booleanValue(settings, true, "fog", "fogEnabled", "showFog", "backgroundFog"),
                 booleanValue(character, true, "enabled", "show", "showCharacter", "characterBox", "characterBoxEnabled"),
                 booleanValue(settings, true, "nameBox", "nameBoxEnabled", "showName", "showNameBox"),
                 stringValue(character, dialogue == null ? "" : dialogue.id(), "name", "displayName", "display-name", "Name"),

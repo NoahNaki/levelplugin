@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.dialogue.render;
 
+import me.nakilex.levelplugin.dialogue.model.DialogueAnswer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import org.bukkit.entity.Player;
@@ -60,12 +61,19 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
             ));
         }
 
+        if (context.nameBoxEnabled() && context.characterName() != null && !context.characterName().isBlank()) {
+            hud.append(nameBoxLayer(context.characterName(), context));
+            hud.append(textLayer(context.nameTextOffsetPixels(), context.nameColor(), context.characterName(),
+                    DialogueGlyphs.CHARACTER_NAME_FONT));
+        }
+
         hud.append(dialogueLines(context));
+        hud.append(answerPreview(context));
 
         if (context.page().steadyInfoLine() != null && !context.page().steadyInfoLine().isBlank()) {
             hud.append(infoLine(context.page().steadyInfoLine(), context));
-            hud.append(arrowLayer(context.arrowOffsetPixels(), context.arrowColor()));
         }
+        hud.append(handLayer(context.arrowOffsetPixels(), context.arrowColor()));
 
         return hud.toString();
     }
@@ -84,7 +92,7 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
 
     private String nameBoxLayer(String characterName, DialogueRenderContext context) {
         int nameWidth = DialogueTextWidth.width(DialoguePlaceholderFormatter.plainText(characterName));
-        int midRepeats = Math.max(1, (int) Math.ceil(nameWidth / 2.0));
+        int midRepeats = Math.max(1, (int) Math.ceil(nameWidth / (double) DialogueGlyphs.NAME_MID_WIDTH));
         String glyph = DialogueGlyphs.NAME_START + DialogueGlyphs.NAME_MID.repeat(midRepeats) + DialogueGlyphs.NAME_END;
         int boxWidth = DialogueGlyphs.NAME_START_WIDTH
                 + (midRepeats * DialogueGlyphs.NAME_MID_WIDTH)
@@ -100,20 +108,41 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         }
 
         StringBuilder text = new StringBuilder(offset(context.dialogueTextOffsetPixels()));
-        for (int i = 0; i < Math.min(lines.size(), 4); i++) {
+        for (int i = 0; i < Math.min(lines.size(), 5); i++) {
             String line = lines.get(i);
-            text.append(dialogueLine(i + 1, line));
+            text.append(textLine(DialogueGlyphs.LINE_FONT_PREFIX + (i + 1), DIALOGUE_TEXT_COLOR, line, true));
             text.append(offset(-DialogueTextWidth.width(DialoguePlaceholderFormatter.plainDialogueText(line))));
         }
         text.append(offset(-context.dialogueTextOffsetPixels()));
         return text.toString();
     }
 
-    private String dialogueLine(int lineNumber, String text) {
-        String font = DialogueGlyphs.LINE_FONT_PREFIX + lineNumber;
-        return colorOpen(DIALOGUE_TEXT_COLOR)
-                + font(font, DialoguePlaceholderFormatter.miniMessageDialogueText(text))
-                + colorClose();
+    private String answerPreview(DialogueRenderContext context) {
+        if (context.page().answers().isEmpty()) {
+            return "";
+        }
+
+        StringBuilder answers = new StringBuilder(luxImageLayer(
+                context.answerBackgroundColor(),
+                context.answerBackgroundOffsetPixels(),
+                DialogueGlyphs.ANSWER_BACKGROUND_FONT,
+                DialogueGlyphs.ANSWER_BACKGROUND,
+                DialogueGlyphs.ANSWER_WIDTH
+        ));
+        answers.append(offset(context.answerLineOffsetPixels()));
+        int index = 0;
+        for (DialogueAnswer answer : context.page().answers().values()) {
+            if (index >= 3) {
+                break;
+            }
+            String text = answer.text() == null || answer.text().isBlank() ? answer.id() : answer.text();
+            answers.append(textLine(DialogueGlyphs.ANSWER_FONT_PREFIX + (index + 1), DIALOGUE_TEXT_COLOR, text, true));
+            answers.append(offset(-DialogueTextWidth.width(DialoguePlaceholderFormatter.plainDialogueText(text))));
+            index++;
+        }
+        answers.append(offset(-context.answerLineOffsetPixels()));
+        answers.append(handLayer(context.answerArrowOffsetPixels(), context.arrowColor()));
+        return answers.toString();
     }
 
     private String infoLine(String infoLine, DialogueRenderContext context) {
@@ -121,16 +150,16 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
         int textWidth = DialogueTextWidth.width(DialoguePlaceholderFormatter.plainText(text));
         int offset = context.infoTextOffsetPixels();
         return offset(offset)
-                + text(context.infoColor(), text, DialogueGlyphs.DEFAULT_TEXT_FONT)
+                + text(context.infoColor(), text, DialogueGlyphs.INFO_FONT)
                 + offset(-offset - textWidth);
     }
 
-    private String arrowLayer(int offset, String color) {
+    private String handLayer(int offset, String color) {
         return offset(offset)
                 + colorOpen(color)
-                + font(DialogueGlyphs.ARROW_FONT, DialogueGlyphs.ARROW)
+                + font(DialogueGlyphs.HAND_FONT, DialogueGlyphs.HAND)
                 + colorClose()
-                + offset(-offset - DialogueGlyphs.ARROW_WIDTH);
+                + offset(-offset - DialogueGlyphs.HAND_WIDTH);
     }
 
     private String textLayer(int offset, String color, String text, String font) {
@@ -142,8 +171,15 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
     }
 
     private String text(String color, String text, String font) {
+        return textLine(font, color, text, false);
+    }
+
+    private String textLine(String font, String color, String text, boolean dialogueText) {
+        String formatted = dialogueText
+                ? DialoguePlaceholderFormatter.miniMessageDialogueText(text)
+                : DialoguePlaceholderFormatter.miniMessageText(text);
         return colorOpen(color)
-                + font(font, DialoguePlaceholderFormatter.miniMessageText(text))
+                + font(font, formatted)
                 + colorClose();
     }
 

@@ -44,7 +44,11 @@ public class DialogueDebugCommand implements TabExecutor {
             DialogueRenderContext.TUNE_ANSWER_LINE_OFFSET,
             DialogueRenderContext.TUNE_ANSWER_ARROW_OFFSET
     );
-    private static final List<String> FONT_TESTS = List.of("offset", "dialogue", "default", "line1", "line2", "line3", "line4", "all");
+    private static final List<String> FONT_TESTS = List.of(
+            "offset", "dialogue", "dialogue_background", "answer_background", "character_background", "hand", "fog",
+            "name_box", "default", "line1", "line2", "line3", "line4", "line5", "answer1", "answer2",
+            "answer3", "character_name", "info", "all"
+    );
     private static final Path NEXO_DIALOGUE_PACK_ROOT = Path.of(
             "plugins", "Nexo", "pack", "external_packs", "levelplugin-dialogue-hud",
             "assets", "levelplugin_dialogue"
@@ -52,12 +56,43 @@ public class DialogueDebugCommand implements TabExecutor {
     private static final List<String> NEXO_DIALOGUE_PACK_FILES = List.of(
             "font/dialogue.json",
             "font/offset_chars.json",
+            "font/dialogue_background.json",
+            "font/answer_background.json",
+            "font/character_background.json",
+            "font/hand.json",
+            "font/fog.json",
+            "font/name_box.json",
+            "font/kingdom_dialogue.json",
+            "font/kingdom_answer.json",
+            "font/kingdom_character.json",
+            "font/kingdom_hand.json",
+            "font/kingdom_name_box.json",
             "font/levelplugin_dialogue_default.json",
             "font/levelplugin_dialogue_line_1.json",
             "font/levelplugin_dialogue_line_2.json",
             "font/levelplugin_dialogue_line_3.json",
             "font/levelplugin_dialogue_line_4.json",
             "font/levelplugin_dialogue_line_5.json",
+            "font/levelplugin_dialogue_answer_1.json",
+            "font/levelplugin_dialogue_answer_2.json",
+            "font/levelplugin_dialogue_answer_3.json",
+            "font/levelplugin_dialogue_character_name.json",
+            "font/levelplugin_dialogue_info.json",
+            "textures/dialogue/dialogue.png",
+            "textures/dialogue/answer.png",
+            "textures/dialogue/character.png",
+            "textures/dialogue/hand.png",
+            "textures/dialogue/fog.png",
+            "textures/dialogue/name_start.png",
+            "textures/dialogue/name_mid.png",
+            "textures/dialogue/name_end.png",
+            "textures/dialogue/kingdom_dialogue.png",
+            "textures/dialogue/kingdom_answer.png",
+            "textures/dialogue/kingdom_character.png",
+            "textures/dialogue/kingdom_hand.png",
+            "textures/dialogue/kingdom_name_start.png",
+            "textures/dialogue/kingdom_name_mid.png",
+            "textures/dialogue/kingdom_name_end.png",
             "textures/font/levelplugin_dialogue_font.png",
             "textures/font/levelplugin_dialogue_nonlatin.png",
             "textures/font/levelplugin_dialogue_accented.png"
@@ -255,11 +290,19 @@ public class DialogueDebugCommand implements TabExecutor {
                             + DialogueOffsetGlyphs.POSITIVE_ONE_PIXEL.repeat(5)
                             + "</font>B",
                     "Sent offset font test. A and B should have a tiny gap with no visible boxes.");
-            case "dialogue" -> new FontTestMessage(
-                    "<font:" + DialogueGlyphs.DIALOGUE_FONT_TAG + ">"
-                            + DialogueGlyphs.DIALOGUE_BACKGROUND
-                            + "</font>",
-                    "Sent dialogue glyph font test. The dialogue background should appear.");
+            case "dialogue" -> imageFontTestMessage(DialogueGlyphs.DIALOGUE_FONT_TAG,
+                    DialogueGlyphs.DIALOGUE_BACKGROUND, "legacy dialogue");
+            case "dialogue_background" -> imageFontTestMessage(DialogueGlyphs.DIALOGUE_BACKGROUND_FONT,
+                    DialogueGlyphs.DIALOGUE_BACKGROUND, "dialogue background");
+            case "answer_background" -> imageFontTestMessage(DialogueGlyphs.ANSWER_BACKGROUND_FONT,
+                    DialogueGlyphs.ANSWER_BACKGROUND, "answer background");
+            case "character_background" -> imageFontTestMessage(DialogueGlyphs.CHARACTER_BACKGROUND_FONT,
+                    DialogueGlyphs.CHARACTER_BACKGROUND, "character background");
+            case "hand" -> imageFontTestMessage(DialogueGlyphs.HAND_FONT, DialogueGlyphs.HAND, "hand/arrow");
+            case "fog" -> imageFontTestMessage(DialogueGlyphs.FOG_FONT, DialogueGlyphs.FOG, "fog");
+            case "name_box" -> imageFontTestMessage(DialogueGlyphs.NAME_BOX_FONT,
+                    DialogueGlyphs.NAME_START + DialogueGlyphs.NAME_MID.repeat(16) + DialogueGlyphs.NAME_END,
+                    "name box");
             case "default" -> new FontTestMessage(
                     "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + ">Hello default font</font>",
                     "Sent default dialogue text font test. Text should be readable with no boxes.");
@@ -267,19 +310,33 @@ public class DialogueDebugCommand implements TabExecutor {
             case "line2" -> lineFontTestMessage(2, "Hello line two");
             case "line3" -> lineFontTestMessage(3, "Hello line three");
             case "line4" -> lineFontTestMessage(4, "Hello line four");
+            case "line5" -> lineFontTestMessage(5, "Hello line five");
+            case "answer1" -> answerFontTestMessage(1, "Hello answer one");
+            case "answer2" -> answerFontTestMessage(2, "Hello answer two");
+            case "answer3" -> answerFontTestMessage(3, "Hello answer three");
+            case "character_name" -> new FontTestMessage(
+                    "<font:" + DialogueGlyphs.CHARACTER_NAME_FONT + ">Noah</font>",
+                    "Sent character-name font test. Text should sit on the Lux name baseline with no boxes.");
+            case "info" -> new FontTestMessage(
+                    "<font:" + DialogueGlyphs.INFO_FONT + ">Press shift to continue</font>",
+                    "Sent info-line font test. Text should sit on the Lux info baseline with no boxes.");
             case "all" -> new FontTestMessage(
                     "<font:" + DialogueGlyphs.OFFSET_FONT_TAG + ">"
                             + DialogueOffsetGlyphs.POSITIVE_ONE_PIXEL.repeat(8)
                             + "</font>"
                             + "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + ">offset test</font> "
-                            + "<font:" + DialogueGlyphs.DIALOGUE_FONT_TAG + ">"
+                            + "<font:" + DialogueGlyphs.DIALOGUE_BACKGROUND_FONT + ">"
                             + DialogueGlyphs.DIALOGUE_BACKGROUND
                             + "</font>"
-                            + "<font:" + DialogueGlyphs.DEFAULT_TEXT_FONT + "> dialogue glyph test </font>"
+                            + "<font:" + DialogueGlyphs.CHARACTER_BACKGROUND_FONT + ">"
+                            + DialogueGlyphs.CHARACTER_BACKGROUND
+                            + "</font>"
+                            + "<font:" + DialogueGlyphs.HAND_FONT + ">"
+                            + DialogueGlyphs.HAND
+                            + "</font>"
                             + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "1>line_1 font test</font> "
                             + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "2>line_2 font test</font> "
-                            + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "3>line_3 font test</font> "
-                            + "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + "4>line_4 font test</font>",
+                            + "<font:" + DialogueGlyphs.ANSWER_FONT_PREFIX + "1>answer_1 font test</font>",
                     "Sent combined dialogue font test. If offset glyphs are visible boxes, fix the resource pack fonts first.");
             default -> null;
         };
@@ -289,6 +346,19 @@ public class DialogueDebugCommand implements TabExecutor {
         return new FontTestMessage(
                 "<font:" + DialogueGlyphs.LINE_FONT_PREFIX + lineNumber + ">" + text + "</font>",
                 "Sent line " + lineNumber + " dialogue font test. Text should be readable with no boxes.");
+    }
+
+
+    private FontTestMessage answerFontTestMessage(int answerNumber, String text) {
+        return new FontTestMessage(
+                "<font:" + DialogueGlyphs.ANSWER_FONT_PREFIX + answerNumber + ">" + text + "</font>",
+                "Sent answer " + answerNumber + " dialogue font test. Text should be readable with no boxes.");
+    }
+
+    private FontTestMessage imageFontTestMessage(String font, String glyph, String label) {
+        return new FontTestMessage(
+                "<font:" + font + ">" + glyph + "</font>",
+                "Sent " + label + " image font test. The glyph should appear with no placeholder boxes.");
     }
 
     private void tune(CommandSender sender, String label, String[] args) {
@@ -438,7 +508,7 @@ public class DialogueDebugCommand implements TabExecutor {
                 "/" + label + " fontinspect" + ChatColor.GRAY
                         + " - Check Nexo dialogue font pack files.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
-                "/" + label + " fonttest <offset|dialogue|default|line1|line2|line3|line4|all>" + ChatColor.GRAY
+                "/" + label + " fonttest <" + String.join("|", FONT_TESTS) + ">" + ChatColor.GRAY
                         + " - Repeat isolated dialogue font diagnostics for 10 seconds.");
         ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
                 "/" + label + " render <dialogueId> <pageId>" + ChatColor.GRAY
