@@ -50,12 +50,6 @@ public class ActionBarDialogueRenderer implements DialogueRenderer {
                 DialogueGlyphs.DIALOGUE_WIDTH
         ));
 
-        if (context.nameBoxEnabled() && context.characterName() != null && !context.characterName().isBlank()) {
-            hud.append(nameBoxLayer(context.characterName(), context));
-            hud.append(textLayer(context.nameTextOffsetPixels(), context.nameColor(), context.characterName(),
-                    DialogueGlyphs.DEFAULT_TEXT_FONT));
-        }
-
         if (context.characterBoxEnabled()) {
             hud.append(luxImageLayer(
                     context.characterBackgroundColor(),
