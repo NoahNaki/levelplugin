@@ -89,15 +89,14 @@ public class PotionUseListener implements Listener {
 
         // Prevent using healing potions at full health or mana potions at full mana
         double restored = 0;
+        StatsManager statsManager = StatsManager.getInstance();
         if (potionId.startsWith("mana")) {
-            int currentMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getCurrentMana();
-            int maxMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getMaxMana();
-            if (currentMana >= maxMana) {
+            if (!statsManager.isManaBelowMax(player)) {
                 send(player, MessageType.WARNING, "Your mana is already full!");
                 return;
             }
         } else {
-            if (player.getHealth() >= player.getMaxHealth()) {
+            if (!statsManager.isHealthBelowMax(player)) {
                 send(player, MessageType.WARNING, "Your health is already full!");
                 return;
             }
@@ -109,8 +108,8 @@ public class PotionUseListener implements Listener {
 
         // Apply effects based on potion type
         if (potionId.startsWith("mana")) {
-            int currentMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getCurrentMana();
-            int maxMana = StatsManager.getInstance().getPlayerStats(player.getUniqueId()).getMaxMana();
+            int currentMana = statsManager.getPlayerStats(player.getUniqueId()).getCurrentMana();
+            int maxMana = statsManager.getPlayerStats(player.getUniqueId()).getMaxMana();
 
             int manaRestore = (instance.getTemplate().getHealAmount() > 0)
                     ? (int) instance.getTemplate().getHealAmount()
@@ -120,7 +119,7 @@ public class PotionUseListener implements Listener {
             }
 
             int newMana = Math.min(currentMana + manaRestore, maxMana);
-            StatsManager.getInstance().getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
+            statsManager.getPlayerStats(player.getUniqueId()).setCurrentMana(newMana);
             restored = newMana - currentMana;
 
             meta.setDisplayName(baseName + " " + ChatColor.DARK_GRAY + "[" + ChatColor.GRAY + instance.getCharges()
