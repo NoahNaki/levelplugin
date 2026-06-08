@@ -128,6 +128,37 @@ public class StatsManager {
         return System.currentTimeMillis() - lastHit <= COMBAT_TIMEOUT_MS;
     }
 
+    public double getMaxHealth(Player player) {
+        if (player == null) {
+            return 0.0;
+        }
+        AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
+        return maxHealthAttribute == null ? player.getMaxHealth() : maxHealthAttribute.getValue();
+    }
+
+    public boolean isHealthBelowMax(Player player) {
+        if (player == null || player.isDead()) {
+            return false;
+        }
+        return player.getHealth() < getMaxHealth(player);
+    }
+
+    public boolean isManaBelowMax(UUID uuid) {
+        if (uuid == null) {
+            return false;
+        }
+        PlayerStats stats = getPlayerStats(uuid);
+        return stats.currentMana < stats.maxMana;
+    }
+
+    public boolean isManaBelowMax(Player player) {
+        return player != null && isManaBelowMax(player.getUniqueId());
+    }
+
+    public boolean hasMissingHealthOrMana(Player player) {
+        return isHealthBelowMax(player) || isManaBelowMax(player);
+    }
+
 
     public void addSkillPoints(UUID uuid, int points) {
         PlayerStats ps = getPlayerStats(uuid);
