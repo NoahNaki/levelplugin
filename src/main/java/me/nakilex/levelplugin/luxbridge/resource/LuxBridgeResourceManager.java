@@ -42,6 +42,12 @@ public class LuxBridgeResourceManager {
             Map.entry("kingdom-name-start", 16), Map.entry("kingdom-name-mid", 16), Map.entry("kingdom-name-end", 16)
     );
 
+    private static final Map<String, String> FONT_TEXTURE_ALIASES = Map.of(
+            "luxdialogues_font.png", "levelplugin_dialogue_font.png",
+            "luxdialogues_accented.png", "levelplugin_dialogue_accented.png",
+            "luxdialogues_nonlatin.png", "levelplugin_dialogue_nonlatin.png"
+    );
+
 
     private static final String[] ASCII_CHARS = {
             "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
@@ -104,6 +110,7 @@ public class LuxBridgeResourceManager {
 
     public void reloadAndGenerate() {
         loadDefinitions();
+        ensureOriginalFontTextureNames();
         generateFontJsons();
     }
 
@@ -127,6 +134,10 @@ public class LuxBridgeResourceManager {
         return new File(assetRoot(), "textures");
     }
 
+    public File fontTextureDirectory() {
+        return new File(textureDirectory(), "font");
+    }
+
     public File fontDirectory() {
         return new File(assetRoot(), "font");
     }
@@ -146,6 +157,8 @@ public class LuxBridgeResourceManager {
         lines.add(ChatColor.GRAY + "Resolved base: " + ChatColor.WHITE + assetRoot().getPath());
         lines.add("");
         appendTextureDiagnostics(lines);
+        lines.add("");
+        appendFontTextureDiagnostics(lines);
         lines.add("");
         appendFontDiagnostics(lines);
         lines.add("");
@@ -214,6 +227,27 @@ public class LuxBridgeResourceManager {
             }
         }
         return new int[] {FALLBACK_WIDTHS.getOrDefault(id, 16), FALLBACK_HEIGHTS.getOrDefault(id, 16)};
+    }
+
+    private void ensureOriginalFontTextureNames() {
+        File fontTextureDir = fontTextureDirectory();
+        for (Map.Entry<String, String> alias : FONT_TEXTURE_ALIASES.entrySet()) {
+            File target = new File(fontTextureDir, alias.getKey());
+            if (target.exists()) continue;
+            File renamedSource = new File(fontTextureDir, alias.getValue());
+            if (!renamedSource.exists()) continue;
+            try {
+                if (!fontTextureDir.exists() && !fontTextureDir.mkdirs()) {
+                    plugin.getLogger().warning("[LuxBridge] Could not create font texture folder: " + fontTextureDir.getPath());
+                    continue;
+                }
+                Files.copy(renamedSource.toPath(), target.toPath());
+                plugin.getLogger().info("[LuxBridge] Copied font texture alias " + alias.getValue() + " -> " + alias.getKey());
+            } catch (IOException exception) {
+                plugin.getLogger().warning("[LuxBridge] Failed to copy font texture alias " + alias.getValue()
+                        + " -> " + alias.getKey() + ": " + exception.getMessage());
+            }
+        }
     }
 
     private void generateFontJsons() {
@@ -286,6 +320,16 @@ public class LuxBridgeResourceManager {
         for (String texture : requiredTextureFiles()) {
             File file = new File(textureDirectory(), texture);
             output.add(status(file.exists()) + " textures/" + texture);
+        }
+    }
+
+    private void appendFontTextureDiagnostics(List<String> output) {
+        output.add(ChatColor.YELLOW + "Required text font textures:");
+        for (String texture : FONT_TEXTURE_ALIASES.keySet()) {
+            File file = new File(fontTextureDirectory(), texture);
+            String source = FONT_TEXTURE_ALIASES.get(texture);
+            output.add(status(file.exists()) + " textures/font/" + texture
+                    + (file.exists() ? "" : ChatColor.GRAY + " (alias source: textures/font/" + source + ")"));
         }
     }
 
