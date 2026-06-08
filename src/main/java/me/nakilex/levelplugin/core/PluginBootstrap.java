@@ -215,6 +215,7 @@ public class PluginBootstrap {
     private BattlePassGUI battlePassGUI;
     private me.nakilex.levelplugin.npc.dialog.NPCDialogManager dialogManager;
     private me.nakilex.levelplugin.dialogue.DialogueManager luxDialogueManager;
+    private me.nakilex.levelplugin.luxbridge.LuxBridgeManager luxBridgeManager;
     private me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager questDialogueManager;
     private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
@@ -458,6 +459,7 @@ public class PluginBootstrap {
         battlePassGUI = battlePassManager.getGui();
         dialogManager = new me.nakilex.levelplugin.npc.dialog.NPCDialogManager(plugin);
         luxDialogueManager = new me.nakilex.levelplugin.dialogue.DialogueManager(plugin);
+        luxBridgeManager = new me.nakilex.levelplugin.luxbridge.LuxBridgeManager(plugin);
         questDialogueManager = new me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager(plugin);
         scoreboardManager = new me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager(plugin, partyManager, questManager, arenaQueueManager, arenaRatingManager);
         if (arenaQueueManager != null) {
@@ -680,6 +682,12 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.dialogue.DialogueDebugCommand(plugin, luxDialogueManager);
         plugin.getCommand("dialoguedebug").setExecutor(dialogueDebugCommand);
         plugin.getCommand("dialoguedebug").setTabCompleter(dialogueDebugCommand);
+        me.nakilex.levelplugin.luxbridge.command.LuxBridgeCommand luxBridgeCommand =
+                new me.nakilex.levelplugin.luxbridge.command.LuxBridgeCommand(luxBridgeManager);
+        plugin.getCommand("luxbridge").setExecutor(luxBridgeCommand);
+        plugin.getCommand("luxbridge").setTabCompleter(luxBridgeCommand);
+        plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.luxbridge.listener.LuxBridgePlayerListener(luxBridgeManager), plugin);
         plugin.getCommand("pweather").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalWeatherCommand(playerEnvironmentService));
         plugin.getCommand("ptime").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalTimeCommand(playerEnvironmentService));
         me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
@@ -974,6 +982,7 @@ public class PluginBootstrap {
         if (beaconManager != null) beaconManager.removeAll();
         if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
         if (serverSelectionManager != null) serverSelectionManager.shutdown();
+        if (luxBridgeManager != null) luxBridgeManager.shutdown();
         if (questDialogueManager != null) questDialogueManager.shutdown();
         if (cursorMenuManager != null) cursorMenuManager.shutdown();
         if (blockGlowUtil != null) blockGlowUtil.shutdown();
@@ -1079,6 +1088,7 @@ public class PluginBootstrap {
     public BattlePassGUI getBattlePassGUI() { return battlePassGUI; }
     public me.nakilex.levelplugin.npc.dialog.NPCDialogManager getDialogManager() { return dialogManager; }
     public me.nakilex.levelplugin.dialogue.DialogueManager getLuxDialogueManager() { return luxDialogueManager; }
+    public me.nakilex.levelplugin.luxbridge.LuxBridgeManager getLuxBridgeManager() { return luxBridgeManager; }
     public me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager getQuestDialogueManager() { return questDialogueManager; }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return scoreboardManager; }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return beaconManager; }

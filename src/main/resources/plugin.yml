@@ -453,6 +453,11 @@ commands:
     usage: /lpadvancement <list|grant|reset> [player] [namespace:key]
     permission: levelplugin.admin
 
+  luxbridge:
+    description: Temporary standalone LuxDialogues bridge commands
+    usage: /luxbridge <reload|start|stop|inspect> [dialogueId]
+    permission: levelplugin.admin
+
 permissions:
   levelplugin.animatedlb:
     default: op
