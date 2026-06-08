@@ -58,10 +58,11 @@ public class LuxBridgeCommand implements CommandExecutor, TabCompleter {
             }
             case "assets" -> {
                 manager.reload();
-                for (String line : manager.assetDiagnostics()) {
-                    sender.sendMessage(line);
+                List<String> diagnostics = manager.assetDiagnostics();
+                manager.logAssetDiagnostics(diagnostics);
+                if (sender instanceof Player) {
+                    sender.sendMessage(ChatColor.GREEN + "LuxBridge asset diagnostics were written to the console.");
                 }
-                manager.logAssetDiagnostics();
             }
             case "inspect" -> {
                 if (args.length < 2) {

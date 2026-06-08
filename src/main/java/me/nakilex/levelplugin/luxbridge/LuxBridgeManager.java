@@ -73,7 +73,11 @@ public class LuxBridgeManager {
     }
 
     public void logAssetDiagnostics() {
-        for (String line : assetDiagnostics()) {
+        logAssetDiagnostics(assetDiagnostics());
+    }
+
+    public void logAssetDiagnostics(List<String> diagnostics) {
+        for (String line : diagnostics) {
             plugin.getLogger().info(ChatColor.stripColor(line));
         }
     }
