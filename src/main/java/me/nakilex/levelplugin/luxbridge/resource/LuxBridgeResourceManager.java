@@ -50,22 +50,12 @@ public class LuxBridgeResourceManager {
 
 
     private static final String[] ASCII_CHARS = {
-            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-            " !\"#$%&'()*+,-./",
-            "0123456789:;<=>?",
-            "@ABCDEFGHIJKLMNO",
-            "PQRSTUVWXYZ[\\]^_",
-            "`abcdefghijklmno",
-            "pqrstuvwxyz{|}~\u0000",
-            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
-            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000£\u0000\u0000ƒ",
-            "\u0000\u0000\u0000\u0000\u0000\u0000ªº\u0000\u0000¬\u0000\u0000\u0000«»",
-            "░▒▓│┤╡╢╖╕╣║╗╝╜╛┐",
-            "└┴┬├─┼╞╟╚╔╩╦╠═╬╧",
-            "╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀",
-            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000∅∈\u0000",
-            "≡±≥≤⌠⌡÷≈°∙\u0000√ⁿ²■\u0000"
+            "0123456789ABCDEF",
+            "GHIJKLMNOPQRSTUV",
+            "WXYZabcdefghijkl",
+            "mnopqrstuvwxyz{}",
+            "@#$%& ()*+,-./:;",
+            "!\"<=>?[\\]^_`|~'"
     };
 
     private static final String[] NONLATIN_EUROPEAN_CHARS = {
@@ -422,7 +412,18 @@ public class LuxBridgeResourceManager {
         return "    {\"type\":\"bitmap\",\"file\":\"" + PACK_NAMESPACE + ":" + texture
                 + "\",\"ascent\":" + ascent
                 + (height == null ? "" : ",\"height\":" + height)
-                + ",\"chars\":" + charsJson(chars) + "}";
+                + ",\"chars\":" + charsJson(expandedBitmapRows(chars)) + "}";
+    }
+
+    private String[] expandedBitmapRows(String[] rows) {
+        String[] expanded = new String[rows.length * 16];
+        for (int i = 0; i < expanded.length; i++) {
+            expanded[i] = "";
+        }
+        for (int i = 0; i < rows.length; i++) {
+            expanded[i * 16] = rows[i];
+        }
+        return expanded;
     }
 
     private String charsJson(String[] chars) {
