@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.luxbridge.model.LuxPage;
 import me.nakilex.levelplugin.luxbridge.model.LuxSoundSpec;
 import me.nakilex.levelplugin.luxbridge.resource.LuxBridgeResourceManager;
 import me.nakilex.levelplugin.luxbridge.session.LuxDialogueSession;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -65,6 +66,16 @@ public class LuxBridgeManager {
 
     public LuxBridgeResourceManager resourceManager() {
         return resourceManager;
+    }
+
+    public List<String> assetDiagnostics() {
+        return resourceManager.assetDiagnostics();
+    }
+
+    public void logAssetDiagnostics() {
+        for (String line : assetDiagnostics()) {
+            plugin.getLogger().info(ChatColor.stripColor(line));
+        }
     }
 
     public void start(Player player, String id) {

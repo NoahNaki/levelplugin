@@ -56,6 +56,13 @@ public class LuxBridgeCommand implements CommandExecutor, TabCompleter {
                 manager.stop(player);
                 sender.sendMessage(ChatColor.YELLOW + "Stopped LuxBridge dialogue.");
             }
+            case "assets" -> {
+                manager.reload();
+                for (String line : manager.assetDiagnostics()) {
+                    sender.sendMessage(line);
+                }
+                manager.logAssetDiagnostics();
+            }
             case "inspect" -> {
                 if (args.length < 2) {
                     sender.sendMessage(ChatColor.RED + "Usage: /luxbridge inspect <dialogueId>");
@@ -77,12 +84,12 @@ public class LuxBridgeCommand implements CommandExecutor, TabCompleter {
     }
 
     private void usage(CommandSender sender) {
-        sender.sendMessage(ChatUtil.applyEmojis(ChatColor.GOLD + "LuxBridge" + ChatColor.GRAY + ": /luxbridge <reload|start|stop|inspect>"));
+        sender.sendMessage(ChatUtil.applyEmojis(ChatColor.GOLD + "LuxBridge" + ChatColor.GRAY + ": /luxbridge <reload|assets|start|stop|inspect>"));
     }
 
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
-        if (args.length == 1) return filter(List.of("reload", "start", "stop", "inspect"), args[0]);
+        if (args.length == 1) return filter(List.of("reload", "assets", "start", "stop", "inspect"), args[0]);
         if (args.length == 2 && (args[0].equalsIgnoreCase("start") || args[0].equalsIgnoreCase("inspect"))) {
             return filter(manager.dialogues().stream().map(LuxDialogue::id).toList(), args[1]);
         }

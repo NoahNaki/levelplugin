@@ -455,7 +455,7 @@ commands:
 
   luxbridge:
     description: Temporary standalone LuxDialogues bridge commands
-    usage: /luxbridge <reload|start|stop|inspect> [dialogueId]
+    usage: /luxbridge <reload|assets|start|stop|inspect> [dialogueId]
     permission: levelplugin.admin
 
 permissions:
