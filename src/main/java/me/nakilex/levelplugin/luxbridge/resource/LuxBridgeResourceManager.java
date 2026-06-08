@@ -42,6 +42,57 @@ public class LuxBridgeResourceManager {
             Map.entry("kingdom-name-start", 16), Map.entry("kingdom-name-mid", 16), Map.entry("kingdom-name-end", 16)
     );
 
+
+    private static final String[] ASCII_CHARS = {
+            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            " !\"#$%&'()*+,-./",
+            "0123456789:;<=>?",
+            "@ABCDEFGHIJKLMNO",
+            "PQRSTUVWXYZ[\\]^_",
+            "`abcdefghijklmno",
+            "pqrstuvwxyz{|}~\u0000",
+            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000",
+            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000£\u0000\u0000ƒ",
+            "\u0000\u0000\u0000\u0000\u0000\u0000ªº\u0000\u0000¬\u0000\u0000\u0000«»",
+            "░▒▓│┤╡╢╖╕╣║╗╝╜╛┐",
+            "└┴┬├─┼╞╟╚╔╩╦╠═╬╧",
+            "╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀",
+            "\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000∅∈\u0000",
+            "≡±≥≤⌠⌡÷≈°∙\u0000√ⁿ²■\u0000"
+    };
+
+    private static final String[] NONLATIN_EUROPEAN_CHARS = {
+            "¡‰\u00ad·₴≠¿×ØÞһðøþΑΒ",
+            "ΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣ",
+            "ΤΥΦΧΨΩαβγδεζηθικ",
+            "λμνξοπρςστυφχψωЂ",
+            "ЅІЈЉЊЋАБВГДЕЖЗИК",
+            "ЛМНОПРСТУФХЦЧШЩЪ",
+            "ЫЬЭЮЯабвгдежзикл",
+            "мнопстуфхцчшщъы",
+            "ьэюяєѕіїљњ–—‘’“”"
+    };
+
+    private static final String[] ACCENTED_CHARS = {
+            "ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏ",
+            "ÐÑÒÓÔÕÖÙÚÛÜÝàáâã",
+            "äåæçìíîïñòóôõöùú",
+            "ûüýÿĀāĂăĄąĆćĈĉĊċ",
+            "ČčĎďĐđĒēĔĕĖėĘęĚě",
+            "ĜĝḠḡĞğĠġĢģĤĥĦħĨĩ",
+            "ĪīĬĭĮįİıĴĵĶķĹĺĻļ",
+            "ĽľĿŀŁłŃńŅņŇňŊŋŌō",
+            "ŎŏŐőŒœŔŕŖŗŘřŚśŜŝ",
+            "ŞşŠšŢţŤťŦŧŨũŪūŬŭ",
+            "ŮůŰűŲųŴŵŶŷŸŹźŻżŽ",
+            "žǼǽǾǿȘșȚțΆΈΉΊΌΎΏ",
+            "ΐΪΫάέήίΰϊϋόύώЀЁЃ",
+            "ЇЌЍЎЙйѐёђѓїћќѝўџ",
+            "ҐґḂḃḊḋḞḟḢḣḰḱṀṁṖṗ",
+            "ṠṡṪṫẀẁẂẃẄẅỲỳèéêë"
+    };
+
     private final JavaPlugin plugin;
     private final Map<String, LuxImageDefinition> images = new LinkedHashMap<>();
     private LuxLineDefinitions lines = new LuxLineDefinitions(40, 5, 25, 9, 0, 3, 75, 9);
@@ -209,11 +260,26 @@ public class LuxBridgeResourceManager {
     }
 
     private String textFontJson(int ascent) {
-        return "{\n  \"providers\": [\n" +
-                "    {\"type\":\"bitmap\",\"file\":\"minecraft:font/ascii\",\"ascent\":" + ascent + ",\"height\":8,\"chars\":[\"\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\\u0000\",\" !\\\"#$%&'()*+,-./\",\"0123456789:;<=>?\",\"@ABCDEFGHIJKLMNO\",\"PQRSTUVWXYZ[\\\\]^_\",\"`abcdefghijklmno\",\"pqrstuvwxyz{|}~\\u0000\"]}\n" +
-                "  ]\n}";
+        return "{\n  \"providers\": [\n"
+                + textProviderJson("font/luxdialogues_nonlatin", ascent, 8, NONLATIN_EUROPEAN_CHARS) + ",\n"
+                + textProviderJson("font/luxdialogues_accented", ascent + 3, 12, ACCENTED_CHARS) + ",\n"
+                + textProviderJson("font/luxdialogues_font", ascent, 8, ASCII_CHARS) + "\n"
+                + "  ]\n}";
     }
 
+    private String textProviderJson(String texture, int ascent, int height, String[] chars) {
+        return "    {\"type\":\"bitmap\",\"file\":\"" + PACK_NAMESPACE + ":" + texture
+                + "\",\"ascent\":" + ascent + ",\"height\":" + height + ",\"chars\":" + charsJson(chars) + "}";
+    }
+
+    private String charsJson(String[] chars) {
+        StringBuilder builder = new StringBuilder("[");
+        for (int i = 0; i < chars.length; i++) {
+            if (i > 0) builder.append(',');
+            builder.append('\"').append(escapeJson(chars[i])).append('\"');
+        }
+        return builder.append(']').toString();
+    }
 
     private void appendTextureDiagnostics(List<String> output) {
         output.add(ChatColor.YELLOW + "Required textures:");
@@ -345,5 +411,22 @@ public class LuxBridgeResourceManager {
 
     private static String escape(String value) {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private static String escapeJson(String value) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < value.length(); i++) {
+            char character = value.charAt(i);
+            if (character == '\\') {
+                builder.append("\\\\");
+            } else if (character == '"') {
+                builder.append("\\\"");
+            } else if (character < 0x20) {
+                builder.append(String.format("\\u%04x", (int) character));
+            } else {
+                builder.append(character);
+            }
+        }
+        return builder.toString();
     }
 }
