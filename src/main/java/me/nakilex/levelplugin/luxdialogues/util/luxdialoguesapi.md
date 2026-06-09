@@ -1,42 +1,120 @@
-# LuxDialogues API Integration Guide For LevelPlugin
+# LuxDialogues Integration & Architecture Guide
 
-## Purpose
-
-This document explains how to integrate and use the LuxDialogues API inside LevelPlugin.
-
-The goal is:
-
-* Trigger LuxDialogues from our own plugin
-* Create dialogues dynamically in Java
-* Trigger dialogues from NPCs, quests, regions, commands, etc.
-* Reuse this document in future ChatGPT sessions with no prior context
-
-This guide assumes:
-
-* Paper/Spigot server
-* Java plugin development
-* LuxDialogues plugin installed on the server
-* LevelPlugin as the primary plugin
+## LevelPlugin Dialogue Framework
 
 ---
 
-# 1. What We Learned
+# Purpose
 
-LuxDialogues exposes a usable API.
+This document explains the current LuxDialogues integration architecture used inside LevelPlugin.
 
-The important package is:
+This is the canonical reference for:
 
-```java
-org.aselstudios.luxdialoguesapi
+* NPC dialogue
+* Quest dialogue
+* Dialogue rendering
+* Dialogue pagination
+* Automatic text wrapping
+* LuxDialogues API usage
+* Reusable NPC dialogue registration
+* Future ChatGPT sessions
+
+This document should be provided in future sessions when continuing dialogue-related development.
+
+---
+
+# Current System Overview
+
+LevelPlugin now uses LuxDialogues as the primary dialogue renderer.
+
+The old dialogue system still exists as a fallback, but LuxDialogues is now the intended architecture.
+
+Current flow:
+
+```text
+Player right-clicks NPC
+        ↓
+NPCClickListener
+        ↓
+NPCDialogManager
+        ↓
+LuxNpcDialogueService
+        ↓
+LuxDialogues API
+        ↓
+Dialogue rendered in-game
 ```
 
-DO NOT use internal LuxDialogues classes unless absolutely necessary.
+---
 
-Avoid:
+# Important Design Goal
 
-```java
-org.aselstudios.luxdialogues.Dialogues.*
+The system is intentionally generic.
+
+NPCs should NOT manually create dialogue inline anymore.
+
+Instead:
+
+* NPCs register dialogue definitions
+* The dialogue service handles rendering
+* Wrapping/pagination are automatic
+* Interaction handling is centralized
+
+---
+
+# Current Package Structure
+
+Recommended structure:
+
+```text
+me.nakilex.levelplugin.luxdialogues
 ```
+
+Current/Recommended files:
+
+```text
+LuxNpcDialogueService.java
+LuxNpcDialogueChoice.java
+LuxDialogueUtils.java
+LuxDialoguePagination.java
+LuxDialogueTextWrapper.java
+LuxDialogueRegistry.java
+```
+
+NPC-related:
+
+```text
+npc/
+    NPCClickListener.java
+    NPCDialogManager.java
+```
+
+Quest-related:
+
+```text
+quest/
+    QuestManager.java
+    QuestDialogueHandler.java
+```
+
+---
+
+# Required plugin.yml Setup
+
+Inside plugin.yml:
+
+```yml
+softdepend:
+  - LuxDialogues
+```
+
+Recommended over `depend`.
+
+This prevents startup failure if LuxDialogues is missing.
+
+---
+
+# API Package
 
 Use:
 
@@ -44,157 +122,228 @@ Use:
 org.aselstudios.luxdialoguesapi.*
 ```
 
-The API already supports:
+DO NOT rely heavily on:
 
-* Sending dialogues
-* Dialogue builders
-* Pages
-* Answers
-* Triggering interactions
-* Clearing dialogue sessions
-* Dialogue state checks
+```java
+org.aselstudios.luxdialogues.*
+```
+
+Those are internal classes and may change.
 
 ---
 
-# 2. Required plugin.yml Setup
+# Current Dialogue Rendering Rules
 
-Inside LevelPlugin's `plugin.yml`:
+## Current Limits
 
-```yml
-softdepend:
-  - LuxDialogues
+```java
+MAX_CHARS_PER_LINE = 32;
+MAX_LINES_PER_PAGE = 4;
 ```
 
-or if mandatory:
+These values were chosen based on:
 
-```yml
-depend:
-  - LuxDialogues
-```
-
-Recommended:
-
-```yml
-softdepend:
-  - LuxDialogues
-```
-
-This prevents startup failure if LuxDialogues is missing.
+* current dialogue PNG width
+* Minecraft font width
+* readability
+* avoiding overflow
 
 ---
 
-# 3. Checking If LuxDialogues Exists
+# IMPORTANT: Minecraft Fonts Are Variable Width
 
-Always validate before using the API.
+Character count is only an approximation.
 
 Example:
 
-```java
-Plugin plugin = Bukkit.getPluginManager().getPlugin("LuxDialogues");
+* `iiiiiiiiiiii`
+* `WWWWWWWWWW`
 
-if (plugin == null || !plugin.isEnabled()) {
-    player.sendMessage("LuxDialogues is not installed.");
-    return;
-}
-```
+Both have different pixel widths.
 
----
+32 chars is considered safe for:
 
-# 4. Recommended Project Structure
+* lowercase dialogue
+* regular sentence structure
+* minimal formatting
 
-Recommended package:
+If using:
 
-```text
-me.nakilex.levelplugin.luxdialogues
-```
+* lots of uppercase
+* custom glyphs
+* icons
+* formatting codes
 
-Recommended files:
-
-```text
-LuxDialoguesBridge.java
-DialogueFactory.java
-DialogueUtils.java
-QuestDialogueHandler.java
-NpcDialogueListener.java
-```
+Reduce line length manually.
 
 ---
 
-# 5. Basic API Usage
+# Automatic Text Wrapping
 
-## Sending a dialogue
+The system automatically wraps dialogue text.
 
 Example:
 
-```java
-LuxDialoguesAPI.getProvider().sendDialogue(player, dialogue, "start");
+Input:
+
+```text
+Nothing is truly worthless. Even rusted blades still have a purpose.
 ```
 
-Arguments:
+Output:
 
-* player
-* dialogue object
-* starting page id
+```text
+Nothing is truly worthless.
+Even rusted blades still
+have a purpose.
+```
+
+The wrapper:
+
+* preserves words
+* avoids splitting words
+* respects sentence punctuation
+* starts new sentences on cleaner lines
 
 ---
 
-# 6. Basic Dialogue Example
+# Sentence-Aware Wrapping
 
-## Minimal Working Dialogue
+The wrapper specifically checks for:
 
-```java
-Dialogue dialogue = new Dialogue.Builder()
-        .setDialogueID("test_dialogue")
+```text
+.
+!
+?
+```
 
-        .setCharacterNameText("Guard", "#ffffff", 0)
+After punctuation:
 
-        .setDialogueBackgroundImage("dialogue")
-        .setDialogueBackgroundImageColor("#ffffff")
-        .setDialogueBackgroundImageOffset(0)
+* the next sentence prefers starting on a new line
+* avoids ugly formatting like:
 
-        .setNameStartImage("name_start")
-        .setNameMidImage("name_middle")
-        .setNameEndImage("name_end")
-        .setNameImageColor("#ffffff")
+BAD:
 
-        .setTypingSound("minecraft:block.note_block.hat")
-        .setTypingSoundVolume(1.0f)
-        .setTypingSoundPitch(1.0f)
+```text
+worthless. Even rusted
+```
 
-        .setSelectionSound("minecraft:block.note_block.pling")
+GOOD:
 
-        .setAllowedRange(10.0)
-
-        .addPage(
-                new Page.Builder()
-                        .setID("start")
-                        .addLine("Welcome to the village.")
-                        .addLine("The LuxDialogues API is working.")
-
-                        .addAnswer(
-                                new Answer.Builder()
-                                        .setAnswerID("continue")
-                                        .setAnswerText("Continue")
-                                        .setGoTo(List.of("next"))
-                                        .build()
-                        )
-
-                        .build()
-        )
-
-        .addPage(
-                new Page.Builder()
-                        .setID("next")
-                        .addLine("Good luck on your journey.")
-                        .build()
-        )
-
-        .build();
+```text
+worthless.
+Even rusted blades still
 ```
 
 ---
 
-# 7. IMPORTANT: Required Builder Fields
+# Automatic Pagination
+
+If dialogue exceeds:
+
+```java
+MAX_LINES_PER_PAGE = 4;
+```
+
+The service automatically:
+
+* creates a new LuxDialogue page
+* inserts Continue options
+* links pages together
+
+This prevents dialogue overflow outside the dialogue box.
+
+---
+
+# Example Pagination
+
+Input:
+
+```text
+The kingdom has fallen. Our walls are broken. The creatures now roam freely through the old roads.
+```
+
+Result:
+
+## Page 1
+
+```text
+The kingdom has fallen.
+Our walls are broken.
+The creatures now roam
+freely through the old
+```
+
+Choice:
+
+```text
+Continue
+```
+
+## Page 2
+
+```text
+roads.
+```
+
+---
+
+# IMPORTANT: Interaction Forwarding
+
+This was a major bug previously.
+
+While inside a LuxDialogue:
+
+DO NOT reopen the dialogue.
+
+Instead:
+
+```java
+LuxDialoguesAPI.getProvider().triggerInteraction(player);
+```
+
+Without this:
+
+* dialogue restarts endlessly
+* choices cannot be selected
+* pages never progress
+
+Current behavior:
+
+* right-click advances dialogue
+* right-click selects choices
+* NPC click does NOT restart active dialogue
+
+---
+
+# Checking Active Dialogue
+
+Use:
+
+```java
+LuxDialoguesAPI.getProvider().isInDialogue(player)
+```
+
+Useful for:
+
+* preventing duplicate dialogues
+* movement locking
+* combat restrictions
+* inventory locking
+
+---
+
+# Closing Dialogue
+
+Use:
+
+```java
+LuxDialoguesAPI.getProvider().clearDialogue(player);
+```
+
+---
+
+# Required Builder Fields
 
 LuxDialogues crashes if these are missing.
 
@@ -221,150 +370,116 @@ Required:
 
 If missing:
 
-* Builder errors occur
-* RangeListener crashes
-* Dialogue fails to open
+* builder errors occur
+* range listener crashes
+* dialogue fails entirely
 
 ---
 
-# 8. Text Wrapping Rules
+# Current Base Dialogue Builder
 
-LuxDialogues does NOT properly constrain long lines automatically.
-
-Recommended safe line length:
-
-```text
-28-30 characters
-```
-
-DO NOT rely on automatic wrapping.
-
-BAD:
+Recommended reusable builder:
 
 ```java
-.addLine("This is an extremely long sentence that may overflow outside the dialogue box.")
-```
+public static Dialogue.Builder createBaseDialogue(
+        String id,
+        String character
+) {
 
-GOOD:
+    return new Dialogue.Builder()
+            .setDialogueID(id)
 
-```java
-.addLine("This is a safer line.")
-.addLine("It stays inside the box.")
-```
+            .setCharacterNameText(character, "#ffffff", 0)
 
-Best practice:
+            .setDialogueBackgroundImage("dialogue")
+            .setDialogueBackgroundImageColor("#ffffff")
+            .setDialogueBackgroundImageOffset(0)
 
-* 28-30 visible chars
-* Split manually
-* Keep sentences short
-* Prefer multiple lines
+            .setNameStartImage("name_start")
+            .setNameMidImage("name_middle")
+            .setNameEndImage("name_end")
+            .setNameImageColor("#ffffff")
 
----
+            .setTypingSound("minecraft:block.note_block.hat")
+            .setTypingSoundVolume(1.0f)
+            .setTypingSoundPitch(1.0f)
 
-# 9. Manual Wrapping Utility
+            .setSelectionSound("minecraft:block.note_block.pling")
 
-Recommended helper:
-
-```java
-public static List<String> wrapDialogue(String text, int maxChars)
-```
-
-Suggested default:
-
-```java
-maxChars = 30;
-```
-
-Goals:
-
-* Word-aware wrapping
-* No broken words
-* Consistent dialogue width
-
----
-
-# 10. Dialogue Utility Class
-
-Recommended reusable utility:
-
-```java
-public class DialogueUtils {
-
-    public static Dialogue.Builder createBaseDialogue(String id, String character) {
-
-        return new Dialogue.Builder()
-                .setDialogueID(id)
-
-                .setCharacterNameText(character, "#ffffff", 0)
-
-                .setDialogueBackgroundImage("dialogue")
-                .setDialogueBackgroundImageColor("#ffffff")
-                .setDialogueBackgroundImageOffset(0)
-
-                .setNameStartImage("name_start")
-                .setNameMidImage("name_middle")
-                .setNameEndImage("name_end")
-                .setNameImageColor("#ffffff")
-
-                .setTypingSound("minecraft:block.note_block.hat")
-                .setTypingSoundVolume(1.0f)
-                .setTypingSoundPitch(1.0f)
-
-                .setSelectionSound("minecraft:block.note_block.pling")
-
-                .setAllowedRange(10.0);
-    }
-}
-```
-
-This avoids repeating boilerplate.
-
----
-
-# 11. Triggering Dialogue From NPCs
-
-## Example Flow
-
-1. Player right-clicks NPC
-2. Plugin detects NPC
-3. Dialogue gets created
-4. Dialogue sent to player
-
----
-
-## Citizens Example
-
-```java
-@EventHandler
-public void onNpcClick(NPCRightClickEvent event) {
-
-    Player player = event.getClicker();
-    NPC npc = event.getNPC();
-
-    if (!npc.getName().equalsIgnoreCase("Guard")) {
-        return;
-    }
-
-    Dialogue dialogue = DialogueFactory.createGuardDialogue();
-
-    LuxDialoguesAPI.getProvider()
-            .sendDialogue(player, dialogue, "start");
+            .setAllowedRange(10.0);
 }
 ```
 
 ---
 
-# 12. Quest Dialogue Structure
+# Generic NPC Dialogue Architecture
 
-Recommended structure:
+The system now supports reusable dialogue registration.
+
+Example concept:
+
+```java
+dialogueManager.register(
+    "Storage Manager",
+
+    LuxNpcDialogueDefinition.builder()
+        .characterName("Storage Manager")
+
+        .lines(List.of(
+            "Looking to keep your belongings safe?",
+            "I can register a personal storage for you for 100 coins."
+        ))
+
+        .choice("Yes", player -> {
+            storageManager.register(player);
+        })
+
+        .choice("No", player -> {})
+
+        .build()
+);
+```
+
+This avoids:
+
+* duplicated listeners
+* duplicated wrapping logic
+* duplicated page handling
+
+---
+
+# Recommended Dialogue Flow
+
+## NPC Flow
 
 ```text
-Quest ID
- └── Intro Dialogue
- └── Accept Dialogue
- └── Progress Dialogue
- └── Completion Dialogue
- └── Failure Dialogue
+Player clicks NPC
+        ↓
+NPCClickListener
+        ↓
+NPCDialogManager
+        ↓
+Quest/State checks
+        ↓
+Dialogue generated
+        ↓
+LuxNpcDialogueService
+        ↓
+LuxDialogues API
+```
+
+---
+
+# Quest Dialogue Structure
+
+Recommended:
+
+```text
+quest_id_intro
+quest_id_accept
+quest_id_progress
+quest_id_complete
+quest_id_failure
 ```
 
 Example:
@@ -378,14 +493,18 @@ blacksmith_complete
 
 ---
 
-# 13. Recommended Dialogue Factory Pattern
+# Dialogue Factory Pattern
 
-Instead of creating dialogues inline:
+DO NOT inline large dialogue blocks inside listeners.
 
 BAD:
 
 ```java
-event code + dialogue code together
+@EventHandler
+public void onClick(...) {
+
+    Dialogue dialogue = ...
+}
 ```
 
 GOOD:
@@ -394,29 +513,42 @@ GOOD:
 DialogueFactory.createBlacksmithIntro()
 ```
 
-Example:
+Recommended:
 
-```java
-public class DialogueFactory {
-
-    public static Dialogue createGuardDialogue() {
-
-        return DialogueUtils.createBaseDialogue(
-                "guard_intro",
-                "Guard"
-        )
-
-        .addPage(...)
-        .build();
-    }
-}
+```text
+DialogueFactory
+QuestDialogueFactory
+NpcDialogueFactory
 ```
-
-This keeps dialogue organized.
 
 ---
 
-# 14. Triggering Dialogue From Quests
+# Triggering Dialogue From NPCs
+
+Example:
+
+```java
+@EventHandler
+public void onNpcClick(NPCRightClickEvent event) {
+
+    Player player = event.getClicker();
+    NPC npc = event.getNPC();
+
+    if (!npc.getName().equalsIgnoreCase("Guard")) {
+        return;
+    }
+
+    Dialogue dialogue =
+            DialogueFactory.createGuardDialogue();
+
+    LuxDialoguesAPI.getProvider()
+            .sendDialogue(player, dialogue, "start");
+}
+```
+
+---
+
+# Triggering Dialogue From Quests
 
 Example:
 
@@ -424,9 +556,11 @@ Example:
 if (!playerData.hasQuest("guard_quest")) {
 
     LuxDialoguesAPI.getProvider()
-            .sendDialogue(player,
+            .sendDialogue(
+                    player,
                     DialogueFactory.createGuardIntro(),
-                    "start");
+                    "start"
+            );
 
     return;
 }
@@ -434,7 +568,7 @@ if (!playerData.hasQuest("guard_quest")) {
 
 ---
 
-# 15. Triggering Dialogue From Regions
+# Triggering Dialogue From Regions
 
 Example:
 
@@ -442,15 +576,17 @@ Example:
 if (enteredDungeonRegion) {
 
     LuxDialoguesAPI.getProvider()
-            .sendDialogue(player,
+            .sendDialogue(
+                    player,
                     DialogueFactory.createDungeonWarning(),
-                    "start");
+                    "start"
+            );
 }
 ```
 
 ---
 
-# 16. Dialogue Choices
+# Dialogue Choices
 
 Example:
 
@@ -466,7 +602,7 @@ Example:
 
 ---
 
-# 17. Multiple Pages
+# Multiple Pages
 
 Example:
 
@@ -489,76 +625,48 @@ Example:
 
 ---
 
-# 18. Closing Dialogues
+# Current Known LuxDialogues Issues
 
-```java
-LuxDialoguesAPI.getProvider().clearDialogue(player);
-```
+Observed:
 
----
+* pixel-width inaccuracies
+* undocumented builder requirements
+* internal API instability
+* null crashes if range missing
+* rendering quirks
+* spacing inconsistencies
+* occasional glyph overflow
 
-# 19. Checking If Player Is In Dialogue
+Because of this:
 
-```java
-LuxDialoguesAPI.getProvider().isInDialogue(player)
-```
-
-Useful for:
-
-* preventing movement
-* disabling combat
-* preventing inventory access
-
----
-
-# 20. Trigger Interaction
-
-```java
-LuxDialoguesAPI.getProvider().triggerInteraction(player);
-```
-
-Can simulate:
-
-* advancing pages
-* continuing dialogue
-* interaction events
+* keep dialogue concise
+* wrap manually when needed
+* avoid huge paragraphs
+* avoid extremely long words
 
 ---
 
-# 21. Recommended Long-Term Architecture
+# Recommended Future Improvements
 
-Recommended final architecture:
+## Strongly Recommended
 
-```text
-DialogueRegistry
-DialogueFactory
-DialogueUtils
-QuestDialogueManager
-NpcDialogueManager
-DialogueConditions
-DialogueActions
-```
+Add:
 
----
-
-# 22. Recommended Future Improvements
-
-## Add:
-
-* automatic text wrapping
+* YAML dialogue definitions
 * localization
-* placeholder support
-* animation control
-* quest conditions
-* async loading
-* JSON/YAML dialogue definitions
-* cinematic dialogue support
 * portrait swapping
 * emotion states
+* cinematic camera integration
+* PlaceholderAPI support
+* async loading
+* dialogue conditions
+* dialogue actions
+* quest branching
+* persistent dialogue states
 
 ---
 
-# 23. Suggested Dialogue YAML System
+# Suggested YAML System
 
 Future idea:
 
@@ -569,6 +677,7 @@ character: Guard
 
 pages:
   - id: start
+
     lines:
       - "Halt traveler."
       - "State your business."
@@ -579,99 +688,110 @@ pages:
         goto: help
 ```
 
-Then convert YAML -> LuxDialogue object dynamically.
+Then dynamically:
 
-This is strongly recommended long-term.
+* parse YAML
+* build LuxDialogue objects
+* register automatically
 
----
-
-# 24. Known LuxDialogues Issues
-
-Observed:
-
-* Text overflow
-* Required builder fields undocumented
-* Null range crashes
-* Internal APIs unstable
-* Some visuals hardcoded
-* Pixel width handling imperfect
-
-Because of this:
-
-* Wrap text manually
-* Use helper builders
-* Keep dialogue short
+This is highly recommended long-term.
 
 ---
 
-# 25. Recommended Workflow For Future ChatGPT Sessions
+# Recommended Long-Term Architecture
 
-When starting a new ChatGPT session:
-
-1. Provide this MD file
-2. Provide current LevelPlugin zip
-3. State:
-
-    * what NPC
-    * what quest
-    * desired dialogue flow
-    * conditions/rewards
-    * if Citizens/MythicMobs involved
-
-Then request:
-
-* dialogue implementation
-* factory creation
-* event hooks
-* commands
-* YAML support
-* wrapping utility
-
-This gives future sessions enough context immediately.
-
----
-
-# 26. Example Final Quest Flow
+Recommended future structure:
 
 ```text
-Player clicks Guard NPC
-    ↓
-Quest check
-    ↓
-No quest?
-    ↓
-Open intro dialogue
-    ↓
-Player accepts
-    ↓
-Quest starts
-    ↓
-Progress dialogue changes
-    ↓
-Quest completed
-    ↓
-Completion dialogue plays
+DialogueRegistry
+DialogueFactory
+DialogueUtils
+QuestDialogueManager
+NpcDialogueManager
+DialogueConditions
+DialogueActions
+DialoguePersistence
+DialogueEvents
 ```
 
 ---
 
-# 27. Final Recommendation
+# Current Philosophy
+
+LuxDialogues should be treated as:
+
+* a renderer
+* a dialogue UI framework
+
+NOT:
+
+* business logic
+* quest state manager
+* NPC manager
+
+Your plugin should own:
+
+* quest logic
+* rewards
+* progression
+* persistence
+* conditions
+
+LuxDialogues should only display and interact.
+
+---
+
+# Recommended Workflow For Future ChatGPT Sessions
+
+When continuing development:
+
+Provide:
+
+1. This MD file
+2. Current plugin zip
+3. Relevant assets if changed
+
+Then explain:
+
+* which NPC
+* which quest
+* desired flow
+* rewards
+* conditions
+* current issues
+
+Then request:
+
+* implementation
+* refactors
+* factories
+* YAML systems
+* new dialogue types
+* quest integration
+* cinematic support
+
+This gives future sessions immediate architectural context.
+
+---
+
+# Final Recommendation
 
 DO NOT recreate the entirety of LuxDialogues.
 
-Use the API instead.
+Use the API.
 
 Advantages:
 
 * less maintenance
-* easier updates
-* less broken UI logic
+* easier upgrades
+* better UI consistency
 * faster development
 * cleaner architecture
+* reusable systems
 
-Only recreate parts if:
+Only replace LuxDialogues if:
 
-* API limitations become severe
-* performance issues appear
-* rendering customization becomes impossible
-* you want total UI control
+* API becomes unstable
+* rendering limitations become severe
+* customization becomes impossible
+* performance becomes problematic
