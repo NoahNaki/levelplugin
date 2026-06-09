@@ -34,6 +34,9 @@ import me.nakilex.levelplugin.npc.handlers.SharpestSecretNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.StableKeeperNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.ZoyaDungeonNpcHandler;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
+import me.nakilex.levelplugin.luxdialogues.LuxNpcDialogueChoice;
+import me.nakilex.levelplugin.luxdialogues.LuxNpcDialogueService;
+import me.nakilex.levelplugin.luxdialogues.LuxDialoguesBridge;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
@@ -51,7 +54,9 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import java.util.List;
 import java.util.UUID;
 
@@ -80,6 +85,7 @@ public class NPCClickListener implements Listener {
     private final AuctionHouseGUI auctionGUI;
     private final StorageManager storageManager;
     private final QuestNpcInteractionRegistry questHandlerRegistry;
+    private final LuxNpcDialogueService luxNpcDialogueService;
 
     // Constructor to get the EconomyManager instance
     public NPCClickListener(EconomyManager economyManager, QuestManager questManager, NPCDialogManager dialogManager,
@@ -93,7 +99,20 @@ public class NPCClickListener implements Listener {
         this.auctionGUI = auctionGUI;
         this.storageManager = storageManager;
         this.questHandlerRegistry = new QuestNpcInteractionRegistry();
+        this.luxNpcDialogueService = new LuxNpcDialogueService(Main.getInstance());
         registerQuestHandlers();
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onLuxDialogueInteract(PlayerInteractEvent event) {
+        Action action = event.getAction();
+        if (action != Action.RIGHT_CLICK_AIR && action != Action.RIGHT_CLICK_BLOCK) {
+            return;
+        }
+
+        if (LuxDialoguesBridge.tryTriggerInteraction(event.getPlayer())) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -104,6 +123,11 @@ public class NPCClickListener implements Listener {
         }
 
         Player player = event.getPlayer();
+        if (LuxDialoguesBridge.tryTriggerInteraction(player)) {
+            event.setCancelled(true);
+            return;
+        }
+
         NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
         net.citizensnpcs.api.npc.NPC citizensNpc = npc == null
                 ? CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked())
@@ -295,6 +319,10 @@ public class NPCClickListener implements Listener {
             return;
         }
 
+        if (startStorageManagerLuxDialogue(player, npc, citizensNpc)) {
+            return;
+        }
+
         startDialog(player, STORAGE_INTRO_DIALOG, npc, citizensNpc,
                 () -> Bukkit.getScheduler().runTaskLater(Main.getInstance(), () ->
                         startChoiceDialog(player, npc, citizensNpc, List.of("Yes", "No"), choice -> {
@@ -304,6 +332,52 @@ public class NPCClickListener implements Listener {
                                 startDialog(player, STORAGE_DECLINE_DIALOG, npc, citizensNpc, null);
                             }
                         }), 1L));
+    }
+
+    private boolean startStorageManagerLuxDialogue(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+        if (luxNpcDialogueService == null || !luxNpcDialogueService.isAvailable()) {
+            return false;
+        }
+
+        return luxNpcDialogueService.sendChoice(
+                player,
+                "storage_manager_register",
+                "Storage Manager",
+                STORAGE_INTRO_DIALOG,
+                List.of(
+                        new LuxNpcDialogueChoice("yes", "Yes", () -> completeStorageRegistrationLux(player, npc, citizensNpc)),
+                        new LuxNpcDialogueChoice("no", "No", () -> luxNpcDialogueService.sendLinear(
+                                player,
+                                "storage_manager_decline",
+                                "Storage Manager",
+                                STORAGE_DECLINE_DIALOG,
+                                null
+                        ))
+                )
+        );
+    }
+
+    private void completeStorageRegistrationLux(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+        if (storageManager.hasStorage(player.getUniqueId())) {
+            storageManager.openStorage(player);
+            return;
+        }
+
+        if (economyManager.getBalance(player) < STORAGE_REGISTRATION_COST) {
+            if (!luxNpcDialogueService.sendLinear(player, "storage_manager_missing_funds",
+                    "Storage Manager", STORAGE_FUNDS_DIALOG, null)) {
+                startDialog(player, STORAGE_FUNDS_DIALOG, npc, citizensNpc, null);
+            }
+            return;
+        }
+
+        economyManager.deductCoins(player, STORAGE_REGISTRATION_COST);
+        CurrencyMessageUtil.sendLoss(player, CurrencyMessageUtil.Currency.COINS, STORAGE_REGISTRATION_COST);
+        storageManager.createStorage(player.getUniqueId());
+        if (!luxNpcDialogueService.sendLinear(player, "storage_manager_created",
+                "Storage Manager", STORAGE_CREATED_DIALOG, () -> storageManager.openStorage(player))) {
+            startDialog(player, STORAGE_CREATED_DIALOG, npc, citizensNpc, () -> storageManager.openStorage(player));
+        }
     }
 
     private void completeStorageRegistration(Player player, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {

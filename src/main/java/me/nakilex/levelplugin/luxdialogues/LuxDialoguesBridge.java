@@ -36,6 +36,28 @@ public final class LuxDialoguesBridge {
         invokeProvider(clearDialogue, provider, player);
     }
 
+    public static void triggerInteraction(Player player) throws ReflectiveOperationException {
+        Object provider = getProvider();
+        Method triggerInteraction = provider.getClass().getMethod("triggerInteraction", Player.class);
+        invokeProvider(triggerInteraction, provider, player);
+    }
+
+    public static boolean tryTriggerInteraction(Player player) {
+        if (!isPluginEnabled() || player == null) {
+            return false;
+        }
+        try {
+            if (!isInDialogue(player)) {
+                return false;
+            }
+            triggerInteraction(player);
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            Bukkit.getLogger().warning("[LevelPlugin] Failed to trigger LuxDialogues interaction: " + ex.getMessage());
+            return false;
+        }
+    }
+
     public static void sendTestDialogue(Player player) throws ReflectiveOperationException {
         Object provider = getProvider();
 

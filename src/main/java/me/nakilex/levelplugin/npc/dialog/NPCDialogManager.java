@@ -180,6 +180,14 @@ public class NPCDialogManager implements Listener {
         if (hasSession(player) || (questDialogueManager != null && questDialogueManager.hasSession(player))) {
             return true;
         }
+        try {
+            if (me.nakilex.levelplugin.luxdialogues.LuxDialoguesBridge.isPluginEnabled()
+                    && me.nakilex.levelplugin.luxdialogues.LuxDialoguesBridge.isInDialogue(player)) {
+                return true;
+            }
+        } catch (ReflectiveOperationException ignored) {
+            // LuxDialogues is optional. If the bridge cannot query state, fall back to LevelPlugin's own lock state.
+        }
         UUID id = player.getUniqueId();
         Long last = dialogCooldowns.get(id);
         if (last == null) {
