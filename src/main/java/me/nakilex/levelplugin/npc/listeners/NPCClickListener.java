@@ -34,6 +34,7 @@ import me.nakilex.levelplugin.npc.handlers.SharpestSecretNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.StableKeeperNpcHandler;
 import me.nakilex.levelplugin.npc.handlers.ZoyaDungeonNpcHandler;
 import me.nakilex.levelplugin.npc.dialog.NPCDialogManager;
+import me.nakilex.levelplugin.luxdialogues.LuxDialoguesBridge;
 import me.nakilex.levelplugin.storage.StorageManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CurrencyMessageUtil;
@@ -52,6 +53,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import java.util.List;
 import java.util.UUID;
 
@@ -97,6 +99,16 @@ public class NPCClickListener implements Listener {
     }
 
     @EventHandler(ignoreCancelled = true)
+    public void onLuxDialogueInteract(PlayerInteractEvent event) {
+        if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
+            return;
+        }
+        if (LuxDialoguesBridge.tryTriggerInteraction(event.getPlayer())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(ignoreCancelled = true)
     public void onNPCClick(PlayerInteractEntityEvent event) {
         // Ignore offhand interactions
         if (event.getHand() == org.bukkit.inventory.EquipmentSlot.OFF_HAND) {
@@ -104,6 +116,10 @@ public class NPCClickListener implements Listener {
         }
 
         Player player = event.getPlayer();
+        if (LuxDialoguesBridge.tryTriggerInteraction(player)) {
+            event.setCancelled(true);
+            return;
+        }
         NPC npc = NpcApi.getRegistry().getNPC(event.getRightClicked());
         net.citizensnpcs.api.npc.NPC citizensNpc = npc == null
                 ? CitizensAPI.getNPCRegistry().getNPC(event.getRightClicked())

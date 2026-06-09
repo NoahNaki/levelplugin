@@ -7,6 +7,9 @@ import me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager;
 import me.nakilex.levelplugin.npc.system.NpcApi;
 import me.nakilex.levelplugin.npc.system.NPC;
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.luxdialogues.LuxDialoguesBridge;
+import me.nakilex.levelplugin.luxdialogues.LuxNpcDialogueChoice;
+import me.nakilex.levelplugin.luxdialogues.LuxNpcDialogueService;
 import net.citizensnpcs.api.CitizensAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -38,9 +41,11 @@ import java.util.regex.Matcher;
 public class NPCDialogManager implements Listener {
 
     private final Main plugin;
+    private final LuxNpcDialogueService luxNpcDialogueService;
 
     public NPCDialogManager(Main plugin) {
         this.plugin = plugin;
+        this.luxNpcDialogueService = new LuxNpcDialogueService(plugin);
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
@@ -180,6 +185,13 @@ public class NPCDialogManager implements Listener {
         if (hasSession(player) || (questDialogueManager != null && questDialogueManager.hasSession(player))) {
             return true;
         }
+        try {
+            if (LuxDialoguesBridge.isPluginEnabled() && LuxDialoguesBridge.isInDialogue(player)) {
+                return true;
+            }
+        } catch (ReflectiveOperationException | RuntimeException ignored) {
+            // LuxDialogues is optional. If querying it fails, keep using LevelPlugin's own state.
+        }
         UUID id = player.getUniqueId();
         Long last = dialogCooldowns.get(id);
         if (last == null) {
@@ -204,11 +216,11 @@ public class NPCDialogManager implements Listener {
             plugin.getLogger().info("[DialogDebug] startDialog quest=" + quest.getId() +
                     " player=" + player.getName());
         }
-        player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(quest, lines, npc, null);
-        sessions.put(player.getUniqueId(), session);
-        sendLine(player, session);
+        Runnable finish = () -> finishQuestDialog(player, quest, npc, null);
+        if (tryStartLuxDialog(player, quest.getId(), npc != null ? npc.getName() : "NPC", lines, finish)) {
+            return;
+        }
+        startLegacyDialog(player, quest, lines, npc, null, null);
     }
 
     public void startDialog(Player player, Quest quest, net.citizensnpcs.api.npc.NPC npc) {
@@ -218,11 +230,11 @@ public class NPCDialogManager implements Listener {
             plugin.getLogger().info("[DialogDebug] startDialog quest=" + quest.getId() +
                     " player=" + player.getName());
         }
-        player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(quest, lines, npc, null);
-        sessions.put(player.getUniqueId(), session);
-        sendLine(player, session);
+        Runnable finish = () -> finishQuestDialog(player, quest, null, npc);
+        if (tryStartLuxDialog(player, quest.getId(), npc != null ? npc.getName() : "NPC", lines, finish)) {
+            return;
+        }
+        startLegacyDialog(player, quest, lines, null, npc, null);
     }
 
     /** Start a dialog sequence with custom lines and finish callback. */
@@ -231,11 +243,11 @@ public class NPCDialogManager implements Listener {
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] startDialog custom player=" + player.getName());
         }
-        player.setInvulnerable(true);
-        player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(null, lines, npc, finish);
-        sessions.put(player.getUniqueId(), session);
-        sendLine(player, session);
+        String speaker = npc != null ? npc.getName() : "NPC";
+        if (tryStartLuxDialog(player, "custom_" + safeDialogueName(speaker), speaker, lines, finish)) {
+            return;
+        }
+        startLegacyDialog(player, null, lines, npc, null, finish);
     }
 
     public void startDialog(Player player, List<String> lines, net.citizensnpcs.api.npc.NPC npc, Runnable finish) {
@@ -243,11 +255,36 @@ public class NPCDialogManager implements Listener {
         if (plugin.getQuestManager().isDebug()) {
             plugin.getLogger().info("[DialogDebug] startDialog custom player=" + player.getName());
         }
+        String speaker = npc != null ? npc.getName() : "NPC";
+        if (tryStartLuxDialog(player, "custom_" + safeDialogueName(speaker), speaker, lines, finish)) {
+            return;
+        }
+        startLegacyDialog(player, null, lines, null, npc, finish);
+    }
+
+    private boolean tryStartLuxDialog(Player player, String dialogueId, String speaker, List<String> lines, Runnable finish) {
+        return luxNpcDialogueService.sendLinear(player, dialogueId, speaker, lines, finish);
+    }
+
+    private void startLegacyDialog(Player player, Quest quest, List<String> lines, NPC npc,
+                                   net.citizensnpcs.api.npc.NPC citizensNpc, Runnable finish) {
         player.setInvulnerable(true);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
-        DialogSession session = new DialogSession(null, lines, npc, finish);
+        DialogSession session = new DialogSession(quest, lines, npc, citizensNpc, finish);
         sessions.put(player.getUniqueId(), session);
         sendLine(player, session);
+    }
+
+    private void finishQuestDialog(Player player, Quest quest, NPC npc, net.citizensnpcs.api.npc.NPC citizensNpc) {
+        if (quest != null) {
+            plugin.getQuestManager().startQuest(player, quest.getId());
+        }
+        if (npc != null) {
+            Main.getInstance().getCodexManager().recordNpc(player, org.bukkit.ChatColor.stripColor(npc.getName()));
+        } else if (citizensNpc != null) {
+            Main.getInstance().getCodexManager().recordNpc(player, org.bukkit.ChatColor.stripColor(citizensNpc.getName()));
+        }
+        recordDialogCooldown(player);
     }
 
     /**
@@ -268,6 +305,10 @@ public class NPCDialogManager implements Listener {
             plugin.getQuestManager().setFlag(player.getUniqueId(), questId, pendingFlag);
             String last = lastLines.get(player.getUniqueId());
             pendingChoices.put(player.getUniqueId(), new PendingChoice(npc, options, callback, questId, flagBase, last));
+        }
+
+        if (tryStartLuxChoiceDialog(player, npc != null ? npc.getName() : "NPC", options, questId, flagBase, callback)) {
+            return;
         }
 
         // Keep the player locked in place while making the choice
@@ -343,6 +384,10 @@ public class NPCDialogManager implements Listener {
             pendingChoices.put(player.getUniqueId(), new PendingChoice(npc, options, callback, questId, flagBase, last));
         }
 
+        if (tryStartLuxChoiceDialog(player, npc != null ? npc.getName() : "NPC", options, questId, flagBase, callback)) {
+            return;
+        }
+
         player.setInvulnerable(true);
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20 * 60, 4, false, false, false));
 
@@ -397,6 +442,49 @@ public class NPCDialogManager implements Listener {
         choiceSessions.put(player.getUniqueId(), cs);
         Bukkit.getPluginManager().registerEvents(listener, me.nakilex.levelplugin.Main.getInstance());
         sendChoice(player, cs);
+    }
+
+    private boolean tryStartLuxChoiceDialog(Player player, String speaker, List<String> options,
+                                            String questId, String flagBase, Consumer<Integer> callback) {
+        List<LuxNpcDialogueChoice> choices = new java.util.ArrayList<>();
+        for (int i = 0; i < options.size(); i++) {
+            final int choiceIndex = i;
+            String option = options.get(i);
+            choices.add(new LuxNpcDialogueChoice("choice_" + i, option, () -> finishLuxChoice(player, questId, flagBase, choiceIndex, callback)));
+        }
+        return luxNpcDialogueService.sendChoice(player,
+                "choice_" + safeDialogueName(speaker),
+                speaker,
+                java.util.List.of("Choose your answer."),
+                choices);
+    }
+
+    private void finishLuxChoice(Player player, String questId, String flagBase, int choiceIndex, Consumer<Integer> callback) {
+        player.removePotionEffect(PotionEffectType.SLOWNESS);
+        player.setInvulnerable(false);
+        recordDialogCooldown(player);
+        BukkitTask pending = resumeTasks.remove(player.getUniqueId());
+        if (pending != null) pending.cancel();
+        if (questId != null && flagBase != null) {
+            QuestManager qm = plugin.getQuestManager();
+            qm.removeFlag(player.getUniqueId(), questId, flagBase + "pending");
+            qm.setFlag(player.getUniqueId(), questId, flagBase + choiceIndex);
+            pendingChoices.remove(player.getUniqueId());
+        }
+        if (callback != null) {
+            callback.accept(choiceIndex);
+        }
+    }
+
+    private String safeDialogueName(String value) {
+        if (value == null || value.isBlank()) {
+            return "npc";
+        }
+        return org.bukkit.ChatColor.stripColor(value)
+                .toLowerCase(java.util.Locale.ROOT)
+                .replaceAll("[^a-z0-9_]+", "_")
+                .replaceAll("_+", "_")
+                .replaceAll("^_|_$", "");
     }
 
     /** Convenience overload for backwards compatibility. */
