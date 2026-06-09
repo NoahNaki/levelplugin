@@ -124,6 +124,7 @@ import me.nakilex.levelplugin.advancement.commands.AdvancementAdminCommand;
 import me.nakilex.levelplugin.server.ConnectCommand;
 import me.nakilex.levelplugin.server.HubCommand;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
+import me.nakilex.levelplugin.luxdialogues.LuxDialogueTestCommand;
 import org.bukkit.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -240,6 +241,10 @@ public class CommandRegistry {
         plugin.getCommand("additem").setExecutor(addItemCmd);
         plugin.getCommand("additem").setTabCompleter(addItemCmd);
         plugin.getCommand("opsword").setExecutor(new OpSwordCommand());
+
+        LuxDialogueTestCommand luxDialogueTestCommand = new LuxDialogueTestCommand(plugin);
+        plugin.getCommand("luxapitest").setExecutor(luxDialogueTestCommand);
+        plugin.getCommand("luxapitest").setTabCompleter(luxDialogueTestCommand);
         me.nakilex.levelplugin.items.commands.GenerateItemCommand genItemCmd = new me.nakilex.levelplugin.items.commands.GenerateItemCommand();
         plugin.getCommand("genitem").setExecutor(genItemCmd);
         plugin.getCommand("genitem").setTabCompleter(genItemCmd);

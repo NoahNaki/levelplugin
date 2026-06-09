@@ -5,6 +5,7 @@ author: Nakilex
 api-version: 1.21
 description: A simple MMORPG leveling system plugin for Minecraft
 depend: [ProtocolLib, Citizens, Vault, PlaceholderAPI, Nexo, ModelEngine, packetevents]
+softdepend: [LuxDialogues]
 
 commands:
   addpoints:
@@ -73,6 +74,11 @@ commands:
   additem:
     description: Gives a custom item to a player
     usage: /additem <item_id> <player> <amount>
+    permission: none
+  luxapitest:
+    description: Sends a test dialogue through the LuxDialogues API
+    usage: /luxapitest [send|status|clear]
+    aliases: [ldtest, luxdialogtest]
     permission: none
   opsword:
     description: Gives an admin sword with overwhelming power
