@@ -29,6 +29,7 @@ import java.util.UUID;
  */
 public final class LuxNpcDialogueService {
     private static final int DEFAULT_WRAP_CHARS = 32;
+    private static final int MAX_LINES_PER_PAGE = 4;
 
     private static final String DIALOGUE_CLASS = "org.aselstudios.luxdialoguesapi.Builders.Dialogue";
     private static final String DIALOGUE_BUILDER_CLASS = "org.aselstudios.luxdialoguesapi.Builders.Dialogue$Builder";
@@ -87,27 +88,40 @@ public final class LuxNpcDialogueService {
             textLines = List.of("...");
         }
 
-        Object startPageBuilder = newBuilder(PAGE_BUILDER_CLASS);
-        call(startPageBuilder, "setID", new Class<?>[]{String.class}, "start");
-        for (String line : textLines) {
-            call(startPageBuilder, "addLine", new Class<?>[]{String.class}, line);
-        }
-
-        if (choices != null && !choices.isEmpty()) {
-            for (LuxNpcDialogueChoice choice : choices) {
-                call(startPageBuilder, "addAnswer", new Class<?>[]{getClassByName(ANSWER_CLASS)}, buildChoiceAnswer(choice));
-            }
-        } else if (finish != null) {
-            call(startPageBuilder, "addPostCallback", new Class<?>[]{getClassByName(CALLBACK_CLASS)}, createCallback(finish));
-        }
-        Object startPage = call(startPageBuilder, "build", new Class<?>[]{});
-
-        Object endPage = buildEndPage();
+        List<List<String>> pages = paginate(textLines, MAX_LINES_PER_PAGE);
 
         Object dialogueBuilder = newBuilder(DIALOGUE_BUILDER_CLASS);
         configureBaseDialogue(dialogueBuilder, safeDialogueId(dialogueId), speaker);
-        call(dialogueBuilder, "addPage", new Class<?>[]{getClassByName(PAGE_CLASS)}, startPage);
-        call(dialogueBuilder, "addPage", new Class<?>[]{getClassByName(PAGE_CLASS)}, endPage);
+
+        for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
+            String pageId = pageId(pageIndex);
+            boolean lastPage = pageIndex == pages.size() - 1;
+
+            Object pageBuilder = newBuilder(PAGE_BUILDER_CLASS);
+            call(pageBuilder, "setID", new Class<?>[]{String.class}, pageId);
+
+            for (String line : pages.get(pageIndex)) {
+                call(pageBuilder, "addLine", new Class<?>[]{String.class}, line);
+            }
+
+            if (!lastPage) {
+                call(pageBuilder, "addAnswer", new Class<?>[]{getClassByName(ANSWER_CLASS)}, buildGotoAnswer(
+                        "continue_" + pageIndex,
+                        "Continue",
+                        pageId(pageIndex + 1)
+                ));
+            } else if (choices != null && !choices.isEmpty()) {
+                for (LuxNpcDialogueChoice choice : choices) {
+                    call(pageBuilder, "addAnswer", new Class<?>[]{getClassByName(ANSWER_CLASS)}, buildChoiceAnswer(choice));
+                }
+            } else if (finish != null) {
+                call(pageBuilder, "addPostCallback", new Class<?>[]{getClassByName(CALLBACK_CLASS)}, createCallback(finish));
+            }
+
+            call(dialogueBuilder, "addPage", new Class<?>[]{getClassByName(PAGE_CLASS)}, call(pageBuilder, "build", new Class<?>[]{}));
+        }
+
+        call(dialogueBuilder, "addPage", new Class<?>[]{getClassByName(PAGE_CLASS)}, buildEndPage());
         return call(dialogueBuilder, "build", new Class<?>[]{});
     }
 
@@ -119,6 +133,14 @@ public final class LuxNpcDialogueService {
         if (choice.callback() != null) {
             call(answerBuilder, "addCallback", new Class<?>[]{getClassByName(CALLBACK_CLASS)}, createCallback(choice.callback()));
         }
+        return call(answerBuilder, "build", new Class<?>[]{});
+    }
+
+    private Object buildGotoAnswer(String id, String text, String targetPageId) throws ReflectiveOperationException {
+        Object answerBuilder = newBuilder(ANSWER_BUILDER_CLASS);
+        call(answerBuilder, "setAnswerID", new Class<?>[]{String.class}, safeAnswerId(id));
+        call(answerBuilder, "setAnswerText", new Class<?>[]{String.class}, text);
+        call(answerBuilder, "setGoTo", new Class<?>[]{List.class}, List.of(targetPageId));
         return call(answerBuilder, "build", new Class<?>[]{});
     }
 
@@ -208,25 +230,69 @@ public final class LuxNpcDialogueService {
         if (cleaned.isEmpty()) {
             return List.of("");
         }
+
         List<String> lines = new ArrayList<>();
         StringBuilder current = new StringBuilder();
+
         for (String word : cleaned.split("\\s+")) {
             if (current.length() == 0) {
                 current.append(word);
-                continue;
-            }
-            if (current.length() + 1 + word.length() > maxChars) {
-                lines.add(current.toString());
-                current.setLength(0);
+            } else if (current.length() + 1 + word.length() > maxChars) {
+                addWrappedLine(lines, current);
                 current.append(word);
             } else {
                 current.append(' ').append(word);
             }
+
+            if (endsSentence(word)) {
+                addWrappedLine(lines, current);
+            }
         }
-        if (current.length() > 0) {
-            lines.add(current.toString());
-        }
+
+        addWrappedLine(lines, current);
         return lines;
+    }
+
+    private void addWrappedLine(List<String> lines, StringBuilder current) {
+        if (current.length() == 0) {
+            return;
+        }
+        String line = current.toString().trim();
+        current.setLength(0);
+        if (!line.isBlank()) {
+            lines.add(line);
+        }
+    }
+
+    private boolean endsSentence(String word) {
+        String cleaned = word == null ? "" : word.replaceAll("[\\\"')\\]}>]+$", "");
+        return cleaned.endsWith(".") || cleaned.endsWith("!") || cleaned.endsWith("?");
+    }
+
+    private List<List<String>> paginate(List<String> lines, int maxLinesPerPage) {
+        List<List<String>> pages = new ArrayList<>();
+        List<String> currentPage = new ArrayList<>();
+        int safeMaxLines = Math.max(1, maxLinesPerPage);
+
+        for (String line : lines) {
+            if (currentPage.size() >= safeMaxLines) {
+                pages.add(currentPage);
+                currentPage = new ArrayList<>();
+            }
+            currentPage.add(line);
+        }
+
+        if (!currentPage.isEmpty()) {
+            pages.add(currentPage);
+        }
+        if (pages.isEmpty()) {
+            pages.add(List.of("..."));
+        }
+        return pages;
+    }
+
+    private String pageId(int pageIndex) {
+        return pageIndex == 0 ? "start" : "page_" + pageIndex;
     }
 
     private String safeDialogueId(String id) {
