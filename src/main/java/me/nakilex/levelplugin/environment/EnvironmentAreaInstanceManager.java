@@ -95,7 +95,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int MAX_BUILD_SPEED_PERCENT = 100;
     private static int buildSpeedPercent = 100;
     private static final long COIN_SEND_INTERVAL_TICKS = 2L;
-    private static final String BLACKSMITH_NPC_MODEL_ID = "scene_blacksmith_1.bbmodel";
+    private static final Map<String, String> CITIZENS_NPC_MODEL_BY_NAME = Map.of(
+            "blacksmith", "scene_blacksmith_1.bbmodel"
+    );
     private static final List<CoinVisual> PAYMENT_COIN_VISUALS = List.of(
             new CoinVisual(100, Material.GOLD_NUGGET, "gold_coin"),
             new CoinVisual(10, Material.IRON_NUGGET, "iron_coin"),
@@ -125,8 +127,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new BuildingTemplate(2, "blacksmith", "Blacksmith", Material.ANVIL,
                     new Cuboid(3875, 80, -2976, 3922, 151, -3035),
                     projectFinishedToEmpty(new Cuboid(3875, 80, -2976, 3922, 151, -3035)),
-                    projectFinishedToEmpty(new WorldPoint(3883, 90, -2982)),
-                    BLACKSMITH_NPC_MODEL_ID),
+                    projectFinishedToEmpty(new WorldPoint(3883, 90, -2982))),
             new BuildingTemplate(3, "fishing", "Fishing", Material.WATER_BUCKET,
                     new Cuboid(3860, 85, -2807, 3921, 161, -2880),
                     projectFinishedToEmpty(new Cuboid(3860, 85, -2807, 3921, 161, -2880)),
@@ -945,6 +946,16 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 player.getInventory().setItemInMainHand(null);
             }
             refreshBuildHologram(session, slot);
+            if (updatedFinish <= System.currentTimeMillis()) {
+                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                        building.displayName() + " build time has been completed. Finishing construction...");
+            }
+            return;
+        }
+        if (finishAt != null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                    building.displayName() + " construction is finishing. Please wait a moment.");
+            refreshBuildHologram(session, slot);
             return;
         }
         if (isBuilt && maxLevelForSlot(slot) <= 1) {
@@ -1134,12 +1145,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     return;
                 }
                 long buildDurationMs = computeBuildDurationMs(slot, nextLevel);
-                long finishAt = System.currentTimeMillis() + buildDurationMs;
+                long startedAt = System.currentTimeMillis();
+                long finishAt = startedAt + buildDurationMs;
                 UUID profileScoped = resolveProfileScopedId(player);
                 setBuildFinishAt(profileScoped, slot, finishAt);
                 refreshBuildHologram(session, slot);
                 long totalTicks = Math.max(1L, Math.round((buildDurationMs / 1000.0) * 20.0));
-                buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker, totalTicks, () -> {
+                buildTemplateLayered(player, session, building, template, destinationArea, destinationMarker,
+                        new BuildAnimationTiming(profileScoped, slot, startedAt, finishAt, totalTicks), () -> {
                     markBuiltForProfile(player, slot);
                     clearBuildFinishAt(profileScoped, slot);
                     if (slot == 4) {
@@ -1508,7 +1521,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                       CuboidTemplate template,
                                       WorldCuboid destinationArea,
                                       Location destinationMarker,
-                                      long totalTicks,
+                                      BuildAnimationTiming timing,
                                       Runnable onComplete) {
         if (player == null || session == null || building == null || template == null
                 || destinationArea == null || destinationMarker == null) {
@@ -1524,8 +1537,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 + ", destMin=" + baseX + "," + baseY + "," + baseZ
                 + ", destMax=" + destinationArea.maxX() + "," + destinationArea.maxY() + "," + destinationArea.maxZ()
                 + ", blockCount=" + copies.size());
-        int animationTicks = scaledBuildAnimationTicks(totalTicks);
-        int blocksPerTick = Math.max(1, copies.size() / animationTicks);
+        int animationTicks = scaledBuildAnimationTicks(timing == null ? 1L : timing.totalTicks());
         new BukkitRunnable() {
             int index = 0;
 
@@ -1540,10 +1552,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     cancel();
                     return;
                 }
-                for (int i = 0; i < blocksPerTick && index < copies.size(); i++, index++) {
+                int targetIndex = resolveBuildAnimationTargetIndex(copies.size(), index, animationTicks, timing);
+                while (index < targetIndex && index < copies.size()) {
                     CuboidTemplate.BlockCopy copy = copies.get(index);
                     world.getBlockAt(baseX + copy.x(), baseY + copy.y(), baseZ + copy.z())
                             .setBlockData(copy.data(), false);
+                    index++;
                 }
                 if (index >= copies.size()) {
                     player.playSound(player.getLocation(), Sound.BLOCK_ANVIL_USE, 1f, 1f);
@@ -1579,6 +1593,26 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 null
         );
         AdvancementToastUtil.showToast(player, toastAdvancement);
+    }
+
+    private int resolveBuildAnimationTargetIndex(int totalBlocks, int currentIndex, int animationTicks, BuildAnimationTiming timing) {
+        if (totalBlocks <= 0) {
+            return 0;
+        }
+        if (timing == null) {
+            return totalBlocks;
+        }
+        long now = System.currentTimeMillis();
+        Long updatedFinishAt = getBuildFinishAt(timing.profileScopedId(), timing.slot());
+        long finishAt = updatedFinishAt == null ? timing.originalFinishAtMs() : updatedFinishAt;
+        if (now >= finishAt) {
+            return totalBlocks;
+        }
+        long totalDuration = Math.max(1L, finishAt - timing.startedAtMs());
+        long elapsed = Math.max(0L, now - timing.startedAtMs());
+        int timeTarget = (int) Math.ceil(totalBlocks * Math.min(1.0D, elapsed / (double) totalDuration));
+        int minimumPerTickTarget = currentIndex + Math.max(1, (int) Math.ceil(totalBlocks / (double) Math.max(1, animationTicks)));
+        return Math.max(currentIndex, Math.min(totalBlocks, Math.max(timeTarget, minimumPerTickTarget)));
     }
 
     private static int scaledBuildAnimationTicks(long baseTicks) {
@@ -1650,7 +1684,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             clone.data().setPersistent(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED,
                     template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED, true));
             clone.data().setPersistent(ENV_AREA_CLONE_KEY, true);
-            applyBuildingNpcModel(building, clone);
+            applyCitizensNpcModelByName(template, clone, building);
             spawned++;
             plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templateId=" + template.getId()
                     + " name='" + template.getName() + "' for building='" + building.id() + "'"
@@ -1668,25 +1702,62 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 + "': found=" + found + ", spawned=" + spawned);
     }
 
-    private void applyBuildingNpcModel(BuildingTemplate building, net.citizensnpcs.api.npc.NPC npc) {
-        if (building == null || npc == null || building.citizensNpcModelId() == null
-                || building.citizensNpcModelId().isBlank() || !npc.isSpawned() || npc.getEntity() == null) {
+    private void applyCitizensNpcModelByName(net.citizensnpcs.api.npc.NPC template,
+                                             net.citizensnpcs.api.npc.NPC clone,
+                                             BuildingTemplate building) {
+        if (template == null || clone == null || !clone.isSpawned() || clone.getEntity() == null) {
+            return;
+        }
+        String modelId = resolveCitizensNpcModelId(template.getName());
+        if (modelId == null || modelId.isBlank()) {
             return;
         }
         ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyFirstAvailableModel(
-                npc.getEntity(),
-                ModelEngineUtil.buildModelCandidates(building.citizensNpcModelId()),
+                clone.getEntity(),
+                ModelEngineUtil.buildModelCandidates(modelId),
                 plugin
         );
+        String buildingId = building == null ? "unknown" : building.id();
         if (result.applied().isEmpty()) {
             plugin.getLogger().warning("[EnvironmentArea] Failed to apply Citizens NPC model '"
-                    + building.citizensNpcModelId() + "' for building='" + building.id()
-                    + "' npcId=" + npc.getId() + " name='" + npc.getName() + "'.");
+                    + modelId + "' for npcName='" + template.getName() + "' building='" + buildingId
+                    + "' npcId=" + clone.getId() + ".");
             return;
         }
         plugin.getLogger().info("[EnvironmentArea] Applied Citizens NPC model '" + result.applied().get(0)
-                + "' for building='" + building.id() + "' npcId=" + npc.getId()
-                + " name='" + npc.getName() + "'.");
+                + "' for npcName='" + template.getName() + "' building='" + buildingId
+                + "' npcId=" + clone.getId() + ".");
+    }
+
+    private String resolveCitizensNpcModelId(String npcName) {
+        String normalizedName = normalizeNpcModelName(npcName);
+        if (normalizedName.isBlank()) {
+            return null;
+        }
+        String exactMatch = CITIZENS_NPC_MODEL_BY_NAME.get(normalizedName);
+        if (exactMatch != null) {
+            return exactMatch;
+        }
+        for (Map.Entry<String, String> entry : CITIZENS_NPC_MODEL_BY_NAME.entrySet()) {
+            if (normalizedName.contains(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    private String normalizeNpcModelName(String npcName) {
+        if (npcName == null) {
+            return "";
+        }
+        String stripped = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', npcName));
+        if (stripped == null) {
+            return "";
+        }
+        return stripped.toLowerCase(Locale.ROOT)
+                .replaceAll("[^a-z0-9]+", " ")
+                .trim()
+                .replaceAll(" +", " ");
     }
 
     private boolean isInsideSelection(Location location, World expectedWorld, Cuboid selection) {
@@ -1805,18 +1876,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                     Material marker,
                                     Cuboid source,
                                     Cuboid placement,
-                                    WorldPoint hologramPoint,
-                                    String citizensNpcModelId) {
-        private BuildingTemplate(int slot,
-                                 String id,
-                                 String displayName,
-                                 Material marker,
-                                 Cuboid source,
-                                 Cuboid placement,
-                                 WorldPoint hologramPoint) {
-            this(slot, id, displayName, marker, source, placement, hologramPoint, null);
-        }
-    }
+                                    WorldPoint hologramPoint) { }
+
+    private record BuildAnimationTiming(UUID profileScopedId,
+                                        int slot,
+                                        long startedAtMs,
+                                        long originalFinishAtMs,
+                                        long totalTicks) { }
 
     private record WorldPoint(int x, int y, int z) { }
 
