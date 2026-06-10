@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.animatedlb.MockLeaderboardDataProvider;
 import me.nakilex.levelplugin.animatedlb.PlayerStatsLeaderboardDataProvider;
 import me.nakilex.levelplugin.dungeon.VoidWorldGenerator;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.environment.npc.KingdomNpcSoundManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
 import me.nakilex.levelplugin.utils.FireworkUtil;
@@ -198,12 +199,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, UUID> coopPartnerByOwner = new HashMap<>(); // owner -> member
     private final Map<UUID, UUID> pendingConfirmJoinOwner = new HashMap<>();
     private final Map<UUID, PendingBuildAction> pendingBuildActions = new HashMap<>();
+    private final KingdomNpcSoundManager npcSoundManager;
     private static final String COOP_CONFIRM_TITLE = "Confirm Co-op Join";
     private static final String BUILD_CONFIRM_TITLE = "Confirm Build Action";
     private static final String ENV_AREA_CLONE_KEY = "levelplugin_env_area_clone";
 
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
+        this.npcSoundManager = new KingdomNpcSoundManager(plugin);
         Bukkit.getPluginManager().registerEvents(this, plugin);
         startHologramRefreshTask();
         startBuildTimerTask();
@@ -1771,6 +1774,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
             applyCitizensNpcModelByName(template, clone, building);
             scheduleCitizensNpcModelRetries(template.getName(), clone, building, dest);
+            startConfiguredNpcSoundLoop(template.getName(), clone, building);
             spawned++;
             plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templateId=" + template.getId()
                     + " cloneId=" + clone.getId()
@@ -1829,6 +1833,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return 0;
         }
         applyCitizensNpcModelByName(fallback, fallback, building);
+        startConfiguredNpcSoundLoop(npcName, fallback, building);
         plugin.getLogger().info("[EnvironmentArea/NpcDebug] Spawned fallback Citizens NPC for building='"
                 + building.id() + "' name='" + npcName + "' model='" + modelId + "' at "
                 + fallbackLocation.getBlockX() + "," + fallbackLocation.getBlockY() + ","
@@ -1915,6 +1920,24 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 applyCitizensNpcModel(clone, buildingId, npcName, resolvedModelId, "retry-" + attempt);
             }, delays[i]);
         }
+    }
+
+    private void startConfiguredNpcSoundLoop(String npcName,
+                                             net.citizensnpcs.api.npc.NPC clone,
+                                             BuildingTemplate building) {
+        if (clone == null) {
+            return;
+        }
+        String buildingId = building == null ? null : building.id();
+        String buildingDisplayName = building == null ? null : building.displayName();
+        String modelId = resolveCitizensNpcModelId(npcName);
+        if ((modelId == null || modelId.isBlank()) && building != null) {
+            modelId = resolveCitizensNpcModelId(building.id());
+        }
+        if ((modelId == null || modelId.isBlank()) && building != null) {
+            modelId = resolveCitizensNpcModelId(building.displayName());
+        }
+        npcSoundManager.startConfiguredSoundLoop(npcName, buildingId, buildingDisplayName, modelId, clone);
     }
 
     private String resolveCitizensNpcModelId(String npcName) {
@@ -2402,6 +2425,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         animatedLeaderboardsByOwner.clear();
         cleanupEnvironmentAreaCitizensClones();
+        npcSoundManager.stopAll();
         sessions.clear();
         lastValidLocations.clear();
         lastHologramLinesByTag.clear();
@@ -2437,6 +2461,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             if (area != null && !area.contains(location)) {
                 continue;
             }
+            npcSoundManager.stop(npc.getId());
             CitizensAPI.getNPCRegistry().deregister(npc);
             removed++;
         }
