@@ -93,6 +93,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int BUILD_ANIMATION_TOTAL_TICKS = 40;
     private static final int MIN_BUILD_SPEED_PERCENT = 1;
     private static final int MAX_BUILD_SPEED_PERCENT = 100;
+    private static final int SPEED_UP_COMPLETION_ANIMATION_MULTIPLIER = 100;
     private static int buildSpeedPercent = 100;
     private static final long COIN_SEND_INTERVAL_TICKS = 2L;
     private static final Map<String, String> CITIZENS_NPC_MODEL_BY_NAME = Map.of(
@@ -1386,7 +1387,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             CuboidTemplate template = session.buildingTemplates().get(slot);
             if (building == null || template == null) continue;
             WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
-            pasteBuiltTemplate(session, building, template, area, false);
+            pasteBuiltTemplate(session, building, template, area, true);
             removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
         }
     }
@@ -1604,15 +1605,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         long now = System.currentTimeMillis();
         Long updatedFinishAt = getBuildFinishAt(timing.profileScopedId(), timing.slot());
-        long finishAt = updatedFinishAt == null ? timing.originalFinishAtMs() : updatedFinishAt;
-        if (now >= finishAt) {
-            return totalBlocks;
+        int normalBlocksPerTick = resolveBuildAnimationBlocksPerTick(totalBlocks, animationTicks);
+        int minimumPerTickTarget = currentIndex + normalBlocksPerTick;
+        if (updatedFinishAt == null || now >= updatedFinishAt) {
+            return Math.min(totalBlocks, currentIndex + (normalBlocksPerTick * SPEED_UP_COMPLETION_ANIMATION_MULTIPLIER));
         }
-        long totalDuration = Math.max(1L, finishAt - timing.startedAtMs());
+        long totalDuration = Math.max(1L, updatedFinishAt - timing.startedAtMs());
         long elapsed = Math.max(0L, now - timing.startedAtMs());
         int timeTarget = (int) Math.ceil(totalBlocks * Math.min(1.0D, elapsed / (double) totalDuration));
-        int minimumPerTickTarget = currentIndex + Math.max(1, (int) Math.ceil(totalBlocks / (double) Math.max(1, animationTicks)));
         return Math.max(currentIndex, Math.min(totalBlocks, Math.max(timeTarget, minimumPerTickTarget)));
+    }
+
+    private int resolveBuildAnimationBlocksPerTick(int totalBlocks, int animationTicks) {
+        return Math.max(1, (int) Math.ceil(Math.max(1, totalBlocks) / (double) Math.max(1, animationTicks)));
     }
 
     private static int scaledBuildAnimationTicks(long baseTicks) {
