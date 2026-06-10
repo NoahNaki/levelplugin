@@ -336,7 +336,7 @@ public class ProfileSelectionGUI implements Listener {
 
         if (sameActive) {
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
-                    "You already have the " + ChatColor.WHITE + prof.getName() + ChatColor.YELLOW + " profile selected.");
+                    "you already have this profile selected");
             restoreActiveProfileAfterCancelledSelection(player, index);
             stopSelection(player);
             player.closeInventory();
