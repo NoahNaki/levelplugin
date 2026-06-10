@@ -768,10 +768,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         List<Entity> entities = new ArrayList<>();
         final float sharedLeftAnchor = -0.40f;
         final double lineStep = 0.25d;
-        plugin.getLogger().info("[EnvironmentArea/HologramDebug] tag=" + tag
-                + " base=" + base.getBlockX() + "," + base.getBlockY() + "," + base.getBlockZ()
-                + " lineCount=" + lines.size()
-                + " billboard=CENTER align=LEFT lineWidth=320 fixedLeftAnchor=" + sharedLeftAnchor);
+        // Hologram layout debug removed; it is unrelated to kingdom NPC/profile restore.
         Interaction clicker = base.getWorld().spawn(base.clone().add(0, -1.0, 0), Interaction.class, interaction -> {
             interaction.setInteractionWidth(4.5f);
             interaction.setInteractionHeight(5.5f);
@@ -851,10 +848,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     new AxisAngle4f()
             ));
         }
-        plugin.getLogger().info("[EnvironmentArea/HologramDebug] segment start=" + startInclusive
-                + " end=" + endExclusive
-                + " leftAligned=" + leftAligned
-                + " lineCount=" + (endExclusive - startInclusive));
+        // Hologram segment debug removed; it is unrelated to kingdom NPC/profile restore.
         display.setShadowRadius(0f);
         display.setShadowStrength(0f);
         display.setBackgroundColor(org.bukkit.Color.fromARGB(0, 0, 0, 0));
@@ -1384,29 +1378,69 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private void applySavedBuilds(Player player, EnvironmentAreaSession session) {
         UUID scoped = resolveProfileScopedId(player);
         java.util.Set<Integer> built = new java.util.HashSet<>(loadBuiltSlots(scoped));
-        boolean inferredBuiltSlot = false;
-        for (BuildingTemplate building : BUILDINGS) {
-            int slot = building.slot();
-            if (!built.contains(slot) && resolveCurrentLevel(player, slot) > 0) {
-                built.add(slot);
-                inferredBuiltSlot = true;
-            }
-        }
-        if (inferredBuiltSlot) {
-            builtSlotsByProfile.put(scoped, built);
-            saveBuiltSlots(scoped);
-        }
+        java.util.List<RestoredBuiltBuilding> restored = new java.util.ArrayList<>();
         for (Integer slot : built) {
             BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
             CuboidTemplate template = session.buildingTemplates().get(slot);
             if (building == null || template == null) continue;
             WorldCuboid area = toPastedCuboid(building.placement(), session.originX(), session.originY(), session.originZ());
-            CitizensNpcCopyResult npcResult = pasteBuiltTemplate(session, building, template, area, true);
-            sendKingdomNpcDebug(player, building, npcResult);
+
+            // Restore blocks first. NPC/model restore is delayed below because on
+            // profile load/server restart the instance world has just been recreated
+            // and Citizens/ModelEngine can accept calls before the visible entity/model
+            // is actually stable client-side.
+            pasteBuiltTemplate(session, building, template, area, false);
+            restored.add(new RestoredBuiltBuilding(building, area));
             removeBuildHologram(session, HOLOGRAM_TAG_PREFIX + session.ownerId() + ":" + slot);
         }
+        scheduleSavedBuildNpcRestore(session, restored);
     }
 
+    private void scheduleSavedBuildNpcRestore(EnvironmentAreaSession session, java.util.List<RestoredBuiltBuilding> restored) {
+        if (session == null || restored == null || restored.isEmpty()) {
+            return;
+        }
+
+        // Do not blindly run the whole NPC copy step multiple times. Copying creates a
+        // new Citizens NPC, so every scheduled restore attempt used to stack another
+        // blacksmith at the same position. We still keep delayed attempts for restart
+        // safety, but each building is marked complete as soon as one NPC was spawned.
+        java.util.Map<Integer, java.util.concurrent.atomic.AtomicBoolean> restoredBySlot = new java.util.HashMap<>();
+        for (RestoredBuiltBuilding restoredBuilding : restored) {
+            if (restoredBuilding != null && restoredBuilding.building() != null) {
+                restoredBySlot.put(restoredBuilding.building().slot(), new java.util.concurrent.atomic.AtomicBoolean(false));
+            }
+        }
+
+        long[] delays = {20L, 80L, 160L};
+        for (int i = 0; i < delays.length; i++) {
+            final int attempt = i + 1;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (!sessions.containsKey(session.ownerId()) || session.world() == null) {
+                    return;
+                }
+                for (RestoredBuiltBuilding restoredBuilding : restored) {
+                    if (restoredBuilding == null || restoredBuilding.building() == null || restoredBuilding.area() == null) {
+                        continue;
+                    }
+                    BuildingTemplate building = restoredBuilding.building();
+                    java.util.concurrent.atomic.AtomicBoolean completed = restoredBySlot.get(building.slot());
+                    if (completed != null && completed.get()) {
+                        continue;
+                    }
+
+                    WorldCuboid area = restoredBuilding.area();
+                    CitizensNpcCopyResult result = copyCitizensNpcsIntoBuiltBuilding(session, building, area, true);
+                    if (result.spawned() > 0 && completed != null) {
+                        completed.set(true);
+                    }
+                    plugin.getLogger().info("[EnvironmentArea/NpcRestore] attempt=" + attempt
+                            + " building='" + building.id() + "' " + result.summary()
+                            + (result.spawned() > 0 ? " completed=true" : " completed=false"));
+                }
+            }, delays[i]);
+        }
+    }
 
     private CitizensNpcCopyResult pasteBuiltTemplate(EnvironmentAreaSession session,
                                                      BuildingTemplate building,
@@ -1442,7 +1476,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (playerId == null) return;
         UUID scoped = scopedProfileId(playerId, slot);
         builtSlotsByProfile.remove(scoped);
-        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area.built-slots", null);
+        buildFinishAtByProfile.remove(scoped);
+        farmBuildingLevelByProfile.remove(scoped);
+        palaceBuildingLevelByProfile.remove(scoped);
+        blacksmithBuildingLevelByProfile.remove(scoped);
+        plugin.getPlayerConfig().getConfig().set("players." + scoped + ".environment.area", null);
         plugin.getPlayerConfig().saveConfigFile();
     }
 
@@ -1713,27 +1751,32 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             org.bukkit.entity.EntityType type = template.isSpawned() && template.getEntity() != null
                     ? template.getEntity().getType()
                     : org.bukkit.entity.EntityType.PLAYER;
+            loadNpcDestinationChunk(dest);
             net.citizensnpcs.api.npc.NPC clone = cloneCitizensNpc(template, type);
-            clone.spawn(dest);
-            if (!clone.isSpawned() || clone.getEntity() == null) {
-                plugin.getLogger().warning("[EnvironmentArea] Citizens clone failed to spawn for templateId="
-                        + template.getId() + " name='" + template.getName() + "' type=" + type
-                        + " dest=" + dest.getBlockX() + "," + dest.getBlockY() + "," + dest.getBlockZ());
-                continue;
-            }
-            // Copy common Citizens metadata after spawn so failed/invalid persisted data
-            // cannot block the clone from appearing in-world.
+            clone.data().setPersistent(ENV_AREA_CLONE_KEY, true);
             clone.data().setPersistent(net.citizensnpcs.api.npc.NPC.Metadata.NAMEPLATE_VISIBLE,
                     template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.NAMEPLATE_VISIBLE, true));
             clone.data().setPersistent(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED,
                     template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED, true));
-            clone.data().setPersistent(ENV_AREA_CLONE_KEY, true);
+
+            clone.spawn(dest);
+            if (!ensureCitizensNpcAtDestination(clone, dest)) {
+                plugin.getLogger().warning("[EnvironmentArea] Citizens clone failed to spawn at destination for templateId="
+                        + template.getId() + " name='" + template.getName() + "' type=" + type
+                        + " expected=" + formatLocation(dest)
+                        + " actual=" + formatLocation(clone.getEntity() == null ? null : clone.getEntity().getLocation()));
+                CitizensAPI.getNPCRegistry().deregister(clone);
+                continue;
+            }
+
             applyCitizensNpcModelByName(template, clone, building);
+            scheduleCitizensNpcModelRetries(template.getName(), clone, building, dest);
             spawned++;
             plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templateId=" + template.getId()
+                    + " cloneId=" + clone.getId()
                     + " name='" + template.getName() + "' for building='" + building.id() + "'"
-                    + " source=" + npcLocation.getBlockX() + "," + npcLocation.getBlockY() + "," + npcLocation.getBlockZ()
-                    + " -> dest=" + dest.getBlockX() + "," + dest.getBlockY() + "," + dest.getBlockZ());
+                    + " source=" + formatLocation(npcLocation)
+                    + " -> dest=" + formatLocation(dest));
         }
 
         if (spawned == 0) {
@@ -1779,10 +1822,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         net.citizensnpcs.api.npc.NPC fallback = CitizensAPI.getNPCRegistry().createNPC(EntityType.PLAYER, npcName);
         fallback.data().setPersistent(ENV_AREA_CLONE_KEY, true);
         fallback.spawn(fallbackLocation);
-        if (!fallback.isSpawned() || fallback.getEntity() == null) {
+        if (!ensureCitizensNpcAtDestination(fallback, fallbackLocation)) {
             plugin.getLogger().warning("[EnvironmentArea/NpcDebug] Fallback Citizens NPC failed to spawn for building='"
-                    + building.id() + "' at " + fallbackLocation.getBlockX() + ","
-                    + fallbackLocation.getBlockY() + "," + fallbackLocation.getBlockZ());
+                    + building.id() + "' at " + formatLocation(fallbackLocation));
             CitizensAPI.getNPCRegistry().deregister(fallback);
             return 0;
         }
@@ -1797,37 +1839,30 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private void applyCitizensNpcModelByName(net.citizensnpcs.api.npc.NPC template,
                                              net.citizensnpcs.api.npc.NPC clone,
                                              BuildingTemplate building) {
-        if (template == null || clone == null || !clone.isSpawned() || clone.getEntity() == null) {
+        if (clone == null || !clone.isSpawned() || clone.getEntity() == null) {
             return;
         }
-        String modelId = resolveCitizensNpcModelId(template.getName());
+        String npcName = template == null ? null : template.getName();
+        String modelId = resolveCitizensNpcModelId(npcName);
+        if ((modelId == null || modelId.isBlank()) && building != null) {
+            modelId = resolveCitizensNpcModelId(building.id());
+        }
+        if ((modelId == null || modelId.isBlank()) && building != null) {
+            modelId = resolveCitizensNpcModelId(building.displayName());
+        }
         if (modelId == null || modelId.isBlank()) {
             return;
         }
-        ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyFirstAvailableModel(
-                clone.getEntity(),
-                ModelEngineUtil.buildModelCandidates(modelId),
-                plugin
-        );
-        String buildingId = building == null ? "unknown" : building.id();
-        if (result.applied().isEmpty()) {
-            plugin.getLogger().warning("[EnvironmentArea] Failed to apply Citizens NPC model '"
-                    + modelId + "' for npcName='" + template.getName() + "' building='" + buildingId
-                    + "' npcId=" + clone.getId() + ". Retrying shortly.");
-            Bukkit.getScheduler().runTaskLater(plugin, () -> retryCitizensNpcModelByName(template.getName(), clone, buildingId, modelId), 40L);
-            return;
-        }
-        plugin.getLogger().info("[EnvironmentArea] Applied Citizens NPC model '" + result.applied().get(0)
-                + "' for npcName='" + template.getName() + "' building='" + buildingId
-                + "' npcId=" + clone.getId() + ".");
+        applyCitizensNpcModel(clone, building == null ? "unknown" : building.id(), npcName, modelId, "immediate");
     }
 
-    private void retryCitizensNpcModelByName(String npcName,
-                                             net.citizensnpcs.api.npc.NPC clone,
-                                             String buildingId,
-                                             String modelId) {
+    private boolean applyCitizensNpcModel(net.citizensnpcs.api.npc.NPC clone,
+                                          String buildingId,
+                                          String npcName,
+                                          String modelId,
+                                          String phase) {
         if (clone == null || !clone.isSpawned() || clone.getEntity() == null || modelId == null || modelId.isBlank()) {
-            return;
+            return false;
         }
         ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyFirstAvailableModel(
                 clone.getEntity(),
@@ -1835,14 +1870,51 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 plugin
         );
         if (result.applied().isEmpty()) {
-            plugin.getLogger().warning("[EnvironmentArea] Retry failed to apply Citizens NPC model '"
-                    + modelId + "' for npcName='" + npcName + "' building='" + buildingId
-                    + "' npcId=" + clone.getId() + ".");
+            plugin.getLogger().warning("[EnvironmentArea] Failed to apply Citizens NPC model '"
+                    + modelId + "' phase=" + phase + " for npcName='" + npcName + "' building='" + buildingId
+                    + "' npcId=" + clone.getId() + " actual=" + formatLocation(clone.getEntity().getLocation()) + ".");
+            return false;
+        }
+        plugin.getLogger().info("[EnvironmentArea] Applied Citizens NPC model '" + result.applied().get(0)
+                + "' phase=" + phase + " for npcName='" + npcName + "' building='" + buildingId
+                + "' npcId=" + clone.getId() + " actual=" + formatLocation(clone.getEntity().getLocation()) + ".");
+        return true;
+    }
+
+    private void scheduleCitizensNpcModelRetries(String npcName,
+                                                   net.citizensnpcs.api.npc.NPC clone,
+                                                   BuildingTemplate building,
+                                                   Location expectedLocation) {
+        String modelId = resolveCitizensNpcModelId(npcName);
+        if ((modelId == null || modelId.isBlank()) && building != null) {
+            modelId = resolveCitizensNpcModelId(building.id());
+        }
+        if ((modelId == null || modelId.isBlank()) && building != null) {
+            modelId = resolveCitizensNpcModelId(building.displayName());
+        }
+        if (modelId == null || modelId.isBlank()) {
             return;
         }
-        plugin.getLogger().info("[EnvironmentArea] Retry applied Citizens NPC model '" + result.applied().get(0)
-                + "' for npcName='" + npcName + "' building='" + buildingId
-                + "' npcId=" + clone.getId() + ".");
+        String resolvedModelId = modelId;
+        String buildingId = building == null ? "unknown" : building.id();
+        long[] delays = {10L, 40L, 100L};
+        for (int i = 0; i < delays.length; i++) {
+            final int attempt = i + 1;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (clone == null || expectedLocation == null) {
+                    return;
+                }
+                boolean atDestination = ensureCitizensNpcAtDestination(clone, expectedLocation);
+                if (!atDestination) {
+                    plugin.getLogger().warning("[EnvironmentArea/NpcRestore] modelRetry=" + attempt
+                            + " could not keep npcId=" + clone.getId()
+                            + " at expected=" + formatLocation(expectedLocation)
+                            + " actual=" + formatLocation(clone.getEntity() == null ? null : clone.getEntity().getLocation()));
+                    return;
+                }
+                applyCitizensNpcModel(clone, buildingId, npcName, resolvedModelId, "retry-" + attempt);
+            }, delays[i]);
+        }
     }
 
     private String resolveCitizensNpcModelId(String npcName) {
@@ -1889,15 +1961,61 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private net.citizensnpcs.api.npc.NPC cloneCitizensNpc(net.citizensnpcs.api.npc.NPC template,
                                                            org.bukkit.entity.EntityType fallbackType) {
-        try {
-            java.lang.reflect.Method copyMethod = template.getClass().getMethod("copy");
-            Object copied = copyMethod.invoke(template);
-            if (copied instanceof net.citizensnpcs.api.npc.NPC copiedNpc) {
-                return copiedNpc;
-            }
-        } catch (Throwable ignored) {
+        org.bukkit.entity.EntityType type = fallbackType == null ? org.bukkit.entity.EntityType.PLAYER : fallbackType;
+        String name = template == null || template.getName() == null ? "Kingdom NPC" : template.getName();
+        // Do not use Citizens NPC#copy() here. In practice copied NPCs can keep the
+        // template entity/stored location, which makes post-load clones appear back
+        // in the source world instead of the player's kingdom instance.
+        return CitizensAPI.getNPCRegistry().createNPC(type, name);
+    }
+
+    private void loadNpcDestinationChunk(Location destination) {
+        if (destination == null || destination.getWorld() == null) {
+            return;
         }
-        return CitizensAPI.getNPCRegistry().createNPC(fallbackType, template.getName());
+        try {
+            destination.getChunk().load(true);
+        } catch (Exception ex) {
+            plugin.getLogger().warning("[EnvironmentArea/NpcRestore] Could not load NPC destination chunk at "
+                    + formatLocation(destination) + ": " + ex.getMessage());
+        }
+    }
+
+    private boolean ensureCitizensNpcAtDestination(net.citizensnpcs.api.npc.NPC npc, Location destination) {
+        if (npc == null || destination == null || destination.getWorld() == null) {
+            return false;
+        }
+        if (!npc.isSpawned() || npc.getEntity() == null) {
+            npc.spawn(destination);
+        }
+        if (!npc.isSpawned() || npc.getEntity() == null) {
+            return false;
+        }
+        Location current = npc.getEntity().getLocation();
+        if (!sameBlockLocation(current, destination)) {
+            npc.getEntity().teleport(destination);
+        }
+        current = npc.getEntity().getLocation();
+        return npc.isSpawned() && npc.getEntity() != null && npc.getEntity().isValid()
+                && sameBlockLocation(current, destination);
+    }
+
+    private boolean sameBlockLocation(Location current, Location expected) {
+        if (current == null || expected == null || current.getWorld() == null || expected.getWorld() == null) {
+            return false;
+        }
+        return current.getWorld().equals(expected.getWorld())
+                && current.getBlockX() == expected.getBlockX()
+                && current.getBlockY() == expected.getBlockY()
+                && current.getBlockZ() == expected.getBlockZ();
+    }
+
+    private String formatLocation(Location location) {
+        if (location == null) {
+            return "null";
+        }
+        String worldName = location.getWorld() == null ? "null" : location.getWorld().getName();
+        return worldName + "@" + location.getBlockX() + "," + location.getBlockY() + "," + location.getBlockZ();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -2238,6 +2356,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private record SlotOffset(int dx, int dz) {}
     private record PendingBuildAction(String tag, int slot) {}
+    private record RestoredBuiltBuilding(BuildingTemplate building, WorldCuboid area) {}
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPluginDisable(PluginDisableEvent event) {
