@@ -95,6 +95,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int MAX_BUILD_SPEED_PERCENT = 100;
     private static int buildSpeedPercent = 100;
     private static final long COIN_SEND_INTERVAL_TICKS = 2L;
+    private static final String BLACKSMITH_NPC_MODEL_ID = "scene_blacksmith_1.bbmodel";
     private static final List<CoinVisual> PAYMENT_COIN_VISUALS = List.of(
             new CoinVisual(100, Material.GOLD_NUGGET, "gold_coin"),
             new CoinVisual(10, Material.IRON_NUGGET, "iron_coin"),
@@ -124,7 +125,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new BuildingTemplate(2, "blacksmith", "Blacksmith", Material.ANVIL,
                     new Cuboid(3875, 80, -2976, 3922, 151, -3035),
                     projectFinishedToEmpty(new Cuboid(3875, 80, -2976, 3922, 151, -3035)),
-                    projectFinishedToEmpty(new WorldPoint(3883, 90, -2982))),
+                    projectFinishedToEmpty(new WorldPoint(3883, 90, -2982)),
+                    BLACKSMITH_NPC_MODEL_ID),
             new BuildingTemplate(3, "fishing", "Fishing", Material.WATER_BUCKET,
                     new Cuboid(3860, 85, -2807, 3921, 161, -2880),
                     projectFinishedToEmpty(new Cuboid(3860, 85, -2807, 3921, 161, -2880)),
@@ -1648,6 +1650,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             clone.data().setPersistent(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED,
                     template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED, true));
             clone.data().setPersistent(ENV_AREA_CLONE_KEY, true);
+            applyBuildingNpcModel(building, clone);
             spawned++;
             plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templateId=" + template.getId()
                     + " name='" + template.getName() + "' for building='" + building.id() + "'"
@@ -1663,6 +1666,27 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templates for building='" + building.id()
                 + "': found=" + found + ", spawned=" + spawned);
+    }
+
+    private void applyBuildingNpcModel(BuildingTemplate building, net.citizensnpcs.api.npc.NPC npc) {
+        if (building == null || npc == null || building.citizensNpcModelId() == null
+                || building.citizensNpcModelId().isBlank() || !npc.isSpawned() || npc.getEntity() == null) {
+            return;
+        }
+        ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyFirstAvailableModel(
+                npc.getEntity(),
+                ModelEngineUtil.buildModelCandidates(building.citizensNpcModelId()),
+                plugin
+        );
+        if (result.applied().isEmpty()) {
+            plugin.getLogger().warning("[EnvironmentArea] Failed to apply Citizens NPC model '"
+                    + building.citizensNpcModelId() + "' for building='" + building.id()
+                    + "' npcId=" + npc.getId() + " name='" + npc.getName() + "'.");
+            return;
+        }
+        plugin.getLogger().info("[EnvironmentArea] Applied Citizens NPC model '" + result.applied().get(0)
+                + "' for building='" + building.id() + "' npcId=" + npc.getId()
+                + " name='" + npc.getName() + "'.");
     }
 
     private boolean isInsideSelection(Location location, World expectedWorld, Cuboid selection) {
@@ -1781,7 +1805,18 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                     Material marker,
                                     Cuboid source,
                                     Cuboid placement,
-                                    WorldPoint hologramPoint) { }
+                                    WorldPoint hologramPoint,
+                                    String citizensNpcModelId) {
+        private BuildingTemplate(int slot,
+                                 String id,
+                                 String displayName,
+                                 Material marker,
+                                 Cuboid source,
+                                 Cuboid placement,
+                                 WorldPoint hologramPoint) {
+            this(slot, id, displayName, marker, source, placement, hologramPoint, null);
+        }
+    }
 
     private record WorldPoint(int x, int y, int z) { }
 
