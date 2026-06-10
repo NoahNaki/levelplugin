@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.player.profile;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -333,7 +334,19 @@ public class ProfileSelectionGUI implements Listener {
             FIRST_PROFILE_SLOT.remove(player.getUniqueId());
         }
 
-        if (active != null && !sameActive) {
+        if (sameActive) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "You already have the " + ChatColor.WHITE + prof.getName() + ChatColor.YELLOW + " profile selected.");
+            restoreActiveProfileAfterCancelledSelection(player, index);
+            stopSelection(player);
+            player.closeInventory();
+            BetterHudUtil.addHud(player);
+            me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
+            resyncScoreboardAfterHud(player);
+            return;
+        }
+
+        if (active != null) {
             pm.saveActiveProfile(player);
         }
         player.sendMessage(ChatColor.YELLOW + "Selected character " + prof.getName());

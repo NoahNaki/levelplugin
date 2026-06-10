@@ -302,6 +302,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         EnvironmentAreaSession old = sessions.remove(target.getUniqueId());
         if (old != null) {
             old.removeHolograms();
+            cleanupEnvironmentAreaCitizensClones(old.world());
         }
         removeAnimatedLeaderboard(target.getUniqueId());
 
@@ -1403,7 +1404,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         template.paste(session.world(), area.minX(), area.minY(), area.minZ());
         if (copyNpcs) {
-            copyCitizensNpcsIntoBuiltBuilding(session, building, area);
+            copyCitizensNpcsIntoBuiltBuildingWithRetry(session, building, area);
         }
     }
 
@@ -1568,7 +1569,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                             8);
                     int currentLevel = resolveCurrentLevel(player, building.slot());
                     showBuildingProgressToast(player, building.displayName(), currentLevel, building.marker(), currentLevel > 1);
-                    copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea);
+                    copyCitizensNpcsIntoBuiltBuildingWithRetry(session, building, destinationArea);
                     if (onComplete != null) onComplete.run();
                     cancel();
                 }
@@ -1634,15 +1635,34 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         buildSpeedPercent = Math.max(MIN_BUILD_SPEED_PERCENT, Math.min(MAX_BUILD_SPEED_PERCENT, speedPercent));
     }
 
-    private void copyCitizensNpcsIntoBuiltBuilding(EnvironmentAreaSession session,
-                                                   BuildingTemplate building,
-                                                   WorldCuboid destinationArea) {
-        if (session == null || building == null || destinationArea == null) return;
+    private void copyCitizensNpcsIntoBuiltBuildingWithRetry(EnvironmentAreaSession session,
+                                                            BuildingTemplate building,
+                                                            WorldCuboid destinationArea) {
+        CitizensNpcCopyResult result = copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea, true);
+        if (result.spawned() > 0) {
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (session == null || session.world() == null || building == null || destinationArea == null) {
+                return;
+            }
+            copyCitizensNpcsIntoBuiltBuilding(session, building, destinationArea, true);
+        }, 40L);
+    }
+
+    private CitizensNpcCopyResult copyCitizensNpcsIntoBuiltBuilding(EnvironmentAreaSession session,
+                                                                    BuildingTemplate building,
+                                                                    WorldCuboid destinationArea,
+                                                                    boolean clearExisting) {
+        if (session == null || building == null || destinationArea == null) return new CitizensNpcCopyResult(0, 0);
+        if (clearExisting) {
+            cleanupEnvironmentAreaCitizensClones(session.world(), destinationArea);
+        }
         World sourceWorld = Bukkit.getWorld(SOURCE_WORLD);
         if (sourceWorld == null) {
             plugin.getLogger().warning("[EnvironmentArea] Could not copy Citizens NPCs for building '" + building.id()
                     + "': source world '" + SOURCE_WORLD + "' is unavailable.");
-            return;
+            return new CitizensNpcCopyResult(0, 0);
         }
         Cuboid sourceCuboid = building.source();
         int sourceMinX = sourceCuboid.minX();
@@ -1701,10 +1721,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             plugin.getLogger().warning("[EnvironmentArea] No Citizens NPC templates found inside building source cuboid for '"
                     + building.id() + "'. sourceBounds=[" + sourceCuboid.minX() + "," + sourceCuboid.minY() + "," + sourceCuboid.minZ()
                     + "] to [" + sourceCuboid.maxX() + "," + sourceCuboid.maxY() + "," + sourceCuboid.maxZ() + "]");
-            return;
+            return new CitizensNpcCopyResult(found, spawned);
         }
         plugin.getLogger().info("[EnvironmentArea] Copied Citizens NPC templates for building='" + building.id()
                 + "': found=" + found + ", spawned=" + spawned);
+        return new CitizensNpcCopyResult(found, spawned);
     }
 
     private void applyCitizensNpcModelByName(net.citizensnpcs.api.npc.NPC template,
@@ -1726,11 +1747,35 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (result.applied().isEmpty()) {
             plugin.getLogger().warning("[EnvironmentArea] Failed to apply Citizens NPC model '"
                     + modelId + "' for npcName='" + template.getName() + "' building='" + buildingId
-                    + "' npcId=" + clone.getId() + ".");
+                    + "' npcId=" + clone.getId() + ". Retrying shortly.");
+            Bukkit.getScheduler().runTaskLater(plugin, () -> retryCitizensNpcModelByName(template.getName(), clone, buildingId, modelId), 40L);
             return;
         }
         plugin.getLogger().info("[EnvironmentArea] Applied Citizens NPC model '" + result.applied().get(0)
                 + "' for npcName='" + template.getName() + "' building='" + buildingId
+                + "' npcId=" + clone.getId() + ".");
+    }
+
+    private void retryCitizensNpcModelByName(String npcName,
+                                             net.citizensnpcs.api.npc.NPC clone,
+                                             String buildingId,
+                                             String modelId) {
+        if (clone == null || !clone.isSpawned() || clone.getEntity() == null || modelId == null || modelId.isBlank()) {
+            return;
+        }
+        ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyFirstAvailableModel(
+                clone.getEntity(),
+                ModelEngineUtil.buildModelCandidates(modelId),
+                plugin
+        );
+        if (result.applied().isEmpty()) {
+            plugin.getLogger().warning("[EnvironmentArea] Retry failed to apply Citizens NPC model '"
+                    + modelId + "' for npcName='" + npcName + "' building='" + buildingId
+                    + "' npcId=" + clone.getId() + ".");
+            return;
+        }
+        plugin.getLogger().info("[EnvironmentArea] Retry applied Citizens NPC model '" + result.applied().get(0)
+                + "' for npcName='" + npcName + "' building='" + buildingId
                 + "' npcId=" + clone.getId() + ".");
     }
 
@@ -1874,6 +1919,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return new Cuboid(x1 + dx, y1 + dy, z1 + dz, x2 + dx, y2 + dy, z2 + dz);
         }
     }
+
+    private record CitizensNpcCopyResult(int found, int spawned) { }
 
     private record BuildingTemplate(int slot,
                                     String id,
@@ -2136,6 +2183,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         removeAnimatedLeaderboard(id);
         session.removeHolograms();
+        cleanupEnvironmentAreaCitizensClones(session.world());
         Bukkit.unloadWorld(session.world(), false);
         deleteWorldFolder(session.world().getName());
     }
@@ -2167,17 +2215,39 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private void cleanupEnvironmentAreaCitizensClones() {
+        int removed = cleanupEnvironmentAreaCitizensClones(null, null);
+        if (removed > 0) {
+            plugin.getLogger().info("[EnvironmentArea] Cleaned up " + removed + " session Citizens clones.");
+        }
+    }
+
+    private void cleanupEnvironmentAreaCitizensClones(World world) {
+        int removed = cleanupEnvironmentAreaCitizensClones(world, null);
+        if (removed > 0 && world != null) {
+            plugin.getLogger().info("[EnvironmentArea] Cleaned up " + removed
+                    + " session Citizens clones in world '" + world.getName() + "'.");
+        }
+    }
+
+    private int cleanupEnvironmentAreaCitizensClones(World world, WorldCuboid area) {
         int removed = 0;
         for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
             if (!npc.data().get(ENV_AREA_CLONE_KEY, false)) {
                 continue;
             }
+            Location location = npc.isSpawned() && npc.getEntity() != null
+                    ? npc.getEntity().getLocation()
+                    : npc.getStoredLocation();
+            if (world != null && (location == null || !world.equals(location.getWorld()))) {
+                continue;
+            }
+            if (area != null && !area.contains(location)) {
+                continue;
+            }
             CitizensAPI.getNPCRegistry().deregister(npc);
             removed++;
         }
-        if (removed > 0) {
-            plugin.getLogger().info("[EnvironmentArea] Cleaned up " + removed + " session Citizens clones.");
-        }
+        return removed;
     }
 
     private record KingdomLeaderboardPlacement(WorldPoint point, float yaw, BoardType type) {
