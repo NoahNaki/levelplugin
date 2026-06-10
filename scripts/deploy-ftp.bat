@@ -8,6 +8,15 @@ call "scripts\deploy-config.bat"
 echo Current folder:
 cd
 
+echo Pulling latest changes...
+git pull
+if errorlevel 1 (
+    echo.
+    echo Git pull failed.
+    pause
+    exit /b 1
+)
+
 echo Building plugin...
 call mvn -DskipTests package
 if errorlevel 1 (
