@@ -486,8 +486,6 @@ public class TradingWindow implements Listener {
                         }
                     }
                 }
-                playTradeAchievementSound(p);
-                playTradeAchievementSound(o);
                 showFirstTradeAchievement(p);
                 showFirstTradeAchievement(o);
 
@@ -558,13 +556,6 @@ public class TradingWindow implements Listener {
                 .append(".");
 
         ChatMessageUtil.send(recipient, ChatMessageUtil.MessageType.SUCCESS, message.toString());
-    }
-
-    private void playTradeAchievementSound(Player recipient) {
-        if (recipient == null) {
-            return;
-        }
-        recipient.playSound(recipient.getLocation(), "nexo:ui.achievement", 1.0f, 1.0f);
     }
 
     private void showFirstTradeAchievement(Player recipient) {

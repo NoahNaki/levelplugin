@@ -16,6 +16,8 @@ import java.util.UUID;
 
 /** Emits a native Minecraft advancement toast by loading a temporary hidden advancement. */
 public final class AdvancementToastUtil {
+    private static final String ACHIEVEMENT_SOUND = "nexo:ui.achievement";
+
     private AdvancementToastUtil() {}
 
 
@@ -32,6 +34,7 @@ public final class AdvancementToastUtil {
 
     public static void showToast(Player player, Advancement advancement) {
         if (player == null || advancement == null) return;
+        playAchievementSound(player);
 
         AdvancementDisplay display = advancement.display();
         String materialId = toMinecraftMaterial(display == null ? null : display.icon());
@@ -69,6 +72,13 @@ public final class AdvancementToastUtil {
         } catch (Exception ignored) {
             // Never fail command execution due to a toast formatting/runtime issue.
         }
+    }
+
+    public static void playAchievementSound(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.playSound(player.getLocation(), ACHIEVEMENT_SOUND, 1.0f, 1.0f);
     }
 
     private static String toMinecraftMaterial(Material material) {
