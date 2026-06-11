@@ -22,6 +22,7 @@ public class PlayerSettings {
     private boolean questTrackingParticles = true;
     private boolean tipsEnabled = true;
     private boolean chatGamesEnabled = true;
+    private boolean npcSoundEffects = true;
     private SpellInputMode spellInputMode = SpellInputMode.MOUSE_COMBO;
     private static final ItemRarity[] LOOT_PICKUP_RARITIES = {
             ItemRarity.COMMON,
@@ -164,6 +165,18 @@ public class PlayerSettings {
 
     public void toggleChatGamesEnabled() {
         chatGamesEnabled = !chatGamesEnabled;
+    }
+
+    public boolean isNpcSoundEffectsEnabled() {
+        return npcSoundEffects;
+    }
+
+    public void toggleNpcSoundEffects() {
+        npcSoundEffects = !npcSoundEffects;
+    }
+
+    public void setNpcSoundEffects(boolean npcSoundEffects) {
+        this.npcSoundEffects = npcSoundEffects;
     }
 
     public SpellInputMode getSpellInputMode() {

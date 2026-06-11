@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.luxdialogues;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.utils.NpcSoundUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -91,7 +92,7 @@ public final class LuxNpcDialogueService {
         List<List<String>> pages = paginate(textLines, MAX_LINES_PER_PAGE);
 
         Object dialogueBuilder = newBuilder(DIALOGUE_BUILDER_CLASS);
-        configureBaseDialogue(dialogueBuilder, safeDialogueId(dialogueId), speaker);
+        configureBaseDialogue(dialogueBuilder, player, safeDialogueId(dialogueId), speaker);
 
         for (int pageIndex = 0; pageIndex < pages.size(); pageIndex++) {
             String pageId = pageId(pageIndex);
@@ -152,7 +153,7 @@ public final class LuxNpcDialogueService {
         return call(pageBuilder, "build", new Class<?>[]{});
     }
 
-    private void configureBaseDialogue(Object dialogueBuilder, String dialogueId, String speaker) throws ReflectiveOperationException {
+    private void configureBaseDialogue(Object dialogueBuilder, Player player, String dialogueId, String speaker) throws ReflectiveOperationException {
         call(dialogueBuilder, "setDialogueID", new Class<?>[]{String.class}, dialogueId + "_" + UUID.randomUUID());
         call(dialogueBuilder, "setEffect", new Class<?>[]{String.class}, "Slowness");
         call(dialogueBuilder, "setRange", new Class<?>[]{Double.class}, 3.0D);
@@ -169,8 +170,10 @@ public final class LuxNpcDialogueService {
         call(dialogueBuilder, "setAnswerText", new Class<?>[]{String.class, Integer.class, String.class}, "#4f4a3e", 13, "#4f4a3e");
         call(dialogueBuilder, "setAnswerNumbers", new Class<?>[]{Boolean.class}, true);
         call(dialogueBuilder, "setDialogueSpeed", new Class<?>[]{Integer.class}, 1);
-        call(dialogueBuilder, "setTypingSound", new Class<?>[]{String.class, String.class, Double.class, Double.class}, "luxdialogues:luxdialogues.sounds.typing", "MASTER", 1.0D, 1.0D);
-        call(dialogueBuilder, "setSelectionSound", new Class<?>[]{String.class, String.class, Double.class, Double.class}, "luxdialogues:luxdialogues.sounds.selection", "MASTER", 1.0D, 1.0D);
+        if (NpcSoundUtil.canHearNpcSound(player)) {
+            call(dialogueBuilder, "setTypingSound", new Class<?>[]{String.class, String.class, Double.class, Double.class}, "luxdialogues:luxdialogues.sounds.typing", "MASTER", 1.0D, 1.0D);
+            call(dialogueBuilder, "setSelectionSound", new Class<?>[]{String.class, String.class, Double.class, Double.class}, "luxdialogues:luxdialogues.sounds.selection", "MASTER", 1.0D, 1.0D);
+        }
     }
 
     private Object createCallback(Runnable runnable) throws ReflectiveOperationException {

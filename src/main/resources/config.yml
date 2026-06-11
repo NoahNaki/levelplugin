@@ -27,6 +27,7 @@ tips:
     - "You can type [item] to link what you're holding in chat!"
     - "You can trade &d<glyph:purple_orb_icon> &rat a Gem Exchanger."
     - "Type /settings to toggle different visual features"
+    - "Prefer quieter NPCs? Toggle NPC Sound Effects in /settings."
     - "Every mobility spell scales with agility!"
     - "You can trade with others using /trade <username>"
     - "You can sell your unwanted items at a Scrapper for <glyph:coins_icon> &fcoins & <glyph:purple_orb_icon> &fgems&f!"

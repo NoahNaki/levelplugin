@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.player.woodcutting.drop;
 import me.nakilex.levelplugin.player.woodcutting.tree.TreeDetectionResult;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Tag;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -26,12 +27,25 @@ public class TreeDropService {
 
     private void dropAt(Location location, Collection<ItemStack> drops) {
         if (location.getWorld() == null) return;
-        for (ItemStack drop : drops) if (drop != null && drop.getType() != Material.AIR && drop.getAmount() > 0) location.getWorld().dropItemNaturally(location, drop);
+        for (ItemStack drop : filterDrops(drops)) {
+            location.getWorld().dropItemNaturally(location, drop);
+        }
     }
 
     private void giveOrDrop(Player player, Collection<ItemStack> drops) {
-        Map<Integer, ItemStack> overflow = player.getInventory().addItem(drops.toArray(ItemStack[]::new));
+        Collection<ItemStack> filteredDrops = filterDrops(drops);
+        Map<Integer, ItemStack> overflow = player.getInventory().addItem(filteredDrops.toArray(ItemStack[]::new));
         dropAt(player.getLocation(), overflow.values());
+    }
+
+    private Collection<ItemStack> filterDrops(Collection<ItemStack> drops) {
+        if (drops == null || drops.isEmpty()) {
+            return java.util.List.of();
+        }
+        return drops.stream()
+                .filter(drop -> drop != null && drop.getType() != Material.AIR && drop.getAmount() > 0)
+                .filter(drop -> !Tag.SAPLINGS.isTagged(drop.getType()))
+                .toList();
     }
 
     private void placeOrDrop(TreeDetectionResult.CapturedBlock snapshot, Collection<ItemStack> drops) {

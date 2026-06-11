@@ -1,8 +1,10 @@
 package me.nakilex.levelplugin.utils;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.advancement.AdvancementToastUtil;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.items.listeners.StaticItemListener;
 import me.nakilex.levelplugin.trade.utils.MessageStrings;
 import me.nakilex.levelplugin.trade.utils.Translations;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -29,11 +31,13 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.NamespacedKey;
 
 import java.util.*;
 
 public class TradingWindow implements Listener {
 
+    private static final NamespacedKey FIRST_TRADE_ACHIEVEMENT_KEY = new NamespacedKey(Main.getPlugin(), "first_trade_achievement");
     private static final int PLAYER_COIN_SLOT = 0;  // now slot 0
     private static final int OPPONENT_COIN_SLOT = 8;  // now slot 8
     private static final int INFO_SLOT = 4;
@@ -482,8 +486,10 @@ public class TradingWindow implements Listener {
                         }
                     }
                 }
-                p.playSound(p.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
-                o.playSound(o.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, 1.0f, 1.0f);
+                playTradeAchievementSound(p);
+                playTradeAchievementSound(o);
+                showFirstTradeAchievement(p);
+                showFirstTradeAchievement(o);
 
                 dm.removeTradingWindow(tw);
             } else {
@@ -552,6 +558,31 @@ public class TradingWindow implements Listener {
                 .append(".");
 
         ChatMessageUtil.send(recipient, ChatMessageUtil.MessageType.SUCCESS, message.toString());
+    }
+
+    private void playTradeAchievementSound(Player recipient) {
+        if (recipient == null) {
+            return;
+        }
+        recipient.playSound(recipient.getLocation(), "nexo:ui.achievement", 1.0f, 1.0f);
+    }
+
+    private void showFirstTradeAchievement(Player recipient) {
+        if (recipient == null) {
+            return;
+        }
+        var data = recipient.getPersistentDataContainer();
+        if (data.has(FIRST_TRADE_ACHIEVEMENT_KEY, PersistentDataType.BYTE)) {
+            return;
+        }
+        data.set(FIRST_TRADE_ACHIEVEMENT_KEY, PersistentDataType.BYTE, (byte) 1);
+        AdvancementToastUtil.showToast(recipient, Material.EMERALD, "First Trade!",
+                "Complete your first player trade.",
+                me.nakilex.levelplugin.advancement.model.AdvancementDisplay.FrameType.TASK);
+    }
+
+    private boolean isUntradeableItem(ItemStack item) {
+        return ItemUtil.isSoulbound(item) || StaticItemListener.isStaticItem(item);
     }
 
     // --- Slot checker
@@ -713,9 +744,9 @@ public class TradingWindow implements Listener {
                 }
                 // Allow interacting with own item fields if neither party has accepted yet
                 else if (isOwnField(e.getSlot())) {
-                    if (ItemUtil.isSoulbound(e.getCursor()) || ItemUtil.isSoulbound(e.getCurrentItem())) {
+                    if (isUntradeableItem(e.getCursor()) || isUntradeableItem(e.getCurrentItem())) {
                         e.setCancelled(true);
-                        p.sendMessage(ChatColor.RED + "Soulbound items cannot be traded.");
+                        p.sendMessage(ChatColor.RED + "That item cannot be traded.");
                     } else if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
                         e.setCancelled(true);
                     } else {
@@ -749,9 +780,9 @@ public class TradingWindow implements Listener {
                 }
                 // Allow interacting with own item fields if neither party has accepted yet
                 else if (isOwnField(e.getSlot())) {
-                    if (ItemUtil.isSoulbound(e.getCursor()) || ItemUtil.isSoulbound(e.getCurrentItem())) {
+                    if (isUntradeableItem(e.getCursor()) || isUntradeableItem(e.getCurrentItem())) {
                         e.setCancelled(true);
-                        p.sendMessage(ChatColor.RED + "Soulbound items cannot be traded.");
+                        p.sendMessage(ChatColor.RED + "That item cannot be traded.");
                     } else if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
                         e.setCancelled(true);
                     } else {
@@ -766,7 +797,10 @@ public class TradingWindow implements Listener {
         // If the clicked inventory isn't part of the trade but the player is in a trade session…
         else if (dm.isPlayerCurrentlyDealing(p)) {
             TradingWindow tw = dm.getTradingWindowByPlayer(p);
-            if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
+            if (tw.isUntradeableItem(e.getCurrentItem()) || tw.isUntradeableItem(e.getCursor())) {
+                e.setCancelled(true);
+                p.sendMessage(ChatColor.RED + "That item cannot be traded.");
+            } else if (tw.playerAcceptedDeal || tw.oppositeAcceptedDeal) {
                 if (e.isShiftClick() || e.getClick().equals(ClickType.DOUBLE_CLICK)) {
                     e.setCancelled(true);
                 }

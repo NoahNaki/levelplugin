@@ -149,7 +149,7 @@ public class FishingCatalogGUI implements Listener {
         lore.add("");
         lore.add(TooltipUtil.sectionHeader("Catch Rewards"));
         lore.add(TooltipUtil.statLine("Fishing XP", "+" + def.xpReward(), ChatColor.WHITE));
-        lore.add(TooltipUtil.statLine("Base Value", def.sellValue() + " coins", ChatColor.WHITE));
+        lore.add(TooltipUtil.statLine("Base Value", def.sellValue() + " <glyph:coins_icon>", ChatColor.WHITE));
         addRequirements(lore, def);
         meta.setLore(lore);
         item.setItemMeta(meta);
