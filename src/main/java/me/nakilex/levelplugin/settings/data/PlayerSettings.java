@@ -23,6 +23,7 @@ public class PlayerSettings {
     private boolean tipsEnabled = true;
     private boolean chatGamesEnabled = true;
     private boolean npcSoundEffects = true;
+    private boolean achievementSoundEffects = true;
     private SpellInputMode spellInputMode = SpellInputMode.MOUSE_COMBO;
     private static final ItemRarity[] LOOT_PICKUP_RARITIES = {
             ItemRarity.COMMON,
@@ -177,6 +178,18 @@ public class PlayerSettings {
 
     public void setNpcSoundEffects(boolean npcSoundEffects) {
         this.npcSoundEffects = npcSoundEffects;
+    }
+
+    public boolean isAchievementSoundEffectsEnabled() {
+        return achievementSoundEffects;
+    }
+
+    public void toggleAchievementSoundEffects() {
+        achievementSoundEffects = !achievementSoundEffects;
+    }
+
+    public void setAchievementSoundEffects(boolean achievementSoundEffects) {
+        this.achievementSoundEffects = achievementSoundEffects;
     }
 
     public SpellInputMode getSpellInputMode() {

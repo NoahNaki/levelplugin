@@ -323,6 +323,11 @@ public class SettingsGUI implements Listener {
                             "§7Client-side dialogue sounds",
                             "§eClick to toggle"),
                     (click, context) -> toggleNpcSoundEffects(context.player(), settings)));
+            entries.add(new SettingEntry("Achievement Sound Effects",
+                    context -> GuiUtil.createToggleItem(settings.isAchievementSoundEffectsEnabled(), "§bAchievement Sound Effects",
+                            "§7Client-side achievement sounds",
+                            "§eClick to toggle"),
+                    (click, context) -> toggleAchievementSoundEffects(context.player(), settings)));
             entries.add(new SettingEntry("Skill Point Reminder",
                     context -> GuiUtil.createToggleItem(settings.isSkillPointReminderEnabled(), "§bSkill Point Reminder",
                             "§eClick to toggle"),
@@ -509,6 +514,13 @@ public class SettingsGUI implements Listener {
         settings.toggleNpcSoundEffects();
         settingsManager.saveActiveProfileSettings(player);
         ToggleFeedbackUtil.sendToggle(player, "NPC sound effects", settings.isNpcSoundEffectsEnabled());
+        openSettingsMenu(player);
+    }
+
+    private void toggleAchievementSoundEffects(Player player, PlayerSettings settings) {
+        settings.toggleAchievementSoundEffects();
+        settingsManager.saveActiveProfileSettings(player);
+        ToggleFeedbackUtil.sendToggle(player, "Achievement sound effects", settings.isAchievementSoundEffectsEnabled());
         openSettingsMenu(player);
     }
 

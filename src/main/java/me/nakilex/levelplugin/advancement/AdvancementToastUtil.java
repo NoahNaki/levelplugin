@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.advancement.model.BaseAdvancement;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
 import java.util.Locale;
@@ -34,7 +35,6 @@ public final class AdvancementToastUtil {
 
     public static void showToast(Player player, Advancement advancement) {
         if (player == null || advancement == null) return;
-        playAchievementSound(player);
 
         AdvancementDisplay display = advancement.display();
         String materialId = toMinecraftMaterial(display == null ? null : display.icon());
@@ -67,6 +67,8 @@ public final class AdvancementToastUtil {
             var progress = player.getAdvancementProgress(bukkitAdv);
             Collection<String> criteria = progress.getRemainingCriteria();
             for (String c : criteria) progress.awardCriteria(c);
+            playAchievementSound(player);
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> suppressVanillaToastSounds(player), 1L);
 
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> Bukkit.getUnsafe().removeAdvancement(tempKey), 40L);
         } catch (Exception ignored) {
@@ -78,7 +80,25 @@ public final class AdvancementToastUtil {
         if (player == null) {
             return;
         }
+        suppressVanillaToastSounds(player);
+        if (!canHearAchievementSound(player)) {
+            return;
+        }
         player.playSound(player.getLocation(), ACHIEVEMENT_SOUND, 1.0f, 1.0f);
+    }
+
+    private static boolean canHearAchievementSound(Player player) {
+        Main plugin = Main.getInstance();
+        if (plugin == null || plugin.getSettingsManager() == null) {
+            return true;
+        }
+        return plugin.getSettingsManager().getSettings(player).isAchievementSoundEffectsEnabled();
+    }
+
+    private static void suppressVanillaToastSounds(Player player) {
+        player.stopSound(Sound.UI_TOAST_IN);
+        player.stopSound(Sound.UI_TOAST_OUT);
+        player.stopSound(Sound.UI_TOAST_CHALLENGE_COMPLETE);
     }
 
     private static String toMinecraftMaterial(Material material) {

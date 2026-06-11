@@ -40,10 +40,12 @@ public class SettingsManager {
         SpellInputMode mode = settings.getSpellInputMode();
         config.setProfileSpellInputMode(playerId, slot, mode);
         config.setProfileNpcSoundEffects(playerId, slot, settings.isNpcSoundEffectsEnabled());
+        config.setProfileAchievementSoundEffects(playerId, slot, settings.isAchievementSoundEffectsEnabled());
         config.saveConfigFile();
         Bukkit.getLogger().info("[LevelPlugin][SettingsManager] Saved settings for player="
                 + playerId + " slot=" + slot + " mode=" + mode
-                + " npcSoundEffects=" + settings.isNpcSoundEffectsEnabled());
+                + " npcSoundEffects=" + settings.isNpcSoundEffectsEnabled()
+                + " achievementSoundEffects=" + settings.isAchievementSoundEffectsEnabled());
         Player player = Bukkit.getPlayer(playerId);
         if (player != null) {
             me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
@@ -59,9 +61,11 @@ public class SettingsManager {
         SpellInputMode mode = config.getProfileSpellInputMode(playerId, slot);
         settings.setSpellInputMode(mode);
         settings.setNpcSoundEffects(config.getProfileNpcSoundEffects(playerId, slot));
+        settings.setAchievementSoundEffects(config.getProfileAchievementSoundEffects(playerId, slot));
         Bukkit.getLogger().info("[LevelPlugin][SettingsManager] Loaded settings for player="
                 + playerId + " slot=" + slot + " mode=" + mode
-                + " npcSoundEffects=" + settings.isNpcSoundEffectsEnabled());
+                + " npcSoundEffects=" + settings.isNpcSoundEffectsEnabled()
+                + " achievementSoundEffects=" + settings.isAchievementSoundEffectsEnabled());
         Player player = Bukkit.getPlayer(playerId);
         if (player != null) {
             me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
