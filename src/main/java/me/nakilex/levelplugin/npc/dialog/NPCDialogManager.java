@@ -16,6 +16,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.NpcSoundUtil;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -556,7 +557,7 @@ public class NPCDialogManager implements Listener {
                 TYPING_MILLIS_PER_CHARACTER, LINE_WAIT_MILLIS);
         int lineNumber = ++session.index;
 
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        NpcSoundUtil.play(player, Sound.UI_BUTTON_CLICK, 1f, 1f);
         QuestDialogueManager questDialogueManager = plugin.getQuestDialogueManager();
         if (questDialogueManager != null) {
             questDialogueManager.startDialogueLine(player, getNpcId(session), line, lineNumber, session.lines.size(),
@@ -658,7 +659,7 @@ public class NPCDialogManager implements Listener {
         }
         ChatFormatter.sendCenteredMessage(player, sb.toString());
         ChatFormatter.sendCenteredMessage(player, ChatColor.GRAY + "(Scroll to cycle)");
-        player.playSound(player.getLocation(), Sound.UI_BUTTON_CLICK, 1f, 1f);
+        NpcSoundUtil.play(player, Sound.UI_BUTTON_CLICK, 1f, 1f);
     }
 
     private void finishChoice(Player player, ChoiceSession cs) {

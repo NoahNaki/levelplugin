@@ -8,14 +8,17 @@ import me.nakilex.levelplugin.advancement.model.BaseAdvancement;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
-import java.util.Locale;
 import java.util.Collection;
+import java.util.Locale;
 import java.util.UUID;
 
-/** Emits a native Minecraft advancement toast by loading a temporary hidden advancement. */
+/** Emits a native Minecraft advancement toast while replacing vanilla toast audio with LevelPlugin's Nexo sound. */
 public final class AdvancementToastUtil {
+    private static final String ACHIEVEMENT_SOUND = "nexo:ui.achievement";
+
     private AdvancementToastUtil() {}
 
 
@@ -61,14 +64,39 @@ public final class AdvancementToastUtil {
             org.bukkit.advancement.Advancement bukkitAdv = Bukkit.getUnsafe().loadAdvancement(tempKey, json);
             if (bukkitAdv == null) return;
 
+            suppressVanillaToastSounds(player);
             var progress = player.getAdvancementProgress(bukkitAdv);
             Collection<String> criteria = progress.getRemainingCriteria();
             for (String c : criteria) progress.awardCriteria(c);
+            suppressVanillaToastSounds(player);
+            playAchievementSound(player);
 
+            Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> suppressVanillaToastSounds(player), 1L);
             Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> Bukkit.getUnsafe().removeAdvancement(tempKey), 40L);
         } catch (Exception ignored) {
             // Never fail command execution due to a toast formatting/runtime issue.
         }
+    }
+
+    public static void playAchievementSound(Player player) {
+        if (player == null || !canHearAchievementSound(player)) {
+            return;
+        }
+        player.playSound(player.getLocation(), ACHIEVEMENT_SOUND, 1.0f, 1.0f);
+    }
+
+    private static boolean canHearAchievementSound(Player player) {
+        Main plugin = Main.getInstance();
+        if (plugin == null || plugin.getSettingsManager() == null) {
+            return true;
+        }
+        return plugin.getSettingsManager().getSettings(player).isAchievementSoundEffectsEnabled();
+    }
+
+    private static void suppressVanillaToastSounds(Player player) {
+        player.stopSound(Sound.UI_TOAST_IN);
+        player.stopSound(Sound.UI_TOAST_OUT);
+        player.stopSound(Sound.UI_TOAST_CHALLENGE_COMPLETE);
     }
 
     private static String toMinecraftMaterial(Material material) {

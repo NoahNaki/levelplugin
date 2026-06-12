@@ -39,7 +39,7 @@ woodcutting:
         level-required: 1
         xp-per-log: 6
       SPRUCE:
-        level-required: 5
+        level-required: 1
         xp-per-log: 8
       PINE:
         level-required: 5

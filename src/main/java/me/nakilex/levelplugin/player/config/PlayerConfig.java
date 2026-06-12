@@ -200,6 +200,26 @@ public class PlayerConfig {
         config.set(path, mode == null ? SpellInputMode.MOUSE_COMBO.name() : mode.name());
     }
 
+    public boolean getProfileNpcSoundEffects(UUID uuid, int slot) {
+        String path = "players." + uuid + ".profiles." + slot + ".settings.npc_sound_effects";
+        return config.getBoolean(path, true);
+    }
+
+    public void setProfileNpcSoundEffects(UUID uuid, int slot, boolean enabled) {
+        String path = "players." + uuid + ".profiles." + slot + ".settings.npc_sound_effects";
+        config.set(path, enabled);
+    }
+
+    public boolean getProfileAchievementSoundEffects(UUID uuid, int slot) {
+        String path = "players." + uuid + ".profiles." + slot + ".settings.achievement_sound_effects";
+        return config.getBoolean(path, true);
+    }
+
+    public void setProfileAchievementSoundEffects(UUID uuid, int slot, boolean enabled) {
+        String path = "players." + uuid + ".profiles." + slot + ".settings.achievement_sound_effects";
+        config.set(path, enabled);
+    }
+
     public EnumMap<SpellKeybindSlot, SpellInputType> getProfileSpellKeybinds(UUID uuid, int slot,
                                                                               PlayerClass playerClass,
                                                                               SpellInputMode mode) {
