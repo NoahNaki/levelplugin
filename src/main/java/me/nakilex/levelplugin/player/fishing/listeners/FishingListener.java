@@ -18,11 +18,9 @@ import me.nakilex.levelplugin.utils.ChatFormatter;
 import me.nakilex.levelplugin.advancement.AdvancementToastUtil;
 import me.nakilex.levelplugin.advancement.model.AdvancementDisplay;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.utils.SoundMelodyUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
-import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.FishHook;
@@ -50,15 +48,6 @@ import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 public class FishingListener implements Listener {
-    private static final SoundMelodyUtil.Note[] TROPHY_QUALITY_MELODY = {
-            new SoundMelodyUtil.Note(0L, 1.0f),
-            new SoundMelodyUtil.Note(4L, 1.2f),
-            new SoundMelodyUtil.Note(6L, 1.4f),
-            new SoundMelodyUtil.Note(8L, 1.6f),
-            new SoundMelodyUtil.Note(12L, 1.2f),
-            new SoundMelodyUtil.Note(16L, 1.8f)
-    };
-
     private static final int LAVA_BITE_MIN_TICKS = 20;
     private static final int LAVA_BITE_MAX_TICKS = 50;
     private static final long RECENTLY_COMPLETED_MINI_GAME_MS = 2_000L;
@@ -243,7 +232,6 @@ public class FishingListener implements Listener {
                 AdvancementToastUtil.showToast(player, Material.GOLD_NUGGET,
                         "New Trophy Quality!", quality.getDisplayName() + " " + definition.displayName(),
                         AdvancementDisplay.FrameType.TASK);
-                SoundMelodyUtil.play(plugin, player, Sound.BLOCK_NOTE_BLOCK_PLING, 0.8f, TROPHY_QUALITY_MELODY);
             }, 24L);
         }
         return fishItem;
