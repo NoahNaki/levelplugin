@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingWorkstationType;
 import me.nakilex.levelplugin.cooking.registry.CookingRecipeRegistry;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
+import me.nakilex.levelplugin.cooking.service.CookingSessionService;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstation;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -39,13 +40,13 @@ public class CookingRecipeSelectionGUI implements Listener {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private final CookingRecipeRegistry recipeRegistry;
-    private final ActiveCookingSessionRegistry sessionRegistry;
+    private final CookingSessionService sessionService;
     private final Map<UUID, Integer> pages = new HashMap<>();
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
 
-    public CookingRecipeSelectionGUI(CookingRecipeRegistry recipeRegistry, ActiveCookingSessionRegistry sessionRegistry) {
+    public CookingRecipeSelectionGUI(CookingRecipeRegistry recipeRegistry, CookingSessionService sessionService) {
         this.recipeRegistry = recipeRegistry;
-        this.sessionRegistry = sessionRegistry;
+        this.sessionService = sessionService;
     }
 
     public void open(Player player, PlacedCookingWorkstation workstation) {
@@ -110,8 +111,7 @@ public class CookingRecipeSelectionGUI implements Listener {
     }
 
     private void selectRecipe(Player player, PlacedCookingWorkstation workstation, CookingRecipe recipe) {
-        ActiveCookingSessionRegistry.CreateResult result = sessionRegistry.create(
-                player.getUniqueId(), workstation.locationKey(), recipe.id());
+        ActiveCookingSessionRegistry.CreateResult result = sessionService.startSession(player, workstation, recipe);
         switch (result) {
             case CREATED -> {
                 player.closeInventory();

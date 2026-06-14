@@ -4,12 +4,14 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.cooking.config.CookingConfigLoader;
 import me.nakilex.levelplugin.cooking.config.CookingConfigLoader.CookingConfigData;
 import me.nakilex.levelplugin.cooking.gui.CookingRecipeSelectionGUI;
+import me.nakilex.levelplugin.cooking.listener.CookingIngredientListener;
 import me.nakilex.levelplugin.cooking.listener.CookingWorkstationListener;
 import me.nakilex.levelplugin.cooking.model.CookingWorkstationType;
 import me.nakilex.levelplugin.cooking.registry.CookingRecipeRegistry;
 import me.nakilex.levelplugin.cooking.registry.CookingWorkstationRegistry;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstationRegistry;
+import me.nakilex.levelplugin.cooking.service.CookingSessionService;
 
 /** Foundation module for config-backed cooking data and workstation placement tracking. */
 public class CookingModule {
@@ -19,16 +21,21 @@ public class CookingModule {
     private final CookingWorkstationRegistry workstationRegistry = new CookingWorkstationRegistry();
     private final PlacedCookingWorkstationRegistry placedWorkstationRegistry = new PlacedCookingWorkstationRegistry();
     private final ActiveCookingSessionRegistry activeSessionRegistry = new ActiveCookingSessionRegistry();
+    private final CookingSessionService sessionService;
     private final CookingRecipeSelectionGUI recipeSelectionGUI;
 
     public CookingModule(Main plugin) {
         this.plugin = plugin;
         this.configLoader = new CookingConfigLoader(plugin);
-        this.recipeSelectionGUI = new CookingRecipeSelectionGUI(recipeRegistry, activeSessionRegistry);
+        this.sessionService = new CookingSessionService(recipeRegistry, activeSessionRegistry);
+        this.recipeSelectionGUI = new CookingRecipeSelectionGUI(recipeRegistry, sessionService);
         plugin.getServer().getPluginManager().registerEvents(
                 new CookingWorkstationListener(plugin, workstationRegistry, placedWorkstationRegistry, activeSessionRegistry, recipeSelectionGUI),
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(recipeSelectionGUI, plugin);
+        plugin.getServer().getPluginManager().registerEvents(
+                new CookingIngredientListener(placedWorkstationRegistry, activeSessionRegistry, sessionService),
+                plugin);
     }
 
     public void load() {
