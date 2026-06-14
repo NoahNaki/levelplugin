@@ -1,0 +1,24 @@
+# LevelPlugin cooking definitions. Gameplay listeners are added in a later phase.
+recipes:
+  roasted_carrot:
+    display-material: CARROT
+    stages:
+      1:
+        type: INSERT_ITEM
+        material: CARROT
+        amount: 1
+      2:
+        type: WAIT
+        duration-ticks: 100
+    rewards:
+      1:
+        material: BAKED_POTATO
+        amount: 1
+
+workstations:
+  campfire:
+    block-material: CAMPFIRE
+    item-material: CAMPFIRE
+    recipes:
+      - roasted_carrot
+    permission: ""

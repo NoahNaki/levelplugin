@@ -102,6 +102,7 @@ public class Main extends JavaPlugin {
     public me.nakilex.levelplugin.economy.managers.GemsManager getGemsManager() { return bootstrap.getGemsManager(); }
     public ItemManager getItemManager() { return bootstrap.getItemManager(); }
     public me.nakilex.levelplugin.items.v2.ItemRegistry getItemRegistryV2() { return bootstrap.getItemRegistryV2(); }
+    public me.nakilex.levelplugin.cooking.CookingModule getCookingModule() { return bootstrap.getCookingModule(); }
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseManager getAuctionHouseManager() { return bootstrap.getAuctionHouseManager(); }
     public FileConfiguration getBossConfig() { return bootstrap.getBossConfig(); }
     public MobRewardsConfig getMobRewardsConfig() { return bootstrap.getMobRewardsConfig(); }
