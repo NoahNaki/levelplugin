@@ -1,8 +1,6 @@
 package me.nakilex.levelplugin.cooking.model;
 
 import org.bukkit.Material;
-import org.bukkit.inventory.ItemStack;
-
 import java.util.List;
 
 /** Immutable config-backed cooking recipe definition. */
@@ -12,7 +10,7 @@ public record CookingRecipe(
         Material displayMaterial,
         List<String> lore,
         List<CookingStage> stages,
-        List<ItemStack> rewards
+        List<CookingReward> rewards
 ) {
     public CookingRecipe {
         if (displayName == null || displayName.isBlank()) {

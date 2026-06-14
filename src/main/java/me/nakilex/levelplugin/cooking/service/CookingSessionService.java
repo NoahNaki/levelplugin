@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstation;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -20,11 +21,17 @@ import java.util.Optional;
 public class CookingSessionService {
     private final CookingRecipeRegistry recipeRegistry;
     private final ActiveCookingSessionRegistry sessionRegistry;
+    private final CookingRewardService rewardService;
     private final List<IngredientMatcher> ingredientMatchers = List.of(new VanillaMaterialIngredientMatcher());
 
     public CookingSessionService(CookingRecipeRegistry recipeRegistry, ActiveCookingSessionRegistry sessionRegistry) {
+        this(recipeRegistry, sessionRegistry, new CookingRewardService());
+    }
+
+    public CookingSessionService(CookingRecipeRegistry recipeRegistry, ActiveCookingSessionRegistry sessionRegistry, CookingRewardService rewardService) {
         this.recipeRegistry = recipeRegistry;
         this.sessionRegistry = sessionRegistry;
+        this.rewardService = rewardService;
     }
 
     public ActiveCookingSessionRegistry.CreateResult startSession(Player player, PlacedCookingWorkstation workstation, CookingRecipe recipe) {
@@ -45,7 +52,7 @@ public class CookingSessionService {
                 .map(recipe -> recipe.stages().get(session.progress().currentStageIndex()));
     }
 
-    public InsertResult insertHeldIngredient(Player player, PlacedCookingWorkstation workstation, ItemStack held) {
+    public InsertResult insertHeldIngredient(Player player, PlacedCookingWorkstation workstation, ItemStack held, Location rewardDropLocation) {
         Optional<ActiveCookingSession> sessionOptional = sessionRegistry.getByWorkstation(workstation.locationKey());
         if (sessionOptional.isEmpty()) {
             return InsertResult.NO_ACTIVE_SESSION;
@@ -64,7 +71,7 @@ public class CookingSessionService {
         CookingRecipe recipe = recipeOptional.get();
         Optional<CookingStage> stageOptional = currentStage(session);
         if (stageOptional.isEmpty()) {
-            complete(player, session, recipe);
+            complete(player, session, recipe, rewardDropLocation);
             return InsertResult.COMPLETED;
         }
         CookingStage stage = stageOptional.get();
@@ -88,13 +95,13 @@ public class CookingSessionService {
         session.progress().advance();
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Inserted " + ChatColor.YELLOW + formatRequirement(stage) + ChatColor.GREEN + ".");
-        advanceOrComplete(player, session, recipe);
+        advanceOrComplete(player, session, recipe, rewardDropLocation);
         return InsertResult.ACCEPTED;
     }
 
-    private void advanceOrComplete(Player player, ActiveCookingSession session, CookingRecipe recipe) {
+    private void advanceOrComplete(Player player, ActiveCookingSession session, CookingRecipe recipe, Location rewardDropLocation) {
         if (session.progress().currentStageIndex() >= recipe.stages().size()) {
-            complete(player, session, recipe);
+            complete(player, session, recipe, rewardDropLocation);
             return;
         }
         beginCurrentStage(player, session);
@@ -103,7 +110,7 @@ public class CookingSessionService {
     private void beginCurrentStage(Player player, ActiveCookingSession session) {
         Optional<CookingStage> stageOptional = currentStage(session);
         if (stageOptional.isEmpty()) {
-            recipeRegistry.get(session.recipeId()).ifPresent(recipe -> complete(player, session, recipe));
+            recipeRegistry.get(session.recipeId()).ifPresent(recipe -> complete(player, session, recipe, player.getLocation()));
             return;
         }
         CookingStage stage = stageOptional.get();
@@ -117,7 +124,8 @@ public class CookingSessionService {
                 "Next cooking stage is not implemented yet.");
     }
 
-    private void complete(Player player, ActiveCookingSession session, CookingRecipe recipe) {
+    private void complete(Player player, ActiveCookingSession session, CookingRecipe recipe, Location rewardDropLocation) {
+        rewardService.grantRewards(player, rewardDropLocation, recipe.rewards());
         sessionRegistry.removeByWorkstation(session.workstationKey());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Completed cooking recipe " + ChatColor.YELLOW + recipe.displayName() + ChatColor.GREEN + ".");

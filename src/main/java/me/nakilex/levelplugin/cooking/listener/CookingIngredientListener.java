@@ -46,7 +46,7 @@ public class CookingIngredientListener implements Listener {
             }
             event.setCancelled(true);
             ItemStack held = event.getPlayer().getInventory().getItemInMainHand();
-            sessionService.insertHeldIngredient(event.getPlayer(), placed, held);
+            sessionService.insertHeldIngredient(event.getPlayer(), placed, held, clicked.getLocation());
         });
     }
 }

@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.cooking.config;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.cooking.model.CookingRecipe;
+import me.nakilex.levelplugin.cooking.model.CookingReward;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.cooking.model.CookingWorkstationType;
@@ -9,7 +10,6 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.inventory.ItemStack;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -58,7 +58,7 @@ public class CookingConfigLoader {
                 warn("Skipping cooking recipe '" + id + "' because it has no valid stages.");
                 continue;
             }
-            List<ItemStack> rewards = loadRewards(id, section.getConfigurationSection("rewards"));
+            List<CookingReward> rewards = loadRewards(id, section.getConfigurationSection("rewards"));
             if (rewards.isEmpty()) {
                 warn("Skipping cooking recipe '" + id + "' because it has no valid rewards.");
                 continue;
@@ -102,15 +102,28 @@ public class CookingConfigLoader {
         return stages;
     }
 
-    private List<ItemStack> loadRewards(String recipeId, ConfigurationSection root) {
-        List<ItemStack> rewards = new ArrayList<>();
-        if (root == null) return rewards;
+    private List<CookingReward> loadRewards(String recipeId, ConfigurationSection root) {
+        List<CookingReward> rewards = new ArrayList<>();
+        if (root == null) {
+            warn("Recipe '" + recipeId + "' has no rewards section in cooking.yml.");
+            return rewards;
+        }
         for (String key : root.getKeys(false)) {
             ConfigurationSection section = root.getConfigurationSection(key);
-            if (section == null) continue;
+            if (section == null) {
+                warn("Skipping invalid reward entry at recipes." + recipeId + ".rewards." + key + ".");
+                continue;
+            }
             Material material = parseMaterial(section.getString("material"), "recipes." + recipeId + ".rewards." + key + ".material");
-            if (material == null) continue;
-            rewards.add(new ItemStack(material, Math.max(1, section.getInt("amount", 1))));
+            if (material == null) {
+                continue;
+            }
+            int amount = section.getInt("amount", 1);
+            if (amount <= 0) {
+                warn("Skipping reward at recipes." + recipeId + ".rewards." + key + " because amount must be positive.");
+                continue;
+            }
+            rewards.add(new CookingReward(material, amount));
         }
         return rewards;
     }
