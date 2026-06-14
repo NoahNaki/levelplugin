@@ -1,38 +1,43 @@
 package me.nakilex.levelplugin.cooking.listener;
 
 import me.nakilex.levelplugin.Main;
-import me.nakilex.levelplugin.cooking.model.CookingWorkstationType;
+import me.nakilex.levelplugin.cooking.gui.CookingRecipeSelectionGUI;
 import me.nakilex.levelplugin.cooking.registry.CookingWorkstationRegistry;
+import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstation;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstationRegistry;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import org.bukkit.ChatColor;
 import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.block.Action;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
-import java.util.StringJoiner;
-
-/** Handles runtime placement tracking for cooking workstations. Does not start recipes yet. */
+/** Handles runtime placement tracking and recipe GUI access for cooking workstations. */
 public class CookingWorkstationListener implements Listener {
     private final Main plugin;
     private final CookingWorkstationRegistry workstationTypes;
     private final PlacedCookingWorkstationRegistry placedWorkstations;
+    private final ActiveCookingSessionRegistry activeSessions;
+    private final CookingRecipeSelectionGUI recipeSelectionGUI;
 
     public CookingWorkstationListener(
             Main plugin,
             CookingWorkstationRegistry workstationTypes,
-            PlacedCookingWorkstationRegistry placedWorkstations
+            PlacedCookingWorkstationRegistry placedWorkstations,
+            ActiveCookingSessionRegistry activeSessions,
+            CookingRecipeSelectionGUI recipeSelectionGUI
     ) {
         this.plugin = plugin;
         this.workstationTypes = workstationTypes;
         this.placedWorkstations = placedWorkstations;
+        this.activeSessions = activeSessions;
+        this.recipeSelectionGUI = recipeSelectionGUI;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -48,7 +53,7 @@ public class CookingWorkstationListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         placedWorkstations.unregister(event.getBlock()).ifPresent(placed -> {
-            // TODO: Stop and clean up an active cooking session at this workstation when sessions exist.
+            activeSessions.removeByWorkstation(placed.locationKey());
             plugin.getLogger().info("[Cooking] Unregistered placed workstation '" + placed.type().id()
                     + "' at " + placed.locationKey() + " after block break by " + event.getPlayer().getName() + ".");
         });
@@ -68,22 +73,22 @@ public class CookingWorkstationListener implements Listener {
         }
         placedWorkstations.find(clicked).ifPresent(placed -> {
             event.setCancelled(true);
-            ChatMessageUtil.send(
-                    event.getPlayer(),
-                    ChatMessageUtil.MessageType.INFO,
-                    "Cooking workstation detected. Available recipes: "
-                            + ChatColor.YELLOW + recipeList(placed.type()) + ChatColor.WHITE + ".");
+            if (activeSessions.getByPlayer(event.getPlayer().getUniqueId()).isPresent()) {
+                ChatMessageUtil.send(event.getPlayer(), ChatMessageUtil.MessageType.WARNING,
+                        "You already have an active cooking session.");
+                return;
+            }
+            if (activeSessions.getByWorkstation(placed.locationKey()).isPresent()) {
+                ChatMessageUtil.send(event.getPlayer(), ChatMessageUtil.MessageType.WARNING,
+                        "This cooking workstation is busy.");
+                return;
+            }
+            recipeSelectionGUI.open(event.getPlayer(), placed);
         });
     }
 
-    private String recipeList(CookingWorkstationType type) {
-        if (type.recipeIds().isEmpty()) {
-            return "none";
-        }
-        StringJoiner joiner = new StringJoiner(ChatColor.GRAY + ", " + ChatColor.YELLOW);
-        for (String recipeId : type.recipeIds()) {
-            joiner.add(recipeId);
-        }
-        return joiner.toString();
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        activeSessions.removeByPlayer(event.getPlayer().getUniqueId());
     }
 }

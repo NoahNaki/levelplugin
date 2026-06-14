@@ -1,7 +1,9 @@
 # LevelPlugin cooking definitions. Recipes can be detected from placed workstations; sessions/GUI come later.
 recipes:
   roasted_carrot:
+    display-name: Roasted Carrot
     display-material: CARROT
+    description: A simple starter recipe for testing workstation selection.
     stages:
       1:
         type: INSERT_ITEM

@@ -63,9 +63,20 @@ public class CookingConfigLoader {
                 warn("Skipping cooking recipe '" + id + "' because it has no valid rewards.");
                 continue;
             }
-            recipes.add(new CookingRecipe(id, display, stages, rewards));
+            String displayName = section.getString("display-name", section.getString("name", id));
+            List<String> lore = parseLore(section);
+            recipes.add(new CookingRecipe(id, displayName, display, lore, stages, rewards));
         }
         return recipes;
+    }
+
+    private List<String> parseLore(ConfigurationSection section) {
+        List<String> lore = new ArrayList<>(section.getStringList("lore"));
+        String description = section.getString("description");
+        if (description != null && !description.isBlank()) {
+            lore.add(0, description);
+        }
+        return lore;
     }
 
     private List<CookingStage> loadStages(String recipeId, ConfigurationSection root) {
