@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
+import me.nakilex.levelplugin.cooking.service.CookingDisplayService;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -42,6 +43,8 @@ public interface CookingStageExecutor {
     /** Narrow orchestration callbacks exposed to stage executors by the session service. */
     interface StageSessionController {
         Main plugin();
+
+        CookingDisplayService displayService();
 
         Optional<CookingRecipe> recipe(ActiveCookingSession session);
 

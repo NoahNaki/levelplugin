@@ -8,7 +8,6 @@ import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
-import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -31,9 +30,9 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             context.controller().advanceStage(context.player(), session, context.rewardDropLocation());
             return;
         }
-        updateInsertDisplay(session, stage);
+        context.controller().displayService().updateIngredientProgress(session, stage);
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
-                "Cooking stage started. Insert " + ChatColor.YELLOW + formatRequirements(stage)
+                "Cooking stage started. Insert " + ChatColor.YELLOW + context.controller().displayService().formatRequirements(stage)
                         + ChatColor.WHITE + " by right-clicking the workstation.");
     }
 
@@ -53,7 +52,7 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
                 return InteractionResult.INGREDIENT_ALREADY_COMPLETE;
             }
             ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
-                    "That ingredient does not match this stage. Required: " + formatRequirements(stage) + ".");
+                    "That ingredient does not match this stage. Required: " + context.controller().displayService().formatRequirements(stage) + ".");
             return InteractionResult.INVALID_INGREDIENT;
         }
         CookingIngredientRequirement requirement = requirementOptional.get();
@@ -68,9 +67,9 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             removeFromMainHand(context.player(), held, insertAmount);
         }
         session.progress().addIngredient(requirement, insertAmount);
-        updateInsertDisplay(session, stage);
+        context.controller().displayService().updateIngredientProgress(session, stage);
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
-                "Inserted " + ChatColor.YELLOW + insertAmount + "x " + formatRequirementName(requirement) + ChatColor.GREEN + ".");
+                "Inserted " + ChatColor.YELLOW + insertAmount + "x " + context.controller().displayService().formatRequirementName(requirement) + ChatColor.GREEN + ".");
         if (session.progress().areRequirementsComplete(stage)) {
             completeStage(session, new StageExecutionContext(context.controller(), context.player(), context.rewardDropLocation()));
         }
@@ -125,41 +124,6 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         }
         held.setAmount(remaining);
         player.getInventory().setItemInMainHand(held);
-    }
-
-    private void updateInsertDisplay(ActiveCookingSession session, CookingStage stage) {
-        List<String> lines = stage.requirements().stream()
-                .map(requirement -> {
-                    int inserted = session.progress().insertedAmount(requirement);
-                    int required = requirement.amount();
-                    String prefix = inserted >= required ? "✓" : "•";
-                    return prefix + " " + formatRequirementName(requirement) + " " + Math.min(inserted, required) + "/" + required;
-                })
-                .toList();
-        session.updateTextDisplay(String.join("\n", lines));
-    }
-
-    private String formatRequirements(CookingStage stage) {
-        return stage.requirements().stream()
-                .map(this::formatRequirement)
-                .reduce((left, right) -> left + ", " + right)
-                .orElse("Unknown");
-    }
-
-    private String formatRequirement(CookingIngredientRequirement requirement) {
-        return requirement.amount() + "x " + formatRequirementName(requirement);
-    }
-
-    private String formatRequirementName(CookingIngredientRequirement requirement) {
-        return requirement.nexoItemIdOptional().map(id -> "Nexo " + id).orElseGet(() -> formatMaterial(requirement.material()));
-    }
-
-    private String formatMaterial(Material material) {
-        if (material == null) {
-            return "Unknown";
-        }
-        String lower = material.name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
-        return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
     }
 
     /** Extension point for future custom item/Nexo ingredient matching. */

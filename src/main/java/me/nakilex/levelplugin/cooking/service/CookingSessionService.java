@@ -16,15 +16,8 @@ import me.nakilex.levelplugin.cooking.util.CookingLocationKey;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.entity.Display;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Player;
-import org.bukkit.entity.TextDisplay;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.util.Transformation;
-import org.joml.AxisAngle4f;
-import org.joml.Vector3f;
 
 import java.util.Optional;
 
@@ -35,6 +28,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     private final ActiveCookingSessionRegistry sessionRegistry;
     private final PlacedCookingWorkstationRegistry placedWorkstations;
     private final CookingRewardService rewardService;
+    private final CookingDisplayService displayService;
     private final CookingStageExecutorRegistry executorRegistry;
 
     public CookingSessionService(Main plugin,
@@ -54,6 +48,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
         this.sessionRegistry = sessionRegistry;
         this.placedWorkstations = placedWorkstations;
         this.rewardService = rewardService;
+        this.displayService = new CookingDisplayService();
         this.executorRegistry = new CookingStageExecutorRegistry()
                 .register(new InsertItemStageExecutor())
                 .register(new WaitStageExecutor());
@@ -64,7 +59,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
                 player.getUniqueId(), workstation.locationKey(), recipe.id());
         if (result == ActiveCookingSessionRegistry.CreateResult.CREATED) {
             sessionRegistry.getByPlayer(player.getUniqueId()).ifPresent(session -> {
-                spawnDisplayEntities(session, recipe);
+                displayService.spawnDisplays(session, recipe);
                 beginCurrentStage(player, session, workstation.locationKey().toLocation());
             });
         }
@@ -117,6 +112,11 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     @Override
     public Main plugin() {
         return plugin;
+    }
+
+    @Override
+    public CookingDisplayService displayService() {
+        return displayService;
     }
 
     @Override
@@ -200,30 +200,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     private void cleanupSession(ActiveCookingSession session) {
         session.cancelWaitTask();
         session.clearActiveStageType();
-        session.removeDisplayEntities();
-    }
-
-    private void spawnDisplayEntities(ActiveCookingSession session, CookingRecipe recipe) {
-        Location workstationLocation = session.workstationKey().toLocation();
-        if (workstationLocation == null || workstationLocation.getWorld() == null) {
-            return;
-        }
-        World world = workstationLocation.getWorld();
-        Location displayLocation = workstationLocation.clone().add(0.5, 1.25, 0.5);
-        ItemDisplay itemDisplay = world.spawn(displayLocation, ItemDisplay.class);
-        itemDisplay.setItemStack(recipe.displayItem());
-        itemDisplay.setBillboard(Display.Billboard.FIXED);
-        itemDisplay.setTransformation(new Transformation(
-                new Vector3f(),
-                new AxisAngle4f(),
-                new Vector3f(0.6f, 0.6f, 0.6f),
-                new AxisAngle4f()));
-
-        TextDisplay textDisplay = world.spawn(displayLocation.clone().add(0, 0.35, 0), TextDisplay.class);
-        textDisplay.setText("Cooking...");
-        textDisplay.setBillboard(Display.Billboard.CENTER);
-        textDisplay.setSeeThrough(false);
-        session.attachDisplayEntities(itemDisplay, textDisplay);
+        displayService.cleanup(session);
     }
 
 }

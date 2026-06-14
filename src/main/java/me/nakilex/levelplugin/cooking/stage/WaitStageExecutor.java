@@ -26,14 +26,14 @@ public class WaitStageExecutor implements CookingStageExecutor {
             return;
         }
         long durationTicks = Math.max(1L, stage.durationTicks());
-        session.updateTextDisplay("Cooking...");
+        context.controller().displayService().updateWaitProgress(session, -1L);
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
                 "Cooking timer started for " + Math.ceil(durationTicks / 20.0D) + "s.");
         CookingWaitTask waitTask = new CookingWaitTask(
                 durationTicks,
                 WAIT_TICK_PERIOD,
                 () -> isWaitStageStillValid(session, context.controller()),
-                remainingTicks -> updateWaitDisplay(session, remainingTicks),
+                remainingTicks -> updateWaitDisplay(session, context.controller(), remainingTicks),
                 () -> completeStage(session, context),
                 () -> context.controller().cancelSession(session, null)
         );
@@ -74,8 +74,8 @@ public class WaitStageExecutor implements CookingStageExecutor {
         return controller.isSessionActive(session) && controller.isWorkstationPlaced(session);
     }
 
-    private void updateWaitDisplay(ActiveCookingSession session, long remainingTicks) {
+    private void updateWaitDisplay(ActiveCookingSession session, StageSessionController controller, long remainingTicks) {
         long secondsLeft = (long) Math.ceil(remainingTicks / 20.0D);
-        session.updateTextDisplay("Cooking... " + secondsLeft + "s");
+        controller.displayService().updateWaitProgress(session, secondsLeft);
     }
 }
