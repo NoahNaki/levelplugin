@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.cooking.runtime;
 
+import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.cooking.util.CookingLocationKey;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.TextDisplay;
@@ -15,6 +16,7 @@ public class ActiveCookingSession {
     private final String recipeId;
     private final CookingStageProgress progress;
     private final Instant startedAt;
+    private CookingStageType activeStageType;
     private BukkitTask waitTask;
     private ItemDisplay itemDisplay;
     private TextDisplay textDisplay;
@@ -32,9 +34,18 @@ public class ActiveCookingSession {
     public String recipeId() { return recipeId; }
     public CookingStageProgress progress() { return progress; }
     public Instant startedAt() { return startedAt; }
+    public CookingStageType activeStageType() { return activeStageType; }
     public BukkitTask waitTask() { return waitTask; }
     public ItemDisplay itemDisplay() { return itemDisplay; }
     public TextDisplay textDisplay() { return textDisplay; }
+
+    public void setActiveStageType(CookingStageType activeStageType) {
+        this.activeStageType = activeStageType;
+    }
+
+    public void clearActiveStageType() {
+        this.activeStageType = null;
+    }
 
     public void setWaitTask(BukkitTask waitTask) {
         cancelWaitTask();

@@ -1,0 +1,180 @@
+package me.nakilex.levelplugin.cooking.stage;
+
+import me.nakilex.levelplugin.cooking.model.CookingIngredientRequirement;
+import me.nakilex.levelplugin.cooking.model.CookingStage;
+import me.nakilex.levelplugin.cooking.model.CookingStageType;
+import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
+import java.util.List;
+import java.util.Optional;
+
+/** Executes INSERT_ITEM stages, including partial multi-ingredient progress. */
+public class InsertItemStageExecutor implements CookingStageExecutor {
+    private final List<IngredientMatcher> ingredientMatchers = List.of(new VanillaMaterialIngredientMatcher());
+
+    @Override
+    public CookingStageType type() {
+        return CookingStageType.INSERT_ITEM;
+    }
+
+    @Override
+    public void beginStage(ActiveCookingSession session, StageExecutionContext context) {
+        CookingStage stage = context.controller().currentStage(session).orElse(null);
+        if (stage == null) {
+            context.controller().advanceStage(context.player(), session, context.rewardDropLocation());
+            return;
+        }
+        updateInsertDisplay(session, stage);
+        ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
+                "Cooking stage started. Insert " + ChatColor.YELLOW + formatRequirements(stage)
+                        + ChatColor.WHITE + " by right-clicking the workstation.");
+    }
+
+    @Override
+    public InteractionResult handleInteraction(ActiveCookingSession session, StageInteractionContext context) {
+        CookingStage stage = context.controller().currentStage(session).orElse(null);
+        if (stage == null) {
+            context.controller().advanceStage(context.player(), session, context.rewardDropLocation());
+            return InteractionResult.COMPLETED;
+        }
+        ItemStack held = context.heldItem();
+        Optional<CookingIngredientRequirement> requirementOptional = findInsertableRequirement(stage, session, held);
+        if (requirementOptional.isEmpty()) {
+            if (matchesAnyRequirement(stage, held)) {
+                ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
+                        "That ingredient is already complete for this stage.");
+                return InteractionResult.INGREDIENT_ALREADY_COMPLETE;
+            }
+            ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
+                    "That ingredient does not match this stage. Required: " + formatRequirements(stage) + ".");
+            return InteractionResult.INVALID_INGREDIENT;
+        }
+        CookingIngredientRequirement requirement = requirementOptional.get();
+        int insertAmount = Math.min(held.getAmount(), session.progress().remainingAmount(requirement));
+        if (insertAmount <= 0) {
+            ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
+                    "That ingredient is already complete for this stage.");
+            return InteractionResult.INGREDIENT_ALREADY_COMPLETE;
+        }
+
+        if (context.player().getGameMode() != GameMode.CREATIVE) {
+            removeFromMainHand(context.player(), held, insertAmount);
+        }
+        session.progress().addIngredient(requirement, insertAmount);
+        updateInsertDisplay(session, stage);
+        ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
+                "Inserted " + ChatColor.YELLOW + insertAmount + "x " + formatRequirementName(requirement) + ChatColor.GREEN + ".");
+        if (session.progress().areRequirementsComplete(stage)) {
+            completeStage(session, new StageExecutionContext(context.controller(), context.player(), context.rewardDropLocation()));
+        }
+        return InteractionResult.ACCEPTED;
+    }
+
+    @Override
+    public void cancelStage(ActiveCookingSession session) {
+        // INSERT_ITEM stages do not own scheduled resources yet.
+    }
+
+    @Override
+    public void completeStage(ActiveCookingSession session, StageExecutionContext context) {
+        session.progress().advance();
+        context.controller().advanceStage(context.player(), session, context.rewardDropLocation());
+    }
+
+    private Optional<CookingIngredientRequirement> findInsertableRequirement(CookingStage stage, ActiveCookingSession session, ItemStack stack) {
+        if (stack == null || stack.getType().isAir()) {
+            return Optional.empty();
+        }
+        return stage.requirements().stream()
+                .filter(requirement -> !session.progress().isRequirementComplete(requirement))
+                .filter(requirement -> matches(requirement, stack))
+                .findFirst();
+    }
+
+    private boolean matchesAnyRequirement(CookingStage stage, ItemStack stack) {
+        if (stack == null || stack.getType().isAir()) {
+            return false;
+        }
+        return stage.requirements().stream().anyMatch(requirement -> matches(requirement, stack));
+    }
+
+    private boolean matches(CookingIngredientRequirement requirement, ItemStack stack) {
+        if (stack == null || stack.getType().isAir()) {
+            return false;
+        }
+        for (IngredientMatcher matcher : ingredientMatchers) {
+            if (matcher.matches(requirement, stack)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void removeFromMainHand(Player player, ItemStack held, int amount) {
+        int remaining = held.getAmount() - amount;
+        if (remaining <= 0) {
+            player.getInventory().setItemInMainHand(null);
+            return;
+        }
+        held.setAmount(remaining);
+        player.getInventory().setItemInMainHand(held);
+    }
+
+    private void updateInsertDisplay(ActiveCookingSession session, CookingStage stage) {
+        List<String> lines = stage.requirements().stream()
+                .map(requirement -> {
+                    int inserted = session.progress().insertedAmount(requirement);
+                    int required = requirement.amount();
+                    String prefix = inserted >= required ? "✓" : "•";
+                    return prefix + " " + formatRequirementName(requirement) + " " + Math.min(inserted, required) + "/" + required;
+                })
+                .toList();
+        session.updateTextDisplay(String.join("\n", lines));
+    }
+
+    private String formatRequirements(CookingStage stage) {
+        return stage.requirements().stream()
+                .map(this::formatRequirement)
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("Unknown");
+    }
+
+    private String formatRequirement(CookingIngredientRequirement requirement) {
+        return requirement.amount() + "x " + formatRequirementName(requirement);
+    }
+
+    private String formatRequirementName(CookingIngredientRequirement requirement) {
+        return requirement.nexoItemIdOptional().map(id -> "Nexo " + id).orElseGet(() -> formatMaterial(requirement.material()));
+    }
+
+    private String formatMaterial(Material material) {
+        if (material == null) {
+            return "Unknown";
+        }
+        String lower = material.name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+        return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
+    }
+
+    /** Extension point for future custom item/Nexo ingredient matching. */
+    private interface IngredientMatcher {
+        boolean matches(CookingIngredientRequirement requirement, ItemStack stack);
+    }
+
+    private static class VanillaMaterialIngredientMatcher implements IngredientMatcher {
+        @Override
+        public boolean matches(CookingIngredientRequirement requirement, ItemStack stack) {
+            String expectedNexo = requirement.nexoItemId();
+            if (expectedNexo != null && !expectedNexo.isBlank()) {
+                return expectedNexo.equalsIgnoreCase(ItemUtil.getNexoModelId(stack));
+            }
+            return requirement.material() != null && stack.getType() == requirement.material();
+        }
+    }
+}
