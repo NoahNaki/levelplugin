@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.cooking.gui.CookingRecipeSelectionGUI;
 import me.nakilex.levelplugin.cooking.registry.CookingWorkstationRegistry;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstation;
+import me.nakilex.levelplugin.cooking.service.CookingSessionService;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstationRegistry;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.block.Block;
@@ -25,19 +26,22 @@ public class CookingWorkstationListener implements Listener {
     private final PlacedCookingWorkstationRegistry placedWorkstations;
     private final ActiveCookingSessionRegistry activeSessions;
     private final CookingRecipeSelectionGUI recipeSelectionGUI;
+    private final CookingSessionService sessionService;
 
     public CookingWorkstationListener(
             Main plugin,
             CookingWorkstationRegistry workstationTypes,
             PlacedCookingWorkstationRegistry placedWorkstations,
             ActiveCookingSessionRegistry activeSessions,
-            CookingRecipeSelectionGUI recipeSelectionGUI
+            CookingRecipeSelectionGUI recipeSelectionGUI,
+            CookingSessionService sessionService
     ) {
         this.plugin = plugin;
         this.workstationTypes = workstationTypes;
         this.placedWorkstations = placedWorkstations;
         this.activeSessions = activeSessions;
         this.recipeSelectionGUI = recipeSelectionGUI;
+        this.sessionService = sessionService;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -53,7 +57,7 @@ public class CookingWorkstationListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         placedWorkstations.unregister(event.getBlock()).ifPresent(placed -> {
-            activeSessions.removeByWorkstation(placed.locationKey());
+            sessionService.cancelSessionByWorkstation(placed.locationKey());
             plugin.getLogger().info("[Cooking] Unregistered placed workstation '" + placed.type().id()
                     + "' at " + placed.locationKey() + " after block break by " + event.getPlayer().getName() + ".");
         });
@@ -89,6 +93,6 @@ public class CookingWorkstationListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        activeSessions.removeByPlayer(event.getPlayer().getUniqueId());
+        sessionService.cancelSessionByPlayer(event.getPlayer().getUniqueId());
     }
 }

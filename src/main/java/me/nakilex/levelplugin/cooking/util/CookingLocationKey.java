@@ -1,7 +1,10 @@
 package me.nakilex.levelplugin.cooking.util;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
+
+import java.util.UUID;
 import org.bukkit.block.Block;
 
 /** Immutable block-coordinate key for in-memory cooking workstation lookup. */
@@ -23,6 +26,16 @@ public record CookingLocationKey(String worldId, int x, int y, int z) {
                 location.getBlockX(),
                 location.getBlockY(),
                 location.getBlockZ());
+    }
+
+    public Location toLocation() {
+        World world;
+        try {
+            world = Bukkit.getWorld(UUID.fromString(worldId));
+        } catch (IllegalArgumentException ex) {
+            world = Bukkit.getWorld(worldId);
+        }
+        return world == null ? null : new Location(world, x, y, z);
     }
 
     @Override

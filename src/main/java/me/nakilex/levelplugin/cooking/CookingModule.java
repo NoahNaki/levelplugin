@@ -27,10 +27,10 @@ public class CookingModule {
     public CookingModule(Main plugin) {
         this.plugin = plugin;
         this.configLoader = new CookingConfigLoader(plugin);
-        this.sessionService = new CookingSessionService(recipeRegistry, activeSessionRegistry);
+        this.sessionService = new CookingSessionService(plugin, recipeRegistry, activeSessionRegistry, placedWorkstationRegistry);
         this.recipeSelectionGUI = new CookingRecipeSelectionGUI(recipeRegistry, sessionService);
         plugin.getServer().getPluginManager().registerEvents(
-                new CookingWorkstationListener(plugin, workstationRegistry, placedWorkstationRegistry, activeSessionRegistry, recipeSelectionGUI),
+                new CookingWorkstationListener(plugin, workstationRegistry, placedWorkstationRegistry, activeSessionRegistry, recipeSelectionGUI, sessionService),
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(recipeSelectionGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(

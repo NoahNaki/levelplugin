@@ -1,4 +1,4 @@
-# LevelPlugin cooking definitions. Recipes can be detected from placed workstations; sessions/GUI come later.
+# LevelPlugin cooking definitions. Supports recipe GUI, INSERT_ITEM stages, WAIT timers, and rewards.
 recipes:
   roasted_carrot:
     display-name: Roasted Carrot
@@ -9,6 +9,9 @@ recipes:
         type: INSERT_ITEM
         material: CARROT
         amount: 1
+      2:
+        type: WAIT
+        duration-ticks: 100
     rewards:
       1:
         material: BAKED_POTATO
