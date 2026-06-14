@@ -14,6 +14,7 @@ import me.nakilex.levelplugin.cooking.util.CookingLocationKey;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -120,7 +121,9 @@ public class CookingSessionService {
             return InsertResult.NOT_ENOUGH_ITEMS;
         }
 
-        removeFromMainHand(player, held, stage.amount());
+        if (player.getGameMode() != GameMode.CREATIVE) {
+            removeFromMainHand(player, held, stage.amount());
+        }
         session.progress().advance();
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                 "Inserted " + ChatColor.YELLOW + formatRequirement(stage) + ChatColor.GREEN + ".");

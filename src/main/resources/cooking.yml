@@ -21,6 +21,7 @@ workstations:
   campfire:
     block-material: CAMPFIRE
     item-material: CAMPFIRE
+    nexo-item-id: ""
     recipes:
       - roasted_carrot
     permission: ""

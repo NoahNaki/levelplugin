@@ -12,6 +12,7 @@ import me.nakilex.levelplugin.cooking.registry.CookingWorkstationRegistry;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstationRegistry;
 import me.nakilex.levelplugin.cooking.service.CookingSessionService;
+import me.nakilex.levelplugin.cooking.service.CookingWorkstationMatcher;
 
 /** Foundation module for config-backed cooking data and workstation placement tracking. */
 public class CookingModule {
@@ -22,15 +23,17 @@ public class CookingModule {
     private final PlacedCookingWorkstationRegistry placedWorkstationRegistry = new PlacedCookingWorkstationRegistry();
     private final ActiveCookingSessionRegistry activeSessionRegistry = new ActiveCookingSessionRegistry();
     private final CookingSessionService sessionService;
+    private final CookingWorkstationMatcher workstationMatcher;
     private final CookingRecipeSelectionGUI recipeSelectionGUI;
 
     public CookingModule(Main plugin) {
         this.plugin = plugin;
         this.configLoader = new CookingConfigLoader(plugin);
         this.sessionService = new CookingSessionService(plugin, recipeRegistry, activeSessionRegistry, placedWorkstationRegistry);
+        this.workstationMatcher = new CookingWorkstationMatcher(workstationRegistry);
         this.recipeSelectionGUI = new CookingRecipeSelectionGUI(recipeRegistry, sessionService);
         plugin.getServer().getPluginManager().registerEvents(
-                new CookingWorkstationListener(plugin, workstationRegistry, placedWorkstationRegistry, activeSessionRegistry, recipeSelectionGUI, sessionService),
+                new CookingWorkstationListener(plugin, workstationMatcher, placedWorkstationRegistry, activeSessionRegistry, recipeSelectionGUI, sessionService),
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(recipeSelectionGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(
@@ -41,7 +44,7 @@ public class CookingModule {
     public void load() {
         CookingConfigData data = configLoader.load();
         recipeRegistry.replaceAll(data.recipes());
-        workstationRegistry.replaceAll(data.workstations());
+        workstationRegistry.replaceAll(data.workstations(), plugin.getLogger());
         logMissingRecipeReferences();
         plugin.getLogger().info("[Cooking] Loaded " + recipeRegistry.size() + " recipes and "
                 + workstationRegistry.size() + " workstation types.");

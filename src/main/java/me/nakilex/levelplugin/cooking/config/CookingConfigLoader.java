@@ -145,7 +145,14 @@ public class CookingConfigLoader {
                 warn("Skipping cooking workstation '" + id + "' because block, item, or recipes are invalid.");
                 continue;
             }
-            workstations.add(new CookingWorkstationType(id, block, item, recipeIds, section.getString("permission")));
+            workstations.add(new CookingWorkstationType(
+                    id,
+                    block,
+                    item,
+                    section.getString("nexo-item-id", section.getString("nexo-id")),
+                    recipeIds,
+                    section.getString("permission")
+            ));
         }
         return workstations;
     }

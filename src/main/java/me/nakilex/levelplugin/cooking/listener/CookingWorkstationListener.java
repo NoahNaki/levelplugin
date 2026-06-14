@@ -2,10 +2,10 @@ package me.nakilex.levelplugin.cooking.listener;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.cooking.gui.CookingRecipeSelectionGUI;
-import me.nakilex.levelplugin.cooking.registry.CookingWorkstationRegistry;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstation;
 import me.nakilex.levelplugin.cooking.service.CookingSessionService;
+import me.nakilex.levelplugin.cooking.service.CookingWorkstationMatcher;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstationRegistry;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.block.Block;
@@ -18,11 +18,12 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.ItemStack;
 
 /** Handles runtime placement tracking and recipe GUI access for cooking workstations. */
 public class CookingWorkstationListener implements Listener {
     private final Main plugin;
-    private final CookingWorkstationRegistry workstationTypes;
+    private final CookingWorkstationMatcher workstationMatcher;
     private final PlacedCookingWorkstationRegistry placedWorkstations;
     private final ActiveCookingSessionRegistry activeSessions;
     private final CookingRecipeSelectionGUI recipeSelectionGUI;
@@ -30,14 +31,14 @@ public class CookingWorkstationListener implements Listener {
 
     public CookingWorkstationListener(
             Main plugin,
-            CookingWorkstationRegistry workstationTypes,
+            CookingWorkstationMatcher workstationMatcher,
             PlacedCookingWorkstationRegistry placedWorkstations,
             ActiveCookingSessionRegistry activeSessions,
             CookingRecipeSelectionGUI recipeSelectionGUI,
             CookingSessionService sessionService
     ) {
         this.plugin = plugin;
-        this.workstationTypes = workstationTypes;
+        this.workstationMatcher = workstationMatcher;
         this.placedWorkstations = placedWorkstations;
         this.activeSessions = activeSessions;
         this.recipeSelectionGUI = recipeSelectionGUI;
@@ -47,7 +48,8 @@ public class CookingWorkstationListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Block block = event.getBlockPlaced();
-        workstationTypes.findByBlockMaterial(block.getType()).ifPresent(type -> {
+        ItemStack placedItem = event.getItemInHand();
+        workstationMatcher.findMatchingPlacedWorkstation(block.getType(), placedItem).ifPresent(type -> {
             PlacedCookingWorkstation placed = placedWorkstations.register(block, type, event.getPlayer().getUniqueId());
             plugin.getLogger().info("[Cooking] Registered placed workstation '" + type.id()
                     + "' at " + placed.locationKey() + " by " + event.getPlayer().getName() + ".");
@@ -77,6 +79,12 @@ public class CookingWorkstationListener implements Listener {
         }
         placedWorkstations.find(clicked).ifPresent(placed -> {
             event.setCancelled(true);
+            if (placed.type().permissionNode().isPresent()
+                    && !event.getPlayer().hasPermission(placed.type().permissionNode().get())) {
+                ChatMessageUtil.send(event.getPlayer(), ChatMessageUtil.MessageType.WARNING,
+                        "You do not have permission to use this cooking workstation.");
+                return;
+            }
             if (activeSessions.getByPlayer(event.getPlayer().getUniqueId()).isPresent()) {
                 ChatMessageUtil.send(event.getPlayer(), ChatMessageUtil.MessageType.WARNING,
                         "You already have an active cooking session.");
