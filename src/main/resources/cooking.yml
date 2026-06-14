@@ -3,12 +3,15 @@ recipes:
   roasted_carrot:
     display-name: Roasted Carrot
     display-material: CARROT
-    description: A simple starter recipe for testing workstation selection.
+    description: A simple starter recipe for testing multi-ingredient insertion.
     stages:
       1:
         type: INSERT_ITEM
-        material: CARROT
-        amount: 1
+        requirements:
+          - material: CARROT
+            amount: 2
+          - material: BEEF
+            amount: 1
       2:
         type: WAIT
         duration-ticks: 100

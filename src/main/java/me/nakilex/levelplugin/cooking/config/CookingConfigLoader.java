@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.cooking.config;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.cooking.model.CookingIngredientRequirement;
 import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingReward;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
@@ -87,19 +88,106 @@ public class CookingConfigLoader {
             if (section == null) continue;
             CookingStageType type = parseStageType(section.getString("type"), "recipes." + recipeId + ".stages." + key + ".type");
             if (type == null) continue;
-            Material item = type == CookingStageType.INSERT_ITEM
-                    ? parseMaterial(section.getString("material", section.getString("item-material")), "recipes." + recipeId + ".stages." + key + ".material")
-                    : null;
-            if (type == CookingStageType.INSERT_ITEM && item == null) continue;
+            List<CookingIngredientRequirement> requirements = type == CookingStageType.INSERT_ITEM
+                    ? loadIngredientRequirements(recipeId, key, section)
+                    : List.of();
+            if (type == CookingStageType.INSERT_ITEM && requirements.isEmpty()) continue;
             stages.add(new CookingStage(
                     type,
-                    item,
-                    section.getInt("amount", 1),
+                    requirements,
                     section.getLong("duration-ticks", section.getLong("ticks", 0L)),
                     section.getString("minigame-id", section.getString("mini-game-id"))
             ));
         }
         return stages;
+    }
+
+    private List<CookingIngredientRequirement> loadIngredientRequirements(String recipeId, String stageKey, ConfigurationSection stageSection) {
+        List<CookingIngredientRequirement> requirements = new ArrayList<>();
+        String basePath = "recipes." + recipeId + ".stages." + stageKey;
+        if (stageSection.isList("requirements")) {
+            int index = 0;
+            for (java.util.Map<?, ?> rawRequirement : stageSection.getMapList("requirements")) {
+                index++;
+                Object materialValue = rawRequirement.get("material");
+                if (materialValue == null) {
+                    materialValue = rawRequirement.get("item-material");
+                }
+                Material material = parseMaterial(stringValue(materialValue), basePath + ".requirements." + index + ".material");
+                if (material == null) {
+                    continue;
+                }
+                String nexoItemId = stringValue(rawRequirement.get("nexo-item-id"));
+                if (nexoItemId == null) {
+                    nexoItemId = stringValue(rawRequirement.get("nexo-id"));
+                }
+                int amount = intValue(rawRequirement.get("amount"), 1);
+                if (amount <= 0) {
+                    warn("Skipping ingredient requirement at " + basePath + ".requirements." + index + " because amount must be positive.");
+                    continue;
+                }
+                requirements.add(new CookingIngredientRequirement(material, nexoItemId, amount));
+            }
+            return requirements;
+        }
+        ConfigurationSection requirementSection = stageSection.getConfigurationSection("requirements");
+        if (requirementSection != null) {
+            for (String requirementKey : requirementSection.getKeys(false)) {
+                ConfigurationSection section = requirementSection.getConfigurationSection(requirementKey);
+                if (section == null) {
+                    warn("Skipping invalid ingredient requirement at " + basePath + ".requirements." + requirementKey + ".");
+                    continue;
+                }
+                Material material = parseMaterial(section.getString("material", section.getString("item-material")), basePath + ".requirements." + requirementKey + ".material");
+                if (material == null) {
+                    continue;
+                }
+                int amount = section.getInt("amount", 1);
+                if (amount <= 0) {
+                    warn("Skipping ingredient requirement at " + basePath + ".requirements." + requirementKey + " because amount must be positive.");
+                    continue;
+                }
+                requirements.add(new CookingIngredientRequirement(material, section.getString("nexo-item-id", section.getString("nexo-id")), amount));
+            }
+            return requirements;
+        }
+        Material legacyItem = parseMaterial(stageSection.getString("material", stageSection.getString("item-material")), basePath + ".material");
+        if (legacyItem == null) {
+            return requirements;
+        }
+        int legacyAmount = stageSection.getInt("amount", 1);
+        if (legacyAmount <= 0) {
+            warn("Skipping legacy ingredient requirement at " + basePath + " because amount must be positive.");
+            return requirements;
+        }
+        requirements.add(new CookingIngredientRequirement(
+                legacyItem,
+                stageSection.getString("nexo-item-id", stageSection.getString("nexo-id")),
+                legacyAmount
+        ));
+        return requirements;
+    }
+
+    private String stringValue(Object value) {
+        if (value == null) {
+            return null;
+        }
+        String string = String.valueOf(value);
+        return string.isBlank() ? null : string;
+    }
+
+    private int intValue(Object value, int fallback) {
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        if (value != null) {
+            try {
+                return Integer.parseInt(String.valueOf(value));
+            } catch (NumberFormatException ignored) {
+                return fallback;
+            }
+        }
+        return fallback;
     }
 
     private List<CookingReward> loadRewards(String recipeId, ConfigurationSection root) {
@@ -158,7 +246,7 @@ public class CookingConfigLoader {
     }
 
     private Material parseMaterial(String raw, String path) {
-        if (raw == null || raw.isBlank()) {
+        if (raw == null || raw.isBlank() || raw.equalsIgnoreCase("null")) {
             warn("Missing material at " + path + " in cooking.yml.");
             return null;
         }
@@ -170,7 +258,7 @@ public class CookingConfigLoader {
     }
 
     private CookingStageType parseStageType(String raw, String path) {
-        if (raw == null || raw.isBlank()) {
+        if (raw == null || raw.isBlank() || raw.equalsIgnoreCase("null")) {
             warn("Missing stage type at " + path + " in cooking.yml.");
             return null;
         }
