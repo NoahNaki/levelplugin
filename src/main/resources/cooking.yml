@@ -7,7 +7,6 @@ recipes:
     stages:
       1:
         type: INSERT_ITEM
-        tooltip: Add the floating ingredients.
         requirements:
           - material: CARROT
             amount: 2

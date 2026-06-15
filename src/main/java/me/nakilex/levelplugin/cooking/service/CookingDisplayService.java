@@ -93,19 +93,20 @@ public class CookingDisplayService {
         return textDisplay;
     }
 
-    public void showIngredientDisplays(ActiveCookingSession session, CookingStage stage) {
+    public int showIngredientDisplays(ActiveCookingSession session, CookingStage stage) {
         if (session == null || stage == null) {
-            return;
+            return 0;
         }
         CookingDisplayState state = ensureDisplayState(session);
         Location workstationLocation = session.workstationKey().toLocation();
         if (workstationLocation == null || workstationLocation.getWorld() == null) {
-            return;
+            return 0;
         }
         cleanupIngredientDisplays(state);
         World world = workstationLocation.getWorld();
         List<CookingIngredientRequirement> requirements = stage.requirements();
         double centerOffset = (requirements.size() - 1) / 2.0D;
+        int spawned = 0;
         for (int index = 0; index < requirements.size(); index++) {
             CookingIngredientRequirement requirement = requirements.get(index);
             Location displayLocation = workstationLocation.clone().add(0.5 + ((index - centerOffset) * 0.45D), 1.35D, 0.5D);
@@ -113,7 +114,9 @@ public class CookingDisplayService {
             ingredientDisplay.setItemStack(createRequirementDisplayItem(requirement));
             configureItemDisplay(ingredientDisplay, 0.35f);
             safeRemove(state.ingredientDisplays().put(requirement.progressKey(), ingredientDisplay));
+            spawned++;
         }
+        return spawned;
     }
 
     public void removeIngredientDisplay(ActiveCookingSession session, CookingIngredientRequirement requirement) {

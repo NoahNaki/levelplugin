@@ -31,8 +31,9 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             return;
         }
         context.controller().displayService().clearStageDisplays(session);
-        context.controller().displayService().showIngredientDisplays(session, stage);
-        context.controller().displayService().showText(session, stage.tooltip());
+        int ingredientDisplayCount = context.controller().displayService().showIngredientDisplays(session, stage);
+        context.controller().plugin().getLogger().info("[Cooking] Spawned ingredient displays count="
+                + ingredientDisplayCount + " recipe=" + session.recipeId());
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
                 "Cooking stage started. Insert " + ChatColor.YELLOW + context.controller().displayService().formatRequirements(stage)
                         + ChatColor.WHITE + " by right-clicking the workstation.");
