@@ -18,6 +18,11 @@ recipes:
         duration-ticks: 100
         hit-window-ticks: 20
       3:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 120
+        required-clicks: 5
+      4:
         type: WAIT
         duration-ticks: 80
     rewards:

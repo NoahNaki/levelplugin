@@ -108,7 +108,8 @@ public class CookingConfigLoader {
                     section.getString("tooltip"),
                     miniGameType,
                     section.getLong("hit-window-ticks", section.getLong("hitWindowTicks",
-                            section.getLong("target-window-ticks", section.getLong("targetWindowTicks", 0L))))
+                            section.getLong("target-window-ticks", section.getLong("targetWindowTicks", 0L)))),
+                    section.getInt("required-clicks", section.getInt("requiredClicks", 0))
             ));
         }
         return stages;

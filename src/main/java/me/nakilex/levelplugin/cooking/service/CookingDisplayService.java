@@ -147,6 +147,15 @@ public class CookingDisplayService {
         updateText(session, LABEL_COLOR + "Timing challenge\n" + status);
     }
 
+    public void updateMiniGameMixProgress(ActiveCookingSession session, int clicks, int requiredClicks, long remainingTicks) {
+        int safeClicks = Math.max(0, clicks);
+        int safeRequiredClicks = Math.max(1, requiredClicks);
+        long secondsRemaining = Math.max(0L, (long) Math.ceil(remainingTicks / 20.0D));
+        updateText(session, LABEL_COLOR + "Mix! " + NUMBER_COLOR + safeClicks + LABEL_COLOR + "/"
+                + NUMBER_COLOR + safeRequiredClicks + "\n"
+                + NUMBER_COLOR + secondsRemaining + LABEL_COLOR + "s remaining");
+    }
+
     public void cleanup(ActiveCookingSession session) {
         if (session == null) {
             return;

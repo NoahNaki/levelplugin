@@ -13,7 +13,8 @@ public record CookingStage(
         String miniGameId,
         String tooltip,
         CookingMiniGameType miniGameType,
-        long hitWindowTicks
+        long hitWindowTicks,
+        int requiredClicks
 ) {
     public CookingStage {
         requirements = List.copyOf(requirements == null ? List.of() : requirements);
@@ -22,6 +23,7 @@ public record CookingStage(
             tooltip = null;
         }
         hitWindowTicks = Math.max(0L, hitWindowTicks);
+        requiredClicks = Math.max(0, requiredClicks);
     }
 
     /** Compatibility helper for older single-ingredient call sites. */

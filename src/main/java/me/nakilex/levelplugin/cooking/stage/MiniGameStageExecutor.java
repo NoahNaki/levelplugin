@@ -4,6 +4,7 @@ import me.nakilex.levelplugin.cooking.minigame.CookingMiniGame;
 import me.nakilex.levelplugin.cooking.minigame.CookingMiniGameSession;
 import me.nakilex.levelplugin.cooking.minigame.CookingMiniGameType;
 import me.nakilex.levelplugin.cooking.minigame.DotStyleHitMiniGame;
+import me.nakilex.levelplugin.cooking.minigame.DotStyleMixMiniGame;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
@@ -23,6 +24,7 @@ public class MiniGameStageExecutor implements CookingStageExecutor {
 
     public MiniGameStageExecutor() {
         register(new DotStyleHitMiniGame());
+        register(new DotStyleMixMiniGame());
     }
 
     @Override

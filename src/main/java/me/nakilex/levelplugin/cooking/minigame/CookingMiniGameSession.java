@@ -12,6 +12,8 @@ public class CookingMiniGameSession {
     private long elapsedTicks;
     private long targetTick;
     private long hitWindowTicks;
+    private int clicks;
+    private int requiredClicks;
     private BukkitTask task;
     private boolean finished;
 
@@ -27,6 +29,8 @@ public class CookingMiniGameSession {
     public long elapsedTicks() { return elapsedTicks; }
     public long targetTick() { return targetTick; }
     public long hitWindowTicks() { return hitWindowTicks; }
+    public int clicks() { return clicks; }
+    public int requiredClicks() { return requiredClicks; }
     public boolean finished() { return finished; }
 
     public void setTiming(long targetTick, long hitWindowTicks) {
@@ -36,6 +40,15 @@ public class CookingMiniGameSession {
 
     public void setElapsedTicks(long elapsedTicks) {
         this.elapsedTicks = Math.max(0L, elapsedTicks);
+    }
+
+    public void setRequiredClicks(int requiredClicks) {
+        this.requiredClicks = Math.max(1, requiredClicks);
+    }
+
+    public int incrementClicks() {
+        clicks++;
+        return clicks;
     }
 
     public void setTask(BukkitTask task) {
