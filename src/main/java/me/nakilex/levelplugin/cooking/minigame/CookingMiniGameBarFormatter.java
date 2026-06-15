@@ -1,19 +1,21 @@
 package me.nakilex.levelplugin.cooking.minigame;
 
-import org.bukkit.ChatColor;
+import net.md_5.bungee.api.ChatColor;
+
+import java.awt.Color;
 
 /** Formats LiteCooking-style symbol bars for cooking mini-game title displays. */
 public final class CookingMiniGameBarFormatter {
     private static final String DEFAULT_HIT_SYMBOL = "●";
     private static final String DEFAULT_MIX_SYMBOL = "🔥";
     private static final int HIT_PROGRESS_DOTS = 10;
-    private static final ChatColor LINE_COLOR = ChatColor.DARK_GRAY;
-    private static final ChatColor TARGET_COLOR = ChatColor.RED;
-    private static final ChatColor HOOK_COLOR = ChatColor.GOLD;
-    private static final ChatColor MIX_MIDDLE_COLOR = ChatColor.GOLD;
+    private static final ChatColor LINE_COLOR = ChatColor.of(new Color(0xA87566));
+    private static final ChatColor TARGET_COLOR = ChatColor.of(new Color(0xFF0202));
+    private static final ChatColor HOOK_COLOR = ChatColor.of(new Color(0xFF763A));
+    private static final ChatColor MIX_FILLED_COLOR = ChatColor.of(new Color(0xFF763A));
     private static final ChatColor SUCCESS_COLOR = ChatColor.GREEN;
-    private static final ChatColor HEALTH_COLOR = ChatColor.GOLD;
-    private static final ChatColor PROGRESS_COLOR = ChatColor.LIGHT_PURPLE;
+    private static final ChatColor HEALTH_COLOR = ChatColor.of(new Color(0xFF763A));
+    private static final ChatColor PROGRESS_COLOR = ChatColor.of(new Color(0xE61B9A));
     private static final ChatColor EMPTY_PROGRESS_COLOR = ChatColor.DARK_GRAY;
 
     private CookingMiniGameBarFormatter() {
@@ -72,7 +74,7 @@ public final class CookingMiniGameBarFormatter {
         String safeEmptySymbol = configuredSymbol(emptySymbol, DEFAULT_MIX_SYMBOL);
         StringBuilder title = new StringBuilder();
         for (int i = 0; i < safeBarSize; i++) {
-            title.append(i < progressSlots ? MIX_MIDDLE_COLOR : LINE_COLOR)
+            title.append(i < progressSlots ? MIX_FILLED_COLOR : LINE_COLOR)
                     .append(i < progressSlots ? safeFilledSymbol : safeEmptySymbol);
         }
         return new CookingMiniGameVisual(title.toString(), "");

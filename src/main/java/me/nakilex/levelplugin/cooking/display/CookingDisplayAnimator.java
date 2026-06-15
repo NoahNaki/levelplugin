@@ -1,7 +1,6 @@
 package me.nakilex.levelplugin.cooking.display;
 
 import me.nakilex.levelplugin.Main;
-import org.bukkit.Location;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.scheduler.BukkitTask;
@@ -9,99 +8,72 @@ import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
-/** Reusable pulse/hover animator for cooking item displays. */
+/** Reusable scale animator for cooking item displays. */
 public class CookingDisplayAnimator {
-    private static final long PERIOD_TICKS = 2L;
+    private static final float INITIAL_SCALE = 0.05f;
 
     private final Main plugin;
-    private final Set<AnimatedDisplay> displays = new HashSet<>();
-    private BukkitTask task;
+    private final Map<UUID, BukkitTask> activeTasks = new HashMap<>();
 
     public CookingDisplayAnimator(Main plugin) {
         this.plugin = plugin;
     }
 
-    public AnimatedDisplay animate(ItemDisplay display, Location baseLocation, float baseScale,
-                                   double pulseAmplitude, double hoverAmplitude,
-                                   double pulseSpeed, double hoverSpeed) {
-        if (display == null || baseLocation == null) {
+    public AnimatedDisplay animateIn(ItemDisplay display, float targetScale, float step) {
+        if (display == null) {
             return null;
         }
-        AnimatedDisplay animated = new AnimatedDisplay(display, baseLocation.clone(), baseScale, pulseAmplitude,
-                hoverAmplitude, pulseSpeed, hoverSpeed, plugin.getServer().getCurrentTick());
-        displays.add(animated);
-        ensureRunning();
-        return animated;
+        float safeTarget = Math.max(INITIAL_SCALE, targetScale);
+        applyScale(display, INITIAL_SCALE);
+        replaceTask(display, plugin.getServer().getScheduler().runTaskTimer(plugin,
+                new ScaleInTask(display, safeTarget, Math.max(0.01f, step)), 0L, 1L));
+        return new AnimatedDisplay(display, safeTarget);
     }
 
     public void stop(AnimatedDisplay animated) {
-        if (animated == null) return;
-        displays.remove(animated);
-        stopIfIdle();
+        if (animated == null || animated.display() == null) {
+            return;
+        }
+        cancelTask(animated.display());
     }
 
     public void stopAll() {
-        displays.clear();
-        if (task != null) {
+        for (BukkitTask task : activeTasks.values()) {
             task.cancel();
-            task = null;
         }
+        activeTasks.clear();
     }
 
-    public void shrinkAndRemove(AnimatedDisplay animated) {
+    public void scaleOutAndRemove(AnimatedDisplay animated, float multiplier, float minimumScale) {
         if (animated == null) return;
-        stop(animated);
         ItemDisplay display = animated.display();
         if (display == null || !display.isValid()) return;
-        final int[] tick = {0};
-        plugin.getServer().getScheduler().runTaskTimer(plugin, task -> {
-            if (!display.isValid()) {
-                task.cancel();
-                return;
-            }
-            if (tick[0] >= 6) {
-                display.remove();
-                task.cancel();
-                return;
-            }
-            applyScale(display, animated.baseScale() * (1.0f - (tick[0] / 6.0f)));
-            tick[0]++;
-        }, 0L, 1L);
+        replaceTask(display, plugin.getServer().getScheduler().runTaskTimer(plugin,
+                new ScaleOutTask(display, Math.max(0.01f, multiplier), Math.max(0.0f, minimumScale)), 0L, 1L));
     }
 
-    private void ensureRunning() {
-        if (task != null || displays.isEmpty()) return;
-        task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 0L, PERIOD_TICKS);
+    private void replaceTask(ItemDisplay display, BukkitTask task) {
+        cancelTask(display);
+        activeTasks.put(display.getUniqueId(), task);
     }
 
-    private void stopIfIdle() {
-        if (displays.isEmpty() && task != null) {
-            task.cancel();
-            task = null;
+    private void cancelTask(ItemDisplay display) {
+        if (display == null) {
+            return;
+        }
+        BukkitTask previous = activeTasks.remove(display.getUniqueId());
+        if (previous != null) {
+            previous.cancel();
         }
     }
 
-    private void tick() {
-        long currentTick = plugin.getServer().getCurrentTick();
-        Iterator<AnimatedDisplay> iterator = displays.iterator();
-        while (iterator.hasNext()) {
-            AnimatedDisplay animated = iterator.next();
-            ItemDisplay display = animated.display();
-            if (display == null || !display.isValid()) {
-                iterator.remove();
-                continue;
-            }
-            long time = currentTick - animated.startTick();
-            double pulse = 1.0D + Math.sin(time * animated.pulseSpeed()) * animated.pulseAmplitude();
-            double hover = Math.sin(time * animated.hoverSpeed()) * animated.hoverAmplitude();
-            applyScale(display, (float) (animated.baseScale() * pulse));
-            display.teleport(animated.baseLocation().clone().add(0.0D, hover, 0.0D));
-        }
-        stopIfIdle();
+    private float currentScale(Display display) {
+        Transformation transformation = display.getTransformation();
+        return transformation == null ? INITIAL_SCALE : transformation.getScale().x;
     }
 
     private static void applyScale(Display display, float scale) {
@@ -109,7 +81,57 @@ public class CookingDisplayAnimator {
                 new Vector3f(scale, scale, scale), new AxisAngle4f()));
     }
 
-    public record AnimatedDisplay(ItemDisplay display, Location baseLocation, float baseScale,
-                                  double pulseAmplitude, double hoverAmplitude,
-                                  double pulseSpeed, double hoverSpeed, long startTick) {}
+    private final class ScaleInTask implements Runnable {
+        private final ItemDisplay display;
+        private final float targetScale;
+        private final float step;
+
+        private ScaleInTask(ItemDisplay display, float targetScale, float step) {
+            this.display = display;
+            this.targetScale = targetScale;
+            this.step = step;
+        }
+
+        @Override
+        public void run() {
+            if (!display.isValid()) {
+                cancelTask(display);
+                return;
+            }
+            float nextScale = Math.min(targetScale, currentScale(display) + step);
+            applyScale(display, nextScale);
+            if (nextScale >= targetScale) {
+                cancelTask(display);
+            }
+        }
+    }
+
+    private final class ScaleOutTask implements Runnable {
+        private final ItemDisplay display;
+        private final float multiplier;
+        private final float minimumScale;
+
+        private ScaleOutTask(ItemDisplay display, float multiplier, float minimumScale) {
+            this.display = display;
+            this.multiplier = multiplier;
+            this.minimumScale = minimumScale;
+        }
+
+        @Override
+        public void run() {
+            if (!display.isValid()) {
+                cancelTask(display);
+                return;
+            }
+            float nextScale = currentScale(display) * multiplier;
+            if (nextScale <= minimumScale) {
+                display.remove();
+                cancelTask(display);
+                return;
+            }
+            applyScale(display, nextScale);
+        }
+    }
+
+    public record AnimatedDisplay(ItemDisplay display, float targetScale) {}
 }

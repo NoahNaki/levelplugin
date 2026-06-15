@@ -19,7 +19,7 @@ recipes:
         duration-ticks: 200
         bar-size: 10
         target-score: 3
-        health: 3
+        health: 2
         speed-ticks: 5
         hit-target-symbol: "●"
         hit-hook-symbol: "●"
@@ -30,7 +30,7 @@ recipes:
         mini-game-type: DOT_STYLE_MIX
         duration-ticks: 120
         bar-size: 10
-        required-clicks: 8
+        required-clicks: 20
         mix-filled-symbol: "🔥"
         mix-empty-symbol: "🔥"
       4:
