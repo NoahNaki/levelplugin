@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.blacksmith.gui.BlacksmithGUI;
 import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
+import me.nakilex.levelplugin.cooking.CookingModule;
 import me.nakilex.levelplugin.booster.GlobalBoosterManager;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -274,6 +275,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.catacombs.CatacombsGUI catacombsGUI;
     private me.nakilex.levelplugin.nexo.FurnitureGuiMapper furnitureGuiMapper;
     private CursorMenuManager cursorMenuManager;
+    private CookingModule cookingModule;
     private BlockGlowUtil blockGlowUtil;
 
     public PluginBootstrap(Main plugin) {
@@ -376,6 +378,8 @@ public class PluginBootstrap {
         itemManager = new ItemManager(plugin);
         itemRegistryV2 = new ItemRegistry(plugin);
         itemRegistryV2.load();
+        cookingModule = new CookingModule(plugin);
+        cookingModule.load();
         toolManager = new me.nakilex.levelplugin.items.tools.ToolManager();
         configManager = new ConfigManager(plugin);
         cooldownManager = new CooldownManager(plugin, configManager, null);
@@ -930,6 +934,7 @@ public class PluginBootstrap {
             }
             playerConfig.saveAllPlayers();
         }
+        if (cookingModule != null) cookingModule.shutdown();
         if (treeFellingWoodcuttingModule != null) treeFellingWoodcuttingModule.shutdown();
         if (storageManager != null) storageManager.saveAllStorages();
         if (guildVaultManager != null) guildVaultManager.saveAll();
@@ -985,6 +990,7 @@ public class PluginBootstrap {
     public EconomyManager getEconomyManager() { return economyManager; }
     public ItemManager getItemManager() { return itemManager; }
     public ItemRegistry getItemRegistryV2() { return itemRegistryV2; }
+    public CookingModule getCookingModule() { return cookingModule; }
     public ItemUpgradeManager getItemUpgradeManager() { return itemUpgradeManager; }
     public ItemRepairManager getItemRepairManager() { return itemRepairManager; }
     public me.nakilex.levelplugin.items.tools.ToolManager getToolManager() { return toolManager; }
@@ -1192,6 +1198,9 @@ public class PluginBootstrap {
         }
         if (chatGameManager != null) {
             chatGameManager.reload();
+        }
+        if (cookingModule != null) {
+            cookingModule.reload();
         }
     }
 
