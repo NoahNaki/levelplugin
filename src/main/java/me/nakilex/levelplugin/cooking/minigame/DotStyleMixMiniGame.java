@@ -91,6 +91,11 @@ public class DotStyleMixMiniGame implements CookingMiniGame {
 
     private void showVisual(CookingMiniGameSession session, Player player, CookingStageExecutor.StageSessionController controller) {
         controller.displayService().showMiniGameVisual(player,
-                CookingMiniGameBarFormatter.mixBar(session.clicks(), session.requiredClicks(), session.barSize()));
+                CookingMiniGameBarFormatter.mixBar(
+                        session.clicks(),
+                        session.requiredClicks(),
+                        session.barSize(),
+                        session.stage().mixFilledSymbol(),
+                        session.stage().mixEmptySymbol()));
     }
 }

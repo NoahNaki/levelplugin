@@ -116,7 +116,16 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
 
     private void showVisual(CookingMiniGameSession session, Player player, CookingStageExecutor.StageSessionController controller) {
         controller.displayService().showMiniGameVisual(player, CookingMiniGameBarFormatter.hitBar(
-                session.hookIndex(), session.targetIndex(), session.barSize(), session.score(), session.targetScore(), session.health()));
+                session.hookIndex(),
+                session.targetIndex(),
+                session.barSize(),
+                session.score(),
+                session.targetScore(),
+                session.health(),
+                session.stage().hitTargetSymbol(),
+                session.stage().hitHookSymbol(),
+                session.stage().hitLineSymbol(),
+                session.stage().healthSymbol()));
     }
 
     private long configuredDuration(CookingMiniGameSession session) {

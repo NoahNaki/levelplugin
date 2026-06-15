@@ -113,7 +113,13 @@ public class CookingConfigLoader {
                     section.getInt("bar-size", section.getInt("barSize", 0)),
                     section.getInt("target-score", section.getInt("targetScore", 0)),
                     section.getInt("health", 0),
-                    section.getLong("speed-ticks", section.getLong("speedTicks", 0L))
+                    section.getLong("speed-ticks", section.getLong("speedTicks", 0L)),
+                    section.getString("hit-target-symbol", section.getString("hitTargetSymbol")),
+                    section.getString("hit-hook-symbol", section.getString("hitHookSymbol")),
+                    section.getString("hit-line-symbol", section.getString("hitLineSymbol")),
+                    section.getString("mix-filled-symbol", section.getString("mixFilledSymbol")),
+                    section.getString("mix-empty-symbol", section.getString("mixEmptySymbol")),
+                    section.getString("health-symbol", section.getString("healthSymbol"))
             ));
         }
         return stages;

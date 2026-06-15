@@ -20,12 +20,18 @@ recipes:
         target-score: 3
         health: 3
         speed-ticks: 5
+        hit-target-symbol: "●"
+        hit-hook-symbol: "●"
+        hit-line-symbol: "●"
+        health-symbol: "🔥"
       3:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
         duration-ticks: 120
         bar-size: 10
         required-clicks: 8
+        mix-filled-symbol: "🔥"
+        mix-empty-symbol: "🔥"
       4:
         type: WAIT
         duration-ticks: 80

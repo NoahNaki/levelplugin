@@ -18,7 +18,13 @@ public record CookingStage(
         int barSize,
         int targetScore,
         int health,
-        long speedTicks
+        long speedTicks,
+        String hitTargetSymbol,
+        String hitHookSymbol,
+        String hitLineSymbol,
+        String mixFilledSymbol,
+        String mixEmptySymbol,
+        String healthSymbol
 ) {
     public CookingStage {
         requirements = List.copyOf(requirements == null ? List.of() : requirements);
@@ -32,6 +38,16 @@ public record CookingStage(
         targetScore = Math.max(0, targetScore);
         health = Math.max(0, health);
         speedTicks = Math.max(0L, speedTicks);
+        hitTargetSymbol = normalizeSymbol(hitTargetSymbol);
+        hitHookSymbol = normalizeSymbol(hitHookSymbol);
+        hitLineSymbol = normalizeSymbol(hitLineSymbol);
+        mixFilledSymbol = normalizeSymbol(mixFilledSymbol);
+        mixEmptySymbol = normalizeSymbol(mixEmptySymbol);
+        healthSymbol = normalizeSymbol(healthSymbol);
+    }
+
+    private static String normalizeSymbol(String symbol) {
+        return symbol == null || symbol.isBlank() ? null : symbol;
     }
 
     /** Compatibility helper for older single-ingredient call sites. */
