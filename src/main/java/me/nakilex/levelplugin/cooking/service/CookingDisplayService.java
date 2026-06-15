@@ -22,8 +22,6 @@ import java.util.List;
 
 /** Owns floating cooking display entity lifecycle and display text formatting. */
 public class CookingDisplayService {
-    private static final String GREEN_CHECK = ChatColor.GREEN + "\u2714";
-    private static final String RED_CROSS = ChatColor.RED + "\u2718";
     private static final ChatColor LABEL_COLOR = ChatColor.GRAY;
     private static final ChatColor NUMBER_COLOR = ChatColor.WHITE;
 
@@ -32,30 +30,76 @@ public class CookingDisplayService {
             return;
         }
         cleanup(session);
-        Location workstationLocation = session.workstationKey().toLocation();
-        if (workstationLocation == null || workstationLocation.getWorld() == null) {
+        ensureDisplayState(session);
+    }
+
+    public void clearStageDisplays(ActiveCookingSession session) {
+        if (session == null) {
             return;
         }
-        World world = workstationLocation.getWorld();
-        Location displayLocation = workstationLocation.clone().add(0.5, 1.25, 0.5);
-        ItemDisplay itemDisplay = world.spawn(displayLocation, ItemDisplay.class);
-        itemDisplay.setItemStack(recipe.displayItem());
-        configureItemDisplay(itemDisplay, 0.6f);
+        CookingDisplayState state = ensureDisplayState(session);
+        clearText(session);
+        cleanupIngredientDisplays(state);
+    }
 
-        TextDisplay textDisplay = world.spawn(displayLocation.clone().add(0, 0.35, 0), TextDisplay.class);
-        textDisplay.setText("Cooking...");
+    public void showText(ActiveCookingSession session, String text) {
+        if (session == null || text == null || text.isBlank()) {
+            clearText(session);
+            return;
+        }
+        CookingDisplayState state = ensureDisplayState(session);
+        TextDisplay textDisplay = state.textDisplay();
+        if (!isValid(textDisplay)) {
+            textDisplay = spawnTextDisplay(session);
+            session.setDisplayState(state.withTextDisplay(textDisplay));
+        }
+        if (isValid(textDisplay)) {
+            textDisplay.setText(LABEL_COLOR + text);
+        }
+    }
+
+    public void clearText(ActiveCookingSession session) {
+        if (session == null || session.displayState() == null) {
+            return;
+        }
+        TextDisplay textDisplay = session.displayState().textDisplay();
+        safeRemove(textDisplay);
+        session.setDisplayState(session.displayState().withTextDisplay(null));
+    }
+
+    public void clearIngredientDisplays(ActiveCookingSession session) {
+        if (session == null || session.displayState() == null) {
+            return;
+        }
+        cleanupIngredientDisplays(session.displayState());
+    }
+
+    private CookingDisplayState ensureDisplayState(ActiveCookingSession session) {
+        if (session.displayState() == null) {
+            session.setDisplayState(new CookingDisplayState(null, null));
+        }
+        return session.displayState();
+    }
+
+    private TextDisplay spawnTextDisplay(ActiveCookingSession session) {
+        Location workstationLocation = session.workstationKey().toLocation();
+        if (workstationLocation == null || workstationLocation.getWorld() == null) {
+            return null;
+        }
+        World world = workstationLocation.getWorld();
+        TextDisplay textDisplay = world.spawn(workstationLocation.clone().add(0.5, 1.75, 0.5), TextDisplay.class);
         textDisplay.setBillboard(Display.Billboard.CENTER);
         textDisplay.setSeeThrough(false);
-        session.setDisplayState(new CookingDisplayState(itemDisplay, textDisplay));
+        return textDisplay;
     }
 
     public void showIngredientDisplays(ActiveCookingSession session, CookingStage stage) {
         if (session == null || stage == null) {
             return;
         }
-        CookingDisplayState state = session.displayState();
+        CookingDisplayState state = ensureDisplayState(session);
         Location workstationLocation = session.workstationKey().toLocation();
-        if (state == null || workstationLocation == null || workstationLocation.getWorld() == null) {
+        if (workstationLocation == null || workstationLocation.getWorld() == null) {
             return;
         }
         cleanupIngredientDisplays(state);
@@ -64,7 +108,7 @@ public class CookingDisplayService {
         double centerOffset = (requirements.size() - 1) / 2.0D;
         for (int index = 0; index < requirements.size(); index++) {
             CookingIngredientRequirement requirement = requirements.get(index);
-            Location displayLocation = workstationLocation.clone().add(0.5 + ((index - centerOffset) * 0.45D), 1.85D, 0.5D);
+            Location displayLocation = workstationLocation.clone().add(0.5 + ((index - centerOffset) * 0.45D), 1.35D, 0.5D);
             ItemDisplay ingredientDisplay = world.spawn(displayLocation, ItemDisplay.class);
             ingredientDisplay.setItemStack(createRequirementDisplayItem(requirement));
             configureItemDisplay(ingredientDisplay, 0.35f);
@@ -78,13 +122,6 @@ public class CookingDisplayService {
         }
         ItemDisplay display = session.displayState().ingredientDisplays().remove(requirement.progressKey());
         safeRemove(display);
-    }
-
-    public void updateIngredientProgress(ActiveCookingSession session, CookingStage stage) {
-        if (session == null || stage == null) {
-            return;
-        }
-        updateText(session, formatIngredientProgress(session, stage));
     }
 
     public void updateWaitProgress(ActiveCookingSession session, long secondsRemaining) {
@@ -124,26 +161,18 @@ public class CookingDisplayService {
         return requirement.nexoItemIdOptional().map(id -> "Nexo " + id).orElseGet(() -> formatMaterial(requirement.material()));
     }
 
-    private String formatIngredientProgress(ActiveCookingSession session, CookingStage stage) {
-        List<String> lines = stage.requirements().stream()
-                .map(requirement -> {
-                    int inserted = session.progress().insertedAmount(requirement);
-                    int required = requirement.amount();
-                    boolean complete = inserted >= required;
-                    String icon = complete ? GREEN_CHECK : RED_CROSS;
-                    return icon
-                            + LABEL_COLOR + " " + formatRequirementName(requirement)
-                            + " " + NUMBER_COLOR + Math.min(inserted, required)
-                            + LABEL_COLOR + "/" + NUMBER_COLOR + required;
-                })
-                .toList();
-        return String.join("\n", lines);
-    }
-
     private void updateText(ActiveCookingSession session, String text) {
-        CookingDisplayState state = session.displayState();
-        if (state != null && isValid(state.textDisplay())) {
-            state.textDisplay().setText(text);
+        if (session == null) {
+            return;
+        }
+        CookingDisplayState state = ensureDisplayState(session);
+        TextDisplay textDisplay = state.textDisplay();
+        if (!isValid(textDisplay)) {
+            textDisplay = spawnTextDisplay(session);
+            session.setDisplayState(state.withTextDisplay(textDisplay));
+        }
+        if (isValid(textDisplay)) {
+            textDisplay.setText(text);
         }
     }
 

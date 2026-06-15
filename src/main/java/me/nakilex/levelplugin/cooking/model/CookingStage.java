@@ -9,11 +9,15 @@ public record CookingStage(
         CookingStageType type,
         List<CookingIngredientRequirement> requirements,
         long durationTicks,
-        String miniGameId
+        String miniGameId,
+        String tooltip
 ) {
     public CookingStage {
         requirements = List.copyOf(requirements == null ? List.of() : requirements);
         durationTicks = Math.max(0L, durationTicks);
+        if (tooltip != null && tooltip.isBlank()) {
+            tooltip = null;
+        }
     }
 
     /** Compatibility helper for older single-ingredient call sites. */

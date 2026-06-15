@@ -99,7 +99,8 @@ public class CookingConfigLoader {
                     type,
                     requirements,
                     section.getLong("duration-ticks", section.getLong("ticks", 0L)),
-                    section.getString("minigame-id", section.getString("mini-game-id"))
+                    section.getString("minigame-id", section.getString("mini-game-id")),
+                    section.getString("tooltip")
             ));
         }
         return stages;

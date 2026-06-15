@@ -26,4 +26,8 @@ public record CookingDisplayState(
     public CookingDisplayState(ItemDisplay itemDisplay, TextDisplay textDisplay) {
         this(itemDisplay, textDisplay, new HashMap<>(), Instant.now());
     }
+
+    public CookingDisplayState withTextDisplay(TextDisplay textDisplay) {
+        return new CookingDisplayState(itemDisplay, textDisplay, ingredientDisplays, createdAt);
+    }
 }

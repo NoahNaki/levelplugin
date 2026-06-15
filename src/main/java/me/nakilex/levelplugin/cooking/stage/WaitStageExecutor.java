@@ -27,6 +27,7 @@ public class WaitStageExecutor implements CookingStageExecutor {
         }
         long durationTicks = Math.max(1L, stage.durationTicks());
         long seconds = (long) Math.ceil(durationTicks / 20.0D);
+        context.controller().displayService().clearIngredientDisplays(session);
         context.controller().displayService().updateWaitProgress(session, seconds);
         context.controller().plugin().getLogger().info("[Cooking] WAIT stage started for recipe="
                 + session.recipeId() + " durationTicks=" + durationTicks + " seconds=" + seconds);
