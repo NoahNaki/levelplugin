@@ -55,11 +55,8 @@ public class CookingDisplayService {
     }
 
     public void updateWaitProgress(ActiveCookingSession session, long secondsRemaining) {
-        if (secondsRemaining < 0) {
-            updateText(session, "Cooking...");
-            return;
-        }
-        updateText(session, "Cooking...\n" + secondsRemaining + "s remaining");
+        long safeSeconds = Math.max(0L, secondsRemaining);
+        updateText(session, "Cooking...\n" + safeSeconds + "s remaining");
     }
 
     public void cleanup(ActiveCookingSession session) {

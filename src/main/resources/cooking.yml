@@ -14,7 +14,7 @@ recipes:
             amount: 1
       2:
         type: WAIT
-        duration-ticks: 100
+        duration-ticks: 160
     rewards:
       1:
         material: BAKED_POTATO

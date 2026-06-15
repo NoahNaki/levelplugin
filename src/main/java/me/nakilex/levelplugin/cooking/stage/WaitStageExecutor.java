@@ -26,9 +26,12 @@ public class WaitStageExecutor implements CookingStageExecutor {
             return;
         }
         long durationTicks = Math.max(1L, stage.durationTicks());
-        context.controller().displayService().updateWaitProgress(session, -1L);
+        long seconds = (long) Math.ceil(durationTicks / 20.0D);
+        context.controller().displayService().updateWaitProgress(session, seconds);
+        context.controller().plugin().getLogger().info("[Cooking] WAIT stage started for recipe="
+                + session.recipeId() + " durationTicks=" + durationTicks + " seconds=" + seconds);
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
-                "Cooking timer started for " + Math.ceil(durationTicks / 20.0D) + "s.");
+                "Cooking timer started for " + seconds + "s.");
         CookingWaitTask waitTask = new CookingWaitTask(
                 durationTicks,
                 WAIT_TICK_PERIOD,
