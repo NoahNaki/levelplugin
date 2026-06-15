@@ -31,7 +31,8 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             return;
         }
         context.controller().displayService().clearStageDisplays(session);
-        int ingredientDisplayCount = context.controller().displayService().showIngredientDisplays(session, stage);
+        int ingredientDisplayCount = context.controller().displayService().showInsertItemDisplays(
+                session, stage, context.controller().recipe(session).orElse(null));
         context.controller().plugin().getLogger().info("[Cooking] Spawned ingredient displays count="
                 + ingredientDisplayCount + " recipe=" + session.recipeId());
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
@@ -74,9 +75,7 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         }
         session.progress().addIngredient(requirement, insertAmount);
         context.controller().effectsService().playIngredientInserted(context.player(), context.rewardDropLocation());
-        if (session.progress().isRequirementComplete(requirement)) {
-            context.controller().displayService().removeIngredientDisplay(session, requirement);
-        }
+        context.controller().displayService().updateInsertItemDisplays(session, stage);
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
                 "Inserted " + ChatColor.YELLOW + insertAmount + "x " + context.controller().displayService().formatRequirementName(requirement) + ChatColor.GREEN + ".");
         if (session.progress().areRequirementsComplete(stage)) {

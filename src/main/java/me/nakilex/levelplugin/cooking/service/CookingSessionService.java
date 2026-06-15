@@ -52,7 +52,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
         this.placedWorkstations = placedWorkstations;
         this.rewardService = rewardService;
         this.refundService = new CookingIngredientRefundService();
-        this.displayService = new CookingDisplayService();
+        this.displayService = new CookingDisplayService(plugin);
         this.effectsService = new CookingEffectsService();
         this.executorRegistry = new CookingStageExecutorRegistry()
                 .register(new InsertItemStageExecutor())
