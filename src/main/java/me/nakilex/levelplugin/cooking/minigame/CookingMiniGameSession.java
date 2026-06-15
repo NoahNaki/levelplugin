@@ -14,6 +14,13 @@ public class CookingMiniGameSession {
     private long hitWindowTicks;
     private int clicks;
     private int requiredClicks;
+    private int barSize;
+    private int targetScore;
+    private int score;
+    private int health;
+    private int hookIndex;
+    private int targetIndex;
+    private boolean movingRight = true;
     private BukkitTask task;
     private boolean finished;
 
@@ -31,6 +38,13 @@ public class CookingMiniGameSession {
     public long hitWindowTicks() { return hitWindowTicks; }
     public int clicks() { return clicks; }
     public int requiredClicks() { return requiredClicks; }
+    public int barSize() { return barSize; }
+    public int targetScore() { return targetScore; }
+    public int score() { return score; }
+    public int health() { return health; }
+    public int hookIndex() { return hookIndex; }
+    public int targetIndex() { return targetIndex; }
+    public boolean movingRight() { return movingRight; }
     public boolean finished() { return finished; }
 
     public void setTiming(long targetTick, long hitWindowTicks) {
@@ -51,6 +65,50 @@ public class CookingMiniGameSession {
         return clicks;
     }
 
+    public void configureHitVisuals(int barSize, int targetScore, int health, int targetIndex) {
+        this.barSize = Math.max(1, barSize);
+        this.targetScore = Math.max(1, targetScore);
+        this.health = Math.max(1, health);
+        this.score = 0;
+        this.hookIndex = 0;
+        this.targetIndex = clamp(targetIndex, 0, this.barSize - 1);
+        this.movingRight = true;
+    }
+
+    public void configureMixVisuals(int barSize, int requiredClicks) {
+        this.barSize = Math.max(1, barSize);
+        setRequiredClicks(requiredClicks);
+    }
+
+    public void setTargetIndex(int targetIndex) {
+        this.targetIndex = clamp(targetIndex, 0, Math.max(0, barSize - 1));
+    }
+
+    public int incrementScore() {
+        score++;
+        return score;
+    }
+
+    public int decrementHealth() {
+        health = Math.max(0, health - 1);
+        return health;
+    }
+
+    public void stepHook() {
+        if (barSize <= 1) {
+            hookIndex = 0;
+            return;
+        }
+        hookIndex += movingRight ? 1 : -1;
+        if (hookIndex >= barSize - 1) {
+            hookIndex = barSize - 1;
+            movingRight = false;
+        } else if (hookIndex <= 0) {
+            hookIndex = 0;
+            movingRight = true;
+        }
+    }
+
     public void setTask(BukkitTask task) {
         cancelTask();
         this.task = task;
@@ -66,5 +124,9 @@ public class CookingMiniGameSession {
     public void finish() {
         finished = true;
         cancelTask();
+    }
+
+    private int clamp(int value, int min, int max) {
+        return Math.max(min, Math.min(max, value));
     }
 }

@@ -2,16 +2,20 @@ package me.nakilex.levelplugin.cooking.minigame;
 
 import me.nakilex.levelplugin.cooking.stage.CookingStageExecutor;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import net.kyori.adventure.text.Component;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 
-/** Timing mini-game where the player right-clicks the workstation inside a centered hit window. */
+/** Moving-hook mini-game where the player right-clicks when the hook overlaps the target. */
 public class DotStyleHitMiniGame implements CookingMiniGame {
     private static final long TICK_PERIOD = 1L;
+    private static final int DEFAULT_BAR_SIZE = 10;
+    private static final int DEFAULT_TARGET_SCORE = 3;
+    private static final int DEFAULT_HEALTH = 3;
+    private static final long DEFAULT_SPEED_TICKS = 5L;
+    private static final long DEFAULT_DURATION_TICKS = 200L;
 
     @Override
     public CookingMiniGameType type() {
@@ -23,14 +27,16 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
                       CookingStageExecutor.StageExecutionContext context,
                       Runnable onSuccess,
                       Consumer<String> onFailure) {
-        long durationTicks = Math.max(1L, session.stage().durationTicks());
-        long hitWindowTicks = Math.max(1L, session.stage().hitWindowTicks());
-        long targetTick = durationTicks / 2L;
-        session.setTiming(targetTick, hitWindowTicks);
+        long durationTicks = configuredDuration(session);
+        int barSize = Math.max(1, session.stage().barSize() > 0 ? session.stage().barSize() : DEFAULT_BAR_SIZE);
+        int targetScore = Math.max(1, session.stage().targetScore() > 0 ? session.stage().targetScore() : DEFAULT_TARGET_SCORE);
+        int health = Math.max(1, session.stage().health() > 0 ? session.stage().health() : DEFAULT_HEALTH);
+        session.setElapsedTicks(0L);
+        session.configureHitVisuals(barSize, targetScore, health, randomTargetIndex(barSize));
         context.controller().displayService().clearStageDisplays(session.cookingSession());
-        context.controller().displayService().updateMiniGameHitProgress(session.cookingSession(), 0L, targetTick, hitWindowTicks);
+        showVisual(session, context.player(), context.controller());
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
-                "Cooking timing challenge started. Right-click when the marker reaches the target.");
+                "Cooking timing challenge started. Right-click when the moving hook overlaps the target.");
         BukkitTask task = context.controller().plugin().getServer().getScheduler().runTaskTimer(
                 context.controller().plugin(),
                 () -> tick(session, context, durationTicks, onFailure),
@@ -43,18 +49,31 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
     public CookingStageExecutor.InteractionResult handleInteraction(CookingMiniGameSession session,
                                                                      CookingStageExecutor.StageInteractionContext context,
                                                                      Runnable onSuccess) {
-        long elapsed = session.elapsedTicks();
-        long halfWindow = Math.max(1L, session.hitWindowTicks()) / 2L;
-        long delta = elapsed - session.targetTick();
-        if (Math.abs(delta) <= halfWindow) {
+        if (session.hookIndex() == session.targetIndex()) {
+            int score = session.incrementScore();
+            if (score >= session.targetScore()) {
+                session.finish();
+                context.controller().displayService().clearMiniGameVisual(context.player());
+                ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Perfect timing!");
+                onSuccess.run();
+                return CookingStageExecutor.InteractionResult.COMPLETED;
+            }
+            session.setTargetIndex(randomTargetIndex(session.barSize()));
+            showVisual(session, context.player(), context.controller());
+            ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Good hit!");
+            return CookingStageExecutor.InteractionResult.ACCEPTED;
+        }
+
+        int health = session.decrementHealth();
+        showVisual(session, context.player(), context.controller());
+        if (health <= 0) {
             session.finish();
-            context.player().sendActionBar(Component.empty());
-            ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Perfect timing!");
-            onSuccess.run();
+            context.controller().displayService().clearMiniGameVisual(context.player());
+            ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.ERROR, "Cooking timing challenge failed.");
+            context.controller().cancelSession(session.cookingSession(), "Cooking minigame failed.");
             return CookingStageExecutor.InteractionResult.COMPLETED;
         }
-        ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
-                delta < 0 ? "Too early! Try again." : "Too late! Try again.");
+        ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING, "Missed! Try again.");
         return CookingStageExecutor.InteractionResult.ACCEPTED;
     }
 
@@ -81,12 +100,13 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
             return;
         }
         long elapsed = session.elapsedTicks();
-        context.controller().displayService().updateMiniGameHitProgress(
-                session.cookingSession(), elapsed, session.targetTick(), session.hitWindowTicks());
-        player.sendActionBar(Component.text(formatActionBar(elapsed, session.targetTick(), session.hitWindowTicks())));
+        if (elapsed > 0L && elapsed % speedTicks(session) == 0L) {
+            session.stepHook();
+        }
+        showVisual(session, player, context.controller());
         if (elapsed >= durationTicks) {
             session.finish();
-            player.sendActionBar(Component.empty());
+            context.controller().displayService().clearMiniGameVisual(player);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Cooking timing challenge failed.");
             onFailure.accept("Cooking minigame failed.");
             return;
@@ -94,15 +114,20 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
         session.setElapsedTicks(elapsed + 1L);
     }
 
-    private String formatActionBar(long elapsed, long targetTick, long hitWindowTicks) {
-        long halfWindow = Math.max(1L, hitWindowTicks) / 2L;
-        long delta = elapsed - targetTick;
-        if (Math.abs(delta) <= halfWindow) {
-            return ChatColor.GREEN + "HIT NOW!";
-        }
-        if (delta < 0) {
-            return ChatColor.YELLOW + "Get ready...";
-        }
-        return ChatColor.RED + "Too late!";
+    private void showVisual(CookingMiniGameSession session, Player player, CookingStageExecutor.StageSessionController controller) {
+        controller.displayService().showMiniGameVisual(player, CookingMiniGameBarFormatter.hitBar(
+                session.hookIndex(), session.targetIndex(), session.barSize(), session.score(), session.targetScore(), session.health()));
+    }
+
+    private long configuredDuration(CookingMiniGameSession session) {
+        return Math.max(1L, session.stage().durationTicks() > 0L ? session.stage().durationTicks() : DEFAULT_DURATION_TICKS);
+    }
+
+    private long speedTicks(CookingMiniGameSession session) {
+        return Math.max(1L, session.stage().speedTicks() > 0L ? session.stage().speedTicks() : DEFAULT_SPEED_TICKS);
+    }
+
+    private int randomTargetIndex(int barSize) {
+        return ThreadLocalRandom.current().nextInt(Math.max(1, barSize));
     }
 }

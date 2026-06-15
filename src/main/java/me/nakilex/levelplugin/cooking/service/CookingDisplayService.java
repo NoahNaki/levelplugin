@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.cooking.service;
 
+import me.nakilex.levelplugin.cooking.minigame.CookingMiniGameVisual;
 import me.nakilex.levelplugin.cooking.model.CookingIngredientRequirement;
 import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
@@ -13,6 +14,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
@@ -132,28 +134,19 @@ public class CookingDisplayService {
         updateText(session, LABEL_COLOR + "Cooking...\n" + NUMBER_COLOR + safeSeconds + LABEL_COLOR + "s remaining");
     }
 
-    public void updateMiniGameHitProgress(ActiveCookingSession session, long elapsedTicks, long targetTick, long hitWindowTicks) {
-        long halfWindow = Math.max(1L, hitWindowTicks) / 2L;
-        long windowStart = Math.max(0L, targetTick - halfWindow);
-        long windowEnd = targetTick + halfWindow;
-        String status;
-        if (elapsedTicks < windowStart) {
-            status = ChatColor.YELLOW + "Get ready...";
-        } else if (elapsedTicks <= windowEnd) {
-            status = ChatColor.GREEN + "Hit now!";
-        } else {
-            status = ChatColor.RED + "Too late!";
+    public void showMiniGameVisual(Player player, CookingMiniGameVisual visual) {
+        if (player == null || visual == null) {
+            return;
         }
-        updateText(session, LABEL_COLOR + "Timing challenge\n" + status);
+        player.sendTitle(visual.title(), visual.subtitle(), 0, 20, 0);
     }
 
-    public void updateMiniGameMixProgress(ActiveCookingSession session, int clicks, int requiredClicks, long remainingTicks) {
-        int safeClicks = Math.max(0, clicks);
-        int safeRequiredClicks = Math.max(1, requiredClicks);
-        long secondsRemaining = Math.max(0L, (long) Math.ceil(remainingTicks / 20.0D));
-        updateText(session, LABEL_COLOR + "Mix! " + NUMBER_COLOR + safeClicks + LABEL_COLOR + "/"
-                + NUMBER_COLOR + safeRequiredClicks + "\n"
-                + NUMBER_COLOR + secondsRemaining + LABEL_COLOR + "s remaining");
+    public void clearMiniGameVisual(Player player) {
+        if (player == null) {
+            return;
+        }
+        player.resetTitle();
+        player.sendActionBar(net.kyori.adventure.text.Component.empty());
     }
 
     public void cleanup(ActiveCookingSession session) {

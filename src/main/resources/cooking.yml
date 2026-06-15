@@ -15,13 +15,17 @@ recipes:
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
-        duration-ticks: 100
-        hit-window-ticks: 20
+        duration-ticks: 200
+        bar-size: 10
+        target-score: 3
+        health: 3
+        speed-ticks: 5
       3:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
         duration-ticks: 120
-        required-clicks: 5
+        bar-size: 10
+        required-clicks: 8
       4:
         type: WAIT
         duration-ticks: 80

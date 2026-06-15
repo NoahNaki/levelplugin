@@ -109,7 +109,11 @@ public class CookingConfigLoader {
                     miniGameType,
                     section.getLong("hit-window-ticks", section.getLong("hitWindowTicks",
                             section.getLong("target-window-ticks", section.getLong("targetWindowTicks", 0L)))),
-                    section.getInt("required-clicks", section.getInt("requiredClicks", 0))
+                    section.getInt("required-clicks", section.getInt("requiredClicks", 0)),
+                    section.getInt("bar-size", section.getInt("barSize", 0)),
+                    section.getInt("target-score", section.getInt("targetScore", 0)),
+                    section.getInt("health", 0),
+                    section.getLong("speed-ticks", section.getLong("speedTicks", 0L))
             ));
         }
         return stages;

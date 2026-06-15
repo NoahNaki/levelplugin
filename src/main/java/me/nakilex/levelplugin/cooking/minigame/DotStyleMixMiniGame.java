@@ -2,16 +2,15 @@ package me.nakilex.levelplugin.cooking.minigame;
 
 import me.nakilex.levelplugin.cooking.stage.CookingStageExecutor;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import net.kyori.adventure.text.Component;
-import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.function.Consumer;
 
-/** Click-count mini-game where the player repeatedly right-clicks before the timer expires. */
+/** Fill-bar mini-game where the player repeatedly right-clicks before the timer expires. */
 public class DotStyleMixMiniGame implements CookingMiniGame {
     private static final long TICK_PERIOD = 1L;
+    private static final int DEFAULT_BAR_SIZE = 10;
 
     @Override
     public CookingMiniGameType type() {
@@ -25,11 +24,11 @@ public class DotStyleMixMiniGame implements CookingMiniGame {
                       Consumer<String> onFailure) {
         long durationTicks = Math.max(1L, session.stage().durationTicks());
         int requiredClicks = Math.max(1, session.stage().requiredClicks());
+        int barSize = Math.max(1, session.stage().barSize() > 0 ? session.stage().barSize() : DEFAULT_BAR_SIZE);
         session.setElapsedTicks(0L);
-        session.setRequiredClicks(requiredClicks);
+        session.configureMixVisuals(barSize, requiredClicks);
         context.controller().displayService().clearStageDisplays(session.cookingSession());
-        context.controller().displayService().updateMiniGameMixProgress(
-                session.cookingSession(), session.clicks(), requiredClicks, durationTicks);
+        showVisual(session, context.player(), context.controller());
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
                 "Cooking mix challenge started. Right-click the workstation " + requiredClicks + " times before time runs out.");
         BukkitTask task = context.controller().plugin().getServer().getScheduler().runTaskTimer(
@@ -45,13 +44,10 @@ public class DotStyleMixMiniGame implements CookingMiniGame {
                                                                      CookingStageExecutor.StageInteractionContext context,
                                                                      Runnable onSuccess) {
         int clicks = session.incrementClicks();
-        long remainingTicks = Math.max(0L, session.stage().durationTicks() - session.elapsedTicks());
-        context.controller().displayService().updateMiniGameMixProgress(
-                session.cookingSession(), clicks, session.requiredClicks(), remainingTicks);
-        context.player().sendActionBar(Component.text(formatActionBar(clicks, session.requiredClicks())));
+        showVisual(session, context.player(), context.controller());
         if (clicks >= session.requiredClicks()) {
             session.finish();
-            context.player().sendActionBar(Component.empty());
+            context.controller().displayService().clearMiniGameVisual(context.player());
             ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Mixing complete!");
             onSuccess.run();
             return CookingStageExecutor.InteractionResult.COMPLETED;
@@ -82,13 +78,10 @@ public class DotStyleMixMiniGame implements CookingMiniGame {
             return;
         }
         long elapsed = session.elapsedTicks();
-        long remainingTicks = Math.max(0L, durationTicks - elapsed);
-        context.controller().displayService().updateMiniGameMixProgress(
-                session.cookingSession(), session.clicks(), session.requiredClicks(), remainingTicks);
-        player.sendActionBar(Component.text(formatActionBar(session.clicks(), session.requiredClicks())));
+        showVisual(session, player, context.controller());
         if (elapsed >= durationTicks) {
             session.finish();
-            player.sendActionBar(Component.empty());
+            context.controller().displayService().clearMiniGameVisual(player);
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Cooking mix challenge failed.");
             onFailure.accept("Cooking mix minigame failed.");
             return;
@@ -96,7 +89,8 @@ public class DotStyleMixMiniGame implements CookingMiniGame {
         session.setElapsedTicks(elapsed + 1L);
     }
 
-    private String formatActionBar(int clicks, int requiredClicks) {
-        return ChatColor.AQUA + "Mix! " + ChatColor.WHITE + clicks + ChatColor.GRAY + "/" + ChatColor.WHITE + requiredClicks;
+    private void showVisual(CookingMiniGameSession session, Player player, CookingStageExecutor.StageSessionController controller) {
+        controller.displayService().showMiniGameVisual(player,
+                CookingMiniGameBarFormatter.mixBar(session.clicks(), session.requiredClicks(), session.barSize()));
     }
 }

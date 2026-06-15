@@ -76,6 +76,7 @@ public class MiniGameStageExecutor implements CookingStageExecutor {
         Optional.ofNullable(miniGames.get(miniGameSession.type())).ifPresent(miniGame -> miniGame.cancel(miniGameSession));
         Player player = Bukkit.getPlayer(session.playerId());
         if (player != null) {
+            player.resetTitle();
             player.sendActionBar(net.kyori.adventure.text.Component.empty());
         }
     }
