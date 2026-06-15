@@ -20,11 +20,23 @@ public class CookingStageProgress {
     }
 
     public int insertedAmount(CookingIngredientRequirement requirement) {
+        return insertedAmount(currentStageIndex, requirement);
+    }
+
+    public int insertedAmount(int stageIndex, CookingIngredientRequirement requirement) {
         if (requirement == null) {
             return 0;
         }
-        return insertedByStage.getOrDefault(currentStageIndex, Map.of())
+        return insertedByStage.getOrDefault(stageIndex, Map.of())
                 .getOrDefault(requirement.progressKey(), 0);
+    }
+
+    public Map<Integer, Map<String, Integer>> insertedByStageSnapshot() {
+        Map<Integer, Map<String, Integer>> snapshot = new HashMap<>();
+        for (Map.Entry<Integer, Map<String, Integer>> entry : insertedByStage.entrySet()) {
+            snapshot.put(entry.getKey(), Map.copyOf(entry.getValue()));
+        }
+        return Map.copyOf(snapshot);
     }
 
     public int remainingAmount(CookingIngredientRequirement requirement) {

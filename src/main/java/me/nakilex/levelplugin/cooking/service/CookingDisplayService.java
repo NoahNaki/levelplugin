@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
 import me.nakilex.levelplugin.cooking.runtime.CookingDisplayState;
+import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -20,6 +21,11 @@ import java.util.List;
 
 /** Owns floating cooking display entity lifecycle and display text formatting. */
 public class CookingDisplayService {
+    private static final String GREEN_CHECK = ChatColor.GREEN + "\u2714";
+    private static final String RED_CROSS = ChatColor.RED + "\u2718";
+    private static final ChatColor LABEL_COLOR = ChatColor.GRAY;
+    private static final ChatColor NUMBER_COLOR = ChatColor.WHITE;
+
     public void spawnDisplays(ActiveCookingSession session, CookingRecipe recipe) {
         if (session == null || recipe == null) {
             return;
@@ -56,7 +62,7 @@ public class CookingDisplayService {
 
     public void updateWaitProgress(ActiveCookingSession session, long secondsRemaining) {
         long safeSeconds = Math.max(0L, secondsRemaining);
-        updateText(session, "Cooking...\n" + safeSeconds + "s remaining");
+        updateText(session, LABEL_COLOR + "Cooking...\n" + NUMBER_COLOR + safeSeconds + LABEL_COLOR + "s remaining");
     }
 
     public void cleanup(ActiveCookingSession session) {
@@ -95,8 +101,12 @@ public class CookingDisplayService {
                 .map(requirement -> {
                     int inserted = session.progress().insertedAmount(requirement);
                     int required = requirement.amount();
-                    String prefix = inserted >= required ? "✓" : "•";
-                    return prefix + " " + formatRequirementName(requirement) + " " + Math.min(inserted, required) + "/" + required;
+                    boolean complete = inserted >= required;
+                    String icon = complete ? GREEN_CHECK : RED_CROSS;
+                    return icon
+                            + LABEL_COLOR + " " + formatRequirementName(requirement)
+                            + " " + NUMBER_COLOR + Math.min(inserted, required)
+                            + LABEL_COLOR + "/" + NUMBER_COLOR + required;
                 })
                 .toList();
         return String.join("\n", lines);

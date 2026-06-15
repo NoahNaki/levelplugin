@@ -1,4 +1,4 @@
-# LevelPlugin cooking definitions. Supports recipe GUI, INSERT_ITEM stages, WAIT timers, and rewards.
+# LevelPlugin cooking definitions. This bundled file is refreshed into the plugin data folder on startup.
 recipes:
   roasted_carrot:
     display-name: Roasted Carrot

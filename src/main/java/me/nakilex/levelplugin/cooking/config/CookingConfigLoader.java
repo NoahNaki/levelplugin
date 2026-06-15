@@ -37,9 +37,12 @@ public class CookingConfigLoader {
     }
 
     private void ensureConfigExists() {
-        if (!configFile.exists()) {
-            plugin.saveResource(FILE_NAME, false);
+        if (configFile.exists()) {
+            plugin.saveResource(FILE_NAME, true);
+            plugin.getLogger().info("[Cooking] Replaced cooking.yml from bundled resource.");
+            return;
         }
+        plugin.saveResource(FILE_NAME, false);
     }
 
     private List<CookingRecipe> loadRecipes(FileConfiguration config) {

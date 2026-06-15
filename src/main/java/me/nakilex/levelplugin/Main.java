@@ -47,7 +47,10 @@ public class Main extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (bootstrap != null) bootstrap.disable();
+        if (bootstrap != null) {
+            bootstrap.disable();
+            bootstrap = null;
+        }
     }
 
     public static Main getInstance() { return instance; }

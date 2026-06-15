@@ -2,6 +2,8 @@ package me.nakilex.levelplugin.cooking.runtime;
 
 import me.nakilex.levelplugin.cooking.util.CookingLocationKey;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -60,6 +62,10 @@ public class ActiveCookingSessionRegistry {
             byPlayer.remove(removed.playerId(), removed);
         }
         return Optional.ofNullable(removed);
+    }
+
+    public Collection<ActiveCookingSession> all() {
+        return List.copyOf(byWorkstation.values());
     }
 
     public void clear() {

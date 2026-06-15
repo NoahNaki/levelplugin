@@ -28,6 +28,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     private final ActiveCookingSessionRegistry sessionRegistry;
     private final PlacedCookingWorkstationRegistry placedWorkstations;
     private final CookingRewardService rewardService;
+    private final CookingIngredientRefundService refundService;
     private final CookingDisplayService displayService;
     private final CookingStageExecutorRegistry executorRegistry;
 
@@ -48,6 +49,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
         this.sessionRegistry = sessionRegistry;
         this.placedWorkstations = placedWorkstations;
         this.rewardService = rewardService;
+        this.refundService = new CookingIngredientRefundService();
         this.displayService = new CookingDisplayService();
         this.executorRegistry = new CookingStageExecutorRegistry()
                 .register(new InsertItemStageExecutor())
@@ -107,6 +109,14 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
 
     public void cancelSessionByWorkstation(CookingLocationKey workstationKey) {
         sessionRegistry.getByWorkstation(workstationKey).ifPresent(session -> cancelSession(session, null));
+    }
+
+    public void shutdownAndRefundAll() {
+        for (ActiveCookingSession session : sessionRegistry.all()) {
+            recipe(session).ifPresent(recipe -> refundService.refundInsertedIngredients(session, recipe, plugin.getLogger()));
+            cancelSession(session, "Plugin shutting down");
+        }
+        sessionRegistry.clear();
     }
 
     @Override

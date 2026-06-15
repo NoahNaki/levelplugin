@@ -54,6 +54,10 @@ public class CookingModule {
         load();
     }
 
+    public void shutdown() {
+        sessionService.shutdownAndRefundAll();
+    }
+
     public CookingRecipeRegistry recipes() {
         return recipeRegistry;
     }

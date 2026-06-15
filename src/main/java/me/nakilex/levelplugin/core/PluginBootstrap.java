@@ -934,6 +934,7 @@ public class PluginBootstrap {
             }
             playerConfig.saveAllPlayers();
         }
+        if (cookingModule != null) cookingModule.shutdown();
         if (treeFellingWoodcuttingModule != null) treeFellingWoodcuttingModule.shutdown();
         if (storageManager != null) storageManager.saveAllStorages();
         if (guildVaultManager != null) guildVaultManager.saveAll();
