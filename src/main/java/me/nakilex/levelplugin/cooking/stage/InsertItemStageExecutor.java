@@ -30,6 +30,7 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             context.controller().advanceStage(context.player(), session, context.rewardDropLocation());
             return;
         }
+        context.controller().displayService().showIngredientDisplays(session, stage);
         context.controller().displayService().updateIngredientProgress(session, stage);
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
                 "Cooking stage started. Insert " + ChatColor.YELLOW + context.controller().displayService().formatRequirements(stage)
@@ -67,6 +68,9 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             removeFromMainHand(context.player(), held, insertAmount);
         }
         session.progress().addIngredient(requirement, insertAmount);
+        if (session.progress().isRequirementComplete(requirement)) {
+            context.controller().displayService().removeIngredientDisplay(session, requirement);
+        }
         context.controller().displayService().updateIngredientProgress(session, stage);
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
                 "Inserted " + ChatColor.YELLOW + insertAmount + "x " + context.controller().displayService().formatRequirementName(requirement) + ChatColor.GREEN + ".");

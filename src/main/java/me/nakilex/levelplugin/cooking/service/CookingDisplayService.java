@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
 import me.nakilex.levelplugin.cooking.runtime.CookingDisplayState;
+import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -39,18 +40,44 @@ public class CookingDisplayService {
         Location displayLocation = workstationLocation.clone().add(0.5, 1.25, 0.5);
         ItemDisplay itemDisplay = world.spawn(displayLocation, ItemDisplay.class);
         itemDisplay.setItemStack(recipe.displayItem());
-        itemDisplay.setBillboard(Display.Billboard.FIXED);
-        itemDisplay.setTransformation(new Transformation(
-                new Vector3f(),
-                new AxisAngle4f(),
-                new Vector3f(0.6f, 0.6f, 0.6f),
-                new AxisAngle4f()));
+        configureItemDisplay(itemDisplay, 0.6f);
 
         TextDisplay textDisplay = world.spawn(displayLocation.clone().add(0, 0.35, 0), TextDisplay.class);
         textDisplay.setText("Cooking...");
         textDisplay.setBillboard(Display.Billboard.CENTER);
         textDisplay.setSeeThrough(false);
         session.setDisplayState(new CookingDisplayState(itemDisplay, textDisplay));
+    }
+
+    public void showIngredientDisplays(ActiveCookingSession session, CookingStage stage) {
+        if (session == null || stage == null) {
+            return;
+        }
+        CookingDisplayState state = session.displayState();
+        Location workstationLocation = session.workstationKey().toLocation();
+        if (state == null || workstationLocation == null || workstationLocation.getWorld() == null) {
+            return;
+        }
+        cleanupIngredientDisplays(state);
+        World world = workstationLocation.getWorld();
+        List<CookingIngredientRequirement> requirements = stage.requirements();
+        double centerOffset = (requirements.size() - 1) / 2.0D;
+        for (int index = 0; index < requirements.size(); index++) {
+            CookingIngredientRequirement requirement = requirements.get(index);
+            Location displayLocation = workstationLocation.clone().add(0.5 + ((index - centerOffset) * 0.45D), 1.85D, 0.5D);
+            ItemDisplay ingredientDisplay = world.spawn(displayLocation, ItemDisplay.class);
+            ingredientDisplay.setItemStack(createRequirementDisplayItem(requirement));
+            configureItemDisplay(ingredientDisplay, 0.35f);
+            safeRemove(state.ingredientDisplays().put(requirement.progressKey(), ingredientDisplay));
+        }
+    }
+
+    public void removeIngredientDisplay(ActiveCookingSession session, CookingIngredientRequirement requirement) {
+        if (session == null || requirement == null || session.displayState() == null) {
+            return;
+        }
+        ItemDisplay display = session.displayState().ingredientDisplays().remove(requirement.progressKey());
+        safeRemove(display);
     }
 
     public void updateIngredientProgress(ActiveCookingSession session, CookingStage stage) {
@@ -75,6 +102,7 @@ public class CookingDisplayService {
         }
         safeRemove(state.itemDisplay());
         safeRemove(state.textDisplay());
+        cleanupIngredientDisplays(state);
         session.clearDisplayState();
     }
 
@@ -117,6 +145,29 @@ public class CookingDisplayService {
         if (state != null && isValid(state.textDisplay())) {
             state.textDisplay().setText(text);
         }
+    }
+
+    private void cleanupIngredientDisplays(CookingDisplayState state) {
+        for (ItemDisplay display : List.copyOf(state.ingredientDisplays().values())) {
+            safeRemove(display);
+        }
+        state.ingredientDisplays().clear();
+    }
+
+    private void configureItemDisplay(ItemDisplay display, float scale) {
+        display.setBillboard(Display.Billboard.FIXED);
+        display.setTransformation(new Transformation(
+                new Vector3f(),
+                new AxisAngle4f(),
+                new Vector3f(scale, scale, scale),
+                new AxisAngle4f()));
+    }
+
+    private org.bukkit.inventory.ItemStack createRequirementDisplayItem(CookingIngredientRequirement requirement) {
+        Material material = requirement.material() == null || requirement.material().isAir() ? Material.STONE : requirement.material();
+        org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(material);
+        requirement.nexoItemIdOptional().ifPresent(nexoItemId -> ItemUtil.applyNexoModel(item, nexoItemId));
+        return item;
     }
 
     private void safeRemove(Entity entity) {
