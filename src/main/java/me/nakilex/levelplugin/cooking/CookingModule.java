@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.cooking.gui.CookingRecipeSelectionGUI;
 import me.nakilex.levelplugin.cooking.listener.CookingIngredientListener;
 import me.nakilex.levelplugin.cooking.listener.CookingWorkstationListener;
 import me.nakilex.levelplugin.cooking.model.CookingWorkstationType;
+import me.nakilex.levelplugin.cooking.persistence.CookingWorkstationPersistenceService;
 import me.nakilex.levelplugin.cooking.registry.CookingRecipeRegistry;
 import me.nakilex.levelplugin.cooking.registry.CookingWorkstationRegistry;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
@@ -25,15 +26,18 @@ public class CookingModule {
     private final CookingSessionService sessionService;
     private final CookingWorkstationMatcher workstationMatcher;
     private final CookingRecipeSelectionGUI recipeSelectionGUI;
+    private final CookingWorkstationPersistenceService workstationPersistenceService;
 
     public CookingModule(Main plugin) {
         this.plugin = plugin;
         this.configLoader = new CookingConfigLoader(plugin);
+        this.workstationPersistenceService = new CookingWorkstationPersistenceService(plugin);
         this.sessionService = new CookingSessionService(plugin, recipeRegistry, activeSessionRegistry, placedWorkstationRegistry);
         this.workstationMatcher = new CookingWorkstationMatcher(workstationRegistry);
         this.recipeSelectionGUI = new CookingRecipeSelectionGUI(recipeRegistry, sessionService);
         plugin.getServer().getPluginManager().registerEvents(
-                new CookingWorkstationListener(plugin, workstationMatcher, placedWorkstationRegistry, activeSessionRegistry, recipeSelectionGUI, sessionService),
+                new CookingWorkstationListener(plugin, workstationMatcher, placedWorkstationRegistry, activeSessionRegistry,
+                        recipeSelectionGUI, sessionService, workstationPersistenceService),
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(recipeSelectionGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(
@@ -46,6 +50,7 @@ public class CookingModule {
         recipeRegistry.replaceAll(data.recipes());
         workstationRegistry.replaceAll(data.workstations(), plugin.getLogger());
         logMissingRecipeReferences();
+        workstationPersistenceService.load(placedWorkstationRegistry, workstationRegistry);
         plugin.getLogger().info("[Cooking] Loaded " + recipeRegistry.size() + " recipes and "
                 + workstationRegistry.size() + " workstation types.");
     }
@@ -56,6 +61,7 @@ public class CookingModule {
 
     public void shutdown() {
         sessionService.shutdownAndRefundAll();
+        workstationPersistenceService.save(placedWorkstationRegistry.all());
     }
 
     public CookingRecipeRegistry recipes() {

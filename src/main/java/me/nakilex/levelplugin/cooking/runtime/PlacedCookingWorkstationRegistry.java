@@ -12,12 +12,15 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-/** In-memory registry for currently placed cooking workstations. Persistence comes in a later phase. */
+/** In-memory registry for currently placed cooking workstations. */
 public class PlacedCookingWorkstationRegistry {
     private final Map<CookingLocationKey, PlacedCookingWorkstation> byLocation = new ConcurrentHashMap<>();
 
     public PlacedCookingWorkstation register(Block block, CookingWorkstationType type, UUID placedBy) {
-        CookingLocationKey key = CookingLocationKey.of(block);
+        return register(CookingLocationKey.of(block), type, placedBy);
+    }
+
+    public PlacedCookingWorkstation register(CookingLocationKey key, CookingWorkstationType type, UUID placedBy) {
         PlacedCookingWorkstation placed = new PlacedCookingWorkstation(key, type, placedBy);
         byLocation.put(key, placed);
         return placed;

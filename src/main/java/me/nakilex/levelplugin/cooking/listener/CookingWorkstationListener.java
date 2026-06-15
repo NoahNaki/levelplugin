@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.cooking.listener;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.cooking.gui.CookingRecipeSelectionGUI;
+import me.nakilex.levelplugin.cooking.persistence.CookingWorkstationPersistenceService;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstation;
 import me.nakilex.levelplugin.cooking.service.CookingSessionService;
@@ -28,6 +29,7 @@ public class CookingWorkstationListener implements Listener {
     private final ActiveCookingSessionRegistry activeSessions;
     private final CookingRecipeSelectionGUI recipeSelectionGUI;
     private final CookingSessionService sessionService;
+    private final CookingWorkstationPersistenceService persistenceService;
 
     public CookingWorkstationListener(
             Main plugin,
@@ -35,7 +37,8 @@ public class CookingWorkstationListener implements Listener {
             PlacedCookingWorkstationRegistry placedWorkstations,
             ActiveCookingSessionRegistry activeSessions,
             CookingRecipeSelectionGUI recipeSelectionGUI,
-            CookingSessionService sessionService
+            CookingSessionService sessionService,
+            CookingWorkstationPersistenceService persistenceService
     ) {
         this.plugin = plugin;
         this.workstationMatcher = workstationMatcher;
@@ -43,6 +46,7 @@ public class CookingWorkstationListener implements Listener {
         this.activeSessions = activeSessions;
         this.recipeSelectionGUI = recipeSelectionGUI;
         this.sessionService = sessionService;
+        this.persistenceService = persistenceService;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -51,6 +55,7 @@ public class CookingWorkstationListener implements Listener {
         ItemStack placedItem = event.getItemInHand();
         workstationMatcher.findMatchingPlacedWorkstation(block.getType(), placedItem).ifPresent(type -> {
             PlacedCookingWorkstation placed = placedWorkstations.register(block, type, event.getPlayer().getUniqueId());
+            persistenceService.save(placedWorkstations.all());
             plugin.getLogger().info("[Cooking] Registered placed workstation '" + type.id()
                     + "' at " + placed.locationKey() + " by " + event.getPlayer().getName() + ".");
         });
@@ -60,6 +65,7 @@ public class CookingWorkstationListener implements Listener {
     public void onBlockBreak(BlockBreakEvent event) {
         placedWorkstations.unregister(event.getBlock()).ifPresent(placed -> {
             sessionService.cancelSessionByWorkstation(placed.locationKey());
+            persistenceService.save(placedWorkstations.all());
             plugin.getLogger().info("[Cooking] Unregistered placed workstation '" + placed.type().id()
                     + "' at " + placed.locationKey() + " after block break by " + event.getPlayer().getName() + ".");
         });
