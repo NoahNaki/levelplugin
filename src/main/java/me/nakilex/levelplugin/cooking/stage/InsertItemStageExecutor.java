@@ -50,10 +50,12 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         Optional<CookingIngredientRequirement> requirementOptional = findInsertableRequirement(stage, session, held);
         if (requirementOptional.isEmpty()) {
             if (matchesAnyRequirement(stage, held)) {
+                context.controller().effectsService().playWrongIngredient(context.player(), context.rewardDropLocation());
                 ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
                         "That ingredient is already complete for this stage.");
                 return InteractionResult.INGREDIENT_ALREADY_COMPLETE;
             }
+            context.controller().effectsService().playWrongIngredient(context.player(), context.rewardDropLocation());
             ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
                     "That ingredient does not match this stage. Required: " + context.controller().displayService().formatRequirements(stage) + ".");
             return InteractionResult.INVALID_INGREDIENT;
@@ -61,6 +63,7 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         CookingIngredientRequirement requirement = requirementOptional.get();
         int insertAmount = Math.min(held.getAmount(), session.progress().remainingAmount(requirement));
         if (insertAmount <= 0) {
+            context.controller().effectsService().playWrongIngredient(context.player(), context.rewardDropLocation());
             ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
                     "That ingredient is already complete for this stage.");
             return InteractionResult.INGREDIENT_ALREADY_COMPLETE;
@@ -70,6 +73,7 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             removeFromMainHand(context.player(), held, insertAmount);
         }
         session.progress().addIngredient(requirement, insertAmount);
+        context.controller().effectsService().playIngredientInserted(context.player(), context.rewardDropLocation());
         if (session.progress().isRequirementComplete(requirement)) {
             context.controller().displayService().removeIngredientDisplay(session, requirement);
         }

@@ -37,7 +37,7 @@ public class WaitStageExecutor implements CookingStageExecutor {
                 durationTicks,
                 WAIT_TICK_PERIOD,
                 () -> isWaitStageStillValid(session, context.controller()),
-                remainingTicks -> updateWaitDisplay(session, context.controller(), remainingTicks),
+                remainingTicks -> updateWaitDisplay(session, context.controller(), context.player(), remainingTicks),
                 () -> completeStage(session, context),
                 () -> context.controller().cancelSession(session, null)
         );
@@ -78,8 +78,9 @@ public class WaitStageExecutor implements CookingStageExecutor {
         return controller.isSessionActive(session) && controller.isWorkstationPlaced(session);
     }
 
-    private void updateWaitDisplay(ActiveCookingSession session, StageSessionController controller, long remainingTicks) {
+    private void updateWaitDisplay(ActiveCookingSession session, StageSessionController controller, Player player, long remainingTicks) {
         long secondsLeft = (long) Math.ceil(remainingTicks / 20.0D);
         controller.displayService().updateWaitProgress(session, secondsLeft);
+        controller.effectsService().playWaitTick(player, session.workstationKey().toLocation());
     }
 }

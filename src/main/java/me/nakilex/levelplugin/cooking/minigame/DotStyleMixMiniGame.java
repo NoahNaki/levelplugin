@@ -44,10 +44,13 @@ public class DotStyleMixMiniGame implements CookingMiniGame {
                                                                      CookingStageExecutor.StageInteractionContext context,
                                                                      Runnable onSuccess) {
         int clicks = session.incrementClicks();
+        double progressRatio = clicks / (double) Math.max(1, session.requiredClicks());
+        context.controller().effectsService().playMiniGameGoodClick(context.player(), context.rewardDropLocation(), progressRatio);
         showVisual(session, context.player(), context.controller());
         if (clicks >= session.requiredClicks()) {
             session.finish();
             context.controller().displayService().clearMiniGameVisual(context.player());
+            context.controller().effectsService().playMiniGameSuccess(context.player(), context.rewardDropLocation());
             ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Mixing complete!");
             onSuccess.run();
             return CookingStageExecutor.InteractionResult.COMPLETED;
@@ -82,6 +85,7 @@ public class DotStyleMixMiniGame implements CookingMiniGame {
         if (elapsed >= durationTicks) {
             session.finish();
             context.controller().displayService().clearMiniGameVisual(player);
+            context.controller().effectsService().playMiniGameFail(player, context.rewardDropLocation());
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Cooking mix challenge failed.");
             onFailure.accept("Cooking mix minigame failed.");
             return;

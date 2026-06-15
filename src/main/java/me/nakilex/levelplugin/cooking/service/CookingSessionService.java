@@ -31,6 +31,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     private final CookingRewardService rewardService;
     private final CookingIngredientRefundService refundService;
     private final CookingDisplayService displayService;
+    private final CookingEffectsService effectsService;
     private final CookingStageExecutorRegistry executorRegistry;
 
     public CookingSessionService(Main plugin,
@@ -52,6 +53,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
         this.rewardService = rewardService;
         this.refundService = new CookingIngredientRefundService();
         this.displayService = new CookingDisplayService();
+        this.effectsService = new CookingEffectsService();
         this.executorRegistry = new CookingStageExecutorRegistry()
                 .register(new InsertItemStageExecutor())
                 .register(new MiniGameStageExecutor())
@@ -132,6 +134,11 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     }
 
     @Override
+    public CookingEffectsService effectsService() {
+        return effectsService;
+    }
+
+    @Override
     public Optional<CookingRecipe> recipe(ActiveCookingSession session) {
         if (session == null) {
             return Optional.empty();
@@ -204,7 +211,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     private void complete(Player player, ActiveCookingSession session, CookingRecipe recipe, Location rewardDropLocation) {
         Location workstationLocation = rewardDropLocation != null ? rewardDropLocation : session.workstationKey().toLocation();
         rewardService.grantRewards(player, workstationLocation, recipe.rewards());
-        rewardService.playCompletionEffects(workstationLocation);
+        effectsService.playCookingComplete(player, workstationLocation);
         cleanupSession(session);
         sessionRegistry.removeByWorkstation(session.workstationKey());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,

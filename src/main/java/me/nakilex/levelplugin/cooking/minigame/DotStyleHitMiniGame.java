@@ -54,10 +54,12 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
             if (score >= session.targetScore()) {
                 session.finish();
                 context.controller().displayService().clearMiniGameVisual(context.player());
+                context.controller().effectsService().playMiniGameSuccess(context.player(), context.rewardDropLocation());
                 ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Perfect timing!");
                 onSuccess.run();
                 return CookingStageExecutor.InteractionResult.COMPLETED;
             }
+            context.controller().effectsService().playMiniGameGoodClick(context.player(), context.rewardDropLocation());
             session.setTargetIndex(randomTargetIndex(session.barSize()));
             showVisual(session, context.player(), context.controller());
             ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Good hit!");
@@ -69,10 +71,12 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
         if (health <= 0) {
             session.finish();
             context.controller().displayService().clearMiniGameVisual(context.player());
+            context.controller().effectsService().playMiniGameFail(context.player(), context.rewardDropLocation());
             ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.ERROR, "Cooking timing challenge failed.");
             context.controller().cancelSession(session.cookingSession(), "Cooking minigame failed.");
             return CookingStageExecutor.InteractionResult.COMPLETED;
         }
+        context.controller().effectsService().playMiniGameBadClick(context.player(), context.rewardDropLocation());
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING, "Missed! Try again.");
         return CookingStageExecutor.InteractionResult.ACCEPTED;
     }
@@ -107,6 +111,7 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
         if (elapsed >= durationTicks) {
             session.finish();
             context.controller().displayService().clearMiniGameVisual(player);
+            context.controller().effectsService().playMiniGameFail(player, context.rewardDropLocation());
             ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Cooking timing challenge failed.");
             onFailure.accept("Cooking minigame failed.");
             return;

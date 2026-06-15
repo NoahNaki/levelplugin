@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
 import me.nakilex.levelplugin.cooking.service.CookingDisplayService;
+import me.nakilex.levelplugin.cooking.service.CookingEffectsService;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -45,6 +46,8 @@ public interface CookingStageExecutor {
         Main plugin();
 
         CookingDisplayService displayService();
+
+        CookingEffectsService effectsService();
 
         Optional<CookingRecipe> recipe(ActiveCookingSession session);
 
