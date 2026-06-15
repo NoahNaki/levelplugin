@@ -13,8 +13,13 @@ recipes:
           - material: BEEF
             amount: 1
       2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 100
+        hit-window-ticks: 20
+      3:
         type: WAIT
-        duration-ticks: 160
+        duration-ticks: 80
     rewards:
       1:
         material: BAKED_POTATO

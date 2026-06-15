@@ -11,6 +11,7 @@ import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstationRegistry;
 import me.nakilex.levelplugin.cooking.stage.CookingStageExecutor;
 import me.nakilex.levelplugin.cooking.stage.CookingStageExecutorRegistry;
 import me.nakilex.levelplugin.cooking.stage.InsertItemStageExecutor;
+import me.nakilex.levelplugin.cooking.stage.MiniGameStageExecutor;
 import me.nakilex.levelplugin.cooking.stage.WaitStageExecutor;
 import me.nakilex.levelplugin.cooking.util.CookingLocationKey;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
@@ -53,6 +54,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
         this.displayService = new CookingDisplayService();
         this.executorRegistry = new CookingStageExecutorRegistry()
                 .register(new InsertItemStageExecutor())
+                .register(new MiniGameStageExecutor())
                 .register(new WaitStageExecutor());
     }
 

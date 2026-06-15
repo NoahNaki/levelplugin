@@ -132,6 +132,21 @@ public class CookingDisplayService {
         updateText(session, LABEL_COLOR + "Cooking...\n" + NUMBER_COLOR + safeSeconds + LABEL_COLOR + "s remaining");
     }
 
+    public void updateMiniGameHitProgress(ActiveCookingSession session, long elapsedTicks, long targetTick, long hitWindowTicks) {
+        long halfWindow = Math.max(1L, hitWindowTicks) / 2L;
+        long windowStart = Math.max(0L, targetTick - halfWindow);
+        long windowEnd = targetTick + halfWindow;
+        String status;
+        if (elapsedTicks < windowStart) {
+            status = ChatColor.YELLOW + "Get ready...";
+        } else if (elapsedTicks <= windowEnd) {
+            status = ChatColor.GREEN + "Hit now!";
+        } else {
+            status = ChatColor.RED + "Too late!";
+        }
+        updateText(session, LABEL_COLOR + "Timing challenge\n" + status);
+    }
+
     public void cleanup(ActiveCookingSession session) {
         if (session == null) {
             return;

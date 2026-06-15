@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.cooking.config;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.cooking.minigame.CookingMiniGameType;
 import me.nakilex.levelplugin.cooking.model.CookingIngredientRequirement;
 import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingReward;
@@ -95,15 +96,35 @@ public class CookingConfigLoader {
                     ? loadIngredientRequirements(recipeId, key, section)
                     : List.of();
             if (type == CookingStageType.INSERT_ITEM && requirements.isEmpty()) continue;
+            CookingMiniGameType miniGameType = type == CookingStageType.MINI_GAME
+                    ? parseMiniGameType(section.getString("mini-game-type", section.getString("miniGameType")), "recipes." + recipeId + ".stages." + key + ".mini-game-type")
+                    : null;
+            if (type == CookingStageType.MINI_GAME && miniGameType == null) continue;
             stages.add(new CookingStage(
                     type,
                     requirements,
-                    section.getLong("duration-ticks", section.getLong("ticks", 0L)),
+                    section.getLong("duration-ticks", section.getLong("durationTicks", section.getLong("ticks", 0L))),
                     section.getString("minigame-id", section.getString("mini-game-id")),
-                    section.getString("tooltip")
+                    section.getString("tooltip"),
+                    miniGameType,
+                    section.getLong("hit-window-ticks", section.getLong("hitWindowTicks",
+                            section.getLong("target-window-ticks", section.getLong("targetWindowTicks", 0L))))
             ));
         }
         return stages;
+    }
+
+    private CookingMiniGameType parseMiniGameType(String raw, String path) {
+        if (raw == null || raw.isBlank()) {
+            warn("Missing cooking mini-game type at " + path + ".");
+            return null;
+        }
+        try {
+            return CookingMiniGameType.valueOf(raw.trim().toUpperCase(Locale.ROOT).replace('-', '_'));
+        } catch (IllegalArgumentException ex) {
+            warn("Invalid cooking mini-game type '" + raw + "' at " + path + ".");
+            return null;
+        }
     }
 
     private List<CookingIngredientRequirement> loadIngredientRequirements(String recipeId, String stageKey, ConfigurationSection stageSection) {

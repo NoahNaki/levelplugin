@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.cooking.model;
 
+import me.nakilex.levelplugin.cooking.minigame.CookingMiniGameType;
 import org.bukkit.Material;
 
 import java.util.List;
@@ -10,7 +11,9 @@ public record CookingStage(
         List<CookingIngredientRequirement> requirements,
         long durationTicks,
         String miniGameId,
-        String tooltip
+        String tooltip,
+        CookingMiniGameType miniGameType,
+        long hitWindowTicks
 ) {
     public CookingStage {
         requirements = List.copyOf(requirements == null ? List.of() : requirements);
@@ -18,6 +21,7 @@ public record CookingStage(
         if (tooltip != null && tooltip.isBlank()) {
             tooltip = null;
         }
+        hitWindowTicks = Math.max(0L, hitWindowTicks);
     }
 
     /** Compatibility helper for older single-ingredient call sites. */
