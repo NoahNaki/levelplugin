@@ -10,6 +10,9 @@ public final class CookingMiniGameBarFormatter {
     private static final ChatColor LINE_COLOR = ChatColor.DARK_GRAY;
     private static final ChatColor TARGET_COLOR = ChatColor.RED;
     private static final ChatColor HOOK_COLOR = ChatColor.GOLD;
+    private static final ChatColor MIX_EARLY_COLOR = ChatColor.YELLOW;
+    private static final ChatColor MIX_MIDDLE_COLOR = ChatColor.GOLD;
+    private static final ChatColor MIX_HIGH_COLOR = ChatColor.RED;
     private static final ChatColor SUCCESS_COLOR = ChatColor.GREEN;
     private static final ChatColor HEALTH_COLOR = ChatColor.GOLD;
     private static final ChatColor PROGRESS_COLOR = ChatColor.LIGHT_PURPLE;
@@ -60,12 +63,24 @@ public final class CookingMiniGameBarFormatter {
         int progressSlots = (int) Math.round((Math.min(safeClicks, safeRequired) / (double) safeRequired) * safeBarSize);
         String safeFilledSymbol = configuredSymbol(filledSymbol, DEFAULT_MIX_SYMBOL);
         String safeEmptySymbol = configuredSymbol(emptySymbol, DEFAULT_MIX_SYMBOL);
+        ChatColor filledColor = mixFilledColor(safeClicks / (double) safeRequired);
         StringBuilder title = new StringBuilder();
         for (int i = 0; i < safeBarSize; i++) {
-            title.append(i < progressSlots ? HOOK_COLOR : LINE_COLOR).append(i < progressSlots ? safeFilledSymbol : safeEmptySymbol);
+            title.append(i < progressSlots ? filledColor : LINE_COLOR)
+                    .append(i < progressSlots ? safeFilledSymbol : safeEmptySymbol);
         }
         String subtitle = ChatColor.WHITE + String.valueOf(safeClicks) + ChatColor.GRAY + "/" + ChatColor.WHITE + safeRequired;
         return new CookingMiniGameVisual(title.toString(), subtitle);
+    }
+
+    private static ChatColor mixFilledColor(double progressRatio) {
+        if (progressRatio < 0.33D) {
+            return MIX_EARLY_COLOR;
+        }
+        if (progressRatio < 0.66D) {
+            return MIX_MIDDLE_COLOR;
+        }
+        return MIX_HIGH_COLOR;
     }
 
     private static String hitSubtitle(int score, int targetScore, int health, String healthSymbol) {

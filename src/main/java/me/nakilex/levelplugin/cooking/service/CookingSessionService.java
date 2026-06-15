@@ -202,7 +202,9 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     }
 
     private void complete(Player player, ActiveCookingSession session, CookingRecipe recipe, Location rewardDropLocation) {
-        rewardService.grantRewards(player, rewardDropLocation, recipe.rewards());
+        Location workstationLocation = rewardDropLocation != null ? rewardDropLocation : session.workstationKey().toLocation();
+        rewardService.grantRewards(player, workstationLocation, recipe.rewards());
+        rewardService.playCompletionEffects(workstationLocation);
         cleanupSession(session);
         sessionRegistry.removeByWorkstation(session.workstationKey());
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
