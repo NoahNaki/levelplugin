@@ -85,6 +85,29 @@ public class CookingWorkstationListener implements Listener {
         }
         placedWorkstations.find(clicked).ifPresent(placed -> {
             event.setCancelled(true);
+
+            // Check this before the active-session branch. A successful mini-game click can complete
+            // the stage/session and then still arrive here through another interaction path.
+            // In that case the same physical click must not open the recipe book or advance
+            // into the next stage.
+            if (sessionService.consumeRecipeBookOpenSuppression(event.getPlayer())) {
+                return;
+            }
+
+            // Important: during an active cooking session, right-clicking the workstation is gameplay input.
+            // Do not let the workstation GUI/"already active" path swallow the click before the mini-game sees it.
+            if (activeSessions.getByWorkstation(placed.locationKey()).isPresent()) {
+                plugin.getLogger().info("[CookingMiniGameDebug] workstation-click routed as active gameplay input"
+                        + " player=" + event.getPlayer().getName()
+                        + " workstation=" + placed.locationKey()
+                        + " action=" + event.getAction()
+                        + " hand=" + event.getHand()
+                        + " held=" + event.getPlayer().getInventory().getItemInMainHand().getType());
+                sessionService.insertHeldIngredient(event.getPlayer(), placed,
+                        event.getPlayer().getInventory().getItemInMainHand(), clicked.getLocation());
+                return;
+            }
+
             if (placed.type().permissionNode().isPresent()
                     && !event.getPlayer().hasPermission(placed.type().permissionNode().get())) {
                 ChatMessageUtil.send(event.getPlayer(), ChatMessageUtil.MessageType.WARNING,

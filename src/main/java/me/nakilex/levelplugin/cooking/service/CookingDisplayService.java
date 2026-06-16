@@ -35,6 +35,7 @@ public class CookingDisplayService {
     private static final ChatColor LABEL_COLOR = ChatColor.GRAY;
     private static final ChatColor NUMBER_COLOR = ChatColor.WHITE;
     private static final double INGREDIENT_SPACING = 0.45D;
+    private static final double INGREDIENT_FORWARD_OFFSET = 0.75D;
     private static final float ITEM_TARGET_SCALE = 0.32f;
     private static final float ITEM_INITIAL_SCALE = 0.05f;
     private static final float ITEM_IN_STEP = 0.4f;
@@ -131,8 +132,8 @@ public class CookingDisplayService {
         cleanupManagedDisplay(state.rewardPreviewDisplay(), false);
         session.setDisplayState(state.withRewardPreviewDisplay(null));
 
-        Location base = workstationLocation.clone().add(0.5D, 1.3D, 0.5D);
         BlockFace face = resolveWorkstationFace(workstationLocation);
+        Location base = applyForwardOffset(workstationLocation.clone().add(0.5D, 1.3D, 0.5D), face);
         List<RequirementDisplayItem> remaining = remainingIngredientItems(session, stage);
         int spawned = spawnIngredientDisplays(state, base, remaining, face);
         if (recipe != null && !recipe.rewards().isEmpty()) {
@@ -156,10 +157,11 @@ public class CookingDisplayService {
         }
         CookingDisplayState state = session.displayState();
         cleanupIngredientDisplays(state, true);
+        BlockFace face = resolveWorkstationFace(workstationLocation);
         return spawnIngredientDisplays(state,
-                workstationLocation.clone().add(0.5D, 1.3D, 0.5D),
+                applyForwardOffset(workstationLocation.clone().add(0.5D, 1.3D, 0.5D), face),
                 remainingIngredientItems(session, stage),
-                resolveWorkstationFace(workstationLocation));
+                face);
     }
 
     public int showIngredientDisplays(ActiveCookingSession session, CookingStage stage) {
@@ -301,6 +303,15 @@ public class CookingDisplayService {
         safeRemove(managed.display());
     }
 
+    private Location applyForwardOffset(Location location, BlockFace face) {
+        return switch (face) {
+            case EAST -> location.add(INGREDIENT_FORWARD_OFFSET, 0.0D, 0.0D);
+            case WEST -> location.add(-INGREDIENT_FORWARD_OFFSET, 0.0D, 0.0D);
+            case SOUTH -> location.add(0.0D, 0.0D, INGREDIENT_FORWARD_OFFSET);
+            default -> location.add(0.0D, 0.0D, -INGREDIENT_FORWARD_OFFSET);
+        };
+    }
+
     private Location rewardPreviewLocation(Location base, BlockFace face) {
         Location location = base.clone().add(0.0D, 0.55D, 0.0D);
         return switch (face) {
@@ -336,7 +347,7 @@ public class CookingDisplayService {
         return switch (face) {
             case EAST -> -90.0f;
             case SOUTH -> 180.0f;
-            case WEST -> 90.0f;
+            case WEST -> 270.0f;
             default -> 0.0f;
         };
     }
@@ -356,13 +367,13 @@ public class CookingDisplayService {
 
     private record DisplayLine(Location start, double stepX, double stepZ) {
         private static DisplayLine from(Location base, int itemCount, BlockFace face) {
-            double offset = (Math.max(1, itemCount) - 1) * INGREDIENT_SPACING;
+            double centeredOffset = ((Math.max(1, itemCount) - 1) * INGREDIENT_SPACING) / 2.0D;
             Location start = base.clone();
             if (face == BlockFace.NORTH || face == BlockFace.SOUTH) {
-                start.add(offset, 0.0D, 0.0D);
+                start.add(centeredOffset, 0.0D, 0.0D);
                 return new DisplayLine(start, -INGREDIENT_SPACING, 0.0D);
             }
-            start.add(0.0D, 0.0D, offset);
+            start.add(0.0D, 0.0D, centeredOffset);
             return new DisplayLine(start, 0.0D, -INGREDIENT_SPACING);
         }
     }

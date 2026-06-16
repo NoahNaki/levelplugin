@@ -21,6 +21,7 @@ public class CookingMiniGameSession {
     private int hookIndex;
     private int targetIndex;
     private boolean movingRight = true;
+    private long ignoreHitClicksUntilTick;
     private BukkitTask task;
     private boolean finished;
 
@@ -45,6 +46,7 @@ public class CookingMiniGameSession {
     public int hookIndex() { return hookIndex; }
     public int targetIndex() { return targetIndex; }
     public boolean movingRight() { return movingRight; }
+    public long ignoreHitClicksUntilTick() { return ignoreHitClicksUntilTick; }
     public boolean finished() { return finished; }
 
     public void setTiming(long targetTick, long hitWindowTicks) {
@@ -82,6 +84,10 @@ public class CookingMiniGameSession {
 
     public void setTargetIndex(int targetIndex) {
         this.targetIndex = clamp(targetIndex, 0, Math.max(0, barSize - 1));
+    }
+
+    public void ignoreHitClicksUntil(long elapsedTick) {
+        this.ignoreHitClicksUntilTick = Math.max(0L, elapsedTick);
     }
 
     public int incrementScore() {

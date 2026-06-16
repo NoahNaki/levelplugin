@@ -95,6 +95,14 @@ public class CookingModule {
         CookingLocationKey locationKey = CookingLocationKey.of(furnitureLocation);
         PlacedCookingWorkstation placed = placedWorkstationRegistry.find(locationKey)
                 .orElseGet(() -> placedWorkstationRegistry.registerTransient(furnitureLocation, type));
+
+        // Nexo furniture interaction can be delivered separately from the normal block
+        // interact event. If the click just completed a dot-style mini-game, suppress
+        // this furniture-open path too so the recipe book does not open on the final hit.
+        if (sessionService.consumeRecipeBookOpenSuppression(player)) {
+            return;
+        }
+
         if (activeSessionRegistry.getByWorkstation(locationKey).isPresent()) {
             sessionService.insertHeldIngredient(player, placed, player.getInventory().getItemInMainHand(), furnitureLocation);
             return;

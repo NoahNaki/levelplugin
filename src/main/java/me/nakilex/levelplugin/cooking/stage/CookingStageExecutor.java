@@ -57,6 +57,8 @@ public interface CookingStageExecutor {
 
         void cancelSession(ActiveCookingSession session, String logReason);
 
+        void suppressRecipeBookOpen(Player player);
+
         boolean isSessionActive(ActiveCookingSession session);
 
         boolean isWorkstationPlaced(ActiveCookingSession session);

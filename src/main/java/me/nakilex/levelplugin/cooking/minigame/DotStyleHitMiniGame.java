@@ -16,6 +16,7 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
     private static final int DEFAULT_HEALTH = 3;
     private static final long DEFAULT_SPEED_TICKS = 5L;
     private static final long DEFAULT_DURATION_TICKS = 200L;
+    private static final long POST_HIT_CLICK_IGNORE_TICKS = 4L;
 
     @Override
     public CookingMiniGameType type() {
@@ -49,17 +50,51 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
     public CookingStageExecutor.InteractionResult handleInteraction(CookingMiniGameSession session,
                                                                      CookingStageExecutor.StageInteractionContext context,
                                                                      Runnable onSuccess) {
-        if (session.hookIndex() == session.targetIndex()) {
+        long elapsedTicks = session.elapsedTicks();
+        if (elapsedTicks < session.ignoreHitClicksUntilTick()) {
+            context.controller().plugin().getLogger().info("[CookingMiniGameDebug] dot-hit click ignored by debounce"
+                    + " player=" + context.player().getName()
+                    + " hook=" + session.hookIndex()
+                    + " target=" + session.targetIndex()
+                    + " score=" + session.score() + "/" + session.targetScore()
+                    + " health=" + session.health()
+                    + " elapsedTicks=" + elapsedTicks
+                    + " ignoreUntil=" + session.ignoreHitClicksUntilTick());
+            ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
+                    "Debug ignored duplicate click hook=" + session.hookIndex() + " target=" + session.targetIndex()
+                            + " score=" + session.score() + "/" + session.targetScore()
+                            + " hp=" + session.health() + " tick=" + elapsedTicks
+                            + " ignoreUntil=" + session.ignoreHitClicksUntilTick());
+            return CookingStageExecutor.InteractionResult.ACCEPTED;
+        }
+
+        boolean hit = isHit(session);
+        context.controller().plugin().getLogger().info("[CookingMiniGameDebug] dot-hit click"
+                + " player=" + context.player().getName()
+                + " hook=" + session.hookIndex()
+                + " target=" + session.targetIndex()
+                + " hit=" + hit
+                + " score=" + session.score() + "/" + session.targetScore()
+                + " health=" + session.health()
+                + " elapsedTicks=" + elapsedTicks);
+        ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
+                "Debug hit=" + hit + " hook=" + session.hookIndex() + " target=" + session.targetIndex()
+                        + " score=" + session.score() + "/" + session.targetScore()
+                        + " hp=" + session.health() + " tick=" + elapsedTicks);
+
+        if (hit) {
             int score = session.incrementScore();
             if (score >= session.targetScore()) {
                 session.finish();
                 context.controller().displayService().clearMiniGameVisual(context.player());
                 context.controller().effectsService().playMiniGameSuccess(context.player(), context.rewardDropLocation());
+                context.controller().suppressRecipeBookOpen(context.player());
                 ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Perfect timing!");
                 onSuccess.run();
                 return CookingStageExecutor.InteractionResult.COMPLETED;
             }
             context.controller().effectsService().playMiniGameGoodClick(context.player(), context.rewardDropLocation());
+            session.ignoreHitClicksUntil(elapsedTicks + POST_HIT_CLICK_IGNORE_TICKS);
             session.setTargetIndex(randomTargetIndex(session.barSize()));
             showVisual(session, context.player(), context.controller());
             ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Good hit!");
@@ -67,6 +102,7 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
         }
 
         int health = session.decrementHealth();
+        session.ignoreHitClicksUntil(elapsedTicks + POST_HIT_CLICK_IGNORE_TICKS);
         showVisual(session, context.player(), context.controller());
         if (health <= 0) {
             session.finish();
@@ -108,7 +144,15 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
             session.stepHook();
         }
         showVisual(session, player, context.controller());
-        if (elapsed >= durationTicks) {
+        if (elapsed > durationTicks) {
+            context.controller().plugin().getLogger().info("[CookingMiniGameDebug] dot-hit timeout"
+                    + " player=" + player.getName()
+                    + " elapsedTicks=" + elapsed
+                    + " durationTicks=" + durationTicks
+                    + " hook=" + session.hookIndex()
+                    + " target=" + session.targetIndex()
+                    + " score=" + session.score() + "/" + session.targetScore()
+                    + " health=" + session.health());
             session.finish();
             context.controller().displayService().clearMiniGameVisual(player);
             context.controller().effectsService().playMiniGameFail(player, context.rewardDropLocation());
@@ -117,6 +161,20 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
             return;
         }
         session.setElapsedTicks(elapsed + 1L);
+    }
+
+
+    private boolean isHit(CookingMiniGameSession session) {
+        int hook = session.hookIndex();
+        int target = session.targetIndex();
+        if (hook == target) {
+            return true;
+        }
+
+        // The title/actionbar visual and PlayerInteractEvent can be one tick apart.
+        // Accept the adjacent position in the direction the hook just came from so correct-looking clicks don't miss.
+        int previousHook = session.movingRight() ? hook - 1 : hook + 1;
+        return previousHook == target;
     }
 
     private void showVisual(CookingMiniGameSession session, Player player, CookingStageExecutor.StageSessionController controller) {
