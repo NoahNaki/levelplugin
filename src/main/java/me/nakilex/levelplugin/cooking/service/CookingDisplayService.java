@@ -34,8 +34,8 @@ import java.util.List;
 public class CookingDisplayService {
     private static final ChatColor LABEL_COLOR = ChatColor.GRAY;
     private static final ChatColor NUMBER_COLOR = ChatColor.WHITE;
-    private static final double INGREDIENT_SPACING = 0.2D;
-    private static final float ITEM_TARGET_SCALE = 0.4f;
+    private static final double INGREDIENT_SPACING = 0.45D;
+    private static final float ITEM_TARGET_SCALE = 0.32f;
     private static final float ITEM_INITIAL_SCALE = 0.05f;
     private static final float ITEM_IN_STEP = 0.4f;
     private static final float REWARD_IN_STEP = 0.5f;
@@ -274,7 +274,7 @@ public class CookingDisplayService {
         if (ingredientBase == null || ingredientBase.getWorld() == null || reward == null || reward.getType().isAir()) {
             return null;
         }
-        Location location = ingredientBase.clone().add(0.0D, 0.4D, 0.0D);
+        Location location = rewardPreviewLocation(ingredientBase, face);
         ItemDisplay display = ingredientBase.getWorld().spawn(location, ItemDisplay.class);
         display.setItemStack(reward.clone());
         configureItemDisplay(display, ITEM_INITIAL_SCALE, face);
@@ -299,6 +299,16 @@ public class CookingDisplayService {
         }
         animator.stop(managed.animation());
         safeRemove(managed.display());
+    }
+
+    private Location rewardPreviewLocation(Location base, BlockFace face) {
+        Location location = base.clone().add(0.0D, 0.55D, 0.0D);
+        return switch (face) {
+            case EAST -> location.add(-0.45D, 0.0D, 0.0D);
+            case WEST -> location.add(0.45D, 0.0D, 0.0D);
+            case SOUTH -> location.add(0.0D, 0.0D, -0.45D);
+            default -> location.add(0.0D, 0.0D, 0.45D);
+        };
     }
 
     private void configureItemDisplay(ItemDisplay display, float scale, BlockFace face) {

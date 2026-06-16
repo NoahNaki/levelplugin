@@ -23,6 +23,9 @@ public record CookingRecipe(
     }
 
     public ItemStack displayItem() {
+        if (!rewards.isEmpty()) {
+            return rewards.get(0).toItemStack();
+        }
         return new ItemStack(displayMaterial);
     }
 }

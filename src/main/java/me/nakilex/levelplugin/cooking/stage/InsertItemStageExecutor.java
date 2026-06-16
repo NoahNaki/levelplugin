@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -144,7 +145,15 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         public boolean matches(CookingIngredientRequirement requirement, ItemStack stack) {
             String expectedNexo = requirement.nexoItemId();
             if (expectedNexo != null && !expectedNexo.isBlank()) {
-                return expectedNexo.equalsIgnoreCase(ItemUtil.getNexoModelId(stack));
+                String modelId = ItemUtil.getNexoModelId(stack);
+                if (expectedNexo.equalsIgnoreCase(modelId)) {
+                    return true;
+                }
+                org.bukkit.inventory.meta.ItemMeta meta = stack.getItemMeta();
+                String displayName = meta == null || !meta.hasDisplayName()
+                        ? ""
+                        : ChatColor.stripColor(meta.getDisplayName());
+                return TextUtil.beautifyWords(expectedNexo).equalsIgnoreCase(displayName);
             }
             return requirement.material() != null && stack.getType() == requirement.material();
         }

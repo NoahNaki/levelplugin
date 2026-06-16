@@ -172,7 +172,14 @@ public class CookingRecipeSelectionGUI implements Listener {
         }
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to select this recipe", null));
-        return GuiUtil.createGuiItem(recipe.displayMaterial(), ChatColor.GREEN + recipe.displayName(), lore);
+        ItemStack item = recipe.displayItem();
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GREEN + recipe.displayName());
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
     private ItemStack emptyItem() {
