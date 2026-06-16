@@ -108,8 +108,12 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     }
 
     public boolean cancelSessionByPlayer(java.util.UUID playerId) {
+        return cancelSessionByPlayer(playerId, false, null);
+    }
+
+    public boolean cancelSessionByPlayer(java.util.UUID playerId, boolean refundIngredients, String logReason) {
         Optional<ActiveCookingSession> session = sessionRegistry.getByPlayer(playerId);
-        session.ifPresent(active -> cancelSession(active, null));
+        session.ifPresent(active -> cancelSession(active, logReason, refundIngredients));
         return session.isPresent();
     }
 
@@ -165,6 +169,13 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
 
     @Override
     public void cancelSession(ActiveCookingSession session, String logReason) {
+        cancelSession(session, logReason, false);
+    }
+
+    public void cancelSession(ActiveCookingSession session, String logReason, boolean refundIngredients) {
+        if (refundIngredients) {
+            recipe(session).ifPresent(recipe -> refundService.refundInsertedIngredients(session, recipe, plugin.getLogger()));
+        }
         currentExecutor(session).ifPresent(executor -> executor.cancelStage(session));
         cleanupSession(session);
         sessionRegistry.removeByWorkstation(session.workstationKey());

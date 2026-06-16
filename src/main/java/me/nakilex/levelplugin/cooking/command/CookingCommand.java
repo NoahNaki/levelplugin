@@ -40,9 +40,9 @@ public class CookingCommand implements CommandExecutor, TabCompleter {
     }
 
     private void cancel(Player player) {
-        boolean cancelled = sessionService.cancelSessionByPlayer(player.getUniqueId());
+        boolean cancelled = sessionService.cancelSessionByPlayer(player.getUniqueId(), true, "Player cancelled cooking");
         if (cancelled) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Cancelled your current cooking session.");
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS, "Cancelled your current cooking session and returned inserted ingredients.");
             return;
         }
         ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "You do not have an active cooking session.");

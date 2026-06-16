@@ -2,6 +2,7 @@ package me.nakilex.levelplugin.cooking.service;
 
 import me.nakilex.levelplugin.cooking.model.CookingIngredientRequirement;
 import me.nakilex.levelplugin.cooking.model.CookingRecipe;
+import me.nakilex.levelplugin.cooking.model.CookingReward;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
@@ -17,7 +18,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
-/** Refunds already-inserted cooking ingredients when active sessions are cancelled during shutdown. */
+/** Refunds already-inserted cooking ingredients when active sessions are cancelled. */
 public class CookingIngredientRefundService {
     public void refundInsertedIngredients(ActiveCookingSession session, CookingRecipe recipe, Logger logger) {
         if (session == null || recipe == null) {
@@ -68,7 +69,7 @@ public class CookingIngredientRefundService {
             }
             return null;
         }
-        return new ItemStack(material, amount);
+        return new CookingReward(material, requirement.nexoItemId(), amount).toItemStack();
     }
 
     private void refundItem(Player player, Location dropLocation, ItemStack refund) {

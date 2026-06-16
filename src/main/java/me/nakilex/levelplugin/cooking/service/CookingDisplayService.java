@@ -7,9 +7,9 @@ import me.nakilex.levelplugin.cooking.model.CookingIngredientRequirement;
 import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
+import me.nakilex.levelplugin.cooking.util.CookingIngredientMatcher;
 import me.nakilex.levelplugin.cooking.runtime.CookingDisplayState;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
-import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -214,17 +214,17 @@ public class CookingDisplayService {
             return "Unknown";
         }
         return stage.requirements().stream()
-                .map(this::formatRequirement)
+                .map(CookingIngredientMatcher::formatRequirement)
                 .reduce((left, right) -> left + ", " + right)
                 .orElse("Unknown");
     }
 
     public String formatRequirement(CookingIngredientRequirement requirement) {
-        return requirement.amount() + "x " + formatRequirementName(requirement);
+        return CookingIngredientMatcher.formatRequirement(requirement);
     }
 
     public String formatRequirementName(CookingIngredientRequirement requirement) {
-        return requirement.nexoItemIdOptional().map(TextUtil::beautifyWords).orElseGet(() -> formatMaterial(requirement.material()));
+        return CookingIngredientMatcher.formatRequirementName(requirement);
     }
 
     private void updateText(ActiveCookingSession session, String text) {
@@ -378,11 +378,5 @@ public class CookingDisplayService {
         return entity != null && entity.isValid();
     }
 
-    private String formatMaterial(Material material) {
-        if (material == null) {
-            return "Unknown";
-        }
-        String lower = material.name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
-        return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
-    }
+
 }

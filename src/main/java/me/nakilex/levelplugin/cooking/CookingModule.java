@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.cooking.config.CookingConfigLoader;
 import me.nakilex.levelplugin.cooking.config.CookingConfigLoader.CookingConfigData;
 import me.nakilex.levelplugin.cooking.gui.CookingRecipeSelectionGUI;
 import me.nakilex.levelplugin.cooking.listener.CookingIngredientListener;
+import me.nakilex.levelplugin.cooking.listener.CookingSessionLifecycleListener;
 import me.nakilex.levelplugin.cooking.listener.CookingWorkstationListener;
 import me.nakilex.levelplugin.cooking.model.CookingWorkstationType;
 import me.nakilex.levelplugin.cooking.persistence.CookingWorkstationPersistenceService;
@@ -42,6 +43,9 @@ public class CookingModule {
         plugin.getServer().getPluginManager().registerEvents(recipeSelectionGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(
                 new CookingIngredientListener(placedWorkstationRegistry, activeSessionRegistry, sessionService),
+                plugin);
+        plugin.getServer().getPluginManager().registerEvents(
+                new CookingSessionLifecycleListener(activeSessionRegistry, sessionService),
                 plugin);
     }
 

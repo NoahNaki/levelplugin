@@ -4,20 +4,17 @@ import me.nakilex.levelplugin.cooking.model.CookingIngredientRequirement;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.cooking.util.CookingIngredientMatcher;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
 import java.util.Optional;
 
 /** Executes INSERT_ITEM stages, including partial multi-ingredient progress. */
 public class InsertItemStageExecutor implements CookingStageExecutor {
-    private final List<IngredientMatcher> ingredientMatchers = List.of(new VanillaMaterialIngredientMatcher());
 
     @Override
     public CookingStageType type() {
@@ -116,12 +113,7 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         if (stack == null || stack.getType().isAir()) {
             return false;
         }
-        for (IngredientMatcher matcher : ingredientMatchers) {
-            if (matcher.matches(requirement, stack)) {
-                return true;
-            }
-        }
-        return false;
+        return CookingIngredientMatcher.matches(requirement, stack);
     }
 
     private void removeFromMainHand(Player player, ItemStack held, int amount) {
@@ -134,60 +126,4 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         player.getInventory().setItemInMainHand(held);
     }
 
-    /** Extension point for future custom item/Nexo ingredient matching. */
-    private interface IngredientMatcher {
-        boolean matches(CookingIngredientRequirement requirement, ItemStack stack);
-    }
-
-    private static class VanillaMaterialIngredientMatcher implements IngredientMatcher {
-        @Override
-        public boolean matches(CookingIngredientRequirement requirement, ItemStack stack) {
-            String expectedNexo = requirement.nexoItemId();
-            if (expectedNexo != null && !expectedNexo.isBlank()) {
-                return matchesNexoRequirement(expectedNexo, stack);
-            }
-            return requirement.material() != null && stack.getType() == requirement.material();
-        }
-
-        private boolean matchesNexoRequirement(String expectedNexo, ItemStack stack) {
-            String modelId = ItemUtil.getNexoModelId(stack);
-            if (expectedNexo.equalsIgnoreCase(modelId)) {
-                return true;
-            }
-            if (matchesDisplayName(expectedNexo, stack)) {
-                return true;
-            }
-            return matchesNexoVisualModel(expectedNexo, stack);
-        }
-
-        private boolean matchesDisplayName(String expectedNexo, ItemStack stack) {
-            org.bukkit.inventory.meta.ItemMeta meta = stack.getItemMeta();
-            if (meta == null || !meta.hasDisplayName()) {
-                return false;
-            }
-            String displayName = ChatColor.stripColor(meta.getDisplayName());
-            return normalizeName(TextUtil.beautifyWords(expectedNexo)).equals(normalizeName(displayName));
-        }
-
-        private boolean matchesNexoVisualModel(String expectedNexo, ItemStack stack) {
-            com.nexomc.nexo.items.ItemBuilder builder = com.nexomc.nexo.api.NexoItems.itemFromId(expectedNexo);
-            if (builder == null) {
-                return false;
-            }
-            ItemStack expected = builder.build();
-            if (expected == null || expected.getType() != stack.getType()) {
-                return false;
-            }
-            org.bukkit.inventory.meta.ItemMeta expectedMeta = expected.getItemMeta();
-            org.bukkit.inventory.meta.ItemMeta actualMeta = stack.getItemMeta();
-            if (expectedMeta == null || actualMeta == null || !expectedMeta.hasCustomModelData() || !actualMeta.hasCustomModelData()) {
-                return false;
-            }
-            return expectedMeta.getCustomModelData() == actualMeta.getCustomModelData();
-        }
-
-        private String normalizeName(String name) {
-            return name == null ? "" : name.toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9]", "");
-        }
-    }
 }
