@@ -173,7 +173,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new BuildingTemplate(13, "house_8", "House 8", Material.CHERRY_PLANKS,
                     new Cuboid(3742, 87, -2996, 3775, 138, -2937),
                     projectFinishedToEmpty(new Cuboid(3742, 87, -2996, 3775, 138, -2937)),
-                    projectFinishedToEmpty(new WorldPoint(3780, 100, -2975)))
+                    projectFinishedToEmpty(new WorldPoint(3780, 100, -2975))),
+            new BuildingTemplate(14, "fishing_hut", "Fishing Hut", Material.FISHING_ROD,
+                    new Cuboid(3671, 70, -3046, 3638, 112, -3015),
+                    projectFinishedToEmpty(new Cuboid(3671, 70, -3046, 3638, 112, -3015)),
+                    projectFinishedToEmpty(new WorldPoint(3662, 81, -3024)))
     );
 
     private static final Map<Integer, BuildingTemplate> BUILDINGS_BY_SLOT = BUILDINGS.stream()

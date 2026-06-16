@@ -34,14 +34,21 @@ async function rebootWithCookie(cookie) {
       accept: "application/json, text/*",
       referer: "https://dathost.net/control-panel/game-servers",
       "x-no-www-authenticate": "true",
-      cookie: `session=${cookie}`,
+      cookie,
     },
   });
 
   const response = await context.post(`/api/0.1/game-servers/${SERVER_ID}/start`);
-  await context.dispose();
+  const ok = response.ok();
 
-  return response.ok();
+  if (!ok) {
+    const body = await response.text().catch(() => "");
+    console.log(`DatHost API failed: ${response.status()} ${response.statusText()}`);
+    if (body) console.log(body);
+  }
+
+  await context.dispose();
+  return ok;
 }
 
 async function waitForDebugChrome(timeoutMs = 15000) {
@@ -62,13 +69,18 @@ async function waitForDebugChrome(timeoutMs = 15000) {
 function openDebugChrome() {
   console.log("Opening debug Chrome...");
 
-  spawn(CHROME_EXE, [
-    "--remote-debugging-port=9222",
-    `--user-data-dir=${CHROME_PROFILE}`,
-  ], {
-    detached: true,
-    stdio: "ignore",
-  }).unref();
+  spawn(
+    CHROME_EXE,
+    [
+      "--remote-debugging-port=9222",
+      `--user-data-dir=${CHROME_PROFILE}`,
+      "https://dathost.net/control-panel/game-servers",
+    ],
+    {
+      detached: true,
+      stdio: "ignore",
+    }
+  ).unref();
 }
 
 async function getSessionCookieFromChrome() {
@@ -86,12 +98,29 @@ async function getSessionCookieFromChrome() {
   });
 
   console.log("Log into DatHost in the opened Chrome window.");
+  console.log("Make sure you can see the DatHost game servers page.");
   console.log("After you are logged in, press ENTER here...");
 
   await new Promise((resolve) => process.stdin.once("data", resolve));
 
-  const cookies = await context.cookies("https://dathost.net");
-  const sessionCookie = cookies.find((cookie) => cookie.name === "session");
+  await page.goto("https://dathost.net/control-panel/game-servers", {
+    waitUntil: "networkidle",
+  });
+
+  const cookies = await context.cookies();
+
+  const dathostCookies = cookies.filter((cookie) =>
+    cookie.domain.includes("dathost")
+  );
+
+  console.log("DatHost cookies found:");
+  for (const cookie of dathostCookies) {
+    console.log(`${cookie.name} | ${cookie.domain} | ${cookie.path}`);
+  }
+
+  const sessionCookie = dathostCookies.find(
+    (cookie) => cookie.name === "session"
+  );
 
   await page.close();
   await browser.close();
@@ -100,8 +129,12 @@ async function getSessionCookieFromChrome() {
     throw new Error("Could not find DatHost session cookie after login.");
   }
 
-  saveCookie(sessionCookie.value);
-  return sessionCookie.value;
+  const cookieHeader = `session=${sessionCookie.value}`;
+
+  console.log(`Using DatHost session cookie from ${sessionCookie.domain}`);
+  saveCookie(cookieHeader);
+
+  return cookieHeader;
 }
 
 async function main() {
