@@ -338,6 +338,524 @@ recipes:
         nexo-item-id: steak_dinner
         amount: 1
 
+  slice_carrots:
+    display-name: Sliced Carrots
+    display-material: CARROT
+    description: Prep carrots for cakes and vegetable dishes.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: CARROT
+            amount: 3
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 120
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: sliced_carrot
+        amount: 4
+
+  make_cheddar:
+    display-name: Cheddar
+    display-material: MILK_BUCKET
+    description: Turn milk into sharp cheddar for sandwiches and pizza.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: MILK_BUCKET
+            amount: 1
+      2:
+        type: WAIT
+        duration-ticks: 80
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cheddar
+        amount: 1
+
+  cook_sausage:
+    display-name: Cooked Sausage
+    display-material: PORKCHOP
+    description: Cook pork into a flexible sausage ingredient.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PORKCHOP
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 160
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cooked_sausage
+        amount: 2
+
+  slice_sausage:
+    display-name: Sliced Sausage
+    display-material: COOKED_PORKCHOP
+    description: Slice cooked sausage for pizza toppings.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: cooked_sausage
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 100
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 4
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: sliced_sausage
+        amount: 3
+
+  make_pancakes:
+    display-name: Pancakes
+    display-material: HONEY_BOTTLE
+    description: Mix flour, butter, and sugar into breakfast pancakes.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+          - material: SUGAR
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 160
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 80
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: pancakes
+        amount: 2
+
+  bake_waffle:
+    display-name: Waffle
+    display-material: HONEYCOMB
+    description: Press flour and butter into a crisp waffle.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 150
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: waffle
+        amount: 2
+
+  bake_brownie:
+    display-name: Brownie
+    display-material: COOKIE
+    description: Fold cocoa into flour and butter for brownies.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+          - material: COCOA_BEANS
+            amount: 3
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 160
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 90
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: brownie
+        amount: 2
+
+  bake_chocolate_cake:
+    display-name: Chocolate Cake
+    display-material: CAKE
+    description: Upgrade brownie ingredients into a full chocolate cake.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 3
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+          - material: COCOA_BEANS
+            amount: 4
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 180
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 140
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chocolate_cake
+        amount: 1
+
+  slice_chocolate_cake:
+    display-name: Chocolate Cake Slice
+    display-material: CAKE
+    description: Cut chocolate cake into individual slices.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: chocolate_cake
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 120
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 4
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chocolate_cake_slice
+        amount: 6
+
+  bake_chocolate_donut:
+    display-name: Chocolate Donut
+    display-material: COOKIE
+    description: Fry flour and cocoa into chocolate donuts.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+          - material: COCOA_BEANS
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 160
+        bar-size: 10
+        target-score: 3
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chocolate_donut
+        amount: 3
+
+  bake_carrot_cake:
+    display-name: Carrot Cake
+    display-material: CAKE
+    description: Use sliced carrots in a sweet cake chain.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+          - material: PAPER
+            nexo-item-id: sliced_carrot
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 170
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 120
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: carrot_cake
+        amount: 1
+
+  grill_cheeseburger:
+    display-name: Cheeseburger
+    display-material: COOKED_BEEF
+    description: Stack bread, beef, and cheddar into a cheeseburger.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: full_bread
+            amount: 1
+          - material: BEEF
+            amount: 1
+          - material: PAPER
+            nexo-item-id: cheddar
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 180
+        bar-size: 10
+        target-score: 3
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cheeseburger
+        amount: 1
+
+  assemble_hotdog:
+    display-name: Hotdog
+    display-material: BREAD
+    description: Combine bread and sausage into a quick meal.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: baguette
+            amount: 1
+          - material: PAPER
+            nexo-item-id: cooked_sausage
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 120
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: hotdog
+        amount: 1
+
+  bake_cheese_pizza:
+    display-name: Cheese Pizza
+    display-material: BREAD
+    description: Bake flour and cheddar into a starter pizza.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 3
+          - material: PAPER
+            nexo-item-id: cheddar
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 180
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 120
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cheese_pizza
+        amount: 1
+
+  slice_cheese_pizza:
+    display-name: Cheese Pizza Slice
+    display-material: BREAD
+    description: Slice a cheese pizza into pieces.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: cheese_pizza
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 120
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 4
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cheese_pizza_slice
+        amount: 6
+
+  bake_pepperoni_pizza:
+    display-name: Pepperoni Pizza
+    display-material: BREAD
+    description: Add sliced sausage to upgrade a cheese pizza.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: cheese_pizza
+            amount: 1
+          - material: PAPER
+            nexo-item-id: sliced_sausage
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 180
+        bar-size: 10
+        target-score: 3
+        health: 2
+        speed-ticks: 5
+      3:
+        type: WAIT
+        duration-ticks: 80
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: pepperoni_pizza
+        amount: 1
+
+  slice_pepperoni_pizza:
+    display-name: Pepperoni Pizza Slice
+    display-material: BREAD
+    description: Slice pepperoni pizza into servings.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: pepperoni_pizza
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 120
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 4
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: pepperoni_pizza_slice
+        amount: 6
+
+  simmer_tomato_soup:
+    display-name: Tomato Soup
+    display-material: BEETROOT_SOUP
+    description: Simmer a simple soup for the food codex.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: BEETROOT
+            amount: 3
+          - material: BOWL
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 140
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 80
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: tomato_soup
+        amount: 1
+
+  cook_chicken_soup:
+    display-name: Chicken Soup
+    display-material: RABBIT_STEW
+    description: A hearty soup using chicken and a bowl.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: CHICKEN
+            amount: 2
+          - material: BOWL
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 150
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 90
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chicken_soup
+        amount: 1
+
 workstations:
   campfire:
     block-material: CAMPFIRE
@@ -356,4 +874,23 @@ workstations:
       - prepare_salmon_slice
       - roll_salmon_sushi
       - cook_steak_dinner
+      - slice_carrots
+      - make_cheddar
+      - cook_sausage
+      - slice_sausage
+      - make_pancakes
+      - bake_waffle
+      - bake_brownie
+      - bake_chocolate_cake
+      - slice_chocolate_cake
+      - bake_chocolate_donut
+      - bake_carrot_cake
+      - grill_cheeseburger
+      - assemble_hotdog
+      - bake_cheese_pizza
+      - slice_cheese_pizza
+      - bake_pepperoni_pizza
+      - slice_pepperoni_pizza
+      - simmer_tomato_soup
+      - cook_chicken_soup
     permission: ""

@@ -81,6 +81,10 @@ public class CookingModule {
         return activeSessionRegistry;
     }
 
+    public CookingSessionService sessionService() {
+        return sessionService;
+    }
+
     private void logMissingRecipeReferences() {
         for (CookingWorkstationType workstation : workstationRegistry.all()) {
             for (String recipeId : workstation.recipeIds()) {

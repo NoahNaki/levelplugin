@@ -88,7 +88,7 @@ public class FoodCodexGUI implements Listener {
         for (CookingRecipe recipe : recipes.all()) {
             for (CookingReward reward : recipe.rewards()) {
                 String key = manager.normalizeFoodKey(reward.discoveryKey());
-                entries.putIfAbsent(key, new FoodEntry(key, displayName(reward), recipe, reward));
+                entries.putIfAbsent(key, new FoodEntry(key, reward.displayName(), recipe, reward));
             }
         }
         List<FoodEntry> list = new ArrayList<>(entries.values());
@@ -175,12 +175,6 @@ public class FoodCodexGUI implements Listener {
         return true;
     }
 
-    private String displayName(CookingReward reward) {
-        return reward.nexoItemIdOptional()
-                .map(id -> id.replace('_', ' '))
-                .map(name -> Character.toUpperCase(name.charAt(0)) + name.substring(1))
-                .orElseGet(() -> reward.material().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '));
-    }
 
     private record FoodEntry(String key, String displayName, CookingRecipe recipe, CookingReward reward) {}
 }

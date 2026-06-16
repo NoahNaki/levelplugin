@@ -107,8 +107,10 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
                 new CookingStageExecutor.StageInteractionContext(this, player, held, rewardDropLocation));
     }
 
-    public void cancelSessionByPlayer(java.util.UUID playerId) {
-        sessionRegistry.getByPlayer(playerId).ifPresent(session -> cancelSession(session, null));
+    public boolean cancelSessionByPlayer(java.util.UUID playerId) {
+        Optional<ActiveCookingSession> session = sessionRegistry.getByPlayer(playerId);
+        session.ifPresent(active -> cancelSession(active, null));
+        return session.isPresent();
     }
 
     public void cancelSessionByWorkstation(CookingLocationKey workstationKey) {

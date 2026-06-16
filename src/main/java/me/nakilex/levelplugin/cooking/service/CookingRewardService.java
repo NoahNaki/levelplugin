@@ -24,17 +24,11 @@ public class CookingRewardService {
             ItemStack stack = reward.toItemStack();
             dropLocation.getWorld().dropItemNaturally(dropLocation, stack);
             if (player != null) {
-                me.nakilex.levelplugin.Main.getInstance().getCodexManager().recordFood(player, reward.discoveryKey(), displayName(reward));
+                me.nakilex.levelplugin.Main.getInstance().getCodexManager().recordFood(player, reward.discoveryKey(), reward.displayName());
             }
         }
     }
 
-    private String displayName(CookingReward reward) {
-        return reward.nexoItemIdOptional()
-                .map(id -> id.replace('_', ' '))
-                .map(name -> Character.toUpperCase(name.charAt(0)) + name.substring(1))
-                .orElseGet(() -> reward.material().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' '));
-    }
 
     private Location resolveDropLocation(Player player, Location workstationLocation) {
         if (workstationLocation != null && workstationLocation.getWorld() != null) {

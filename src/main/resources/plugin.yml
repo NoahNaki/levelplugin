@@ -395,6 +395,10 @@ commands:
   codex:
     description: Open the discovery codex
     usage: /codex
+  cooking:
+    description: Open the cooking food codex or cancel an active cooking session
+    usage: /cooking <codex|cancel>
+    aliases: [foodcodex, cookingcodex]
   wm:
     description: Spawn or despawn the wandering merchant
     usage: /wm <spawn|despawn>

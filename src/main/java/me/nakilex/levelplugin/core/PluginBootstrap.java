@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.blacksmith.managers.ItemRepairManager;
 import me.nakilex.levelplugin.blacksmith.managers.ItemUpgradeManager;
 import me.nakilex.levelplugin.chat.games.ChatGameManager;
 import me.nakilex.levelplugin.cooking.CookingModule;
+import me.nakilex.levelplugin.cooking.command.CookingCommand;
 import me.nakilex.levelplugin.booster.GlobalBoosterManager;
 import me.nakilex.levelplugin.economy.gui.GemExchangeGUI;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
@@ -328,6 +329,9 @@ public class PluginBootstrap {
         npcCodexGUI.setMainGui(codexGUI);
         locationCodexGUI.setMainGui(codexGUI);
         foodCodexGUI.setMainGui(codexGUI);
+        CookingCommand cookingCommand = new CookingCommand(foodCodexGUI, cookingModule.sessionService());
+        plugin.getCommand("cooking").setExecutor(cookingCommand);
+        plugin.getCommand("cooking").setTabCompleter(cookingCommand);
         registerCommandsAndListeners();
         registerPlaceholders();
         me.nakilex.levelplugin.transmog.gui.TransmogBrowser tBrowser =

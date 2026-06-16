@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
 import me.nakilex.levelplugin.cooking.runtime.CookingDisplayState;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -223,7 +224,7 @@ public class CookingDisplayService {
     }
 
     public String formatRequirementName(CookingIngredientRequirement requirement) {
-        return requirement.nexoItemIdOptional().map(id -> "Nexo " + id).orElseGet(() -> formatMaterial(requirement.material()));
+        return requirement.nexoItemIdOptional().map(TextUtil::beautifyWords).orElseGet(() -> formatMaterial(requirement.material()));
     }
 
     private void updateText(ActiveCookingSession session, String text) {
