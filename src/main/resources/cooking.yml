@@ -1256,6 +1256,1567 @@ recipes:
         nexo-item-id: hamcheese_croissant
         amount: 1
 
+  cook_chicken_leg:
+    display-name: Cooked Chicken Leg
+    display-material: CHICKEN
+    description: Roast a chicken leg until crisp.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: CHICKEN
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cooked_chicken_leg
+        amount: 1
+
+  cook_whole_chicken:
+    display-name: Cooked Chicken
+    display-material: CHICKEN
+    description: Roast chicken for later meals.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: CHICKEN
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cooked_chicken
+        amount: 1
+
+  bake_bacon:
+    display-name: Baked Bacon
+    display-material: PORKCHOP
+    description: Bake pork into smoky bacon.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PORKCHOP
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: baked_bacon
+        amount: 2
+
+  fry_baked_egg:
+    display-name: Baked Egg
+    display-material: EGG
+    description: Cook eggs into a simple protein.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: EGG
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: baked_egg
+        amount: 2
+
+  make_eggs_and_bacon:
+    display-name: Eggs and Bacon
+    display-material: EGG
+    description: Plate baked eggs with crispy bacon.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: baked_egg
+            amount: 1
+          - material: PAPER
+            nexo-item-id: baked_bacon
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: eggs_and_bacon
+        amount: 1
+
+  make_chocolate_chip:
+    display-name: Chocolate Chips
+    display-material: COCOA_BEANS
+    description: Break cocoa into baking chips.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: COCOA_BEANS
+            amount: 3
+          - material: SUGAR
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chocolate_chip
+        amount: 3
+
+  bake_chocolate_chip_muffins:
+    display-name: Chocolate Chip Muffins
+    display-material: CAKE
+    description: Fold chocolate chips into muffin batter.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: plain_muffin
+            amount: 2
+          - material: PAPER
+            nexo-item-id: chocolate_chip
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chocolate_chip_muffin
+        amount: 2
+
+  make_chocolate_egg:
+    display-name: Chocolate Egg
+    display-material: EGG
+    description: Coat an egg-shaped sweet in chocolate.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: EGG
+            amount: 1
+          - material: COCOA_BEANS
+            amount: 3
+          - material: SUGAR
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chocolate_egg
+        amount: 1
+
+  bake_plain_cake:
+    display-name: Plain Cake
+    display-material: CAKE
+    description: Bake flour, butter, and sugar into a simple cake.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 3
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+          - material: SUGAR
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: plain_cake
+        amount: 1
+
+  slice_plain_cake:
+    display-name: Plain Cake Slice
+    display-material: CAKE
+    description: Slice a plain cake into portions.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: plain_cake
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: plain_cake_slice
+        amount: 4
+
+  bake_red_velvet_cake:
+    display-name: Red Velvet Cake
+    display-material: CAKE
+    description: Bake cocoa and beetroot into a red velvet cake.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: plain_cake
+            amount: 1
+          - material: BEETROOT
+            amount: 2
+          - material: COCOA_BEANS
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: red_velvet_cake
+        amount: 1
+
+  slice_red_velvet_cake:
+    display-name: Red Velvet Cake Slice
+    display-material: CAKE
+    description: Cut a red velvet cake into slices.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: red_velvet_cake
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: red_velvet_cake_slice
+        amount: 4
+
+  bake_white_cheesecake:
+    display-name: White Cheesecake
+    display-material: CAKE
+    description: Bake a cheesecake with cheddar and sugar.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: plain_cake
+            amount: 1
+          - material: PAPER
+            nexo-item-id: cheddar
+            amount: 2
+          - material: SUGAR
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: white_cheesecake
+        amount: 1
+
+  slice_white_cheesecake:
+    display-name: White Cheesecake Slice
+    display-material: CAKE
+    description: Slice a white cheesecake.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: white_cheesecake
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: white_cheesecake_slice
+        amount: 4
+
+  bake_lava_cake:
+    display-name: Lava Cake
+    display-material: CAKE
+    description: Bake a cake with a molten chocolate center.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: chocolate_cake
+            amount: 1
+          - material: PAPER
+            nexo-item-id: chocolate_chip
+            amount: 3
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: lava_cake
+        amount: 1
+
+  make_tiramisu:
+    display-name: Tiramisu
+    display-material: CAKE
+    description: Layer cake with coffee and cream.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: plain_cake_slice
+            amount: 2
+          - material: COCOA_BEANS
+            amount: 2
+          - material: MILK_BUCKET
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: tiramisu
+        amount: 1
+
+  bake_brown_bread:
+    display-name: Brown Bread
+    display-material: BREAD
+    description: Bake a hearty brown loaf from flour.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: WHEAT
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: brown_bread
+        amount: 1
+
+  slice_brown_bread:
+    display-name: Brown Bread Slice
+    display-material: BREAD
+    description: Slice brown bread for sandwiches.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: brown_bread
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: brown_bread_slice
+        amount: 4
+
+  bake_white_bread:
+    display-name: White Bread
+    display-material: BREAD
+    description: Bake a soft white loaf from flour and butter.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: white_bread
+        amount: 1
+
+  slice_white_bread:
+    display-name: White Bread Slice
+    display-material: BREAD
+    description: Slice white bread for sandwiches.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: white_bread
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: white_bread_slice
+        amount: 4
+
+  make_grilled_cheese_sandwich:
+    display-name: Grilled Cheese Sandwich
+    display-material: BREAD
+    description: Grill bread with cheddar.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: white_bread_slice
+            amount: 2
+          - material: PAPER
+            nexo-item-id: cheddar
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: grilled_cheese_sandwich
+        amount: 1
+
+  cut_cheese_slice:
+    display-name: Cheese Slice
+    display-material: PAPER
+    description: Cut cheddar into thin slices.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: cheddar
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cheese_slice
+        amount: 3
+
+  make_cheese_wheel:
+    display-name: Cheese Wheel
+    display-material: PAPER
+    description: Press cheddar into a cheese wheel.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: cheddar
+            amount: 4
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cheese_wheel
+        amount: 1
+
+  make_cheese_pasta:
+    display-name: Cheese Pasta
+    display-material: BOWL
+    description: Mix pasta with cheddar.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: cheddar
+            amount: 2
+          - material: BOWL
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cheese_pasta
+        amount: 1
+
+  make_pasta_tomato:
+    display-name: Pasta Tomato
+    display-material: BOWL
+    description: Prepare pasta with tomato.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: tomato
+            amount: 2
+          - material: BOWL
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: pasta_tomato
+        amount: 1
+
+  make_spaghetti_and_meatballs:
+    display-name: Spaghetti and Meatballs
+    display-material: BOWL
+    description: Plate pasta with beef meatballs.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: pasta_tomato
+            amount: 1
+          - material: BEEF
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: spaghetti_and_meatballs
+        amount: 1
+
+  bake_tomato_pizza:
+    display-name: Tomato Pizza
+    display-material: BREAD
+    description: Bake tomato sauce over pizza dough.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: tomato
+            amount: 3
+          - material: PAPER
+            nexo-item-id: cheddar
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: tomato_pizza
+        amount: 1
+
+  bake_egg_pizza:
+    display-name: Egg Pizza
+    display-material: BREAD
+    description: Top cheese pizza with eggs.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: cheese_pizza
+            amount: 1
+          - material: EGG
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: egg_pizza
+        amount: 1
+
+  slice_egg_pizza:
+    display-name: Egg Pizza Slice
+    display-material: BREAD
+    description: Slice an egg pizza.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: egg_pizza
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: egg_pizza_slice
+        amount: 4
+
+  season_cheese_pizza:
+    display-name: Seasoned Cheese Pizza
+    display-material: BREAD
+    description: Season cheese pizza with garlic.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: cheese_pizza
+            amount: 1
+          - material: PAPER
+            nexo-item-id: garlic
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: seasoned_cheese_pizza
+        amount: 1
+
+  season_tomato_pizza:
+    display-name: Seasoned Tomato Pizza
+    display-material: BREAD
+    description: Season tomato pizza with garlic.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: tomato_pizza
+            amount: 1
+          - material: PAPER
+            nexo-item-id: garlic
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: seasoned_tomato_pizza
+        amount: 1
+
+  season_egg_pizza:
+    display-name: Seasoned Egg Pizza
+    display-material: BREAD
+    description: Season egg pizza with garlic.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: egg_pizza
+            amount: 1
+          - material: PAPER
+            nexo-item-id: garlic
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: seasoned_egg_pizza
+        amount: 1
+
+  make_barbecue_sauce:
+    display-name: Barbecue Sauce
+    display-material: HONEY_BOTTLE
+    description: Cook honey and tomato into barbecue sauce.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: HONEY_BOTTLE
+            amount: 1
+          - material: PAPER
+            nexo-item-id: tomato
+            amount: 2
+          - material: SUGAR
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: barbecue_sauce
+        amount: 1
+
+  make_ketchup:
+    display-name: Ketchup
+    display-material: HONEY_BOTTLE
+    description: Reduce tomato and sugar into ketchup.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: tomato
+            amount: 3
+          - material: SUGAR
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: ketchup
+        amount: 1
+
+  make_mustard:
+    display-name: Mustard
+    display-material: HONEY_BOTTLE
+    description: Mix seeds into mustard.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: WHEAT_SEEDS
+            amount: 3
+          - material: HONEY_BOTTLE
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: mustard
+        amount: 1
+
+  assemble_mustard_hotdog:
+    display-name: Mustard Hotdog
+    display-material: BREAD
+    description: Add mustard to a hotdog.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: hotdog
+            amount: 1
+          - material: PAPER
+            nexo-item-id: mustard
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: mustard_hotdog
+        amount: 1
+
+  assemble_jalapeno_hotdog:
+    display-name: Jalapeno Hotdog
+    display-material: BREAD
+    description: Add chili heat to a hotdog.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: hotdog
+            amount: 1
+          - material: PAPER
+            nexo-item-id: green_chili_pepper
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: jalapeno_hotdog
+        amount: 1
+
+  batter_corndog:
+    display-name: Corndog
+    display-material: BREAD
+    description: Batter a hotdog in flour and fry it.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: hotdog
+            amount: 1
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: corndog
+        amount: 1
+
+  fry_chicken_nuggets:
+    display-name: Chicken Nuggets
+    display-material: CHICKEN
+    description: Bread and fry chicken bites.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: CHICKEN
+            amount: 1
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chicken_nuggets
+        amount: 4
+
+  fry_onion_rings:
+    display-name: Onion Rings
+    display-material: BREAD
+    description: Batter onion rings and fry them.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: brown_onion
+            amount: 1
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: onion_rings
+        amount: 3
+
+  cook_hotwing:
+    display-name: Hotwing
+    display-material: CHICKEN
+    description: Cook chicken with chili heat.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: cooked_chicken_leg
+            amount: 1
+          - material: PAPER
+            nexo-item-id: red_chili_pepper
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: hotwing
+        amount: 1
+
+  make_honey_mustard_hotwing:
+    display-name: Honey Mustard Hotwing
+    display-material: CHICKEN
+    description: Glaze hotwings with honey mustard.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: hotwing
+            amount: 1
+          - material: PAPER
+            nexo-item-id: mustard
+            amount: 1
+          - material: HONEY_BOTTLE
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: honey_mustard_hotwing
+        amount: 1
+
+  cook_salmon:
+    display-name: Cooked Salmon
+    display-material: SALMON
+    description: Cook salmon over the fire.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: SALMON
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cooked_salmon
+        amount: 2
+
+  cook_cod:
+    display-name: Cod
+    display-material: COD
+    description: Cook cod into a simple fish item.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: COD
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cod
+        amount: 2
+
+  cook_shrimp:
+    display-name: Cooked Shrimp
+    display-material: COD
+    description: Cook shrimp quickly.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: raw_shrim
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cooked_shrimp
+        amount: 2
+
+  make_fish_dinner:
+    display-name: Fish Dinner
+    display-material: BOWL
+    description: Plate cooked fish with potatoes.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: cooked_salmon
+            amount: 1
+          - material: POTATO
+            amount: 2
+          - material: BOWL
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: fish_dinner
+        amount: 1
+
+  make_finished_salmon_dish:
+    display-name: Finished Salmon Dish
+    display-material: BOWL
+    description: Finish salmon with vegetables.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: cooked_salmon
+            amount: 1
+          - material: CARROT
+            amount: 1
+          - material: BOWL
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: finished_salmon_dish
+        amount: 1
+
+  cook_steak:
+    display-name: Cooked Steak
+    display-material: COOKED_BEEF
+    description: Cook beef into steak.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: BEEF
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cooked_steak
+        amount: 2
+
+  cook_ribs:
+    display-name: Cooked Ribs
+    display-material: PORKCHOP
+    description: Slow cook ribs.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PORKCHOP
+            amount: 3
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cooked_ribs
+        amount: 2
+
+  make_meatball:
+    display-name: Meatball
+    display-material: BEEF
+    description: Roll beef into meatballs.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: BEEF
+            amount: 2
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: meatball
+        amount: 3
+
+  bake_meat_pie:
+    display-name: Meat Pie
+    display-material: PUMPKIN_PIE
+    description: Bake meat into a savory pie.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: meatball
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: meat_pie
+        amount: 1
+
+  bake_blueberry_pancake:
+    display-name: Blueberry Pancake
+    display-material: HONEY_BOTTLE
+    description: Add berries to pancakes.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: pancakes
+            amount: 1
+          - material: SWEET_BERRIES
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: blueberry_pancake
+        amount: 1
+
+  make_butter_waffle:
+    display-name: Butter Waffle
+    display-material: HONEY_BOTTLE
+    description: Top waffles with butter.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: waffle
+            amount: 1
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: butter_waffle
+        amount: 1
+
+  make_syrup_waffle:
+    display-name: Syrup Waffle
+    display-material: HONEY_BOTTLE
+    description: Drizzle waffles with syrup.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: waffle
+            amount: 1
+          - material: HONEY_BOTTLE
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: syrup_waffle
+        amount: 1
+
+  make_cream_waffle:
+    display-name: Cream Waffle
+    display-material: HONEY_BOTTLE
+    description: Top waffles with cream.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: waffle
+            amount: 1
+          - material: MILK_BUCKET
+            amount: 1
+          - material: SUGAR
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cream_waffle
+        amount: 1
+
+  make_ice_waffle:
+    display-name: Ice Waffle
+    display-material: HONEY_BOTTLE
+    description: Top waffles with ice cream.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: waffle
+            amount: 1
+          - material: SNOWBALL
+            amount: 2
+          - material: MILK_BUCKET
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: ice_waffle
+        amount: 1
+
+  bake_powdered_donut:
+    display-name: Powdered Donut
+    display-material: COOKIE
+    description: Dust a chocolate donut with sugar.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: chocolate_donut
+            amount: 1
+          - material: SUGAR
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: powdered_donut
+        amount: 1
+
+  fill_jam_donut:
+    display-name: Jam Filled Donut
+    display-material: COOKIE
+    description: Fill a donut with berry jam.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: powdered_donut
+            amount: 1
+          - material: SWEET_BERRIES
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: jam_filled_donut
+        amount: 1
+
+  fill_cream_donut:
+    display-name: Cream Filled Donut
+    display-material: COOKIE
+    description: Fill a donut with cream.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: powdered_donut
+            amount: 1
+          - material: MILK_BUCKET
+            amount: 1
+          - material: SUGAR
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: cream_filled_donut
+        amount: 1
+
+  sprinkle_chocolate_donut:
+    display-name: Sprinkled Chocolate Donut
+    display-material: COOKIE
+    description: Add sugar sprinkles to a chocolate donut.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: chocolate_donut
+            amount: 1
+          - material: SUGAR
+            amount: 2
+          - material: PAPER
+            nexo-item-id: chocolate_chip
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: sprinkled_chocolate_donut
+        amount: 1
+
 workstations:
   campfire:
     block-material: CAMPFIRE
@@ -1308,4 +2869,64 @@ workstations:
       - bake_chocolate_muffins
       - bake_filled_pancake
       - bake_hamcheese_croissant
+      - cook_chicken_leg
+      - cook_whole_chicken
+      - bake_bacon
+      - fry_baked_egg
+      - make_eggs_and_bacon
+      - make_chocolate_chip
+      - bake_chocolate_chip_muffins
+      - make_chocolate_egg
+      - bake_plain_cake
+      - slice_plain_cake
+      - bake_red_velvet_cake
+      - slice_red_velvet_cake
+      - bake_white_cheesecake
+      - slice_white_cheesecake
+      - bake_lava_cake
+      - make_tiramisu
+      - bake_brown_bread
+      - slice_brown_bread
+      - bake_white_bread
+      - slice_white_bread
+      - make_grilled_cheese_sandwich
+      - cut_cheese_slice
+      - make_cheese_wheel
+      - make_cheese_pasta
+      - make_pasta_tomato
+      - make_spaghetti_and_meatballs
+      - bake_tomato_pizza
+      - bake_egg_pizza
+      - slice_egg_pizza
+      - season_cheese_pizza
+      - season_tomato_pizza
+      - season_egg_pizza
+      - make_barbecue_sauce
+      - make_ketchup
+      - make_mustard
+      - assemble_mustard_hotdog
+      - assemble_jalapeno_hotdog
+      - batter_corndog
+      - fry_chicken_nuggets
+      - fry_onion_rings
+      - cook_hotwing
+      - make_honey_mustard_hotwing
+      - cook_salmon
+      - cook_cod
+      - cook_shrimp
+      - make_fish_dinner
+      - make_finished_salmon_dish
+      - cook_steak
+      - cook_ribs
+      - make_meatball
+      - bake_meat_pie
+      - bake_blueberry_pancake
+      - make_butter_waffle
+      - make_syrup_waffle
+      - make_cream_waffle
+      - make_ice_waffle
+      - bake_powdered_donut
+      - fill_jam_donut
+      - fill_cream_donut
+      - sprinkle_chocolate_donut
     permission: ""
