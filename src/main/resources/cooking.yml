@@ -856,6 +856,406 @@ recipes:
         nexo-item-id: chicken_soup
         amount: 1
 
+  bake_croissants:
+    display-name: Croissants
+    display-material: BREAD
+    description: Laminate flour and butter into flaky croissants.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 3
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 170
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 120
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: croissants
+        amount: 2
+
+  bake_chocolate_croissant:
+    display-name: Chocolate Croissant
+    display-material: BREAD
+    description: Fill croissants with cocoa for a richer pastry.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: croissants
+            amount: 1
+          - material: COCOA_BEANS
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chocolate_croissant
+        amount: 2
+
+  fry_fries:
+    display-name: Fries
+    display-material: POTATO
+    description: Fry potatoes into a snack.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: POTATO
+            amount: 3
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 140
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: fries
+        amount: 2
+
+  make_potato_salad:
+    display-name: Potato Salad
+    display-material: POTATO
+    description: Fold potatoes and butter into a chilled salad.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: POTATO
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: potato_salad
+        amount: 1
+
+  make_beetroot_salad:
+    display-name: Beetroot Salad
+    display-material: BEETROOT
+    description: Toss beetroot into a bright salad.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: BEETROOT
+            amount: 3
+          - material: BOWL
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 120
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: beetroot_salad
+        amount: 1
+
+  bake_blueberry_pie:
+    display-name: Blueberry Pie
+    display-material: PUMPKIN_PIE
+    description: Bake flour, butter, and berries into a pie.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+          - material: SWEET_BERRIES
+            amount: 4
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 180
+        bar-size: 10
+        target-score: 3
+        health: 2
+        speed-ticks: 5
+      3:
+        type: WAIT
+        duration-ticks: 120
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: blueberry_pie
+        amount: 1
+
+  slice_blueberry_pie:
+    display-name: Blueberry Pie Slice
+    display-material: PUMPKIN_PIE
+    description: Slice a blueberry pie into portions.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: blueberry_pie
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 120
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 4
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: blueberry_pie_slice
+        amount: 4
+
+  make_hamburger:
+    display-name: Hamburger
+    display-material: COOKED_BEEF
+    description: Assemble bread and beef into a hamburger.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: full_bread
+            amount: 1
+          - material: BEEF
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: hamburger
+        amount: 1
+
+  make_hamburger_with_barbecue_sauce:
+    display-name: BBQ Hamburger
+    display-material: COOKED_BEEF
+    description: Upgrade a hamburger with barbecue sauce.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: hamburger
+            amount: 1
+          - material: HONEY_BOTTLE
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: hamburger_with_barbecue_sauce
+        amount: 1
+
+  bake_churro:
+    display-name: Churro
+    display-material: COOKIE
+    description: Fry sweet flour dough into churros.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: SUGAR
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: churro
+        amount: 3
+
+  dip_chocolate_churro:
+    display-name: Chocolate Churro
+    display-material: COOKIE
+    description: Dip churros in cocoa.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: churro
+            amount: 2
+          - material: COCOA_BEANS
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 120
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chocolate_churro
+        amount: 2
+
+  bake_plain_muffins:
+    display-name: Plain Muffins
+    display-material: CAKE
+    description: Bake a simple muffin base.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 140
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 80
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: plain_muffin
+        amount: 3
+
+  bake_chocolate_muffins:
+    display-name: Chocolate Muffins
+    display-material: CAKE
+    description: Add cocoa to plain muffin batter.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: plain_muffin
+            amount: 2
+          - material: COCOA_BEANS
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: chocolate_muffin
+        amount: 2
+
+  bake_filled_pancake:
+    display-name: Filled Pancake
+    display-material: HONEY_BOTTLE
+    description: Upgrade pancakes with berries.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: pancakes
+            amount: 1
+          - material: SWEET_BERRIES
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 120
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: filled_pancake
+        amount: 1
+
+  bake_hamcheese_croissant:
+    display-name: Ham Cheese Croissant
+    display-material: BREAD
+    description: Fill croissants with pork and cheddar.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: croissants
+            amount: 1
+          - material: PORKCHOP
+            amount: 1
+          - material: PAPER
+            nexo-item-id: cheddar
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 160
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: hamcheese_croissant
+        amount: 1
+
 workstations:
   campfire:
     block-material: CAMPFIRE
@@ -893,4 +1293,19 @@ workstations:
       - slice_pepperoni_pizza
       - simmer_tomato_soup
       - cook_chicken_soup
+      - bake_croissants
+      - bake_chocolate_croissant
+      - fry_fries
+      - make_potato_salad
+      - make_beetroot_salad
+      - bake_blueberry_pie
+      - slice_blueberry_pie
+      - make_hamburger
+      - make_hamburger_with_barbecue_sauce
+      - bake_churro
+      - dip_chocolate_churro
+      - bake_plain_muffins
+      - bake_chocolate_muffins
+      - bake_filled_pancake
+      - bake_hamcheese_croissant
     permission: ""
