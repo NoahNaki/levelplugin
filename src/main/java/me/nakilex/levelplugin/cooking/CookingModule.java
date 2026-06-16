@@ -12,9 +12,14 @@ import me.nakilex.levelplugin.cooking.persistence.CookingWorkstationPersistenceS
 import me.nakilex.levelplugin.cooking.registry.CookingRecipeRegistry;
 import me.nakilex.levelplugin.cooking.registry.CookingWorkstationRegistry;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
+import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstation;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstationRegistry;
 import me.nakilex.levelplugin.cooking.service.CookingSessionService;
 import me.nakilex.levelplugin.cooking.service.CookingWorkstationMatcher;
+import me.nakilex.levelplugin.cooking.util.CookingLocationKey;
+import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import org.bukkit.Location;
+import org.bukkit.entity.Player;
 
 /** Foundation module for config-backed cooking data and workstation placement tracking. */
 public class CookingModule {
@@ -75,6 +80,36 @@ public class CookingModule {
 
     public CookingWorkstationRegistry workstations() {
         return workstationRegistry;
+    }
+
+    public void openFurnitureWorkstation(Player player, Location furnitureLocation, String furnitureId) {
+        if (player == null || furnitureLocation == null || furnitureId == null || furnitureId.isBlank()) {
+            return;
+        }
+        CookingWorkstationType type = workstationRegistry.findByNexoItemId(furnitureId).orElse(null);
+        if (type == null) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "This furniture is not configured as a cooking workstation.");
+            return;
+        }
+        CookingLocationKey locationKey = CookingLocationKey.of(furnitureLocation);
+        PlacedCookingWorkstation placed = placedWorkstationRegistry.find(locationKey)
+                .orElseGet(() -> placedWorkstationRegistry.registerTransient(furnitureLocation, type));
+        if (activeSessionRegistry.getByWorkstation(locationKey).isPresent()) {
+            sessionService.insertHeldIngredient(player, placed, player.getInventory().getItemInMainHand(), furnitureLocation);
+            return;
+        }
+        if (type.permissionNode().isPresent() && !player.hasPermission(type.permissionNode().get())) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "You do not have permission to use this cooking workstation.");
+            return;
+        }
+        if (activeSessionRegistry.getByPlayer(player.getUniqueId()).isPresent()) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+                    "You already have an active cooking session.");
+            return;
+        }
+        recipeSelectionGUI.open(player, placed);
     }
 
     public PlacedCookingWorkstationRegistry placedWorkstations() {

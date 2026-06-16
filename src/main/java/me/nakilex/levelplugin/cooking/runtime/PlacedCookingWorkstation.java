@@ -9,6 +9,10 @@ import java.util.UUID;
 public record PlacedCookingWorkstation(
         CookingLocationKey locationKey,
         CookingWorkstationType type,
-        UUID placedBy
+        UUID placedBy,
+        boolean persistent
 ) {
+    public PlacedCookingWorkstation(CookingLocationKey locationKey, CookingWorkstationType type, UUID placedBy) {
+        this(locationKey, type, placedBy, true);
+    }
 }

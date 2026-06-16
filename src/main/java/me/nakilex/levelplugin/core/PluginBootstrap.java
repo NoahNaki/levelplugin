@@ -717,6 +717,12 @@ public class PluginBootstrap {
 
         furnitureGuiMapper = new me.nakilex.levelplugin.nexo.FurnitureGuiMapper();
         furnitureGuiMapper.register("quest_board", player -> mercenaryExpeditionGUI.open(player));
+        furnitureGuiMapper.register("kitchen_stove", (player, event) -> {
+            if (event.getBaseEntity() != null && cookingModule != null) {
+                org.bukkit.Location location = event.getBaseEntity().getLocation().getBlock().getLocation();
+                cookingModule.openFurnitureWorkstation(player, location, "kitchen_stove");
+            }
+        });
         boolean essenceSystemEnabled = me.nakilex.levelplugin.utils.FeatureFlagUtil.isEnabled("features.class-system", false)
                 && me.nakilex.levelplugin.utils.FeatureFlagUtil.isEnabled("features.essence-system", false);
         if (essenceSystemEnabled) {

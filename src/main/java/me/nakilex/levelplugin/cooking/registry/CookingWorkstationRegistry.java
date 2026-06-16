@@ -42,6 +42,15 @@ public class CookingWorkstationRegistry {
         return Optional.ofNullable(workstations.get(id));
     }
 
+    public Optional<CookingWorkstationType> findByNexoItemId(String nexoItemId) {
+        if (nexoItemId == null || nexoItemId.isBlank()) {
+            return Optional.empty();
+        }
+        return workstations.values().stream()
+                .filter(type -> type.nexoItemId() != null && type.nexoItemId().equalsIgnoreCase(nexoItemId))
+                .findFirst();
+    }
+
     public Optional<CookingWorkstationType> findByBlockMaterial(Material material) {
         return findAllByBlockMaterial(material).stream().findFirst();
     }

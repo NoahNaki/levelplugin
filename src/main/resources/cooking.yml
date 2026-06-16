@@ -4498,10 +4498,10 @@ recipes:
         amount: 1
 
 workstations:
-  campfire:
-    block-material: CAMPFIRE
-    item-material: CAMPFIRE
-    nexo-item-id: ""
+  kitchen_stove:
+    block-material: BARRIER
+    item-material: PAPER
+    nexo-item-id: kitchen_stove
     recipes:
       - roasted_carrot
       - mill_flour
