@@ -32,10 +32,8 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             return;
         }
         context.controller().displayService().clearStageDisplays(session);
-        int ingredientDisplayCount = context.controller().displayService().showInsertItemDisplays(
+        context.controller().displayService().showInsertItemDisplays(
                 session, stage, context.controller().recipe(session).orElse(null));
-        context.controller().plugin().getLogger().info("[Cooking] Spawned ingredient displays count="
-                + ingredientDisplayCount + " recipe=" + session.recipeId());
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
                 "Cooking stage started. Insert " + ChatColor.YELLOW + context.controller().displayService().formatRequirements(stage)
                         + ChatColor.WHITE + " by right-clicking the workstation.");
@@ -59,8 +57,8 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             }
             context.controller().effectsService().playWrongIngredient(context.player(), context.rewardDropLocation());
             ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
-                    "That ingredient does not match this stage. Tried: " + ChatColor.YELLOW + describeAttemptedItem(held)
-                            + ChatColor.WHITE + "; Expected: " + ChatColor.YELLOW + context.controller().displayService().formatRequirements(stage) + ChatColor.WHITE + ".");
+                    "That ingredient does not match this stage. Expected " + ChatColor.YELLOW
+                            + context.controller().displayService().formatRequirements(stage) + ChatColor.WHITE + ".");
             return InteractionResult.INVALID_INGREDIENT;
         }
         CookingIngredientRequirement requirement = requirementOptional.get();
@@ -134,24 +132,6 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         }
         held.setAmount(remaining);
         player.getInventory().setItemInMainHand(held);
-    }
-
-    private String describeAttemptedItem(ItemStack stack) {
-        if (stack == null || stack.getType().isAir()) {
-            return "Empty hand";
-        }
-        String nexoId = ItemUtil.getNexoModelId(stack);
-        org.bukkit.inventory.meta.ItemMeta meta = stack.getItemMeta();
-        String displayName = meta != null && meta.hasDisplayName() ? ChatColor.stripColor(meta.getDisplayName()) : null;
-        String base = displayName == null || displayName.isBlank()
-                ? contextFreeMaterialName(stack)
-                : displayName;
-        return nexoId == null || nexoId.isBlank() ? base : base + " (" + nexoId + ")";
-    }
-
-    private String contextFreeMaterialName(ItemStack stack) {
-        String lower = stack.getType().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
-        return TextUtil.beautifyWords(lower);
     }
 
     /** Extension point for future custom item/Nexo ingredient matching. */
