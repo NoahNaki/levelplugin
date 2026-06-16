@@ -451,6 +451,43 @@ public class CodexManager {
         return new ArrayList<>(playerConfig.getConfig().getConfigurationSection(base).getKeys(false));
     }
 
+
+    /* ----- Food Tracking ----- */
+    public void recordFood(Player player, String key, String displayName) {
+        if (player == null || key == null || key.isBlank()) {
+            return;
+        }
+        UUID id = player.getUniqueId();
+        String normalized = normalizeFoodKey(key);
+        String path = "players." + id + ".codex.foods." + normalized;
+        if (!playerConfig.getConfig().contains(path)) {
+            playerConfig.getConfig().set(path + ".name", displayName == null || displayName.isBlank() ? normalized : displayName);
+            playerConfig.saveConfigFile();
+            notifyDiscovery(player, "Food", displayName == null || displayName.isBlank() ? normalized : displayName);
+        }
+    }
+
+    public boolean hasDiscoveredFood(UUID id, String key) {
+        if (id == null || key == null || key.isBlank()) {
+            return false;
+        }
+        return playerConfig.getConfig().contains("players." + id + ".codex.foods." + normalizeFoodKey(key));
+    }
+
+    public List<String> getDiscoveredFoods(UUID id) {
+        String base = "players." + id + ".codex.foods";
+        if (!playerConfig.getConfig().isConfigurationSection(base)) return java.util.Collections.emptyList();
+        return new ArrayList<>(playerConfig.getConfig().getConfigurationSection(base).getKeys(false));
+    }
+
+    public int getDiscoveredFoodCount(UUID id) {
+        return getDiscoveredFoods(id).size();
+    }
+
+    public String normalizeFoodKey(String key) {
+        return key == null ? "" : key.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+    }
+
     /**
      * Remove all codex discovery data for a player.
      */

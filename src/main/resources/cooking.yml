@@ -41,6 +41,303 @@ recipes:
         material: BAKED_POTATO
         amount: 1
 
+  mill_flour:
+    display-name: Flour
+    display-material: WHEAT
+    description: Grind grain into a staple baking ingredient.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: WHEAT
+            amount: 3
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 120
+        bar-size: 10
+        required-clicks: 20
+        mix-filled-symbol: "🔥"
+        mix-empty-symbol: "🔥"
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: flour
+        amount: 2
+
+  churn_butter:
+    display-name: Butter
+    display-material: MILK_BUCKET
+    description: Churn milk into rich butter for baking chains.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: MILK_BUCKET
+            amount: 1
+      2:
+        type: WAIT
+        duration-ticks: 60
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: butter
+        amount: 1
+
+  slice_apples:
+    display-name: Apple Slices
+    display-material: APPLE
+    description: Prepare apples for pies and desserts.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: APPLE
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 160
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: apple_slice
+        amount: 4
+
+  bake_baguette:
+    display-name: Baguette
+    display-material: BREAD
+    description: Turn flour into a crisp starter loaf.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 140
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 80
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: baguette
+        amount: 1
+
+  bake_full_bread:
+    display-name: Full Bread
+    display-material: BREAD
+    description: A richer bread that consumes flour and butter.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 140
+        bar-size: 10
+        required-clicks: 20
+      3:
+        type: WAIT
+        duration-ticks: 100
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: full_bread
+        amount: 1
+
+  bake_apple_pie:
+    display-name: Apple Pie
+    display-material: PUMPKIN_PIE
+    description: Combine prepared flour, butter, and apple slices into a dessert.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+      2:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: apple_slice
+            amount: 3
+      3:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 180
+        bar-size: 10
+        target-score: 3
+        health: 2
+        speed-ticks: 5
+      4:
+        type: WAIT
+        duration-ticks: 120
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: apple_pie
+        amount: 1
+
+  cut_apple_pie:
+    display-name: Apple Pie Slices
+    display-material: PUMPKIN_PIE
+    description: Portion a finished pie into shareable slices.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: apple_pie
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 120
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 4
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: apple_pie_slice
+        amount: 4
+
+  bake_blueberry_muffins:
+    display-name: Blueberry Muffins
+    display-material: CAKE
+    description: A chained dessert using flour, butter, and berries.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: flour
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+      2:
+        type: INSERT_ITEM
+        requirements:
+          - material: SWEET_BERRIES
+            amount: 3
+      3:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 160
+        bar-size: 10
+        required-clicks: 20
+      4:
+        type: WAIT
+        duration-ticks: 100
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: blueberry_muffin
+        amount: 3
+
+  prepare_salmon_slice:
+    display-name: Salmon Slices
+    display-material: SALMON
+    description: Prepare salmon for sushi chains.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: SALMON
+            amount: 2
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 140
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: salmon_slice
+        amount: 4
+
+  roll_salmon_sushi:
+    display-name: Salmon Sushi
+    display-material: DRIED_KELP
+    description: Roll prepared salmon with rice into sushi.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: salmon_slice
+            amount: 2
+          - material: BOWL
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 140
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: salmon_sushi
+        amount: 2
+
+  cook_steak_dinner:
+    display-name: Steak Dinner
+    display-material: COOKED_BEEF
+    description: Finish a hearty dinner with chained butter.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: BEEF
+            amount: 2
+          - material: PAPER
+            nexo-item-id: butter
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 180
+        bar-size: 10
+        target-score: 3
+        health: 2
+        speed-ticks: 5
+      3:
+        type: WAIT
+        duration-ticks: 100
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: steak_dinner
+        amount: 1
+
 workstations:
   campfire:
     block-material: CAMPFIRE
@@ -48,4 +345,15 @@ workstations:
     nexo-item-id: ""
     recipes:
       - roasted_carrot
+      - mill_flour
+      - churn_butter
+      - slice_apples
+      - bake_baguette
+      - bake_full_bread
+      - bake_apple_pie
+      - cut_apple_pie
+      - bake_blueberry_muffins
+      - prepare_salmon_slice
+      - roll_salmon_sushi
+      - cook_steak_dinner
     permission: ""

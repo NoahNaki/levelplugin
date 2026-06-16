@@ -259,6 +259,7 @@ public class PluginBootstrap {
     private MobCodexGUI mobCodexGUI;
     private NpcCodexGUI npcCodexGUI;
     private LocationCodexGUI locationCodexGUI;
+    private FoodCodexGUI foodCodexGUI;
     private me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager wanderingMerchantManager;
     private PathfindingManager pathfindingManager;
     private MercenaryManager mercenaryManager;
@@ -321,10 +322,12 @@ public class PluginBootstrap {
         mobCodexGUI = new MobCodexGUI(codexManager, null);
         npcCodexGUI = new NpcCodexGUI(plugin, codexManager, null, mercenaryAffinityManager, mercenaryFriendshipGUI);
         locationCodexGUI = new LocationCodexGUI(codexManager, null);
-        codexGUI = new CodexMainGUI(mobCodexGUI, npcCodexGUI, locationCodexGUI);
+        foodCodexGUI = new FoodCodexGUI(codexManager, cookingModule.recipes(), null);
+        codexGUI = new CodexMainGUI(mobCodexGUI, npcCodexGUI, locationCodexGUI, foodCodexGUI);
         mobCodexGUI.setMainGui(codexGUI);
         npcCodexGUI.setMainGui(codexGUI);
         locationCodexGUI.setMainGui(codexGUI);
+        foodCodexGUI.setMainGui(codexGUI);
         registerCommandsAndListeners();
         registerPlaceholders();
         me.nakilex.levelplugin.transmog.gui.TransmogBrowser tBrowser =
@@ -792,6 +795,7 @@ public class PluginBootstrap {
             mobCodexGUI,
             npcCodexGUI,
             locationCodexGUI,
+            foodCodexGUI,
             wanderingMerchantManager,
             arenaQueueGUI,
             arenaMatchManager,

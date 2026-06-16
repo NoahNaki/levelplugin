@@ -28,16 +28,19 @@ public class CodexMainGUI implements Listener {
     private static final String LOC_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNmVlZjdlNTZjZGU3NDA3NzJkZmI3NmRkZDJmNTg0YmU4OTA3Yjg1OTc2NjhlNDAyNjM0OTg2NDY5MjMwYWE0OSJ9fX0=";
     private static final String NPC_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvOGU3NTM0NzBlNjdlMzUwZGI2MDVhOTFmNDNhNmYxODJlZmY3NTlkNmI4ZThmNTY0MWVlYjdkNmViYjYxN2JlYyJ9fX0=";
     private static final String MOB_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvNWM1OGExMDYyMzZjMjM4MGI2MTEzZGY4NDhkZDAxN2I2OWFiYWZmYTQ5M2RhNjkyNzA4MTMyZjBiMjcyMTI3OCJ9fX0=";
+    private static final String FOOD_HEAD = "eyJ0ZXh0dXJlcyI6eyJTS0lOIjp7InVybCI6Imh0dHA6Ly90ZXh0dXJlcy5taW5lY3JhZnQubmV0L3RleHR1cmUvYmFkYzQ4NDU5NzZkNDQ1Y2NmOTI3Y2I4YmY5ZDljZjY3ZDI5NDE0Nzc2NjMzYzQ1MWQ1MWUyZWJkY2U0OGE3NSJ9fX0=";
 
     private final MobCodexGUI mobGui;
     private final NpcCodexGUI npcGui;
     private final LocationCodexGUI locGui;
+    private final FoodCodexGUI foodGui;
     private final List<GuiWidget> widgets;
 
-    public CodexMainGUI(MobCodexGUI m, NpcCodexGUI n, LocationCodexGUI l) {
+    public CodexMainGUI(MobCodexGUI m, NpcCodexGUI n, LocationCodexGUI l, FoodCodexGUI f) {
         this.mobGui = m;
         this.npcGui = n;
         this.locGui = l;
+        this.foodGui = f;
         this.widgets = buildWidgets();
     }
 
@@ -67,13 +70,16 @@ public class CodexMainGUI implements Listener {
 
     private List<GuiWidget> buildWidgets() {
         List<GuiWidget> widgetList = new java.util.ArrayList<>();
-        widgetList.add(new ActionWidget(11,
+        widgetList.add(new ActionWidget(10,
                 context -> createHead(LOC_HEAD, ChatColor.GREEN + "Locations"),
                 (click, context) -> locGui.open(context.player())));
-        widgetList.add(new ActionWidget(13,
+        widgetList.add(new ActionWidget(12,
                 context -> createHead(NPC_HEAD, ChatColor.YELLOW + "NPCs"),
                 (click, context) -> npcGui.open(context.player())));
-        widgetList.add(new ActionWidget(15,
+        widgetList.add(new ActionWidget(14,
+                context -> createHead(FOOD_HEAD, ChatColor.GOLD + "Foods"),
+                (click, context) -> foodGui.open(context.player())));
+        widgetList.add(new ActionWidget(16,
                 context -> createHead(MOB_HEAD, ChatColor.RED + "Mobs"),
                 (click, context) -> mobGui.open(context.player())));
         return widgetList;
