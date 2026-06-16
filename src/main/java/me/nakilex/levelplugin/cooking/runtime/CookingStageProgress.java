@@ -40,10 +40,14 @@ public class CookingStageProgress {
     }
 
     public int remainingAmount(CookingIngredientRequirement requirement) {
+        return remainingAmount(requirement, 1);
+    }
+
+    public int remainingAmount(CookingIngredientRequirement requirement, int craftAmount) {
         if (requirement == null) {
             return 0;
         }
-        return Math.max(0, requirement.amount() - insertedAmount(requirement));
+        return Math.max(0, requiredAmount(requirement, craftAmount) - insertedAmount(requirement));
     }
 
     public void addIngredient(CookingIngredientRequirement requirement, int amount) {
@@ -55,12 +59,24 @@ public class CookingStageProgress {
     }
 
     public boolean isRequirementComplete(CookingIngredientRequirement requirement) {
-        return requirement != null && insertedAmount(requirement) >= requirement.amount();
+        return isRequirementComplete(requirement, 1);
+    }
+
+    public boolean isRequirementComplete(CookingIngredientRequirement requirement, int craftAmount) {
+        return requirement != null && insertedAmount(requirement) >= requiredAmount(requirement, craftAmount);
     }
 
     public boolean areRequirementsComplete(CookingStage stage) {
+        return areRequirementsComplete(stage, 1);
+    }
+
+    public boolean areRequirementsComplete(CookingStage stage, int craftAmount) {
         return stage != null && !stage.requirements().isEmpty()
-                && stage.requirements().stream().allMatch(this::isRequirementComplete);
+                && stage.requirements().stream().allMatch(requirement -> isRequirementComplete(requirement, craftAmount));
+    }
+
+    private int requiredAmount(CookingIngredientRequirement requirement, int craftAmount) {
+        return Math.max(1, requirement.amount() * Math.max(1, craftAmount));
     }
 
     public void advance() {

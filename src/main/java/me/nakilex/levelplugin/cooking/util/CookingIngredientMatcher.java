@@ -50,11 +50,32 @@ public final class CookingIngredientMatcher {
     }
 
     public static boolean hasIngredients(Inventory inventory, CookingRecipe recipe) {
-        return aggregateRequirements(recipe).stream()
+        return hasIngredients(inventory, recipe, 1);
+    }
+
+    public static boolean hasIngredients(Inventory inventory, CookingRecipe recipe, int craftAmount) {
+        return aggregateRequirements(recipe, craftAmount).stream()
                 .allMatch(requirement -> countMatching(inventory, requirement) >= requirement.amount());
     }
 
+    public static int maxCraftableAmount(Inventory inventory, CookingRecipe recipe, int cap) {
+        if (inventory == null || recipe == null) {
+            return 0;
+        }
+        int safeCap = Math.max(1, cap);
+        int max = safeCap;
+        for (CookingIngredientRequirement requirement : aggregateRequirements(recipe)) {
+            int possible = countMatching(inventory, requirement) / Math.max(1, requirement.amount());
+            max = Math.min(max, possible);
+        }
+        return Math.max(0, max);
+    }
+
     public static List<CookingIngredientRequirement> aggregateRequirements(CookingRecipe recipe) {
+        return aggregateRequirements(recipe, 1);
+    }
+
+    public static List<CookingIngredientRequirement> aggregateRequirements(CookingRecipe recipe, int craftAmount) {
         if (recipe == null) {
             return List.of();
         }
@@ -75,16 +96,20 @@ public final class CookingIngredientMatcher {
         List<CookingIngredientRequirement> requirements = new ArrayList<>();
         for (AggregatedRequirement aggregatedRequirement : aggregated.values()) {
             CookingIngredientRequirement base = aggregatedRequirement.requirement;
-            requirements.add(new CookingIngredientRequirement(base.material(), base.nexoItemId(), aggregatedRequirement.amount));
+            requirements.add(new CookingIngredientRequirement(base.material(), base.nexoItemId(), aggregatedRequirement.amount * Math.max(1, craftAmount)));
         }
         return List.copyOf(requirements);
     }
 
     public static String formatRequirement(CookingIngredientRequirement requirement) {
+        return formatRequirement(requirement, 1);
+    }
+
+    public static String formatRequirement(CookingIngredientRequirement requirement, int craftAmount) {
         if (requirement == null) {
             return "Unknown";
         }
-        return requirement.amount() + "x " + formatRequirementName(requirement);
+        return (requirement.amount() * Math.max(1, craftAmount)) + "x " + formatRequirementName(requirement);
     }
 
     public static String formatRequirementName(CookingIngredientRequirement requirement) {

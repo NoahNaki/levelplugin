@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.cooking.service.CookingSessionService;
 import me.nakilex.levelplugin.cooking.util.CookingIngredientMatcher;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstation;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.cooking.util.CookingChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
@@ -51,9 +52,11 @@ public class CookingRecipeSelectionGUI implements Listener {
     private static final int CATEGORY_FILTER_SLOT = 48;
     private static final int CRAFTABLE_FILTER_SLOT = 49;
     private static final int SORT_SLOT = 50;
+    private static final int CRAFT_AMOUNT_SLOT = 51;
     private static final String TITLE_PREFIX = ChatColor.DARK_GRAY + "Cooking Recipes";
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private static final String[] SORT_OPTIONS = {"Category", "Alphabetical"};
+    private static final int[] CRAFT_AMOUNT_OPTIONS = {1, 2, 4, 8, 16};
 
     private final CookingRecipeRegistry recipeRegistry;
     private final CookingSessionService sessionService;
@@ -62,6 +65,7 @@ public class CookingRecipeSelectionGUI implements Listener {
     private final Map<UUID, Integer> categoryFiltersByPlayer = new HashMap<>();
     private final Map<UUID, Boolean> craftableOnlyByPlayer = new HashMap<>();
     private final Map<UUID, Integer> sortModesByPlayer = new HashMap<>();
+    private final Map<UUID, Integer> craftAmountsByPlayer = new HashMap<>();
     private final Map<UUID, String> searchTermsByPlayer = new HashMap<>();
     private final Map<UUID, PlacedCookingWorkstation> lastWorkstationByPlayer = new HashMap<>();
     private final Set<UUID> awaitingSearch = new HashSet<>();
@@ -83,6 +87,7 @@ public class CookingRecipeSelectionGUI implements Listener {
         boolean craftableOnly = craftableOnlyByPlayer.getOrDefault(playerId, false);
         int sortMode = sortModesByPlayer.getOrDefault(playerId, 0);
         String searchTerm = searchTermsByPlayer.getOrDefault(playerId, "");
+        int craftAmount = craftAmount(playerId);
         List<CookingRecipe> recipes = recipesFor(player, workstation.type(), categoryOptions.get(categoryIndex), craftableOnly, sortMode, searchTerm);
         int maxPage = Math.max(0, (recipes.size() - 1) / PAGE_SIZE);
         int current = Math.max(0, Math.min(page, maxPage));
@@ -92,7 +97,7 @@ public class CookingRecipeSelectionGUI implements Listener {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .build();
-        List<GuiWidget> widgets = buildWidgets(player, workstation, recipes, current, maxPage, categoryOptions, categoryIndex, craftableOnly, sortMode, searchTerm);
+        List<GuiWidget> widgets = buildWidgets(player, workstation, recipes, current, maxPage, categoryOptions, categoryIndex, craftableOnly, sortMode, searchTerm, craftAmount);
         widgetsByPlayer.put(playerId, widgets);
         renderWidgets(inventory, player, widgets);
         player.openInventory(inventory);
@@ -141,6 +146,7 @@ public class CookingRecipeSelectionGUI implements Listener {
         categoryFiltersByPlayer.remove(playerId);
         craftableOnlyByPlayer.remove(playerId);
         sortModesByPlayer.remove(playerId);
+        craftAmountsByPlayer.remove(playerId);
         searchTermsByPlayer.remove(playerId);
         lastWorkstationByPlayer.remove(playerId);
         awaitingSearch.remove(playerId);
@@ -148,7 +154,7 @@ public class CookingRecipeSelectionGUI implements Listener {
 
     private List<GuiWidget> buildWidgets(Player player, PlacedCookingWorkstation workstation,
                                          List<CookingRecipe> recipes, int page, int maxPage,
-                                         List<String> categoryOptions, int categoryIndex, boolean craftableOnly, int sortMode, String searchTerm) {
+                                         List<String> categoryOptions, int categoryIndex, boolean craftableOnly, int sortMode, String searchTerm, int craftAmount) {
         List<GuiWidget> widgets = new ArrayList<>();
         widgets.add(new ActionWidget(SEARCH_SLOT, ctx -> createSearchItem(searchTerm),
                 (click, context) -> handleSearchClick(player, workstation, click)));
@@ -158,6 +164,8 @@ public class CookingRecipeSelectionGUI implements Listener {
                 (click, context) -> handleCraftableToggleClick(player, workstation)));
         widgets.add(new ActionWidget(SORT_SLOT, ctx -> createSortItem(sortMode),
                 (click, context) -> handleSortClick(player, workstation, click)));
+        widgets.add(new ActionWidget(CRAFT_AMOUNT_SLOT, ctx -> createCraftAmountItem(craftAmount),
+                (click, context) -> handleCraftAmountClick(player, workstation, click)));
         if (recipes.isEmpty()) {
             widgets.add(new ActionWidget(22, ctx -> emptyItem(craftableOnly, categoryOptions.get(categoryIndex)), (click, context) -> {}));
             return widgets;
@@ -167,8 +175,8 @@ public class CookingRecipeSelectionGUI implements Listener {
         for (int i = start; i < end; i++) {
             CookingRecipe recipe = recipes.get(i);
             int slot = GuiUtil.PAGED_SLOTS[i - start];
-            widgets.add(new ActionWidget(slot, ctx -> recipeItem(player, recipe),
-                    (click, context) -> selectRecipe(player, workstation, recipe)));
+            widgets.add(new ActionWidget(slot, ctx -> recipeItem(player, recipe, craftAmount),
+                    (click, context) -> selectRecipe(player, workstation, recipe, craftAmount)));
         }
         if (page > 0) {
             widgets.add(new ActionWidget(PREV_SLOT, ctx -> navItem(false),
@@ -181,20 +189,21 @@ public class CookingRecipeSelectionGUI implements Listener {
         return widgets;
     }
 
-    private void selectRecipe(Player player, PlacedCookingWorkstation workstation, CookingRecipe recipe) {
-        ActiveCookingSessionRegistry.CreateResult result = sessionService.startSession(player, workstation, recipe);
+    private void selectRecipe(Player player, PlacedCookingWorkstation workstation, CookingRecipe recipe, int craftAmount) {
+        ActiveCookingSessionRegistry.CreateResult result = sessionService.startSession(player, workstation, recipe, craftAmount);
         switch (result) {
             case CREATED -> {
                 player.closeInventory();
-                ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                CookingChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                         "Selected cooking recipe " + ChatColor.YELLOW + recipe.displayName()
-                                + ChatColor.GREEN + ". Add ingredients by right-clicking the workstation.");
+                                + ChatColor.GRAY + " x" + craftAmount
+                                + ChatColor.GREEN + ". Add the ingredients at the workstation.");
             }
-            case PLAYER_BUSY -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+            case PLAYER_BUSY -> CookingChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "You already have an active cooking session.");
-            case WORKSTATION_BUSY -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+            case WORKSTATION_BUSY -> CookingChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "This cooking workstation is busy.");
-            case INVALID -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
+            case INVALID -> CookingChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR,
                     "Could not start this cooking session.");
         }
     }
@@ -235,7 +244,7 @@ public class CookingRecipeSelectionGUI implements Listener {
         awaitingSearch.add(playerId);
         lastWorkstationByPlayer.put(playerId, workstation);
         player.closeInventory();
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+        CookingChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
                 "Type a recipe search term in chat, or " + ChatColor.YELLOW + "cancel" + ChatColor.GRAY + " to clear it.");
     }
 
@@ -269,13 +278,37 @@ public class CookingRecipeSelectionGUI implements Listener {
         open(player, workstation, 0);
     }
 
+    private void handleCraftAmountClick(Player player, PlacedCookingWorkstation workstation, ClickType click) {
+        UUID playerId = player.getUniqueId();
+        int index = craftAmountIndex(craftAmount(playerId));
+        index = switch (click) {
+            case RIGHT -> (index + CRAFT_AMOUNT_OPTIONS.length - 1) % CRAFT_AMOUNT_OPTIONS.length;
+            default -> (index + 1) % CRAFT_AMOUNT_OPTIONS.length;
+        };
+        craftAmountsByPlayer.put(playerId, CRAFT_AMOUNT_OPTIONS[index]);
+        open(player, workstation, 0);
+    }
+
+    private int craftAmount(UUID playerId) {
+        return Math.max(1, craftAmountsByPlayer.getOrDefault(playerId, 1));
+    }
+
+    private int craftAmountIndex(int amount) {
+        for (int i = 0; i < CRAFT_AMOUNT_OPTIONS.length; i++) {
+            if (CRAFT_AMOUNT_OPTIONS[i] == amount) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
     private List<CookingRecipe> recipesFor(Player player, CookingWorkstationType type, String category, boolean craftableOnly, int sortMode, String searchTerm) {
         List<CookingRecipe> recipes = new ArrayList<>();
         for (String recipeId : type.recipeIds()) {
             recipeRegistry.get(recipeId)
                     .filter(recipe -> "All".equalsIgnoreCase(category) || recipe.category().equalsIgnoreCase(category))
                     .filter(recipe -> matchesSearch(recipe, searchTerm))
-                    .filter(recipe -> !craftableOnly || CookingIngredientMatcher.hasIngredients(player.getInventory(), recipe))
+                    .filter(recipe -> !craftableOnly || CookingIngredientMatcher.hasIngredients(player.getInventory(), recipe, craftAmount(player.getUniqueId())))
                     .ifPresent(recipes::add);
         }
         sortRecipes(recipes, sortMode);
@@ -389,7 +422,21 @@ public class CookingRecipeSelectionGUI implements Listener {
         return GuiUtil.createGuiItem(Material.COMPARATOR, ChatColor.AQUA + "Sorting", lore);
     }
 
-    private ItemStack recipeItem(Player player, CookingRecipe recipe) {
+
+    private ItemStack createCraftAmountItem(int craftAmount) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "");
+        lore.add(ChatColor.DARK_GRAY + "Sets how many times the selected recipe is crafted");
+        lore.add(" ");
+        for (int option : CRAFT_AMOUNT_OPTIONS) {
+            lore.add(TooltipUtil.selectionLine(option == craftAmount, "x" + option));
+        }
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to increase", "to decrease"));
+        return GuiUtil.createGuiItem(Material.CRAFTING_TABLE, ChatColor.AQUA + "Craft Amount", lore);
+    }
+
+    private ItemStack recipeItem(Player player, CookingRecipe recipe, int craftAmount) {
         List<String> lore = new ArrayList<>();
         if (!recipe.lore().isEmpty()) {
             lore.add(" ");
@@ -398,7 +445,8 @@ public class CookingRecipeSelectionGUI implements Listener {
             }
         }
         lore.add(ChatColor.DARK_GRAY + "Category: " + ChatColor.YELLOW + recipe.category());
-        addRequiredIngredientsLore(player, recipe, lore);
+        lore.add(ChatColor.DARK_GRAY + "Craft Amount: " + ChatColor.YELLOW + "x" + craftAmount);
+        addRequiredIngredientsLore(player, recipe, lore, craftAmount);
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to select this recipe", null));
         ItemStack item = recipe.displayItem();
@@ -411,8 +459,8 @@ public class CookingRecipeSelectionGUI implements Listener {
         return item;
     }
 
-    private void addRequiredIngredientsLore(Player player, CookingRecipe recipe, List<String> lore) {
-        List<CookingIngredientRequirement> requirements = CookingIngredientMatcher.aggregateRequirements(recipe);
+    private void addRequiredIngredientsLore(Player player, CookingRecipe recipe, List<String> lore, int craftAmount) {
+        List<CookingIngredientRequirement> requirements = CookingIngredientMatcher.aggregateRequirements(recipe, craftAmount);
         if (requirements.isEmpty()) {
             return;
         }

@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
 import me.nakilex.levelplugin.cooking.util.CookingIngredientMatcher;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
+import me.nakilex.levelplugin.cooking.util.CookingChatMessageUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
@@ -31,9 +32,9 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         context.controller().displayService().clearStageDisplays(session);
         context.controller().displayService().showInsertItemDisplays(
                 session, stage, context.controller().recipe(session).orElse(null));
-        ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
-                "Cooking stage started. Insert " + ChatColor.YELLOW + context.controller().displayService().formatRequirements(stage)
-                        + ChatColor.WHITE + " by right-clicking the workstation.");
+        CookingChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
+                "Cooking stage started. Insert " + ChatColor.YELLOW + context.controller().displayService().formatRequirements(stage, session.craftAmount())
+                        + ChatColor.WHITE + " at the workstation.");
     }
 
     @Override
@@ -48,21 +49,21 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         if (requirementOptional.isEmpty()) {
             if (matchesAnyRequirement(stage, held)) {
                 context.controller().effectsService().playWrongIngredient(context.player(), context.rewardDropLocation());
-                ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
+                CookingChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
                         "That ingredient is already complete for this stage.");
                 return InteractionResult.INGREDIENT_ALREADY_COMPLETE;
             }
             context.controller().effectsService().playWrongIngredient(context.player(), context.rewardDropLocation());
-            ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
+            CookingChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
                     "That ingredient does not match this stage. Expected " + ChatColor.YELLOW
-                            + context.controller().displayService().formatRequirements(stage) + ChatColor.WHITE + ".");
+                            + context.controller().displayService().formatRequirements(stage, session.craftAmount()) + ChatColor.WHITE + ".");
             return InteractionResult.INVALID_INGREDIENT;
         }
         CookingIngredientRequirement requirement = requirementOptional.get();
-        int insertAmount = Math.min(held.getAmount(), session.progress().remainingAmount(requirement));
+        int insertAmount = Math.min(held.getAmount(), session.progress().remainingAmount(requirement, session.craftAmount()));
         if (insertAmount <= 0) {
             context.controller().effectsService().playWrongIngredient(context.player(), context.rewardDropLocation());
-            ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
+            CookingChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
                     "That ingredient is already complete for this stage.");
             return InteractionResult.INGREDIENT_ALREADY_COMPLETE;
         }
@@ -73,9 +74,9 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         session.progress().addIngredient(requirement, insertAmount);
         context.controller().effectsService().playIngredientInserted(context.player(), context.rewardDropLocation());
         context.controller().displayService().updateInsertItemDisplays(session, stage);
-        ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
+        CookingChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
                 "Inserted " + ChatColor.YELLOW + insertAmount + "x " + context.controller().displayService().formatRequirementName(requirement) + ChatColor.GREEN + ".");
-        if (session.progress().areRequirementsComplete(stage)) {
+        if (session.progress().areRequirementsComplete(stage, session.craftAmount())) {
             completeStage(session, new StageExecutionContext(context.controller(), context.player(), context.rewardDropLocation()));
         }
         return InteractionResult.ACCEPTED;
@@ -97,7 +98,7 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             return Optional.empty();
         }
         return stage.requirements().stream()
-                .filter(requirement -> !session.progress().isRequirementComplete(requirement))
+                .filter(requirement -> !session.progress().isRequirementComplete(requirement, session.craftAmount()))
                 .filter(requirement -> matches(requirement, stack))
                 .findFirst();
     }

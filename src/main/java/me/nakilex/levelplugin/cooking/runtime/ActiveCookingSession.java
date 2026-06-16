@@ -17,13 +17,19 @@ public class ActiveCookingSession {
     private CookingStageType activeStageType;
     private BukkitTask waitTask;
     private CookingDisplayState displayState;
+    private final int craftAmount;
 
     public ActiveCookingSession(UUID playerId, CookingLocationKey workstationKey, String recipeId) {
+        this(playerId, workstationKey, recipeId, 1);
+    }
+
+    public ActiveCookingSession(UUID playerId, CookingLocationKey workstationKey, String recipeId, int craftAmount) {
         this.playerId = playerId;
         this.workstationKey = workstationKey;
         this.recipeId = recipeId;
         this.progress = new CookingStageProgress();
         this.startedAt = Instant.now();
+        this.craftAmount = Math.max(1, craftAmount);
     }
 
     public UUID playerId() { return playerId; }
@@ -34,6 +40,7 @@ public class ActiveCookingSession {
     public CookingStageType activeStageType() { return activeStageType; }
     public BukkitTask waitTask() { return waitTask; }
     public CookingDisplayState displayState() { return displayState; }
+    public int craftAmount() { return craftAmount; }
 
     public void setActiveStageType(CookingStageType activeStageType) {
         this.activeStageType = activeStageType;

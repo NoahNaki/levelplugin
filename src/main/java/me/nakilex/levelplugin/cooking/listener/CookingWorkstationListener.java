@@ -94,15 +94,8 @@ public class CookingWorkstationListener implements Listener {
                 return;
             }
 
-            // Important: during an active cooking session, right-clicking the workstation is gameplay input.
-            // Do not let the workstation GUI/"already active" path swallow the click before the mini-game sees it.
+            // During an active cooking session, clicking the workstation is gameplay input.
             if (activeSessions.getByWorkstation(placed.locationKey()).isPresent()) {
-                plugin.getLogger().info("[CookingMiniGameDebug] workstation-click routed as active gameplay input"
-                        + " player=" + event.getPlayer().getName()
-                        + " workstation=" + placed.locationKey()
-                        + " action=" + event.getAction()
-                        + " hand=" + event.getHand()
-                        + " held=" + event.getPlayer().getInventory().getItemInMainHand().getType());
                 sessionService.insertHeldIngredient(event.getPlayer(), placed,
                         event.getPlayer().getInventory().getItemInMainHand(), clicked.getLocation());
                 return;

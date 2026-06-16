@@ -37,7 +37,7 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
         context.controller().displayService().clearStageDisplays(session.cookingSession());
         showVisual(session, context.player(), context.controller());
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
-                "Cooking timing challenge started. Right-click when the moving hook overlaps the target.");
+                "Cooking timing challenge started.");
         BukkitTask task = context.controller().plugin().getServer().getScheduler().runTaskTimer(
                 context.controller().plugin(),
                 () -> tick(session, context, durationTicks, onFailure),
@@ -52,35 +52,10 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
                                                                      Runnable onSuccess) {
         long elapsedTicks = session.elapsedTicks();
         if (elapsedTicks < session.ignoreHitClicksUntilTick()) {
-            context.controller().plugin().getLogger().info("[CookingMiniGameDebug] dot-hit click ignored by debounce"
-                    + " player=" + context.player().getName()
-                    + " hook=" + session.hookIndex()
-                    + " target=" + session.targetIndex()
-                    + " score=" + session.score() + "/" + session.targetScore()
-                    + " health=" + session.health()
-                    + " elapsedTicks=" + elapsedTicks
-                    + " ignoreUntil=" + session.ignoreHitClicksUntilTick());
-            ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
-                    "Debug ignored duplicate click hook=" + session.hookIndex() + " target=" + session.targetIndex()
-                            + " score=" + session.score() + "/" + session.targetScore()
-                            + " hp=" + session.health() + " tick=" + elapsedTicks
-                            + " ignoreUntil=" + session.ignoreHitClicksUntilTick());
             return CookingStageExecutor.InteractionResult.ACCEPTED;
         }
 
         boolean hit = isHit(session);
-        context.controller().plugin().getLogger().info("[CookingMiniGameDebug] dot-hit click"
-                + " player=" + context.player().getName()
-                + " hook=" + session.hookIndex()
-                + " target=" + session.targetIndex()
-                + " hit=" + hit
-                + " score=" + session.score() + "/" + session.targetScore()
-                + " health=" + session.health()
-                + " elapsedTicks=" + elapsedTicks);
-        ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
-                "Debug hit=" + hit + " hook=" + session.hookIndex() + " target=" + session.targetIndex()
-                        + " score=" + session.score() + "/" + session.targetScore()
-                        + " hp=" + session.health() + " tick=" + elapsedTicks);
 
         if (hit) {
             int score = session.incrementScore();
@@ -89,7 +64,6 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
                 context.controller().displayService().clearMiniGameVisual(context.player());
                 context.controller().effectsService().playMiniGameSuccess(context.player(), context.rewardDropLocation());
                 context.controller().suppressRecipeBookOpen(context.player());
-                ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Perfect timing!");
                 onSuccess.run();
                 return CookingStageExecutor.InteractionResult.COMPLETED;
             }
@@ -97,7 +71,6 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
             session.ignoreHitClicksUntil(elapsedTicks + POST_HIT_CLICK_IGNORE_TICKS);
             session.setTargetIndex(randomTargetIndex(session.barSize()));
             showVisual(session, context.player(), context.controller());
-            ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS, "Good hit!");
             return CookingStageExecutor.InteractionResult.ACCEPTED;
         }
 
@@ -145,14 +118,6 @@ public class DotStyleHitMiniGame implements CookingMiniGame {
         }
         showVisual(session, player, context.controller());
         if (elapsed > durationTicks) {
-            context.controller().plugin().getLogger().info("[CookingMiniGameDebug] dot-hit timeout"
-                    + " player=" + player.getName()
-                    + " elapsedTicks=" + elapsed
-                    + " durationTicks=" + durationTicks
-                    + " hook=" + session.hookIndex()
-                    + " target=" + session.targetIndex()
-                    + " score=" + session.score() + "/" + session.targetScore()
-                    + " health=" + session.health());
             session.finish();
             context.controller().displayService().clearMiniGameVisual(player);
             context.controller().effectsService().playMiniGameFail(player, context.rewardDropLocation());

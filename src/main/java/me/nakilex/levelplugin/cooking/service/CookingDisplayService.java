@@ -10,13 +10,12 @@ import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
 import me.nakilex.levelplugin.cooking.util.CookingIngredientMatcher;
 import me.nakilex.levelplugin.cooking.runtime.CookingDisplayState;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.data.BlockData;
-import org.bukkit.block.data.Directional;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
@@ -132,7 +131,7 @@ public class CookingDisplayService {
         cleanupManagedDisplay(state.rewardPreviewDisplay(), false);
         session.setDisplayState(state.withRewardPreviewDisplay(null));
 
-        BlockFace face = resolveWorkstationFace(workstationLocation);
+        BlockFace face = resolveDisplayFace(session);
         Location base = applyForwardOffset(workstationLocation.clone().add(0.5D, 1.3D, 0.5D), face);
         List<RequirementDisplayItem> remaining = remainingIngredientItems(session, stage);
         int spawned = spawnIngredientDisplays(state, base, remaining, face);
@@ -157,7 +156,7 @@ public class CookingDisplayService {
         }
         CookingDisplayState state = session.displayState();
         cleanupIngredientDisplays(state, true);
-        BlockFace face = resolveWorkstationFace(workstationLocation);
+        BlockFace face = resolveDisplayFace(session);
         return spawnIngredientDisplays(state,
                 applyForwardOffset(workstationLocation.clone().add(0.5D, 1.3D, 0.5D), face),
                 remainingIngredientItems(session, stage),
@@ -212,11 +211,15 @@ public class CookingDisplayService {
     }
 
     public String formatRequirements(CookingStage stage) {
+        return formatRequirements(stage, 1);
+    }
+
+    public String formatRequirements(CookingStage stage, int craftAmount) {
         if (stage == null) {
             return "Unknown";
         }
         return stage.requirements().stream()
-                .map(CookingIngredientMatcher::formatRequirement)
+                .map(requirement -> CookingIngredientMatcher.formatRequirement(requirement, craftAmount))
                 .reduce((left, right) -> left + ", " + right)
                 .orElse("Unknown");
     }
@@ -247,7 +250,7 @@ public class CookingDisplayService {
     private List<RequirementDisplayItem> remainingIngredientItems(ActiveCookingSession session, CookingStage stage) {
         List<RequirementDisplayItem> remaining = new ArrayList<>();
         for (CookingIngredientRequirement requirement : stage.requirements()) {
-            int remainingAmount = session.progress().remainingAmount(requirement);
+            int remainingAmount = session.progress().remainingAmount(requirement, session.craftAmount());
             if (remainingAmount > 0) {
                 remaining.add(new RequirementDisplayItem(requirement.progressKey(), createRequirementDisplayItem(requirement, remainingAmount)));
             }
@@ -332,23 +335,38 @@ public class CookingDisplayService {
                 new AxisAngle4f()));
     }
 
-    private BlockFace resolveWorkstationFace(Location workstationLocation) {
-        if (workstationLocation == null || workstationLocation.getWorld() == null) {
+    private BlockFace resolveDisplayFace(ActiveCookingSession session) {
+        if (session == null) {
             return BlockFace.NORTH;
         }
-        BlockData data = workstationLocation.getBlock().getBlockData();
-        if (data instanceof Directional directional) {
-            return directional.getFacing();
+        Player player = Bukkit.getPlayer(session.playerId());
+        if (player == null || !player.isOnline()) {
+            return BlockFace.NORTH;
         }
-        return BlockFace.NORTH;
+        return yawToCardinal(player.getLocation().getYaw()).getOppositeFace();
+    }
+
+    private BlockFace yawToCardinal(float yaw) {
+        float normalized = ((yaw % 360.0f) + 360.0f) % 360.0f;
+        if (normalized >= 315.0f || normalized < 45.0f) {
+            return BlockFace.SOUTH;
+        }
+        if (normalized < 135.0f) {
+            return BlockFace.WEST;
+        }
+        if (normalized < 225.0f) {
+            return BlockFace.NORTH;
+        }
+        return BlockFace.EAST;
     }
 
     private float yawFor(BlockFace face) {
         return switch (face) {
             case EAST -> -90.0f;
-            case SOUTH -> 180.0f;
-            case WEST -> 270.0f;
-            default -> 0.0f;
+            case SOUTH -> 0.0f;
+            case WEST -> 90.0f;
+            case NORTH -> 180.0f;
+            default -> 180.0f;
         };
     }
 

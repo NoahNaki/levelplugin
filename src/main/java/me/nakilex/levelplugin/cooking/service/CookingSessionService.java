@@ -15,7 +15,7 @@ import me.nakilex.levelplugin.cooking.stage.MiniGameStageExecutor;
 import me.nakilex.levelplugin.cooking.stage.WaitStageExecutor;
 import me.nakilex.levelplugin.cooking.util.CookingLocationKey;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
-import org.bukkit.ChatColor;
+import me.nakilex.levelplugin.cooking.util.CookingChatMessageUtil;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -28,7 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /** Orchestrates active cooking sessions while stage executors own stage-specific runtime behavior. */
 public class CookingSessionService implements CookingStageExecutor.StageSessionController {
     private static final long RECIPE_BOOK_SUPPRESS_MILLIS = 750L;
-
+    private static final long DUPLICATE_INTERACTION_SUPPRESS_MILLIS = 150L;
     private final Main plugin;
     private final CookingRecipeRegistry recipeRegistry;
     private final ActiveCookingSessionRegistry sessionRegistry;
@@ -39,6 +39,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     private final CookingEffectsService effectsService;
     private final CookingStageExecutorRegistry executorRegistry;
     private final Map<UUID, Long> recipeBookSuppressUntil = new ConcurrentHashMap<>();
+    private final Map<UUID, LastCookingInteraction> lastCookingInteraction = new ConcurrentHashMap<>();
 
     public CookingSessionService(Main plugin,
                                  CookingRecipeRegistry recipeRegistry,
@@ -67,8 +68,12 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     }
 
     public ActiveCookingSessionRegistry.CreateResult startSession(Player player, PlacedCookingWorkstation workstation, CookingRecipe recipe) {
+        return startSession(player, workstation, recipe, 1);
+    }
+
+    public ActiveCookingSessionRegistry.CreateResult startSession(Player player, PlacedCookingWorkstation workstation, CookingRecipe recipe, int craftAmount) {
         ActiveCookingSessionRegistry.CreateResult result = sessionRegistry.create(
-                player.getUniqueId(), workstation.locationKey(), recipe.id());
+                player.getUniqueId(), workstation.locationKey(), recipe.id(), craftAmount);
         if (result == ActiveCookingSessionRegistry.CreateResult.CREATED) {
             sessionRegistry.getByPlayer(player.getUniqueId()).ifPresent(session -> {
                 displayService.spawnDisplays(session, recipe);
@@ -91,43 +96,29 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
     public CookingStageExecutor.InteractionResult insertHeldIngredient(Player player, PlacedCookingWorkstation workstation, ItemStack held, Location rewardDropLocation) {
         Optional<ActiveCookingSession> sessionOptional = sessionRegistry.getByWorkstation(workstation.locationKey());
         if (sessionOptional.isEmpty()) {
-            plugin.getLogger().info("[CookingMiniGameDebug] interaction ignored: no active session"
-                    + " player=" + player.getName()
-                    + " workstation=" + workstation.locationKey()
-                    + " held=" + (held == null ? "null" : held.getType()));
             return CookingStageExecutor.InteractionResult.NO_ACTIVE_SESSION;
         }
         ActiveCookingSession session = sessionOptional.get();
+        if (consumeDuplicateInteraction(player, workstation.locationKey())) {
+            return CookingStageExecutor.InteractionResult.ACCEPTED;
+        }
         if (!session.playerId().equals(player.getUniqueId())) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "This cooking workstation is busy.");
+            CookingChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING, "This cooking workstation is busy.");
             return CookingStageExecutor.InteractionResult.WRONG_PLAYER;
         }
         if (recipe(session).isEmpty()) {
             cancelSession(session, "Cooking recipe is no longer registered.");
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Cooking recipe is no longer registered.");
+            CookingChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "Cooking recipe is no longer registered.");
             return CookingStageExecutor.InteractionResult.INVALID_SESSION;
         }
         Optional<CookingStageExecutor> executor = currentExecutor(session);
         if (executor.isEmpty()) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+            CookingChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "Next cooking stage is not implemented yet.");
-            plugin.getLogger().info("[CookingMiniGameDebug] interaction ignored: no executor"
-                    + " player=" + player.getName()
-                    + " recipe=" + session.recipeId()
-                    + " stageIndex=" + session.progress().currentStageIndex()
-                    + " held=" + (held == null ? "null" : held.getType()));
             return CookingStageExecutor.InteractionResult.UNSUPPORTED_STAGE;
         }
-        CookingStageExecutor.InteractionResult result = executor.get().handleInteraction(session,
+        return executor.get().handleInteraction(session,
                 new CookingStageExecutor.StageInteractionContext(this, player, held, rewardDropLocation));
-        plugin.getLogger().info("[CookingMiniGameDebug] interaction result"
-                + " player=" + player.getName()
-                + " recipe=" + session.recipeId()
-                + " stageIndex=" + session.progress().currentStageIndex()
-                + " stageType=" + session.activeStageType()
-                + " held=" + (held == null ? "null" : held.getType())
-                + " result=" + result);
-        return result;
     }
 
     public boolean cancelSessionByPlayer(java.util.UUID playerId) {
@@ -190,6 +181,33 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
         beginCurrentStage(player, session, rewardDropLocation);
     }
 
+
+    private boolean consumeDuplicateInteraction(Player player, CookingLocationKey workstationKey) {
+        if (player == null || workstationKey == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        UUID playerId = player.getUniqueId();
+        LastCookingInteraction previous = lastCookingInteraction.get(playerId);
+        if (previous != null
+                && workstationKey.equals(previous.workstationKey)
+                && now - previous.timestampMillis <= DUPLICATE_INTERACTION_SUPPRESS_MILLIS) {
+            return true;
+        }
+        lastCookingInteraction.put(playerId, new LastCookingInteraction(workstationKey, now));
+        return false;
+    }
+
+    private static final class LastCookingInteraction {
+        private final CookingLocationKey workstationKey;
+        private final long timestampMillis;
+
+        private LastCookingInteraction(CookingLocationKey workstationKey, long timestampMillis) {
+            this.workstationKey = workstationKey;
+            this.timestampMillis = timestampMillis;
+        }
+    }
+
     @Override
     public void suppressRecipeBookOpen(Player player) {
         if (player == null) {
@@ -209,9 +227,6 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
         long now = System.currentTimeMillis();
         if (now <= suppressUntil) {
             recipeBookSuppressUntil.remove(player.getUniqueId());
-            plugin.getLogger().info("[CookingMiniGameDebug] recipe book open suppressed by post-minigame debounce"
-                    + " player=" + player.getName()
-                    + " remainingMs=" + (suppressUntil - now));
             return true;
         }
         recipeBookSuppressUntil.remove(player.getUniqueId());
@@ -256,7 +271,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
         Optional<CookingStageExecutor> executorOptional = executorRegistry.get(stage.type());
         if (executorOptional.isEmpty()) {
             session.setActiveStageType(stage.type());
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
+            CookingChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "Next cooking stage is not implemented yet.");
             return;
         }
@@ -274,12 +289,13 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
 
     private void complete(Player player, ActiveCookingSession session, CookingRecipe recipe, Location rewardDropLocation) {
         Location workstationLocation = rewardDropLocation != null ? rewardDropLocation : session.workstationKey().toLocation();
-        rewardService.grantRewards(player, workstationLocation, recipe.rewards());
+        rewardService.grantRewards(player, workstationLocation, recipe.rewards(), session.craftAmount());
         effectsService.playCookingComplete(player, workstationLocation);
         cleanupSession(session);
         sessionRegistry.removeByWorkstation(session.workstationKey());
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
-                "Completed cooking recipe " + ChatColor.YELLOW + recipe.displayName() + ChatColor.GREEN + ".");
+        CookingChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
+                "Completed cooking recipe §e" + recipe.displayName()
+                        + "§7 x" + session.craftAmount() + "§a.");
     }
 
     private void cleanupSession(ActiveCookingSession session) {

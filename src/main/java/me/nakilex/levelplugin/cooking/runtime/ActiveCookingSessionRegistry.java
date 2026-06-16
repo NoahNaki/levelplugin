@@ -23,6 +23,10 @@ public class ActiveCookingSessionRegistry {
     }
 
     public CreateResult create(UUID playerId, CookingLocationKey workstationKey, String recipeId) {
+        return create(playerId, workstationKey, recipeId, 1);
+    }
+
+    public CreateResult create(UUID playerId, CookingLocationKey workstationKey, String recipeId, int craftAmount) {
         if (playerId == null || workstationKey == null || recipeId == null || recipeId.isBlank()) {
             return CreateResult.INVALID;
         }
@@ -32,7 +36,7 @@ public class ActiveCookingSessionRegistry {
         if (byWorkstation.containsKey(workstationKey)) {
             return CreateResult.WORKSTATION_BUSY;
         }
-        ActiveCookingSession session = new ActiveCookingSession(playerId, workstationKey, recipeId);
+        ActiveCookingSession session = new ActiveCookingSession(playerId, workstationKey, recipeId, craftAmount);
         byPlayer.put(playerId, session);
         ActiveCookingSession previous = byWorkstation.putIfAbsent(workstationKey, session);
         if (previous != null) {
