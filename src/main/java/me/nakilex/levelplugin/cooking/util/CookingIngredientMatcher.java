@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.player.fishing.utils.FishingItemUtil;
 import me.nakilex.levelplugin.utils.TextUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -96,6 +97,9 @@ public final class CookingIngredientMatcher {
     }
 
     private static boolean matchesNexoRequirement(String expectedNexo, ItemStack stack) {
+        if (matchesFishRequirement(expectedNexo, stack)) {
+            return true;
+        }
         String modelId = ItemUtil.getNexoModelId(stack);
         if (expectedNexo.equalsIgnoreCase(modelId)) {
             return true;
@@ -104,6 +108,19 @@ public final class CookingIngredientMatcher {
             return true;
         }
         return matchesNexoVisualModel(expectedNexo, stack);
+    }
+
+    private static boolean matchesFishRequirement(String expectedNexo, ItemStack stack) {
+        String fishId = FishingItemUtil.getFishId(stack);
+        if (fishId == null || fishId.isBlank()) {
+            return false;
+        }
+        String normalizedExpected = normalizeName(expectedNexo);
+        String normalizedFishId = normalizeName(fishId);
+        if (normalizedExpected.equals(normalizedFishId)) {
+            return true;
+        }
+        return normalizedExpected.equals(normalizeName(fishId + "_fish"));
     }
 
     private static boolean matchesDisplayName(String expectedNexo, ItemStack stack) {

@@ -2,8 +2,8 @@
 
 Tracks which Nexo food ids from the provided food asset list are currently produced by `src/main/resources/cooking.yml` recipes.
 
-- Covered food ids: 166
-- Remaining food ids: 281
+- Covered food ids: 169
+- Remaining food ids: 278
 - Base vanilla materials players need access to: 21
 - Base Nexo food/resource ids players need access to: 30
 
@@ -124,6 +124,7 @@ Tracks which Nexo food ids from the provided food asset list are currently produ
 | `mustard` | `make_mustard` |
 | `mustard_hotdog` | `assemble_mustard_hotdog` |
 | `olive_cracker` | `make_olive_cracker` |
+| `open_sardine_can` | `open_sardine_can` |
 | `onigiri` | `make_onigiri` |
 | `onion_rings` | `fry_onion_rings` |
 | `pancakes` | `make_pancakes` |
@@ -141,12 +142,14 @@ Tracks which Nexo food ids from the provided food asset list are currently produ
 | `powdered_donut` | `bake_powdered_donut` |
 | `red_velvet_cake` | `bake_red_velvet_cake` |
 | `red_velvet_cake_slice` | `slice_red_velvet_cake` |
+| `red_snapper` | `prepare_red_snapper` |
 | `red_velvet_cookie` | `bake_red_velvet_cookie` |
 | `redberry_pie` | `bake_redberry_pie` |
 | `redberry_pie_slice` | `slice_redberry_pie` |
 | `salad_dish` | `make_salad_dish` |
 | `salmon_slice` | `prepare_salmon_slice` |
 | `salmon_sushi` | `roll_salmon_sushi` |
+| `sardine_can` | `can_sardine` |
 | `seasoned_cheese_pizza` | `season_cheese_pizza` |
 | `seasoned_egg_pizza` | `season_egg_pizza` |
 | `seasoned_tomato_pizza` | `season_tomato_pizza` |
@@ -255,7 +258,7 @@ These are recipe inputs that are not produced by another cooking recipe, so they
 - `mozarella_caprese_pizza_slice`, `muesli_bar`, `multi_ice_cream1`
 - `multi_ice_cream2`, `mushroom`, `mushroom_pizza_slice`
 - `mussle`, `olive_oil`, `omelet`
-- `open_pea_can`, `open_sardine_can`, `open_tomato_can`
+- `open_pea_can`, `open_tomato_can`
 - `opened_coconut`, `opened_peanut`, `orange`
 - `orange_ice_cream`, `orange_juice`, `oyster`
 - `panini`, `pasta_alfredo`, `pasta_carbonara`
@@ -276,10 +279,10 @@ These are recipe inputs that are not produced by another cooking recipe, so they
 - `raw_steak`, `red_apple`, `red_bean`
 - `red_beet`, `red_berries`, `red_candy`
 - `red_chili_pepper`, `red_fresno`, `red_onion`
-- `red_paprika`, `red_pudding`, `red_snapper`
+- `red_paprika`, `red_pudding`
 - `red_velvet_cake_slice_alternate`, `rice_bowl`, `rye_bread`
 - `salmon`, `salmon_sushi2`, `salt`
-- `sangria`, `sardine`, `sardine_can`
+- `sangria`, `sardine`
 - `simple_cake`, `sliced_aubergine`, `sliced_cucumber`
 - `small_egg`, `soy_sauce`, `speckled_cake`
 - `speckled_icecream`, `speckled_whipped_cream`, `spotted_bean`

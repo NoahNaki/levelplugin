@@ -273,6 +273,16 @@ merchants:
         nexo-item-id: yellow_paprika
         amount: 4
         cost: 4
+      - slot: 31
+        material: PAPER
+        nexo-item-id: garlic
+        amount: 4
+        cost: 4
+      - slot: 32
+        material: PAPER
+        nexo-item-id: ginger
+        amount: 4
+        cost: 4
 
   cooking_misc_merchant:
     title: "Cooking Pantry"
@@ -302,16 +312,6 @@ merchants:
       - slot: 15
         material: PAPER
         nexo-item-id: cracker
-        amount: 4
-        cost: 4
-      - slot: 16
-        material: PAPER
-        nexo-item-id: garlic
-        amount: 4
-        cost: 4
-      - slot: 19
-        material: PAPER
-        nexo-item-id: ginger
         amount: 4
         cost: 4
       - slot: 20

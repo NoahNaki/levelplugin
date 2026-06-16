@@ -91,6 +91,13 @@ public final class FishingItemUtil {
         return meta.getPersistentDataContainer().has(FISH_ID_KEY, PersistentDataType.STRING);
     }
 
+    public static String getFishId(ItemStack stack) {
+        if (stack == null || !stack.hasItemMeta()) return null;
+        ItemMeta meta = stack.getItemMeta();
+        if (meta == null) return null;
+        return meta.getPersistentDataContainer().get(FISH_ID_KEY, PersistentDataType.STRING);
+    }
+
     public static int getFishValue(ItemStack stack) {
         if (stack == null || !stack.hasItemMeta()) return 0;
         ItemMeta meta = stack.getItemMeta();

@@ -4078,6 +4078,82 @@ recipes:
         nexo-item-id: red_velvet_cookie
         amount: 2
 
+  can_sardine:
+    display-name: Sardine Can
+    display-material: PAPER
+    description: Preserve a freshly caught sardine with salt.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: sardine
+            amount: 1
+          - material: PAPER
+            nexo-item-id: salt
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_MIX
+        duration-ticks: 130
+        bar-size: 10
+        required-clicks: 20
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: sardine_can
+        amount: 1
+
+  open_sardine_can:
+    display-name: Open Sardine Can
+    display-material: PAPER
+    description: Open a sardine can for cooking chains.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: sardine_can
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 120
+        bar-size: 10
+        target-score: 1
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: open_sardine_can
+        amount: 1
+
+  prepare_red_snapper:
+    display-name: Red Snapper
+    display-material: COD
+    description: Clean a freshly caught red snapper for recipes.
+    stages:
+      1:
+        type: INSERT_ITEM
+        requirements:
+          - material: PAPER
+            nexo-item-id: red_snapper
+            amount: 1
+      2:
+        type: MINI_GAME
+        mini-game-type: DOT_STYLE_HIT
+        duration-ticks: 150
+        bar-size: 10
+        target-score: 2
+        health: 2
+        speed-ticks: 5
+    rewards:
+      1:
+        material: PAPER
+        nexo-item-id: red_snapper
+        amount: 1
+
   make_tuna_slice:
     display-name: Tuna Slice
     display-material: COD
@@ -4517,6 +4593,9 @@ workstations:
       - make_honey_mustard_hotwing
       - cook_salmon
       - cook_cod
+      - can_sardine
+      - open_sardine_can
+      - prepare_red_snapper
       - cook_shrimp
       - make_fish_dinner
       - make_finished_salmon_dish
