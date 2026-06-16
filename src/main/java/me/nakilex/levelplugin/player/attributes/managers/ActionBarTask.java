@@ -39,8 +39,9 @@ public class ActionBarTask extends BukkitRunnable {
             String cooldownMessage = cooldownMessage(info, now);
             String statusMessage = statusMessage(player, statsManager);
             String resourceMessage = resourceMessage(player, statsManager);
+            String cookingMessage = cookingMessage(player);
 
-            String message = joinSegments(cooldownMessage, statusMessage, resourceMessage);
+            String message = joinSegments(cooldownMessage, statusMessage, resourceMessage, cookingMessage);
             if (message.isEmpty()) {
                 clearActionBarStatus(player);
             } else {
@@ -48,6 +49,15 @@ public class ActionBarTask extends BukkitRunnable {
                 playersWithActionBarStatus.add(player.getUniqueId());
             }
         }
+    }
+
+    private String cookingMessage(Player player) {
+        if (plugin.getCookingModule() == null || player == null) {
+            return "";
+        }
+        return plugin.getCookingModule().activeSessions().getByPlayer(player.getUniqueId()).isPresent()
+                ? ChatColor.YELLOW + "Sneak" + ChatColor.GRAY + " to cancel cooking"
+                : "";
     }
 
     private String cooldownMessage(CooldownIndicatorManager.Info info, long now) {

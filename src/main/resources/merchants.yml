@@ -91,6 +91,245 @@ merchants:
         item_id: mana_iii
         cost: 400
 
+  cooking_ingredient_merchant:
+    title: "Cooking Ingredient Merchant"
+    size: 54
+    items:
+      - slot: 0
+        material: APPLE
+        amount: 8
+        cost: 4
+      - slot: 1
+        material: BEEF
+        amount: 8
+        cost: 8
+      - slot: 2
+        material: BEETROOT
+        amount: 8
+        cost: 4
+      - slot: 3
+        material: BOWL
+        amount: 8
+        cost: 2
+      - slot: 4
+        material: CARROT
+        amount: 8
+        cost: 4
+      - slot: 5
+        material: CHICKEN
+        amount: 8
+        cost: 8
+      - slot: 6
+        material: COCOA_BEANS
+        amount: 8
+        cost: 5
+      - slot: 7
+        material: COD
+        amount: 8
+        cost: 7
+      - slot: 8
+        material: EGG
+        amount: 8
+        cost: 5
+      - slot: 9
+        material: HONEY_BOTTLE
+        amount: 4
+        cost: 8
+      - slot: 10
+        material: KELP
+        amount: 8
+        cost: 3
+      - slot: 11
+        material: MILK_BUCKET
+        amount: 1
+        cost: 10
+      - slot: 12
+        material: PORKCHOP
+        amount: 8
+        cost: 8
+      - slot: 13
+        material: POTATO
+        amount: 8
+        cost: 4
+      - slot: 14
+        material: PUMPKIN
+        amount: 4
+        cost: 7
+      - slot: 15
+        material: SALMON
+        amount: 8
+        cost: 8
+      - slot: 16
+        material: SNOWBALL
+        amount: 8
+        cost: 2
+      - slot: 17
+        material: SUGAR
+        amount: 8
+        cost: 3
+      - slot: 18
+        material: SWEET_BERRIES
+        amount: 8
+        cost: 4
+      - slot: 19
+        material: WHEAT
+        amount: 8
+        cost: 3
+      - slot: 20
+        material: WHEAT_SEEDS
+        amount: 8
+        cost: 2
+      - slot: 21
+        material: PAPER
+        nexo-item-id: black_olive
+        amount: 4
+        cost: 4
+      - slot: 22
+        material: PAPER
+        nexo-item-id: brown_onion
+        amount: 4
+        cost: 4
+      - slot: 23
+        material: PAPER
+        nexo-item-id: caviar
+        amount: 1
+        cost: 10
+      - slot: 24
+        material: PAPER
+        nexo-item-id: coffee
+        amount: 4
+        cost: 6
+      - slot: 25
+        material: PAPER
+        nexo-item-id: cracker
+        amount: 4
+        cost: 4
+      - slot: 26
+        material: PAPER
+        nexo-item-id: cucumber
+        amount: 4
+        cost: 4
+      - slot: 27
+        material: PAPER
+        nexo-item-id: garlic
+        amount: 4
+        cost: 4
+      - slot: 28
+        material: PAPER
+        nexo-item-id: ginger
+        amount: 4
+        cost: 4
+      - slot: 29
+        material: PAPER
+        nexo-item-id: green_bean
+        amount: 4
+        cost: 4
+      - slot: 30
+        material: PAPER
+        nexo-item-id: green_chili_pepper
+        amount: 4
+        cost: 4
+      - slot: 31
+        material: PAPER
+        nexo-item-id: green_olive
+        amount: 4
+        cost: 4
+      - slot: 32
+        material: PAPER
+        nexo-item-id: green_paprika
+        amount: 4
+        cost: 4
+      - slot: 33
+        material: PAPER
+        nexo-item-id: ham
+        amount: 4
+        cost: 6
+      - slot: 34
+        material: PAPER
+        nexo-item-id: lobster
+        amount: 1
+        cost: 10
+      - slot: 35
+        material: PAPER
+        nexo-item-id: mussle
+        amount: 1
+        cost: 4
+      - slot: 36
+        material: PAPER
+        nexo-item-id: peas
+        amount: 4
+        cost: 4
+      - slot: 37
+        material: PAPER
+        nexo-item-id: pineapple_slice
+        amount: 4
+        cost: 4
+      - slot: 38
+        material: PAPER
+        nexo-item-id: raw_shrim
+        amount: 4
+        cost: 6
+      - slot: 39
+        material: PAPER
+        nexo-item-id: red_berries
+        amount: 4
+        cost: 4
+      - slot: 40
+        material: PAPER
+        nexo-item-id: red_chili_pepper
+        amount: 4
+        cost: 4
+      - slot: 41
+        material: PAPER
+        nexo-item-id: red_paprika
+        amount: 4
+        cost: 4
+      - slot: 42
+        material: PAPER
+        nexo-item-id: rice_bowl
+        amount: 1
+        cost: 6
+      - slot: 43
+        material: PAPER
+        nexo-item-id: salt
+        amount: 4
+        cost: 4
+      - slot: 44
+        material: PAPER
+        nexo-item-id: soy_sauce
+        amount: 1
+        cost: 6
+      - slot: 45
+        material: PAPER
+        nexo-item-id: strawberry
+        amount: 4
+        cost: 4
+      - slot: 46
+        material: PAPER
+        nexo-item-id: tomato
+        amount: 4
+        cost: 4
+      - slot: 47
+        material: PAPER
+        nexo-item-id: tuna
+        amount: 1
+        cost: 10
+      - slot: 48
+        material: PAPER
+        nexo-item-id: vegan_coffee_cup
+        amount: 1
+        cost: 4
+      - slot: 49
+        material: PAPER
+        nexo-item-id: whipped_cream
+        amount: 1
+        cost: 6
+      - slot: 50
+        material: PAPER
+        nexo-item-id: yellow_paprika
+        amount: 4
+        cost: 4
+
   rare_gear_shop:
     title: "Rare Gear Emporium"
     size: 54
