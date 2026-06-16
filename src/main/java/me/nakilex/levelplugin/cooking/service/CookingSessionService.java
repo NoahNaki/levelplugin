@@ -52,7 +52,7 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
         this.placedWorkstations = placedWorkstations;
         this.rewardService = rewardService;
         this.refundService = new CookingIngredientRefundService();
-        this.displayService = new CookingDisplayService();
+        this.displayService = new CookingDisplayService(plugin);
         this.effectsService = new CookingEffectsService();
         this.executorRegistry = new CookingStageExecutorRegistry()
                 .register(new InsertItemStageExecutor())
@@ -107,8 +107,14 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
                 new CookingStageExecutor.StageInteractionContext(this, player, held, rewardDropLocation));
     }
 
-    public void cancelSessionByPlayer(java.util.UUID playerId) {
-        sessionRegistry.getByPlayer(playerId).ifPresent(session -> cancelSession(session, null));
+    public boolean cancelSessionByPlayer(java.util.UUID playerId) {
+        return cancelSessionByPlayer(playerId, false, null);
+    }
+
+    public boolean cancelSessionByPlayer(java.util.UUID playerId, boolean refundIngredients, String logReason) {
+        Optional<ActiveCookingSession> session = sessionRegistry.getByPlayer(playerId);
+        session.ifPresent(active -> cancelSession(active, logReason, refundIngredients));
+        return session.isPresent();
     }
 
     public void cancelSessionByWorkstation(CookingLocationKey workstationKey) {
@@ -163,6 +169,13 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
 
     @Override
     public void cancelSession(ActiveCookingSession session, String logReason) {
+        cancelSession(session, logReason, false);
+    }
+
+    public void cancelSession(ActiveCookingSession session, String logReason, boolean refundIngredients) {
+        if (refundIngredients) {
+            recipe(session).ifPresent(recipe -> refundService.refundInsertedIngredients(session, recipe, plugin.getLogger()));
+        }
         currentExecutor(session).ifPresent(executor -> executor.cancelStage(session));
         cleanupSession(session);
         sessionRegistry.removeByWorkstation(session.workstationKey());

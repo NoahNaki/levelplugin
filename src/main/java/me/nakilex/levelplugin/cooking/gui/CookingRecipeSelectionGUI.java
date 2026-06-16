@@ -1,10 +1,12 @@
 package me.nakilex.levelplugin.cooking.gui;
 
+import me.nakilex.levelplugin.cooking.model.CookingIngredientRequirement;
 import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingWorkstationType;
 import me.nakilex.levelplugin.cooking.registry.CookingRecipeRegistry;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSessionRegistry;
 import me.nakilex.levelplugin.cooking.service.CookingSessionService;
+import me.nakilex.levelplugin.cooking.util.CookingIngredientMatcher;
 import me.nakilex.levelplugin.cooking.runtime.PlacedCookingWorkstation;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
@@ -14,6 +16,7 @@ import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
+import me.nakilex.levelplugin.utils.gui.widgets.ToggleFilterWidget;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -30,12 +33,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/** Recipe picker for a placed cooking workstation. Selection only locks a session for now. */
+/** Recipe picker for a placed cooking workstation, including ingredient previews and craftable filtering. */
 public class CookingRecipeSelectionGUI implements Listener {
     private static final int SIZE = 54;
     private static final int PAGE_SIZE = GuiUtil.PAGED_SLOTS.length;
     private static final int PREV_SLOT = 45;
     private static final int NEXT_SLOT = 53;
+    private static final int FILTER_SLOT = 49;
     private static final String TITLE_PREFIX = ChatColor.DARK_GRAY + "Cooking Recipes";
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
@@ -43,6 +47,7 @@ public class CookingRecipeSelectionGUI implements Listener {
     private final CookingSessionService sessionService;
     private final Map<UUID, Integer> pages = new HashMap<>();
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
+    private final Map<UUID, Boolean> craftableOnlyByPlayer = new HashMap<>();
 
     public CookingRecipeSelectionGUI(CookingRecipeRegistry recipeRegistry, CookingSessionService sessionService) {
         this.recipeRegistry = recipeRegistry;
@@ -54,7 +59,8 @@ public class CookingRecipeSelectionGUI implements Listener {
     }
 
     private void open(Player player, PlacedCookingWorkstation workstation, int page) {
-        List<CookingRecipe> recipes = recipesFor(workstation.type());
+        boolean craftableOnly = craftableOnlyByPlayer.getOrDefault(player.getUniqueId(), false);
+        List<CookingRecipe> recipes = recipesFor(player, workstation.type(), craftableOnly);
         int maxPage = Math.max(0, (recipes.size() - 1) / PAGE_SIZE);
         int current = Math.max(0, Math.min(page, maxPage));
         UUID playerId = player.getUniqueId();
@@ -64,7 +70,7 @@ public class CookingRecipeSelectionGUI implements Listener {
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .build();
-        List<GuiWidget> widgets = buildWidgets(player, workstation, recipes, current, maxPage);
+        List<GuiWidget> widgets = buildWidgets(player, workstation, recipes, current, maxPage, craftableOnly);
         widgetsByPlayer.put(playerId, widgets);
         renderWidgets(inventory, player, widgets);
         player.openInventory(inventory);
@@ -85,10 +91,17 @@ public class CookingRecipeSelectionGUI implements Listener {
     }
 
     private List<GuiWidget> buildWidgets(Player player, PlacedCookingWorkstation workstation,
-                                         List<CookingRecipe> recipes, int page, int maxPage) {
+                                         List<CookingRecipe> recipes, int page, int maxPage, boolean craftableOnly) {
         List<GuiWidget> widgets = new ArrayList<>();
+        widgets.add(new ToggleFilterWidget(FILTER_SLOT, () -> craftableOnlyByPlayer.getOrDefault(player.getUniqueId(), false),
+                ChatColor.GREEN + "Craftable Filter",
+                (click, context) -> toggleCraftableFilter(player, workstation),
+                ChatColor.GRAY + "Show only recipes you can make",
+                ChatColor.GRAY + "with your current inventory.",
+                " ",
+                ChatColor.YELLOW + "Click to toggle."));
         if (recipes.isEmpty()) {
-            widgets.add(new ActionWidget(22, ctx -> emptyItem(), (click, context) -> {}));
+            widgets.add(new ActionWidget(22, ctx -> emptyItem(craftableOnly), (click, context) -> {}));
             return widgets;
         }
         int start = page * PAGE_SIZE;
@@ -96,7 +109,7 @@ public class CookingRecipeSelectionGUI implements Listener {
         for (int i = start; i < end; i++) {
             CookingRecipe recipe = recipes.get(i);
             int slot = GuiUtil.PAGED_SLOTS[i - start];
-            widgets.add(new ActionWidget(slot, ctx -> recipeItem(recipe),
+            widgets.add(new ActionWidget(slot, ctx -> recipeItem(player, recipe),
                     (click, context) -> selectRecipe(player, workstation, recipe)));
         }
         if (page > 0) {
@@ -117,7 +130,7 @@ public class CookingRecipeSelectionGUI implements Listener {
                 player.closeInventory();
                 ChatMessageUtil.send(player, ChatMessageUtil.MessageType.SUCCESS,
                         "Selected cooking recipe " + ChatColor.YELLOW + recipe.displayName()
-                                + ChatColor.GREEN + ". Add ingredients in a future update.");
+                                + ChatColor.GREEN + ". Add ingredients by right-clicking the workstation.");
             }
             case PLAYER_BUSY -> ChatMessageUtil.send(player, ChatMessageUtil.MessageType.WARNING,
                     "You already have an active cooking session.");
@@ -154,15 +167,24 @@ public class CookingRecipeSelectionGUI implements Listener {
         }
     }
 
-    private List<CookingRecipe> recipesFor(CookingWorkstationType type) {
+    private void toggleCraftableFilter(Player player, PlacedCookingWorkstation workstation) {
+        UUID playerId = player.getUniqueId();
+        boolean next = !craftableOnlyByPlayer.getOrDefault(playerId, false);
+        craftableOnlyByPlayer.put(playerId, next);
+        open(player, workstation, 0);
+    }
+
+    private List<CookingRecipe> recipesFor(Player player, CookingWorkstationType type, boolean craftableOnly) {
         List<CookingRecipe> recipes = new ArrayList<>();
         for (String recipeId : type.recipeIds()) {
-            recipeRegistry.get(recipeId).ifPresent(recipes::add);
+            recipeRegistry.get(recipeId)
+                    .filter(recipe -> !craftableOnly || CookingIngredientMatcher.hasIngredients(player.getInventory(), recipe))
+                    .ifPresent(recipes::add);
         }
         return recipes;
     }
 
-    private ItemStack recipeItem(CookingRecipe recipe) {
+    private ItemStack recipeItem(Player player, CookingRecipe recipe) {
         List<String> lore = new ArrayList<>();
         if (!recipe.lore().isEmpty()) {
             lore.add(" ");
@@ -170,15 +192,41 @@ public class CookingRecipeSelectionGUI implements Listener {
                 lore.addAll(TooltipUtil.wrapLoreLine(ChatColor.GRAY + line, 210));
             }
         }
+        addRequiredIngredientsLore(player, recipe, lore);
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to select this recipe", null));
-        return GuiUtil.createGuiItem(recipe.displayMaterial(), ChatColor.GREEN + recipe.displayName(), lore);
+        ItemStack item = recipe.displayItem();
+        org.bukkit.inventory.meta.ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(ChatColor.GREEN + recipe.displayName());
+            meta.setLore(lore);
+            item.setItemMeta(meta);
+        }
+        return item;
     }
 
-    private ItemStack emptyItem() {
+    private void addRequiredIngredientsLore(Player player, CookingRecipe recipe, List<String> lore) {
+        List<CookingIngredientRequirement> requirements = CookingIngredientMatcher.aggregateRequirements(recipe);
+        if (requirements.isEmpty()) {
+            return;
+        }
+        lore.add(" ");
+        lore.add(ChatColor.GOLD + "Required Ingredients:");
+        for (CookingIngredientRequirement requirement : requirements) {
+            int available = CookingIngredientMatcher.countMatching(player.getInventory(), requirement);
+            ChatColor color = available >= requirement.amount() ? ChatColor.GREEN : ChatColor.RED;
+            lore.add(color + CookingIngredientMatcher.formatRequirement(requirement)
+                    + ChatColor.DARK_GRAY + " (" + Math.min(available, requirement.amount()) + "/" + requirement.amount() + ")");
+        }
+    }
+
+    private ItemStack emptyItem(boolean craftableOnly) {
         List<String> lore = new ArrayList<>();
         lore.add(" ");
-        lore.addAll(TooltipUtil.bulletList("No configured recipes are available for this workstation."));
+        String message = craftableOnly
+                ? "No recipes match your current inventory."
+                : "No configured recipes are available for this workstation.";
+        lore.addAll(TooltipUtil.bulletList(message));
         return GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "No Recipes", lore);
     }
 

@@ -1,16 +1,23 @@
 package me.nakilex.levelplugin.cooking.service;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.cooking.display.CookingDisplayAnimator;
 import me.nakilex.levelplugin.cooking.minigame.CookingMiniGameVisual;
 import me.nakilex.levelplugin.cooking.model.CookingIngredientRequirement;
 import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
+import me.nakilex.levelplugin.cooking.util.CookingIngredientMatcher;
 import me.nakilex.levelplugin.cooking.runtime.CookingDisplayState;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Directional;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
@@ -20,12 +27,26 @@ import org.bukkit.util.Transformation;
 import org.joml.AxisAngle4f;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** Owns floating cooking display entity lifecycle and display text formatting. */
 public class CookingDisplayService {
     private static final ChatColor LABEL_COLOR = ChatColor.GRAY;
     private static final ChatColor NUMBER_COLOR = ChatColor.WHITE;
+    private static final double INGREDIENT_SPACING = 0.45D;
+    private static final float ITEM_TARGET_SCALE = 0.32f;
+    private static final float ITEM_INITIAL_SCALE = 0.05f;
+    private static final float ITEM_IN_STEP = 0.4f;
+    private static final float REWARD_IN_STEP = 0.5f;
+    private static final float ITEM_OUT_MULTIPLIER = 0.6f;
+    private static final float ITEM_OUT_MINIMUM_SCALE = 0.05f;
+
+    private final CookingDisplayAnimator animator;
+
+    public CookingDisplayService(Main plugin) {
+        this.animator = new CookingDisplayAnimator(plugin);
+    }
 
     public void spawnDisplays(ActiveCookingSession session, CookingRecipe recipe) {
         if (session == null || recipe == null) {
@@ -41,7 +62,9 @@ public class CookingDisplayService {
         }
         CookingDisplayState state = ensureDisplayState(session);
         clearText(session);
-        cleanupIngredientDisplays(state);
+        cleanupIngredientDisplays(state, false);
+        cleanupManagedDisplay(state.rewardPreviewDisplay(), false);
+        session.setDisplayState(state.withRewardPreviewDisplay(null));
     }
 
     public void showText(ActiveCookingSession session, String text) {
@@ -73,7 +96,7 @@ public class CookingDisplayService {
         if (session == null || session.displayState() == null) {
             return;
         }
-        cleanupIngredientDisplays(session.displayState());
+        cleanupIngredientDisplays(session.displayState(), false);
     }
 
     private CookingDisplayState ensureDisplayState(ActiveCookingSession session) {
@@ -89,13 +112,13 @@ public class CookingDisplayService {
             return null;
         }
         World world = workstationLocation.getWorld();
-        TextDisplay textDisplay = world.spawn(workstationLocation.clone().add(0.5, 1.75, 0.5), TextDisplay.class);
+        TextDisplay textDisplay = world.spawn(workstationLocation.clone().add(0.5, 1.9, 0.5), TextDisplay.class);
         textDisplay.setBillboard(Display.Billboard.CENTER);
         textDisplay.setSeeThrough(false);
         return textDisplay;
     }
 
-    public int showIngredientDisplays(ActiveCookingSession session, CookingStage stage) {
+    public int showInsertItemDisplays(ActiveCookingSession session, CookingStage stage, CookingRecipe recipe) {
         if (session == null || stage == null) {
             return 0;
         }
@@ -104,29 +127,51 @@ public class CookingDisplayService {
         if (workstationLocation == null || workstationLocation.getWorld() == null) {
             return 0;
         }
-        cleanupIngredientDisplays(state);
-        World world = workstationLocation.getWorld();
-        List<CookingIngredientRequirement> requirements = stage.requirements();
-        double centerOffset = (requirements.size() - 1) / 2.0D;
-        int spawned = 0;
-        for (int index = 0; index < requirements.size(); index++) {
-            CookingIngredientRequirement requirement = requirements.get(index);
-            Location displayLocation = workstationLocation.clone().add(0.5 + ((index - centerOffset) * 0.45D), 1.35D, 0.5D);
-            ItemDisplay ingredientDisplay = world.spawn(displayLocation, ItemDisplay.class);
-            ingredientDisplay.setItemStack(createRequirementDisplayItem(requirement));
-            configureItemDisplay(ingredientDisplay, 0.35f);
-            safeRemove(state.ingredientDisplays().put(requirement.progressKey(), ingredientDisplay));
-            spawned++;
+        cleanupIngredientDisplays(state, false);
+        cleanupManagedDisplay(state.rewardPreviewDisplay(), false);
+        session.setDisplayState(state.withRewardPreviewDisplay(null));
+
+        Location base = workstationLocation.clone().add(0.5D, 1.3D, 0.5D);
+        BlockFace face = resolveWorkstationFace(workstationLocation);
+        List<RequirementDisplayItem> remaining = remainingIngredientItems(session, stage);
+        int spawned = spawnIngredientDisplays(state, base, remaining, face);
+        if (recipe != null && !recipe.rewards().isEmpty()) {
+            CookingDisplayState currentState = ensureDisplayState(session);
+            currentState = currentState.withRewardPreviewDisplay(spawnRewardPreview(base, recipe.rewards().get(0).toItemStack(), face));
+            session.setDisplayState(currentState);
+        }
+        if (stage.tooltip() != null) {
+            showText(session, stage.tooltip());
         }
         return spawned;
+    }
+
+    public int updateInsertItemDisplays(ActiveCookingSession session, CookingStage stage) {
+        if (session == null || stage == null || session.displayState() == null) {
+            return 0;
+        }
+        Location workstationLocation = session.workstationKey().toLocation();
+        if (workstationLocation == null || workstationLocation.getWorld() == null) {
+            return 0;
+        }
+        CookingDisplayState state = session.displayState();
+        cleanupIngredientDisplays(state, true);
+        return spawnIngredientDisplays(state,
+                workstationLocation.clone().add(0.5D, 1.3D, 0.5D),
+                remainingIngredientItems(session, stage),
+                resolveWorkstationFace(workstationLocation));
+    }
+
+    public int showIngredientDisplays(ActiveCookingSession session, CookingStage stage) {
+        return showInsertItemDisplays(session, stage, null);
     }
 
     public void removeIngredientDisplay(ActiveCookingSession session, CookingIngredientRequirement requirement) {
         if (session == null || requirement == null || session.displayState() == null) {
             return;
         }
-        ItemDisplay display = session.displayState().ingredientDisplays().remove(requirement.progressKey());
-        safeRemove(display);
+        CookingDisplayState.ManagedItemDisplay managed = session.displayState().ingredientDisplays().remove(requirement.progressKey());
+        cleanupManagedDisplay(managed, true);
     }
 
     public void updateWaitProgress(ActiveCookingSession session, long secondsRemaining) {
@@ -159,7 +204,8 @@ public class CookingDisplayService {
         }
         safeRemove(state.itemDisplay());
         safeRemove(state.textDisplay());
-        cleanupIngredientDisplays(state);
+        cleanupIngredientDisplays(state, false);
+        cleanupManagedDisplay(state.rewardPreviewDisplay(), false);
         session.clearDisplayState();
     }
 
@@ -168,17 +214,17 @@ public class CookingDisplayService {
             return "Unknown";
         }
         return stage.requirements().stream()
-                .map(this::formatRequirement)
+                .map(CookingIngredientMatcher::formatRequirement)
                 .reduce((left, right) -> left + ", " + right)
                 .orElse("Unknown");
     }
 
     public String formatRequirement(CookingIngredientRequirement requirement) {
-        return requirement.amount() + "x " + formatRequirementName(requirement);
+        return CookingIngredientMatcher.formatRequirement(requirement);
     }
 
     public String formatRequirementName(CookingIngredientRequirement requirement) {
-        return requirement.nexoItemIdOptional().map(id -> "Nexo " + id).orElseGet(() -> formatMaterial(requirement.material()));
+        return CookingIngredientMatcher.formatRequirementName(requirement);
     }
 
     private void updateText(ActiveCookingSession session, String text) {
@@ -196,15 +242,78 @@ public class CookingDisplayService {
         }
     }
 
-    private void cleanupIngredientDisplays(CookingDisplayState state) {
-        for (ItemDisplay display : List.copyOf(state.ingredientDisplays().values())) {
-            safeRemove(display);
+    private List<RequirementDisplayItem> remainingIngredientItems(ActiveCookingSession session, CookingStage stage) {
+        List<RequirementDisplayItem> remaining = new ArrayList<>();
+        for (CookingIngredientRequirement requirement : stage.requirements()) {
+            int remainingAmount = session.progress().remainingAmount(requirement);
+            if (remainingAmount > 0) {
+                remaining.add(new RequirementDisplayItem(requirement.progressKey(), createRequirementDisplayItem(requirement, remainingAmount)));
+            }
+        }
+        return remaining;
+    }
+
+    private int spawnIngredientDisplays(CookingDisplayState state, Location base, List<RequirementDisplayItem> items, BlockFace face) {
+        if (base.getWorld() == null || items == null || items.isEmpty()) {
+            return 0;
+        }
+        DisplayLine displayLine = DisplayLine.from(base, items.size(), face);
+        Location location = displayLine.start();
+        for (RequirementDisplayItem item : items) {
+            ItemDisplay display = base.getWorld().spawn(location, ItemDisplay.class);
+            display.setItemStack(item.stack());
+            configureItemDisplay(display, ITEM_INITIAL_SCALE, face);
+            CookingDisplayAnimator.AnimatedDisplay animation = animator.animateIn(display, ITEM_TARGET_SCALE, ITEM_IN_STEP);
+            cleanupManagedDisplay(state.ingredientDisplays().put(item.key(), new CookingDisplayState.ManagedItemDisplay(display, animation)), false);
+            location = location.clone().add(displayLine.stepX(), 0.0D, displayLine.stepZ());
+        }
+        return items.size();
+    }
+
+    private CookingDisplayState.ManagedItemDisplay spawnRewardPreview(Location ingredientBase, ItemStack reward, BlockFace face) {
+        if (ingredientBase == null || ingredientBase.getWorld() == null || reward == null || reward.getType().isAir()) {
+            return null;
+        }
+        Location location = rewardPreviewLocation(ingredientBase, face);
+        ItemDisplay display = ingredientBase.getWorld().spawn(location, ItemDisplay.class);
+        display.setItemStack(reward.clone());
+        configureItemDisplay(display, ITEM_INITIAL_SCALE, face);
+        CookingDisplayAnimator.AnimatedDisplay animation = animator.animateIn(display, ITEM_TARGET_SCALE, REWARD_IN_STEP);
+        return new CookingDisplayState.ManagedItemDisplay(display, animation);
+    }
+
+    private void cleanupIngredientDisplays(CookingDisplayState state, boolean animateRemoval) {
+        for (CookingDisplayState.ManagedItemDisplay display : List.copyOf(state.ingredientDisplays().values())) {
+            cleanupManagedDisplay(display, animateRemoval);
         }
         state.ingredientDisplays().clear();
     }
 
-    private void configureItemDisplay(ItemDisplay display, float scale) {
+    private void cleanupManagedDisplay(CookingDisplayState.ManagedItemDisplay managed, boolean animateRemoval) {
+        if (managed == null) {
+            return;
+        }
+        if (animateRemoval) {
+            animator.scaleOutAndRemove(managed.animation(), ITEM_OUT_MULTIPLIER, ITEM_OUT_MINIMUM_SCALE);
+            return;
+        }
+        animator.stop(managed.animation());
+        safeRemove(managed.display());
+    }
+
+    private Location rewardPreviewLocation(Location base, BlockFace face) {
+        Location location = base.clone().add(0.0D, 0.55D, 0.0D);
+        return switch (face) {
+            case EAST -> location.add(-0.45D, 0.0D, 0.0D);
+            case WEST -> location.add(0.45D, 0.0D, 0.0D);
+            case SOUTH -> location.add(0.0D, 0.0D, -0.45D);
+            default -> location.add(0.0D, 0.0D, 0.45D);
+        };
+    }
+
+    private void configureItemDisplay(ItemDisplay display, float scale, BlockFace face) {
         display.setBillboard(Display.Billboard.FIXED);
+        display.setRotation(yawFor(face), 0.0f);
         display.setTransformation(new Transformation(
                 new Vector3f(),
                 new AxisAngle4f(),
@@ -212,12 +321,52 @@ public class CookingDisplayService {
                 new AxisAngle4f()));
     }
 
-    private org.bukkit.inventory.ItemStack createRequirementDisplayItem(CookingIngredientRequirement requirement) {
+    private BlockFace resolveWorkstationFace(Location workstationLocation) {
+        if (workstationLocation == null || workstationLocation.getWorld() == null) {
+            return BlockFace.NORTH;
+        }
+        BlockData data = workstationLocation.getBlock().getBlockData();
+        if (data instanceof Directional directional) {
+            return directional.getFacing();
+        }
+        return BlockFace.NORTH;
+    }
+
+    private float yawFor(BlockFace face) {
+        return switch (face) {
+            case EAST -> -90.0f;
+            case SOUTH -> 180.0f;
+            case WEST -> 90.0f;
+            default -> 0.0f;
+        };
+    }
+
+    private ItemStack createRequirementDisplayItem(CookingIngredientRequirement requirement, int amount) {
         Material material = requirement.material() == null || requirement.material().isAir() ? Material.STONE : requirement.material();
-        org.bukkit.inventory.ItemStack item = new org.bukkit.inventory.ItemStack(material);
+        ItemStack item = new ItemStack(material, Math.max(1, amount));
         requirement.nexoItemIdOptional().ifPresent(nexoItemId -> ItemUtil.applyNexoModel(item, nexoItemId));
         return item;
     }
+
+    public void shutdownAnimations() {
+        animator.stopAll();
+    }
+
+    private record RequirementDisplayItem(String key, ItemStack stack) {}
+
+    private record DisplayLine(Location start, double stepX, double stepZ) {
+        private static DisplayLine from(Location base, int itemCount, BlockFace face) {
+            double offset = (Math.max(1, itemCount) - 1) * INGREDIENT_SPACING;
+            Location start = base.clone();
+            if (face == BlockFace.NORTH || face == BlockFace.SOUTH) {
+                start.add(offset, 0.0D, 0.0D);
+                return new DisplayLine(start, -INGREDIENT_SPACING, 0.0D);
+            }
+            start.add(0.0D, 0.0D, offset);
+            return new DisplayLine(start, 0.0D, -INGREDIENT_SPACING);
+        }
+    }
+
 
     private void safeRemove(Entity entity) {
         if (isValid(entity)) {
@@ -229,11 +378,5 @@ public class CookingDisplayService {
         return entity != null && entity.isValid();
     }
 
-    private String formatMaterial(Material material) {
-        if (material == null) {
-            return "Unknown";
-        }
-        String lower = material.name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
-        return Character.toUpperCase(lower.charAt(0)) + lower.substring(1);
-    }
+
 }

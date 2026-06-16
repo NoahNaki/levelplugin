@@ -20,6 +20,7 @@ import me.nakilex.levelplugin.player.classes.essence.ClassEssence;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.utils.GuiUtil;
+import me.nakilex.levelplugin.utils.TextUtil;
 import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.gui.GuiBuilder;
 import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
@@ -76,7 +77,8 @@ public class MerchantGUI implements Listener {
 
         String basePath = "merchants." + merchantName;
         String title = merchantConfig.getString(basePath + ".title", "Merchant");
-        int size = merchantConfig.getInt(basePath + ".size", 27);
+        List<?> list = merchantConfig.getList(basePath + ".items");
+        int size = resolveInventorySize(merchantConfig, basePath, list);
         this.inventory = GuiBuilder.create(size, title)
                 .filler(Material.BLACK_STAINED_GLASS_PANE)
                 .fillEmptySlots(false)
@@ -84,7 +86,6 @@ public class MerchantGUI implements Listener {
                 .build();
 
         // Load merchant-items definitions
-        List<?> list = merchantConfig.getList(basePath + ".items");
         if (list != null) {
             for (Object obj : list) {
                 if (obj instanceof ConfigurationSection) {
@@ -105,13 +106,57 @@ public class MerchantGUI implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
+    private int resolveInventorySize(FileConfiguration merchantConfig, String basePath, List<?> items) {
+        int configuredSize = merchantConfig.getInt(basePath + ".size", 27);
+        int highestSlot = -1;
+        if (items != null) {
+            for (Object item : items) {
+                Integer slot = configuredSlot(item);
+                if (slot != null) {
+                    highestSlot = Math.max(highestSlot, slot);
+                }
+            }
+        }
+        int minimumSize = highestSlot < 0 ? configuredSize : Math.max(configuredSize, highestSlot + 1);
+        return GuiBuilder.normalizeSize(minimumSize);
+    }
+
+    private Integer configuredSlot(Object item) {
+        Object value = null;
+        if (item instanceof ConfigurationSection section) {
+            value = section.get("slot");
+        } else if (item instanceof Map<?, ?> map) {
+            value = map.get("slot");
+        }
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     /**
      * Build each slot’s ItemStack using the template’s StatRange values
      * and a default “unaffordable” price line.
      */
     private void populateMerchantItems() {
         for (MerchantItem mItem : merchantItems.values()) {
-            if (mItem.isEssence()) {
+            if (!isSlotInInventory(mItem.getSlot())) {
+                plugin.getLogger().warning("Skipping merchant item for '" + merchantName
+                        + "' because slot " + mItem.getSlot() + " is outside inventory size " + inventory.getSize() + ".");
+                continue;
+            }
+            if (mItem.isConfiguredStack()) {
+                ItemStack stack = createConfiguredStack(mItem);
+                addPriceStubToStack(stack, mItem);
+                inventory.setItem(mItem.getSlot(), stack);
+            } else if (mItem.isEssence()) {
                 ItemStack essence = createEssenceStack(mItem.getEssenceData());
                 if (essence == null) {
                     continue;
@@ -182,6 +227,39 @@ public class MerchantGUI implements Listener {
                 inventory.setItem(mItem.getSlot(), stack);
             }
         }
+    }
+
+    private boolean isSlotInInventory(int slot) {
+        return slot >= 0 && slot < inventory.getSize();
+    }
+
+    private ItemStack createConfiguredStack(MerchantItem item) {
+        Material material = item.getMaterial() == null || item.getMaterial().isAir() ? Material.PAPER : item.getMaterial();
+        ItemStack stack = new ItemStack(material, Math.max(1, item.getAmount()));
+        if (item.getNexoItemId() != null) {
+            ItemUtil.applyNexoModel(stack, item.getNexoItemId());
+        }
+        ItemMeta meta = stack.getItemMeta();
+        if (meta != null) {
+            String displayName = item.getNexoItemId() != null
+                    ? TextUtil.beautifyWords(item.getNexoItemId())
+                    : TextUtil.beautifyWords(material.name().toLowerCase(java.util.Locale.ROOT));
+            meta.setDisplayName(ChatColor.WHITE + displayName);
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            stack.setItemMeta(meta);
+        }
+        return stack;
+    }
+
+    private Material parseMerchantMaterial(String configuredMaterial, String nexoItemId) {
+        if (configuredMaterial != null && !configuredMaterial.isBlank()) {
+            Material material = Material.matchMaterial(configuredMaterial.toUpperCase(java.util.Locale.ROOT));
+            if (material != null) {
+                return material;
+            }
+            plugin.getLogger().warning("Unknown merchant material '" + configuredMaterial + "', falling back to PAPER.");
+        }
+        return nexoItemId == null || nexoItemId.isBlank() ? Material.STONE : Material.PAPER;
     }
 
     private ItemStack createEssenceStack(me.nakilex.levelplugin.items.data.GameItem.EssenceData data) {
@@ -258,6 +336,14 @@ public class MerchantGUI implements Listener {
                 }
                 return;
             }
+            String configuredMaterial = map.containsKey("material") ? map.get("material").toString() : null;
+            String configuredNexo = map.containsKey("nexo_item_id") ? map.get("nexo_item_id").toString()
+                    : map.containsKey("nexo-item-id") ? map.get("nexo-item-id").toString() : null;
+            if (configuredMaterial != null || configuredNexo != null) {
+                Material material = parseMerchantMaterial(configuredMaterial, configuredNexo);
+                merchantItems.put(slot, new MerchantItem(slot, material, configuredNexo, amount, cost, gems, profileLimit));
+                return;
+            }
             String tierName = map.containsKey("tool_tier") ? map.get("tool_tier").toString() : null;
             if (tierName != null) {
                 ToolTier tier = ToolTier.valueOf(tierName.toUpperCase());
@@ -297,6 +383,13 @@ public class MerchantGUI implements Listener {
                     merchantItems.put(slot, new MerchantItem(slot,
                             MerchantItem.essence(clazz, rarity, stars), amount, cost, gems, profileLimit));
                 }
+                return;
+            }
+            String configuredMaterial = cs.getString("material");
+            String configuredNexo = cs.getString("nexo-item-id", cs.getString("nexo_item_id"));
+            if ((configuredMaterial != null && !configuredMaterial.isBlank()) || (configuredNexo != null && !configuredNexo.isBlank())) {
+                Material material = parseMerchantMaterial(configuredMaterial, configuredNexo);
+                merchantItems.put(slot, new MerchantItem(slot, material, configuredNexo, amount, cost, gems, profileLimit));
                 return;
             }
             String tierName = cs.getString("tool_tier");
@@ -391,7 +484,22 @@ public class MerchantGUI implements Listener {
             ItemMeta meta = stack.getItemMeta();
             List<String> lore = (meta != null && meta.hasLore()) ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
             boolean limitReached = hasReachedLimit(player, mItem);
-            if (mItem.isEssence()) {
+            if (mItem.isConfiguredStack()) {
+                int priceHdr = ensurePriceHeader(lore, mItem);
+                if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
+                    int discounted = TownPerkManager.getInstance().applyDiscount(g, TownPerk.MERCHANT_DISCOUNT, mItem.getCost());
+                    boolean afford = !limitReached && coins >= discounted;
+                    lore.set(priceHdr + 1,
+                            limitReached
+                                    ? ChatColor.GRAY + "- " + ChatColor.RED + "✘ Limit reached"
+                                    : ChatColor.GRAY + "" + (afford ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
+                                    + discounted + " " + ChatColor.GOLD + "<glyph:coins_icon>");
+                }
+                if (meta != null) {
+                    meta.setLore(lore);
+                    stack.setItemMeta(meta);
+                }
+            } else if (mItem.isEssence()) {
                 int priceHdr = ensurePriceHeader(lore, mItem);
                 if (priceHdr != -1 && priceHdr + 1 < lore.size()) {
                     int discounted = TownPerkManager.getInstance().applyDiscount(g, TownPerk.MERCHANT_DISCOUNT, mItem.getCost());
@@ -602,6 +710,9 @@ public class MerchantGUI implements Listener {
         List<GuiWidget> built = new ArrayList<>();
         for (Map.Entry<Integer, MerchantItem> entry : merchantItems.entrySet()) {
             int slot = entry.getKey();
+            if (!isSlotInInventory(slot)) {
+                continue;
+            }
             MerchantItem mItem = entry.getValue();
             built.add(new ActionWidget(slot,
                     context -> context.inventory().getItem(slot),
@@ -682,7 +793,13 @@ public class MerchantGUI implements Listener {
             Main.getInstance().getGemsManager().deductUnits(player, gemCost);
         }
 
-        if (mItem.isEssence()) {
+        if (mItem.isConfiguredStack()) {
+            ItemStack purchasedItem = createConfiguredStack(mItem);
+            player.getInventory().addItem(purchasedItem);
+            Main.getInstance().getQuestManager().handleBuy(player, mItem.getNexoItemId() != null ? mItem.getNexoItemId() : mItem.getMaterial().name());
+            sendPurchaseMessage(player, purchasedItem.getItemMeta().getDisplayName(), coinCost, gemCost);
+            recordPurchase(player, mItem);
+        } else if (mItem.isEssence()) {
             ItemStack purchasedItem = createEssenceStack(mItem.getEssenceData());
             if (purchasedItem != null) {
                 Main.getInstance().getQuestManager().handleBuy(player, "essence:" + mItem.getEssenceData().clazz());

@@ -3,9 +3,9 @@ package me.nakilex.levelplugin.merchants.commands;
 import me.nakilex.levelplugin.merchants.gui.MerchantGUI;
 import me.nakilex.levelplugin.merchants.gui.PotionMerchantGUI;
 import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -17,6 +17,8 @@ import java.util.List;
 import me.nakilex.levelplugin.utils.CommandUtil;
 
 import java.io.File;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType;
 import static me.nakilex.levelplugin.utils.ChatMessageUtil.send;
@@ -27,21 +29,39 @@ public class MerchantCommand implements TabExecutor {
 
     public MerchantCommand(Plugin plugin) {
         this.plugin = plugin;
-        // Load or create the merchants.yml file
+        this.merchantConfig = loadMerchantConfig();
+    }
+
+    private FileConfiguration loadMerchantConfig() {
         File file = new File(plugin.getDataFolder(), "merchants.yml");
         if (!file.exists()) {
             plugin.saveResource("merchants.yml", false);
         }
-        this.merchantConfig = YamlConfiguration.loadConfiguration(file);
+        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
         try (java.io.InputStream in = plugin.getResource("merchants.yml")) {
             if (in != null) {
-                FileConfiguration defaults = YamlConfiguration.loadConfiguration(new java.io.InputStreamReader(in));
-                this.merchantConfig.setDefaults(defaults);
-                this.merchantConfig.options().copyDefaults(true);
-                this.merchantConfig.save(file);
+                FileConfiguration defaults = YamlConfiguration.loadConfiguration(
+                        new InputStreamReader(in, StandardCharsets.UTF_8));
+                syncBundledMerchants(config, defaults);
+                config.setDefaults(defaults);
+                config.options().copyDefaults(true);
+                config.save(file);
             }
         } catch (Exception ex) {
-            plugin.getLogger().warning("Failed to merge default merchants.yml: " + ex.getMessage());
+            plugin.getLogger().warning("Failed to sync default merchants.yml: " + ex.getMessage());
+        }
+        return config;
+    }
+
+    private void syncBundledMerchants(FileConfiguration config, FileConfiguration defaults) {
+        ConfigurationSection defaultMerchants = defaults.getConfigurationSection("merchants");
+        if (defaultMerchants == null) {
+            return;
+        }
+
+        config.set("merchants.cooking_ingredient_merchant", null);
+        for (String merchantKey : defaultMerchants.getKeys(false)) {
+            config.set("merchants." + merchantKey, defaultMerchants.get("merchants." + merchantKey));
         }
     }
 

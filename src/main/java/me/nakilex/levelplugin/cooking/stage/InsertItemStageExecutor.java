@@ -4,19 +4,17 @@ import me.nakilex.levelplugin.cooking.model.CookingIngredientRequirement;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.model.CookingStageType;
 import me.nakilex.levelplugin.cooking.runtime.ActiveCookingSession;
-import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.cooking.util.CookingIngredientMatcher;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.util.List;
 import java.util.Optional;
 
 /** Executes INSERT_ITEM stages, including partial multi-ingredient progress. */
 public class InsertItemStageExecutor implements CookingStageExecutor {
-    private final List<IngredientMatcher> ingredientMatchers = List.of(new VanillaMaterialIngredientMatcher());
 
     @Override
     public CookingStageType type() {
@@ -31,9 +29,8 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             return;
         }
         context.controller().displayService().clearStageDisplays(session);
-        int ingredientDisplayCount = context.controller().displayService().showIngredientDisplays(session, stage);
-        context.controller().plugin().getLogger().info("[Cooking] Spawned ingredient displays count="
-                + ingredientDisplayCount + " recipe=" + session.recipeId());
+        context.controller().displayService().showInsertItemDisplays(
+                session, stage, context.controller().recipe(session).orElse(null));
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.INFO,
                 "Cooking stage started. Insert " + ChatColor.YELLOW + context.controller().displayService().formatRequirements(stage)
                         + ChatColor.WHITE + " by right-clicking the workstation.");
@@ -57,7 +54,8 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
             }
             context.controller().effectsService().playWrongIngredient(context.player(), context.rewardDropLocation());
             ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.WARNING,
-                    "That ingredient does not match this stage. Required: " + context.controller().displayService().formatRequirements(stage) + ".");
+                    "That ingredient does not match this stage. Expected " + ChatColor.YELLOW
+                            + context.controller().displayService().formatRequirements(stage) + ChatColor.WHITE + ".");
             return InteractionResult.INVALID_INGREDIENT;
         }
         CookingIngredientRequirement requirement = requirementOptional.get();
@@ -74,9 +72,7 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         }
         session.progress().addIngredient(requirement, insertAmount);
         context.controller().effectsService().playIngredientInserted(context.player(), context.rewardDropLocation());
-        if (session.progress().isRequirementComplete(requirement)) {
-            context.controller().displayService().removeIngredientDisplay(session, requirement);
-        }
+        context.controller().displayService().updateInsertItemDisplays(session, stage);
         ChatMessageUtil.send(context.player(), ChatMessageUtil.MessageType.SUCCESS,
                 "Inserted " + ChatColor.YELLOW + insertAmount + "x " + context.controller().displayService().formatRequirementName(requirement) + ChatColor.GREEN + ".");
         if (session.progress().areRequirementsComplete(stage)) {
@@ -117,12 +113,7 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         if (stack == null || stack.getType().isAir()) {
             return false;
         }
-        for (IngredientMatcher matcher : ingredientMatchers) {
-            if (matcher.matches(requirement, stack)) {
-                return true;
-            }
-        }
-        return false;
+        return CookingIngredientMatcher.matches(requirement, stack);
     }
 
     private void removeFromMainHand(Player player, ItemStack held, int amount) {
@@ -135,19 +126,4 @@ public class InsertItemStageExecutor implements CookingStageExecutor {
         player.getInventory().setItemInMainHand(held);
     }
 
-    /** Extension point for future custom item/Nexo ingredient matching. */
-    private interface IngredientMatcher {
-        boolean matches(CookingIngredientRequirement requirement, ItemStack stack);
-    }
-
-    private static class VanillaMaterialIngredientMatcher implements IngredientMatcher {
-        @Override
-        public boolean matches(CookingIngredientRequirement requirement, ItemStack stack) {
-            String expectedNexo = requirement.nexoItemId();
-            if (expectedNexo != null && !expectedNexo.isBlank()) {
-                return expectedNexo.equalsIgnoreCase(ItemUtil.getNexoModelId(stack));
-            }
-            return requirement.material() != null && stack.getType() == requirement.material();
-        }
-    }
 }

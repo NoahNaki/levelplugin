@@ -238,7 +238,9 @@ public class CookingConfigLoader {
                 warn("Skipping invalid reward entry at recipes." + recipeId + ".rewards." + key + ".");
                 continue;
             }
-            Material material = parseMaterial(section.getString("material"), "recipes." + recipeId + ".rewards." + key + ".material");
+            String nexoItemId = section.getString("nexo-item-id", section.getString("nexo-id"));
+            Material material = parseMaterial(section.getString("material", nexoItemId == null || nexoItemId.isBlank() ? null : "PAPER"),
+                    "recipes." + recipeId + ".rewards." + key + ".material");
             if (material == null) {
                 continue;
             }
@@ -247,7 +249,7 @@ public class CookingConfigLoader {
                 warn("Skipping reward at recipes." + recipeId + ".rewards." + key + " because amount must be positive.");
                 continue;
             }
-            rewards.add(new CookingReward(material, amount));
+            rewards.add(new CookingReward(material, nexoItemId, amount));
         }
         return rewards;
     }

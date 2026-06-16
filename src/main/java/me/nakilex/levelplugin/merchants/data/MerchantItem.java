@@ -4,11 +4,14 @@ import me.nakilex.levelplugin.items.data.GameItem;
 import me.nakilex.levelplugin.items.data.ItemRarity;
 import me.nakilex.levelplugin.items.tools.CustomTool;
 import me.nakilex.levelplugin.player.classes.data.PlayerClass;
+import org.bukkit.Material;
 
 public class MerchantItem {
     private final int slot;
     private final int itemId;
     private final CustomTool tool;
+    private final Material material;
+    private final String nexoItemId;
     private final int amount;
     private final int cost;
     private final int gems;
@@ -16,30 +19,40 @@ public class MerchantItem {
     private final GameItem.EssenceData essenceData;
 
     public MerchantItem(int slot, int itemId, int amount, int cost, int gems) {
-        this(slot, itemId, null, amount, cost, gems, 0, null);
+        this(slot, itemId, null, null, null, amount, cost, gems, 0, null);
     }
 
     public MerchantItem(int slot, CustomTool tool, int amount, int cost, int gems) {
-        this(slot, -1, tool, amount, cost, gems, 0, null);
+        this(slot, -1, tool, null, null, amount, cost, gems, 0, null);
+    }
+
+    public MerchantItem(int slot, Material material, String nexoItemId, int amount, int cost, int gems) {
+        this(slot, -1, null, material, nexoItemId, amount, cost, gems, 0, null);
     }
 
     public MerchantItem(int slot, int itemId, int amount, int cost, int gems, int profileLimit) {
-        this(slot, itemId, null, amount, cost, gems, profileLimit, null);
+        this(slot, itemId, null, null, null, amount, cost, gems, profileLimit, null);
     }
 
     public MerchantItem(int slot, CustomTool tool, int amount, int cost, int gems, int profileLimit) {
-        this(slot, -1, tool, amount, cost, gems, profileLimit, null);
+        this(slot, -1, tool, null, null, amount, cost, gems, profileLimit, null);
+    }
+
+    public MerchantItem(int slot, Material material, String nexoItemId, int amount, int cost, int gems, int profileLimit) {
+        this(slot, -1, null, material, nexoItemId, amount, cost, gems, profileLimit, null);
     }
 
     public MerchantItem(int slot, GameItem.EssenceData essenceData, int amount, int cost, int gems, int profileLimit) {
-        this(slot, -1, null, amount, cost, gems, profileLimit, essenceData);
+        this(slot, -1, null, null, null, amount, cost, gems, profileLimit, essenceData);
     }
 
-    private MerchantItem(int slot, int itemId, CustomTool tool, int amount, int cost, int gems, int profileLimit,
-                         GameItem.EssenceData essenceData) {
+    private MerchantItem(int slot, int itemId, CustomTool tool, Material material, String nexoItemId, int amount,
+                         int cost, int gems, int profileLimit, GameItem.EssenceData essenceData) {
         this.slot = slot;
         this.itemId = itemId;
         this.tool = tool;
+        this.material = material;
+        this.nexoItemId = nexoItemId == null || nexoItemId.isBlank() ? null : nexoItemId;
         this.amount = amount;
         this.cost = cost;
         this.gems = gems;
@@ -53,8 +66,11 @@ public class MerchantItem {
     public int getCost()        { return cost; }
     public int getGems()        { return gems; }
     public int getProfileLimit() { return profileLimit; }
+    public Material getMaterial() { return material; }
+    public String getNexoItemId() { return nexoItemId; }
     public boolean isEssence()  { return essenceData != null; }
     public boolean isTool()     { return tool != null; }
+    public boolean isConfiguredStack() { return material != null; }
     public CustomTool getTool() { return tool; }
     public GameItem.EssenceData getEssenceData() { return essenceData; }
 

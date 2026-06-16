@@ -59,7 +59,7 @@ public class CookingWorkstationPersistenceService {
         YamlConfiguration config = new YamlConfiguration();
         int index = 0;
         for (PlacedCookingWorkstation placed : placedWorkstations) {
-            if (placed == null || placed.type() == null || placed.locationKey() == null) {
+            if (placed == null || !placed.persistent() || placed.type() == null || placed.locationKey() == null) {
                 continue;
             }
             String path = ROOT + "." + index++;

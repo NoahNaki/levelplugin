@@ -20,12 +20,19 @@ import java.util.function.Consumer;
  */
 public class FurnitureGuiMapper implements Listener {
 
-    private final Map<String, Consumer<Player>> guiOpeners = new HashMap<>();
+    private final Map<String, FurnitureInteractionHandler> guiOpeners = new HashMap<>();
     private final Map<String, Consumer<Player>> proximityOpeners = new HashMap<>();
     private final Map<java.util.UUID, Long> proximityCooldowns = new HashMap<>();
     private static final long PROXIMITY_COOLDOWN_MS = 1500L;
 
     public void register(String furnitureId, Consumer<Player> opener) {
+        if (furnitureId == null || opener == null) {
+            return;
+        }
+        register(furnitureId, (player, event) -> opener.accept(player));
+    }
+
+    public void register(String furnitureId, FurnitureInteractionHandler opener) {
         if (furnitureId == null || opener == null) {
             return;
         }
@@ -42,12 +49,12 @@ public class FurnitureGuiMapper implements Listener {
     @EventHandler
     public void onFurnitureInteract(NexoFurnitureInteractEvent event) {
         FurnitureMechanic mechanic = event.getMechanic();
-        Consumer<Player> opener = guiOpeners.get(mechanic.getItemID().toLowerCase());
+        FurnitureInteractionHandler opener = guiOpeners.get(mechanic.getItemID().toLowerCase());
         if (opener == null) {
             return;
         }
         event.setCancelled(true);
-        opener.accept(event.getPlayer());
+        opener.open(event.getPlayer(), event);
     }
 
     @EventHandler
@@ -107,5 +114,10 @@ public class FurnitureGuiMapper implements Listener {
         return f.getBlockX() == t.getBlockX()
                 && f.getBlockY() == t.getBlockY()
                 && f.getBlockZ() == t.getBlockZ();
+    }
+
+    @FunctionalInterface
+    public interface FurnitureInteractionHandler {
+        void open(Player player, NexoFurnitureInteractEvent event);
     }
 }

@@ -21,7 +21,15 @@ public class PlacedCookingWorkstationRegistry {
     }
 
     public PlacedCookingWorkstation register(CookingLocationKey key, CookingWorkstationType type, UUID placedBy) {
-        PlacedCookingWorkstation placed = new PlacedCookingWorkstation(key, type, placedBy);
+        return register(key, type, placedBy, true);
+    }
+
+    public PlacedCookingWorkstation registerTransient(Location location, CookingWorkstationType type) {
+        return register(CookingLocationKey.of(location), type, null, false);
+    }
+
+    private PlacedCookingWorkstation register(CookingLocationKey key, CookingWorkstationType type, UUID placedBy, boolean persistent) {
+        PlacedCookingWorkstation placed = new PlacedCookingWorkstation(key, type, placedBy, persistent);
         byLocation.put(key, placed);
         return placed;
     }

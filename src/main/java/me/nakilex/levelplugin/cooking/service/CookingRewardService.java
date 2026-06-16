@@ -23,8 +23,12 @@ public class CookingRewardService {
             }
             ItemStack stack = reward.toItemStack();
             dropLocation.getWorld().dropItemNaturally(dropLocation, stack);
+            if (player != null) {
+                me.nakilex.levelplugin.Main.getInstance().getCodexManager().recordFood(player, reward.discoveryKey(), reward.displayName());
+            }
         }
     }
+
 
     private Location resolveDropLocation(Player player, Location workstationLocation) {
         if (workstationLocation != null && workstationLocation.getWorld() != null) {
