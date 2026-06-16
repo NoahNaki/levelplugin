@@ -8,6 +8,7 @@ import me.nakilex.levelplugin.animatedlb.MockLeaderboardDataProvider;
 import me.nakilex.levelplugin.animatedlb.PlayerStatsLeaderboardDataProvider;
 import me.nakilex.levelplugin.dungeon.VoidWorldGenerator;
 import me.nakilex.levelplugin.utils.ModelEngineUtil;
+import me.nakilex.levelplugin.environment.npc.KingdomNpcModelRegistry;
 import me.nakilex.levelplugin.environment.npc.KingdomNpcSoundManager;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.utils.CuboidTemplate;
@@ -97,9 +98,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int SPEED_UP_COMPLETION_ANIMATION_MULTIPLIER = 100;
     private static int buildSpeedPercent = 100;
     private static final long COIN_SEND_INTERVAL_TICKS = 2L;
-    private static final Map<String, String> CITIZENS_NPC_MODEL_BY_NAME = Map.of(
-            "blacksmith", "scene_blacksmith_1.bbmodel"
-    );
+    private static final long NPC_WAVE_COOLDOWN_MS = 3_000L;
+    private static final double NPC_AMBIENT_PLAYER_RANGE = 12.0D;
+    private static final long NPC_SCENE_ANIMATION_FALLBACK_TICKS = 200L;
+    private static final long NPC_DEFAULT_AMBIENT_RETRY_MS = 8_000L;
     private static final List<CoinVisual> PAYMENT_COIN_VISUALS = List.of(
             new CoinVisual(100, Material.GOLD_NUGGET, "gold_coin"),
             new CoinVisual(10, Material.IRON_NUGGET, "iron_coin"),
@@ -175,8 +177,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     projectFinishedToEmpty(new Cuboid(3742, 87, -2996, 3775, 138, -2937)),
                     projectFinishedToEmpty(new WorldPoint(3780, 100, -2975))),
             new BuildingTemplate(14, "fishing_hut", "Fishing Hut", Material.FISHING_ROD,
-                    new Cuboid(3671, 70, -3046, 3638, 112, -3015),
-                    projectFinishedToEmpty(new Cuboid(3671, 70, -3046, 3638, 112, -3015)),
+                    new Cuboid(3633, 68, -3070, 3689, 109, -3003),
+                    projectFinishedToEmpty(new Cuboid(3633, 68, -3070, 3689, 109, -3003)),
                     projectFinishedToEmpty(new WorldPoint(3662, 81, -3024)))
     );
 
@@ -189,6 +191,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, Map<Integer, Long>> buildFinishAtByProfile = new HashMap<>();
     private BukkitTask buildTimerTask;
     private BukkitTask hologramRefreshTask;
+    private BukkitTask npcAmbientAnimationTask;
     private final Map<String, List<String>> lastHologramLinesByTag = new HashMap<>();
     private final Map<UUID, List<AnimatedLeaderboard>> animatedLeaderboardsByOwner = new HashMap<>();
     private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
@@ -199,6 +202,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, Location> lastValidLocations = new HashMap<>();
     private final Map<UUID, UUID> pendingCoopInvites = new HashMap<>(); // invitee -> owner
     private final Map<UUID, Long> interactDebounceMs = new HashMap<>();
+    private final Map<Integer, Long> npcWaveCooldownByCitizensId = new HashMap<>();
+    private final Map<Integer, Long> npcLastAmbientAnimationMs = new HashMap<>();
+    private final Map<Integer, BukkitTask> npcSceneAnimationTasks = new HashMap<>();
     private final Map<UUID, UUID> coopOwnerByMember = new HashMap<>(); // member -> owner
     private final Map<UUID, UUID> coopPartnerByOwner = new HashMap<>(); // owner -> member
     private final Map<UUID, UUID> pendingConfirmJoinOwner = new HashMap<>();
@@ -214,6 +220,58 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
         startHologramRefreshTask();
         startBuildTimerTask();
+        startNpcAmbientAnimationTask();
+    }
+
+
+    private void startNpcAmbientAnimationTask() {
+        if (npcAmbientAnimationTask != null) {
+            npcAmbientAnimationTask.cancel();
+        }
+        npcAmbientAnimationTask = new BukkitRunnable() {
+            @Override public void run() {
+                tickKingdomNpcAmbientAnimations();
+            }
+        }.runTaskTimer(plugin, 40L, 100L);
+    }
+
+    private void tickKingdomNpcAmbientAnimations() {
+        long now = System.currentTimeMillis();
+        for (net.citizensnpcs.api.npc.NPC npc : CitizensAPI.getNPCRegistry()) {
+            if (npc == null || !npc.data().get(ENV_AREA_CLONE_KEY, false) || !npc.isSpawned() || npc.getEntity() == null) {
+                continue;
+            }
+            Entity entity = npc.getEntity();
+            if (entity.getWorld() == null || entity.getWorld().getNearbyPlayers(entity.getLocation(), NPC_AMBIENT_PLAYER_RANGE).isEmpty()) {
+                continue;
+            }
+            String configuredSceneAnimation = KingdomNpcModelRegistry.resolveSceneAnimation(npc.getName());
+            if (configuredSceneAnimation != null && !configuredSceneAnimation.isBlank()) {
+                // Scene NPC animations are driven by startNpcSceneAnimationLoop() immediately after
+                // model application, then replayed after their own animation duration. Do not also
+                // restart them from the generic nearby-player ambient loop.
+                continue;
+            }
+            if (!KingdomNpcModelRegistry.shouldUseDefaultAmbientAnimations(npc.getName())) {
+                continue;
+            }
+            long last = npcLastAmbientAnimationMs.getOrDefault(npc.getId(), 0L);
+            if (now - last < NPC_DEFAULT_AMBIENT_RETRY_MS) {
+                continue;
+            }
+            npcLastAmbientAnimationMs.put(npc.getId(), now);
+            if ((now / NPC_DEFAULT_AMBIENT_RETRY_MS + npc.getId()) % 3 == 0) {
+                if (!ModelEngineUtil.isAnimationPlayingByName(entity, "blink")
+                        && !ModelEngineUtil.playAnimationByName(entity, "blink", false)) {
+                    ModelEngineUtil.playBestAnimation(entity, List.of("blink"), false, false);
+                }
+            } else {
+                if (!ModelEngineUtil.isAnimationPlayingByName(entity, "idle")
+                        && !ModelEngineUtil.playAnimationByName(entity, "idle", true)) {
+                    ModelEngineUtil.playBestAnimation(entity, List.of("idle", "stand", "loop"), true, false);
+                }
+            }
+        }
     }
 
     private void startBuildTimerTask() {
@@ -884,6 +942,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             cancelAction.run();
             return;
         }
+        net.citizensnpcs.api.npc.NPC clickedNpc = CitizensAPI.getNPCRegistry().getNPC(entity);
+        if (clickedNpc != null && clickedNpc.data().get(ENV_AREA_CLONE_KEY, false)) {
+            interactDebounceMs.put(player.getUniqueId(), now);
+            cancelAction.run();
+            triggerKingdomNpcWave(clickedNpc);
+            return;
+        }
         for (String tag : entity.getScoreboardTags()) {
             if (!tag.startsWith(HOLOGRAM_TAG_PREFIX)) {
                 continue;
@@ -893,6 +958,33 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             handleBuildTag(player, tag);
             return;
         }
+    }
+
+    private void triggerKingdomNpcWave(net.citizensnpcs.api.npc.NPC npc) {
+        if (npc == null || !npc.isSpawned() || npc.getEntity() == null) {
+            return;
+        }
+        long now = System.currentTimeMillis();
+        long last = npcWaveCooldownByCitizensId.getOrDefault(npc.getId(), 0L);
+        if (now - last < NPC_WAVE_COOLDOWN_MS) {
+            return;
+        }
+        npcWaveCooldownByCitizensId.put(npc.getId(), now);
+        Entity entity = npc.getEntity();
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (npc == null || !npc.isSpawned() || npc.getEntity() == null) {
+                return;
+            }
+            boolean played = ModelEngineUtil.playAnimationByName(entity, "wave", false);
+            if (!played) {
+                plugin.getLogger().warning("[EnvironmentArea/NpcSceneDebug] Wave animation failed by direct name. npcId="
+                        + npc.getId() + " name='" + npc.getName() + "'. Trying fallback matcher.");
+                played = ModelEngineUtil.playBestAnimation(entity, List.of("wave", "greet", "hello"), false, false);
+            }
+            plugin.getLogger().info("[EnvironmentArea/NpcSceneDebug] Right-click wave animation npcId=" + npc.getId()
+                    + " name='" + npc.getName() + "' played=" + played
+                    + " registry=" + KingdomNpcModelRegistry.debugResolution(npc.getName()));
+        }, 1L);
     }
 
     private void handleBuildTag(Player player, String tag) {
@@ -1743,6 +1835,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     : template.getStoredLocation();
             if (!isInsideSelection(npcLocation, sourceWorld, sourceCuboid)) continue;
             found++;
+            plugin.getLogger().info("[EnvironmentArea/NpcSceneDebug] Found source Citizens NPC templateId="
+                    + template.getId() + " name='" + template.getName() + "' building='" + building.id()
+                    + "' source=" + formatLocation(npcLocation)
+                    + " registry=" + KingdomNpcModelRegistry.debugResolution(template.getName()));
 
             int relX = npcLocation.getBlockX() - sourceMinX;
             int relY = npcLocation.getBlockY() - sourceMinY;
@@ -1776,6 +1872,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 continue;
             }
 
+            plugin.getLogger().info("[EnvironmentArea/NpcSceneDebug] Spawned kingdom clone from templateId="
+                    + template.getId() + " cloneId=" + clone.getId() + " name='" + template.getName()
+                    + "' building='" + building.id() + "' expected=" + formatLocation(dest)
+                    + " actual=" + formatLocation(clone.getEntity() == null ? null : clone.getEntity().getLocation())
+                    + " registry=" + KingdomNpcModelRegistry.debugResolution(template.getName()));
             applyCitizensNpcModelByName(template, clone, building);
             scheduleCitizensNpcModelRetries(template.getName(), clone, building, dest);
             startConfiguredNpcSoundLoop(template.getName(), clone, building);
@@ -1852,6 +1953,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return;
         }
         String npcName = template == null ? null : template.getName();
+        plugin.getLogger().info("[EnvironmentArea/NpcSceneDebug] Resolving model for Citizens NPC cloneId="
+                + clone.getId() + " templateName='" + npcName + "' building='"
+                + (building == null ? "unknown" : building.id()) + "' nameRegistry="
+                + KingdomNpcModelRegistry.debugResolution(npcName)
+                + (building == null ? "" : ", buildingIdRegistry=" + KingdomNpcModelRegistry.debugResolution(building.id())
+                + ", buildingDisplayRegistry=" + KingdomNpcModelRegistry.debugResolution(building.displayName())));
         String modelId = resolveCitizensNpcModelId(npcName);
         if ((modelId == null || modelId.isBlank()) && building != null) {
             modelId = resolveCitizensNpcModelId(building.id());
@@ -1860,6 +1967,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             modelId = resolveCitizensNpcModelId(building.displayName());
         }
         if (modelId == null || modelId.isBlank()) {
+            plugin.getLogger().warning("[EnvironmentArea/NpcSceneDebug] No ModelEngine model mapping found for Citizens NPC cloneId="
+                    + clone.getId() + " templateName='" + npcName + "' building='"
+                    + (building == null ? "unknown" : building.id()) + "'. Add/fix the NPC name in KingdomNpcModelRegistry.");
             return;
         }
         applyCitizensNpcModel(clone, building == null ? "unknown" : building.id(), npcName, modelId, "immediate");
@@ -1873,21 +1983,81 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (clone == null || !clone.isSpawned() || clone.getEntity() == null || modelId == null || modelId.isBlank()) {
             return false;
         }
+        List<String> modelCandidates = ModelEngineUtil.buildModelCandidates(modelId);
+        plugin.getLogger().info("[EnvironmentArea/NpcSceneDebug] Applying ModelEngine model to Citizens NPC cloneId="
+                + clone.getId() + " npcName='" + npcName + "' building='" + buildingId
+                + "' phase=" + phase + " requestedModel='" + modelId + "' candidates=" + modelCandidates
+                + " actual=" + formatLocation(clone.getEntity().getLocation()));
         ModelEngineUtil.ModelApplyResult result = ModelEngineUtil.applyFirstAvailableModel(
                 clone.getEntity(),
-                ModelEngineUtil.buildModelCandidates(modelId),
+                modelCandidates,
                 plugin
         );
         if (result.applied().isEmpty()) {
             plugin.getLogger().warning("[EnvironmentArea] Failed to apply Citizens NPC model '"
                     + modelId + "' phase=" + phase + " for npcName='" + npcName + "' building='" + buildingId
-                    + "' npcId=" + clone.getId() + " actual=" + formatLocation(clone.getEntity().getLocation()) + ".");
+                    + "' npcId=" + clone.getId() + " candidates=" + modelCandidates
+                    + " actual=" + formatLocation(clone.getEntity().getLocation()) + ".");
             return false;
         }
         plugin.getLogger().info("[EnvironmentArea] Applied Citizens NPC model '" + result.applied().get(0)
                 + "' phase=" + phase + " for npcName='" + npcName + "' building='" + buildingId
                 + "' npcId=" + clone.getId() + " actual=" + formatLocation(clone.getEntity().getLocation()) + ".");
+        startNpcSceneAnimationLoop(clone, npcName, buildingId);
         return true;
+    }
+
+    private void startNpcSceneAnimationLoop(net.citizensnpcs.api.npc.NPC npc,
+                                            String npcName,
+                                            String buildingId) {
+        if (npc == null || !npc.isSpawned() || npc.getEntity() == null) {
+            return;
+        }
+        String sceneAnimation = KingdomNpcModelRegistry.resolveSceneAnimation(npcName);
+        if ((sceneAnimation == null || sceneAnimation.isBlank()) && buildingId != null) {
+            sceneAnimation = KingdomNpcModelRegistry.resolveSceneAnimation(buildingId);
+        }
+        if (sceneAnimation == null || sceneAnimation.isBlank()) {
+            return;
+        }
+        BukkitTask previous = npcSceneAnimationTasks.remove(npc.getId());
+        if (previous != null) {
+            previous.cancel();
+        }
+        playAndScheduleNpcSceneAnimation(npc, npcName, sceneAnimation);
+    }
+
+    private void playAndScheduleNpcSceneAnimation(net.citizensnpcs.api.npc.NPC npc,
+                                                  String npcName,
+                                                  String sceneAnimation) {
+        if (npc == null || !npc.isSpawned() || npc.getEntity() == null || sceneAnimation == null || sceneAnimation.isBlank()) {
+            return;
+        }
+        ModelEngineUtil.AnimationPlayResult result = ModelEngineUtil.playAnimationByNameWithDuration(
+                npc.getEntity(),
+                sceneAnimation,
+                false
+        );
+        boolean played = result.played();
+        long durationTicks = result.durationTicks();
+        if (!played) {
+            plugin.getLogger().warning("[EnvironmentArea/NpcSceneDebug] Scene animation failed by direct name. npcId="
+                    + npc.getId() + " name='" + npcName + "' animation='" + sceneAnimation
+                    + "' registry=" + KingdomNpcModelRegistry.debugResolution(npcName)
+                    + ". Trying fallback matcher.");
+            played = ModelEngineUtil.playBestAnimation(npc.getEntity(), List.of(sceneAnimation), false, false);
+            if (played) {
+                durationTicks = ModelEngineUtil.getAnimationDurationTicks(npc.getEntity(), sceneAnimation);
+            }
+        }
+        long delayTicks = durationTicks > 0L ? durationTicks : NPC_SCENE_ANIMATION_FALLBACK_TICKS;
+        plugin.getLogger().info("[EnvironmentArea/NpcSceneDebug] Scene animation tick npcId=" + npc.getId()
+                + " name='" + npcName + "' requested='" + sceneAnimation + "' resolved='" + result.animationName()
+                + "' played=" + played + " durationTicks=" + durationTicks
+                + " nextReplayTicks=" + delayTicks + " loc=" + formatLocation(npc.getEntity().getLocation()));
+        BukkitTask next = Bukkit.getScheduler().runTaskLater(plugin, () ->
+                playAndScheduleNpcSceneAnimation(npc, npcName, sceneAnimation), Math.max(1L, delayTicks));
+        npcSceneAnimationTasks.put(npc.getId(), next);
     }
 
     private void scheduleCitizensNpcModelRetries(String npcName,
@@ -1945,34 +2115,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     }
 
     private String resolveCitizensNpcModelId(String npcName) {
-        String normalizedName = normalizeNpcModelName(npcName);
-        if (normalizedName.isBlank()) {
-            return null;
-        }
-        String exactMatch = CITIZENS_NPC_MODEL_BY_NAME.get(normalizedName);
-        if (exactMatch != null) {
-            return exactMatch;
-        }
-        for (Map.Entry<String, String> entry : CITIZENS_NPC_MODEL_BY_NAME.entrySet()) {
-            if (normalizedName.contains(entry.getKey())) {
-                return entry.getValue();
-            }
-        }
-        return null;
-    }
-
-    private String normalizeNpcModelName(String npcName) {
-        if (npcName == null) {
-            return "";
-        }
-        String stripped = ChatColor.stripColor(ChatColor.translateAlternateColorCodes('&', npcName));
-        if (stripped == null) {
-            return "";
-        }
-        return stripped.toLowerCase(Locale.ROOT)
-                .replaceAll("[^a-z0-9]+", " ")
-                .trim()
-                .replaceAll(" +", " ");
+        return KingdomNpcModelRegistry.resolveModelId(npcName);
     }
 
     private boolean isInsideSelection(Location location, World expectedWorld, Cuboid selection) {
@@ -2413,6 +2556,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             hologramRefreshTask.cancel();
             hologramRefreshTask = null;
         }
+        if (npcAmbientAnimationTask != null) {
+            npcAmbientAnimationTask.cancel();
+            npcAmbientAnimationTask = null;
+        }
         for (BukkitTask task : new ArrayList<>(activeBuildTasks.values())) {
             if (task != null) {
                 task.cancel();
@@ -2466,6 +2613,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 continue;
             }
             npcSoundManager.stop(npc.getId());
+            npcWaveCooldownByCitizensId.remove(npc.getId());
+            npcLastAmbientAnimationMs.remove(npc.getId());
+            BukkitTask sceneTask = npcSceneAnimationTasks.remove(npc.getId());
+            if (sceneTask != null) {
+                sceneTask.cancel();
+            }
             CitizensAPI.getNPCRegistry().deregister(npc);
             removed++;
         }

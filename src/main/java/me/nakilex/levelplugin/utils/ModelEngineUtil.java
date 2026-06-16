@@ -46,6 +46,11 @@ public final class ModelEngineUtil {
                                        List<String> available) {
     }
 
+    public record AnimationPlayResult(boolean played,
+                                      String animationName,
+                                      long durationTicks) {
+    }
+
     private static final Map<String, List<String>> PRELOADED_RUNTIME_ANIMATIONS = new ConcurrentHashMap<>();
     private static final Map<UUID, AnimationControllerState> ANIMATION_CONTROLLER_STATES = new ConcurrentHashMap<>();
 
@@ -331,6 +336,33 @@ public final class ModelEngineUtil {
         return null;
     }
 
+
+    public static AnimationPlayResult playAnimationByNameWithDuration(Entity entity, String animationName, boolean loop) {
+        if (entity == null || animationName == null || animationName.isBlank()) {
+            return new AnimationPlayResult(false, null, -1L);
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return new AnimationPlayResult(false, null, -1L);
+        }
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            handler.prepare();
+            String match = resolveAnimationName(model, handler, animationName);
+            if (match == null || match.isBlank()) {
+                continue;
+            }
+            long durationTicks = resolveAnimationDurationTicks(model, handler, match);
+            if (attemptPlayAnimation(handler, model, match, loop)) {
+                return new AnimationPlayResult(true, match, durationTicks);
+            }
+        }
+        return new AnimationPlayResult(false, null, -1L);
+    }
+
     public static boolean playAnimationByName(Entity entity, String animationName, boolean loop) {
         if (entity == null || animationName == null || animationName.isBlank()) {
             return false;
@@ -351,6 +383,34 @@ public final class ModelEngineUtil {
             }
             if (attemptPlayAnimation(handler, model, match, loop)) {
                 return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean isAnimationPlayingByName(Entity entity, String animationName) {
+        if (entity == null || animationName == null || animationName.isBlank()) {
+            return false;
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return false;
+        }
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            handler.prepare();
+            String match = resolveAnimationName(model, handler, animationName);
+            if (match == null || match.isBlank()) {
+                continue;
+            }
+            try {
+                if (handler.isPlayingAnimation(match)) {
+                    return true;
+                }
+            } catch (Exception ignored) {
             }
         }
         return false;
@@ -830,6 +890,118 @@ public final class ModelEngineUtil {
             names.addAll(blueprint.getAnimationsPlaceholders().values());
         }
         return names;
+    }
+
+
+    public static long getAnimationDurationTicks(Entity entity, String animationName) {
+        if (entity == null || animationName == null || animationName.isBlank()) {
+            return -1L;
+        }
+        ModeledEntity modeledEntity = ModelEngineAPI.getModeledEntity(entity);
+        if (modeledEntity == null || modeledEntity.getModels().isEmpty()) {
+            return -1L;
+        }
+        for (ActiveModel model : modeledEntity.getModels().values()) {
+            AnimationHandler handler = model.getAnimationHandler();
+            if (handler == null) {
+                continue;
+            }
+            handler.prepare();
+            String match = resolveAnimationName(model, handler, animationName);
+            if (match == null || match.isBlank()) {
+                continue;
+            }
+            long durationTicks = resolveAnimationDurationTicks(model, handler, match);
+            if (durationTicks > 0L) {
+                return durationTicks;
+            }
+        }
+        return -1L;
+    }
+
+    private static long resolveAnimationDurationTicks(ActiveModel model, AnimationHandler handler, String animationName) {
+        if (animationName == null || animationName.isBlank()) {
+            return -1L;
+        }
+        List<Object> candidates = new ArrayList<>();
+        try {
+            if (handler != null && handler.getAnimations() != null) {
+                Object runtimeAnimation = handler.getAnimations().get(animationName);
+                if (runtimeAnimation != null) {
+                    candidates.add(runtimeAnimation);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            if (handler != null) {
+                Object property = handler.getAnimation(animationName);
+                if (property != null) {
+                    candidates.add(property);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        try {
+            if (model != null && model.getBlueprint() != null && model.getBlueprint().getAnimations() != null) {
+                Object blueprintAnimation = model.getBlueprint().getAnimations().get(animationName);
+                if (blueprintAnimation != null) {
+                    candidates.add(blueprintAnimation);
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        for (Object candidate : candidates) {
+            long ticks = extractAnimationDurationTicks(candidate);
+            if (ticks > 0L) {
+                return ticks;
+            }
+        }
+        return -1L;
+    }
+
+    private static long extractAnimationDurationTicks(Object animation) {
+        if (animation == null) {
+            return -1L;
+        }
+        for (String methodName : List.of(
+                "getDurationTicks", "durationTicks", "getLengthTicks", "lengthTicks", "getTotalTicks", "totalTicks",
+                "getMaxTick", "maxTick", "getEndTick", "endTick", "getDuration", "duration", "getLength", "length",
+                "getAnimationLength", "animationLength", "getEndTime", "endTime")) {
+            Object value;
+            try {
+                value = animation.getClass().getMethod(methodName).invoke(animation);
+            } catch (NoSuchMethodException ignored) {
+                continue;
+            } catch (ReflectiveOperationException | RuntimeException ignored) {
+                continue;
+            }
+            long ticks = coerceAnimationDurationToTicks(methodName, value);
+            if (ticks > 0L) {
+                return ticks;
+            }
+        }
+        return -1L;
+    }
+
+    private static long coerceAnimationDurationToTicks(String sourceMethodName, Object value) {
+        if (!(value instanceof Number number)) {
+            return -1L;
+        }
+        double raw = number.doubleValue();
+        if (!Double.isFinite(raw) || raw <= 0.0D) {
+            return -1L;
+        }
+        String lower = sourceMethodName == null ? "" : sourceMethodName.toLowerCase(Locale.ROOT);
+        if (lower.contains("tick")) {
+            return Math.max(1L, Math.round(raw));
+        }
+        // ModelEngine/Blockbench commonly expose animation length as seconds, while some
+        // runtime properties expose ticks. Small fractional values are definitely seconds.
+        if (number instanceof Float || number instanceof Double || raw <= 30.0D) {
+            return Math.max(1L, Math.round(raw * 20.0D));
+        }
+        return Math.max(1L, Math.round(raw));
     }
 
     private static ActiveModel createActiveModelFromBlueprint(String modelId, Plugin plugin) {
