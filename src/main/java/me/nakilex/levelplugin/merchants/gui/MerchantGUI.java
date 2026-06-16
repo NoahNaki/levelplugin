@@ -77,7 +77,8 @@ public class MerchantGUI implements Listener {
 
         String basePath = "merchants." + merchantName;
         String title = merchantConfig.getString(basePath + ".title", "Merchant");
-        int size = merchantConfig.getInt(basePath + ".size", 27);
+        List<?> list = merchantConfig.getList(basePath + ".items");
+        int size = resolveInventorySize(merchantConfig, basePath, list);
         this.inventory = GuiBuilder.create(size, title)
                 .filler(Material.BLACK_STAINED_GLASS_PANE)
                 .fillEmptySlots(false)
@@ -85,7 +86,6 @@ public class MerchantGUI implements Listener {
                 .build();
 
         // Load merchant-items definitions
-        List<?> list = merchantConfig.getList(basePath + ".items");
         if (list != null) {
             for (Object obj : list) {
                 if (obj instanceof ConfigurationSection) {
@@ -106,12 +106,52 @@ public class MerchantGUI implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
+    private int resolveInventorySize(FileConfiguration merchantConfig, String basePath, List<?> items) {
+        int configuredSize = merchantConfig.getInt(basePath + ".size", 27);
+        int highestSlot = -1;
+        if (items != null) {
+            for (Object item : items) {
+                Integer slot = configuredSlot(item);
+                if (slot != null) {
+                    highestSlot = Math.max(highestSlot, slot);
+                }
+            }
+        }
+        int minimumSize = highestSlot < 0 ? configuredSize : Math.max(configuredSize, highestSlot + 1);
+        return GuiBuilder.normalizeSize(minimumSize);
+    }
+
+    private Integer configuredSlot(Object item) {
+        Object value = null;
+        if (item instanceof ConfigurationSection section) {
+            value = section.get("slot");
+        } else if (item instanceof Map<?, ?> map) {
+            value = map.get("slot");
+        }
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(value.toString());
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
     /**
      * Build each slot’s ItemStack using the template’s StatRange values
      * and a default “unaffordable” price line.
      */
     private void populateMerchantItems() {
         for (MerchantItem mItem : merchantItems.values()) {
+            if (!isSlotInInventory(mItem.getSlot())) {
+                plugin.getLogger().warning("Skipping merchant item for '" + merchantName
+                        + "' because slot " + mItem.getSlot() + " is outside inventory size " + inventory.getSize() + ".");
+                continue;
+            }
             if (mItem.isConfiguredStack()) {
                 ItemStack stack = createConfiguredStack(mItem);
                 addPriceStubToStack(stack, mItem);
@@ -187,6 +227,10 @@ public class MerchantGUI implements Listener {
                 inventory.setItem(mItem.getSlot(), stack);
             }
         }
+    }
+
+    private boolean isSlotInInventory(int slot) {
+        return slot >= 0 && slot < inventory.getSize();
     }
 
     private ItemStack createConfiguredStack(MerchantItem item) {
@@ -666,6 +710,9 @@ public class MerchantGUI implements Listener {
         List<GuiWidget> built = new ArrayList<>();
         for (Map.Entry<Integer, MerchantItem> entry : merchantItems.entrySet()) {
             int slot = entry.getKey();
+            if (!isSlotInInventory(slot)) {
+                continue;
+            }
             MerchantItem mItem = entry.getValue();
             built.add(new ActionWidget(slot,
                     context -> context.inventory().getItem(slot),
