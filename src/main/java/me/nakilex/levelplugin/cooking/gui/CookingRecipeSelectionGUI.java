@@ -16,7 +16,6 @@ import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiLayout;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiWidget;
-import me.nakilex.levelplugin.utils.gui.widgets.ToggleFilterWidget;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -24,13 +23,22 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** Recipe picker for a placed cooking workstation, including ingredient previews and craftable filtering. */
@@ -39,15 +47,24 @@ public class CookingRecipeSelectionGUI implements Listener {
     private static final int PAGE_SIZE = GuiUtil.PAGED_SLOTS.length;
     private static final int PREV_SLOT = 45;
     private static final int NEXT_SLOT = 53;
-    private static final int FILTER_SLOT = 49;
+    private static final int SEARCH_SLOT = 47;
+    private static final int CATEGORY_FILTER_SLOT = 48;
+    private static final int CRAFTABLE_FILTER_SLOT = 49;
+    private static final int SORT_SLOT = 50;
     private static final String TITLE_PREFIX = ChatColor.DARK_GRAY + "Cooking Recipes";
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final String[] SORT_OPTIONS = {"Category", "Alphabetical"};
 
     private final CookingRecipeRegistry recipeRegistry;
     private final CookingSessionService sessionService;
     private final Map<UUID, Integer> pages = new HashMap<>();
     private final Map<UUID, List<GuiWidget>> widgetsByPlayer = new HashMap<>();
+    private final Map<UUID, Integer> categoryFiltersByPlayer = new HashMap<>();
     private final Map<UUID, Boolean> craftableOnlyByPlayer = new HashMap<>();
+    private final Map<UUID, Integer> sortModesByPlayer = new HashMap<>();
+    private final Map<UUID, String> searchTermsByPlayer = new HashMap<>();
+    private final Map<UUID, PlacedCookingWorkstation> lastWorkstationByPlayer = new HashMap<>();
+    private final Set<UUID> awaitingSearch = new HashSet<>();
 
     public CookingRecipeSelectionGUI(CookingRecipeRegistry recipeRegistry, CookingSessionService sessionService) {
         this.recipeRegistry = recipeRegistry;
@@ -59,18 +76,23 @@ public class CookingRecipeSelectionGUI implements Listener {
     }
 
     private void open(Player player, PlacedCookingWorkstation workstation, int page) {
-        boolean craftableOnly = craftableOnlyByPlayer.getOrDefault(player.getUniqueId(), false);
-        List<CookingRecipe> recipes = recipesFor(player, workstation.type(), craftableOnly);
+        UUID playerId = player.getUniqueId();
+        lastWorkstationByPlayer.put(playerId, workstation);
+        List<String> categoryOptions = categoryOptions(workstation.type());
+        int categoryIndex = normalizedCategoryIndex(playerId, categoryOptions);
+        boolean craftableOnly = craftableOnlyByPlayer.getOrDefault(playerId, false);
+        int sortMode = sortModesByPlayer.getOrDefault(playerId, 0);
+        String searchTerm = searchTermsByPlayer.getOrDefault(playerId, "");
+        List<CookingRecipe> recipes = recipesFor(player, workstation.type(), categoryOptions.get(categoryIndex), craftableOnly, sortMode, searchTerm);
         int maxPage = Math.max(0, (recipes.size() - 1) / PAGE_SIZE);
         int current = Math.max(0, Math.min(page, maxPage));
-        UUID playerId = player.getUniqueId();
         pages.put(playerId, current);
 
         Inventory inventory = GuiBuilder.create(SIZE, TITLE_PREFIX)
                 .filler(Material.GRAY_STAINED_GLASS_PANE)
                 .border()
                 .build();
-        List<GuiWidget> widgets = buildWidgets(player, workstation, recipes, current, maxPage, craftableOnly);
+        List<GuiWidget> widgets = buildWidgets(player, workstation, recipes, current, maxPage, categoryOptions, categoryIndex, craftableOnly, sortMode, searchTerm);
         widgetsByPlayer.put(playerId, widgets);
         renderWidgets(inventory, player, widgets);
         player.openInventory(inventory);
@@ -90,18 +112,54 @@ public class CookingRecipeSelectionGUI implements Listener {
         }
     }
 
+
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent event) {
+        Player player = event.getPlayer();
+        UUID playerId = player.getUniqueId();
+        if (!awaitingSearch.remove(playerId)) {
+            return;
+        }
+        event.setCancelled(true);
+        String message = event.getMessage().trim();
+        if (message.equalsIgnoreCase("cancel") || message.isBlank()) {
+            searchTermsByPlayer.remove(playerId);
+        } else {
+            searchTermsByPlayer.put(playerId, message);
+        }
+        PlacedCookingWorkstation workstation = lastWorkstationByPlayer.get(playerId);
+        if (workstation != null) {
+            org.bukkit.Bukkit.getScheduler().runTask(sessionService.plugin(), () -> open(player, workstation, 0));
+        }
+    }
+
+    @EventHandler
+    public void onQuit(PlayerQuitEvent event) {
+        UUID playerId = event.getPlayer().getUniqueId();
+        pages.remove(playerId);
+        widgetsByPlayer.remove(playerId);
+        categoryFiltersByPlayer.remove(playerId);
+        craftableOnlyByPlayer.remove(playerId);
+        sortModesByPlayer.remove(playerId);
+        searchTermsByPlayer.remove(playerId);
+        lastWorkstationByPlayer.remove(playerId);
+        awaitingSearch.remove(playerId);
+    }
+
     private List<GuiWidget> buildWidgets(Player player, PlacedCookingWorkstation workstation,
-                                         List<CookingRecipe> recipes, int page, int maxPage, boolean craftableOnly) {
+                                         List<CookingRecipe> recipes, int page, int maxPage,
+                                         List<String> categoryOptions, int categoryIndex, boolean craftableOnly, int sortMode, String searchTerm) {
         List<GuiWidget> widgets = new ArrayList<>();
-        widgets.add(new ToggleFilterWidget(FILTER_SLOT, () -> craftableOnlyByPlayer.getOrDefault(player.getUniqueId(), false),
-                ChatColor.GREEN + "Craftable Filter",
-                (click, context) -> toggleCraftableFilter(player, workstation),
-                ChatColor.GRAY + "Show only recipes you can make",
-                ChatColor.GRAY + "with your current inventory.",
-                " ",
-                ChatColor.YELLOW + "Click to toggle."));
+        widgets.add(new ActionWidget(SEARCH_SLOT, ctx -> createSearchItem(searchTerm),
+                (click, context) -> handleSearchClick(player, workstation, click)));
+        widgets.add(new ActionWidget(CATEGORY_FILTER_SLOT, ctx -> createCategoryFilterItem(categoryOptions, categoryIndex),
+                (click, context) -> handleCategoryFilterClick(player, workstation, click)));
+        widgets.add(new ActionWidget(CRAFTABLE_FILTER_SLOT, ctx -> createCraftableToggleItem(craftableOnly),
+                (click, context) -> handleCraftableToggleClick(player, workstation)));
+        widgets.add(new ActionWidget(SORT_SLOT, ctx -> createSortItem(sortMode),
+                (click, context) -> handleSortClick(player, workstation, click)));
         if (recipes.isEmpty()) {
-            widgets.add(new ActionWidget(22, ctx -> emptyItem(craftableOnly), (click, context) -> {}));
+            widgets.add(new ActionWidget(22, ctx -> emptyItem(craftableOnly, categoryOptions.get(categoryIndex)), (click, context) -> {}));
             return widgets;
         }
         int start = page * PAGE_SIZE;
@@ -167,21 +225,168 @@ public class CookingRecipeSelectionGUI implements Listener {
         }
     }
 
-    private void toggleCraftableFilter(Player player, PlacedCookingWorkstation workstation) {
+    private void handleSearchClick(Player player, PlacedCookingWorkstation workstation, ClickType click) {
         UUID playerId = player.getUniqueId();
-        boolean next = !craftableOnlyByPlayer.getOrDefault(playerId, false);
-        craftableOnlyByPlayer.put(playerId, next);
+        if (click == ClickType.RIGHT) {
+            searchTermsByPlayer.remove(playerId);
+            open(player, workstation, 0);
+            return;
+        }
+        awaitingSearch.add(playerId);
+        lastWorkstationByPlayer.put(playerId, workstation);
+        player.closeInventory();
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.INFO,
+                "Type a recipe search term in chat, or " + ChatColor.YELLOW + "cancel" + ChatColor.GRAY + " to clear it.");
+    }
+
+    private void handleCategoryFilterClick(Player player, PlacedCookingWorkstation workstation, ClickType click) {
+        UUID playerId = player.getUniqueId();
+        List<String> options = categoryOptions(workstation.type());
+        int current = normalizedCategoryIndex(playerId, options);
+        current = switch (click) {
+            case RIGHT -> (current + options.size() - 1) % options.size();
+            default -> (current + 1) % options.size();
+        };
+        categoryFiltersByPlayer.put(playerId, current);
         open(player, workstation, 0);
     }
 
-    private List<CookingRecipe> recipesFor(Player player, CookingWorkstationType type, boolean craftableOnly) {
+    private void handleCraftableToggleClick(Player player, PlacedCookingWorkstation workstation) {
+        UUID playerId = player.getUniqueId();
+        craftableOnlyByPlayer.put(playerId, !craftableOnlyByPlayer.getOrDefault(playerId, false));
+        open(player, workstation, 0);
+    }
+
+    private void handleSortClick(Player player, PlacedCookingWorkstation workstation, ClickType click) {
+        UUID playerId = player.getUniqueId();
+        int total = SORT_OPTIONS.length;
+        int mode = sortModesByPlayer.getOrDefault(playerId, 0);
+        mode = switch (click) {
+            case RIGHT -> (mode + total - 1) % total;
+            default -> (mode + 1) % total;
+        };
+        sortModesByPlayer.put(playerId, mode);
+        open(player, workstation, 0);
+    }
+
+    private List<CookingRecipe> recipesFor(Player player, CookingWorkstationType type, String category, boolean craftableOnly, int sortMode, String searchTerm) {
         List<CookingRecipe> recipes = new ArrayList<>();
         for (String recipeId : type.recipeIds()) {
             recipeRegistry.get(recipeId)
+                    .filter(recipe -> "All".equalsIgnoreCase(category) || recipe.category().equalsIgnoreCase(category))
+                    .filter(recipe -> matchesSearch(recipe, searchTerm))
                     .filter(recipe -> !craftableOnly || CookingIngredientMatcher.hasIngredients(player.getInventory(), recipe))
                     .ifPresent(recipes::add);
         }
+        sortRecipes(recipes, sortMode);
         return recipes;
+    }
+
+    private boolean matchesSearch(CookingRecipe recipe, String searchTerm) {
+        if (searchTerm == null || searchTerm.isBlank()) {
+            return true;
+        }
+        String normalized = searchTerm.toLowerCase(Locale.ROOT).trim();
+        if (recipe.id().toLowerCase(Locale.ROOT).contains(normalized)
+                || recipe.displayName().toLowerCase(Locale.ROOT).contains(normalized)
+                || recipe.category().toLowerCase(Locale.ROOT).contains(normalized)) {
+            return true;
+        }
+        return recipe.lore().stream().anyMatch(line -> line.toLowerCase(Locale.ROOT).contains(normalized));
+    }
+
+    private List<String> categoryOptions(CookingWorkstationType type) {
+        Set<String> categories = new LinkedHashSet<>();
+        categories.add("All");
+        type.recipeIds().stream()
+                .map(recipeRegistry::get)
+                .flatMap(java.util.Optional::stream)
+                .map(CookingRecipe::category)
+                .filter(category -> category != null && !category.isBlank())
+                .sorted(String.CASE_INSENSITIVE_ORDER)
+                .forEach(categories::add);
+        return new ArrayList<>(categories);
+    }
+
+    private int normalizedCategoryIndex(UUID playerId, List<String> categoryOptions) {
+        int index = categoryFiltersByPlayer.getOrDefault(playerId, 0);
+        if (index < 0 || index >= categoryOptions.size()) {
+            index = 0;
+            categoryFiltersByPlayer.put(playerId, index);
+        }
+        return index;
+    }
+
+    private void sortRecipes(List<CookingRecipe> recipes, int sortMode) {
+        Comparator<CookingRecipe> comparator = switch (sortMode) {
+            case 1 -> Comparator
+                    .comparing(CookingRecipe::displayName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(CookingRecipe::category, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(CookingRecipe::id, String.CASE_INSENSITIVE_ORDER);
+            default -> Comparator
+                    .comparing((CookingRecipe recipe) -> recipe.category(), String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(CookingRecipe::displayName, String.CASE_INSENSITIVE_ORDER)
+                    .thenComparing(CookingRecipe::id, String.CASE_INSENSITIVE_ORDER);
+        };
+        recipes.sort(comparator);
+    }
+
+    private ItemStack createSearchItem(String searchTerm) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "");
+        lore.add(ChatColor.DARK_GRAY + "Search recipes by name, id, category, or lore");
+        lore.add(" ");
+        if (searchTerm != null && !searchTerm.isBlank()) {
+            lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + searchTerm);
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to change search");
+            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to clear search");
+        } else {
+            lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + "None");
+            lore.add(" ");
+            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to enter a term");
+        }
+        return GuiUtil.getNexoItem("search", ChatColor.GOLD + "Search", lore);
+    }
+
+    private ItemStack createCategoryFilterItem(List<String> categoryOptions, int activeCategoryIndex) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "");
+        lore.add(ChatColor.DARK_GRAY + "Filters the content of the page by recipe category");
+        lore.add(" ");
+        for (int i = 0; i < categoryOptions.size(); i++) {
+            lore.add(TooltipUtil.selectionLine(i == activeCategoryIndex, categoryOptions.get(i)));
+        }
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
+        return GuiUtil.createGuiItem(Material.HOPPER, ChatColor.AQUA + "Category Filter", lore);
+    }
+
+    private ItemStack createCraftableToggleItem(boolean craftableOnly) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "");
+        lore.add(ChatColor.DARK_GRAY + "Filters recipes by your current inventory");
+        lore.add(" ");
+        lore.add(TooltipUtil.selectionLine(!craftableOnly, "All Recipes"));
+        lore.add(TooltipUtil.selectionLine(craftableOnly, "Craftable Only"));
+        lore.add(" ");
+        lore.add(ChatColor.GRAY + "Status: " + (craftableOnly ? ChatColor.GREEN + "Enabled" : ChatColor.RED + "Disabled"));
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to toggle", null));
+        return GuiUtil.getNexoItem(craftableOnly ? "check" : "cross", ChatColor.AQUA + "Craftable Filter", lore);
+    }
+
+    private ItemStack createSortItem(int activeSortMode) {
+        List<String> lore = new ArrayList<>();
+        lore.add(ChatColor.GRAY + "");
+        lore.add(ChatColor.DARK_GRAY + "Sort the content of the page");
+        lore.add(" ");
+        for (int i = 0; i < SORT_OPTIONS.length; i++) {
+            lore.add(TooltipUtil.selectionLine(i == activeSortMode, SORT_OPTIONS[i]));
+        }
+        lore.add(" ");
+        lore.addAll(TooltipUtil.clickInstructions("to go forward", "to go backward"));
+        return GuiUtil.createGuiItem(Material.COMPARATOR, ChatColor.AQUA + "Sorting", lore);
     }
 
     private ItemStack recipeItem(Player player, CookingRecipe recipe) {
@@ -192,6 +397,7 @@ public class CookingRecipeSelectionGUI implements Listener {
                 lore.addAll(TooltipUtil.wrapLoreLine(ChatColor.GRAY + line, 210));
             }
         }
+        lore.add(ChatColor.DARK_GRAY + "Category: " + ChatColor.YELLOW + recipe.category());
         addRequiredIngredientsLore(player, recipe, lore);
         lore.add(" ");
         lore.addAll(TooltipUtil.clickInstructions("to select this recipe", null));
@@ -220,12 +426,19 @@ public class CookingRecipeSelectionGUI implements Listener {
         }
     }
 
-    private ItemStack emptyItem(boolean craftableOnly) {
+    private ItemStack emptyItem(boolean craftableOnly, String category) {
         List<String> lore = new ArrayList<>();
         lore.add(" ");
-        String message = craftableOnly
-                ? "No recipes match your current inventory."
-                : "No configured recipes are available for this workstation.";
+        String message;
+        if (craftableOnly && !"All".equalsIgnoreCase(category)) {
+            message = "No craftable recipes match the selected category.";
+        } else if (craftableOnly) {
+            message = "No recipes match your current inventory.";
+        } else if (!"All".equalsIgnoreCase(category)) {
+            message = "No recipes match the selected category.";
+        } else {
+            message = "No configured recipes are available for this workstation.";
+        }
         lore.addAll(TooltipUtil.bulletList(message));
         return GuiUtil.createGuiItem(Material.BARRIER, ChatColor.RED + "No Recipes", lore);
     }

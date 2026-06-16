@@ -9,6 +9,7 @@ public record CookingRecipe(
         String id,
         String displayName,
         Material displayMaterial,
+        String category,
         List<String> lore,
         List<CookingStage> stages,
         List<CookingReward> rewards
@@ -16,6 +17,9 @@ public record CookingRecipe(
     public CookingRecipe {
         if (displayName == null || displayName.isBlank()) {
             displayName = id;
+        }
+        if (category == null || category.isBlank()) {
+            category = "Misc";
         }
         lore = List.copyOf(lore == null ? List.of() : lore);
         stages = List.copyOf(stages == null ? List.of() : stages);

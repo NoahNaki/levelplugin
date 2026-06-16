@@ -69,8 +69,9 @@ public class CookingConfigLoader {
                 continue;
             }
             String displayName = section.getString("display-name", section.getString("name", id));
+            String category = section.getString("category", "Misc");
             List<String> lore = parseLore(section);
-            recipes.add(new CookingRecipe(id, displayName, display, lore, stages, rewards));
+            recipes.add(new CookingRecipe(id, displayName, display, category, lore, stages, rewards));
         }
         return recipes;
     }

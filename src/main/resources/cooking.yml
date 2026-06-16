@@ -8,8 +8,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: WHEAT
-            amount: 3
+        - material: WHEAT
+          amount: 3
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -24,6 +24,7 @@ recipes:
         nexo-item-id: flour
         amount: 2
 
+    category: Ingredients
   churn_butter:
     display-name: Butter
     display-material: MILK_BUCKET
@@ -32,8 +33,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: MILK_BUCKET
-            amount: 1
+        - material: MILK_BUCKET
+          amount: 1
       2:
         type: WAIT
         duration-ticks: 60
@@ -43,6 +44,7 @@ recipes:
         nexo-item-id: butter
         amount: 1
 
+    category: Ingredients
   slice_apples:
     display-name: Apple Slices
     display-material: APPLE
@@ -51,8 +53,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: APPLE
-            amount: 2
+        - material: APPLE
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -67,6 +69,7 @@ recipes:
         nexo-item-id: apple_slice
         amount: 4
 
+    category: Ingredients
   bake_baguette:
     display-name: Baguette
     display-material: BREAD
@@ -75,9 +78,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -93,6 +96,7 @@ recipes:
         nexo-item-id: baguette
         amount: 1
 
+    category: Bread & Pastries
   bake_full_bread:
     display-name: Full Bread
     display-material: BREAD
@@ -101,12 +105,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -122,26 +126,28 @@ recipes:
         nexo-item-id: full_bread
         amount: 1
 
+    category: Bread & Pastries
   bake_apple_pie:
     display-name: Apple Pie
     display-material: PUMPKIN_PIE
-    description: Combine prepared flour, butter, and apple slices into a dessert.
+    description: Combine prepared flour, butter, and apple slices into a 
+      dessert.
     stages:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
       2:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: apple_slice
-            amount: 3
+        - material: PAPER
+          nexo-item-id: apple_slice
+          amount: 3
       3:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -159,6 +165,7 @@ recipes:
         nexo-item-id: apple_pie
         amount: 1
 
+    category: Desserts
   cut_apple_pie:
     display-name: Apple Pie Slices
     display-material: PUMPKIN_PIE
@@ -167,9 +174,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: apple_pie
-            amount: 1
+        - material: PAPER
+          nexo-item-id: apple_pie
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -184,6 +191,7 @@ recipes:
         nexo-item-id: apple_pie_slice
         amount: 4
 
+    category: Desserts
   bake_blueberry_muffins:
     display-name: Blueberry Muffins
     display-material: CAKE
@@ -192,17 +200,17 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
       2:
         type: INSERT_ITEM
         requirements:
-          - material: SWEET_BERRIES
-            amount: 3
+        - material: SWEET_BERRIES
+          amount: 3
       3:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -218,6 +226,7 @@ recipes:
         nexo-item-id: blueberry_muffin
         amount: 3
 
+    category: Desserts
   prepare_salmon_slice:
     display-name: Salmon Slices
     display-material: SALMON
@@ -226,8 +235,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: SALMON
-            amount: 2
+        - material: SALMON
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -242,6 +251,7 @@ recipes:
         nexo-item-id: salmon_slice
         amount: 4
 
+    category: Seafood
   roll_salmon_sushi:
     display-name: Salmon Sushi
     display-material: DRIED_KELP
@@ -250,11 +260,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: salmon_slice
-            amount: 2
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: salmon_slice
+          amount: 2
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -267,6 +277,7 @@ recipes:
         nexo-item-id: salmon_sushi
         amount: 2
 
+    category: Seafood
   cook_steak_dinner:
     display-name: Steak Dinner
     display-material: COOKED_BEEF
@@ -275,11 +286,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: BEEF
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
+        - material: BEEF
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -297,6 +308,7 @@ recipes:
         nexo-item-id: steak_dinner
         amount: 1
 
+    category: Meat & Fast Food
   slice_carrots:
     display-name: Sliced Carrots
     display-material: CARROT
@@ -305,8 +317,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: CARROT
-            amount: 3
+        - material: CARROT
+          amount: 3
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -321,6 +333,7 @@ recipes:
         nexo-item-id: sliced_carrot
         amount: 4
 
+    category: Ingredients
   make_cheddar:
     display-name: Cheddar
     display-material: MILK_BUCKET
@@ -329,8 +342,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: MILK_BUCKET
-            amount: 1
+        - material: MILK_BUCKET
+          amount: 1
       2:
         type: WAIT
         duration-ticks: 80
@@ -340,6 +353,7 @@ recipes:
         nexo-item-id: cheddar
         amount: 1
 
+    category: Ingredients
   cook_sausage:
     display-name: Cooked Sausage
     display-material: PORKCHOP
@@ -348,8 +362,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PORKCHOP
-            amount: 2
+        - material: PORKCHOP
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -364,6 +378,7 @@ recipes:
         nexo-item-id: cooked_sausage
         amount: 2
 
+    category: Meat & Fast Food
   slice_sausage:
     display-name: Sliced Sausage
     display-material: COOKED_PORKCHOP
@@ -372,9 +387,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cooked_sausage
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cooked_sausage
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -389,6 +404,7 @@ recipes:
         nexo-item-id: sliced_sausage
         amount: 3
 
+    category: Meat & Fast Food
   make_pancakes:
     display-name: Pancakes
     display-material: HONEY_BOTTLE
@@ -397,14 +413,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
-          - material: SUGAR
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -420,6 +436,7 @@ recipes:
         nexo-item-id: pancakes
         amount: 2
 
+    category: Desserts
   bake_waffle:
     display-name: Waffle
     display-material: HONEYCOMB
@@ -428,12 +445,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -446,6 +463,7 @@ recipes:
         nexo-item-id: waffle
         amount: 2
 
+    category: Breakfast
   bake_brownie:
     display-name: Brownie
     display-material: COOKIE
@@ -454,14 +472,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
-          - material: COCOA_BEANS
-            amount: 3
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
+        - material: COCOA_BEANS
+          amount: 3
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -477,6 +495,7 @@ recipes:
         nexo-item-id: brownie
         amount: 2
 
+    category: Desserts
   bake_chocolate_cake:
     display-name: Chocolate Cake
     display-material: CAKE
@@ -485,14 +504,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 3
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
-          - material: COCOA_BEANS
-            amount: 4
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 3
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
+        - material: COCOA_BEANS
+          amount: 4
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -508,6 +527,7 @@ recipes:
         nexo-item-id: chocolate_cake
         amount: 1
 
+    category: Desserts
   slice_chocolate_cake:
     display-name: Chocolate Cake Slice
     display-material: CAKE
@@ -516,9 +536,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: chocolate_cake
-            amount: 1
+        - material: PAPER
+          nexo-item-id: chocolate_cake
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -533,6 +553,7 @@ recipes:
         nexo-item-id: chocolate_cake_slice
         amount: 6
 
+    category: Desserts
   bake_chocolate_donut:
     display-name: Chocolate Donut
     display-material: COOKIE
@@ -541,14 +562,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
-          - material: COCOA_BEANS
-            amount: 2
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
+        - material: COCOA_BEANS
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -563,6 +584,7 @@ recipes:
         nexo-item-id: chocolate_donut
         amount: 3
 
+    category: Desserts
   bake_carrot_cake:
     display-name: Carrot Cake
     display-material: CAKE
@@ -571,15 +593,15 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
-          - material: PAPER
-            nexo-item-id: sliced_carrot
-            amount: 2
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
+        - material: PAPER
+          nexo-item-id: sliced_carrot
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -595,6 +617,7 @@ recipes:
         nexo-item-id: carrot_cake
         amount: 1
 
+    category: Desserts
   grill_cheeseburger:
     display-name: Cheeseburger
     display-material: COOKED_BEEF
@@ -603,14 +626,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: full_bread
-            amount: 1
-          - material: BEEF
-            amount: 1
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: full_bread
+          amount: 1
+        - material: BEEF
+          amount: 1
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -625,6 +648,7 @@ recipes:
         nexo-item-id: cheeseburger
         amount: 1
 
+    category: Meat & Fast Food
   assemble_hotdog:
     display-name: Hotdog
     display-material: BREAD
@@ -633,12 +657,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: baguette
-            amount: 1
-          - material: PAPER
-            nexo-item-id: cooked_sausage
-            amount: 1
+        - material: PAPER
+          nexo-item-id: baguette
+          amount: 1
+        - material: PAPER
+          nexo-item-id: cooked_sausage
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -651,6 +675,7 @@ recipes:
         nexo-item-id: hotdog
         amount: 1
 
+    category: Meat & Fast Food
   bake_cheese_pizza:
     display-name: Cheese Pizza
     display-material: BREAD
@@ -659,12 +684,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 3
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 3
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -680,6 +705,7 @@ recipes:
         nexo-item-id: cheese_pizza
         amount: 1
 
+    category: Pizza
   slice_cheese_pizza:
     display-name: Cheese Pizza Slice
     display-material: BREAD
@@ -688,9 +714,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cheese_pizza
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cheese_pizza
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -705,6 +731,7 @@ recipes:
         nexo-item-id: cheese_pizza_slice
         amount: 6
 
+    category: Pizza
   bake_pepperoni_pizza:
     display-name: Pepperoni Pizza
     display-material: BREAD
@@ -713,12 +740,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cheese_pizza
-            amount: 1
-          - material: PAPER
-            nexo-item-id: sliced_sausage
-            amount: 2
+        - material: PAPER
+          nexo-item-id: cheese_pizza
+          amount: 1
+        - material: PAPER
+          nexo-item-id: sliced_sausage
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -736,6 +763,7 @@ recipes:
         nexo-item-id: pepperoni_pizza
         amount: 1
 
+    category: Pizza
   slice_pepperoni_pizza:
     display-name: Pepperoni Pizza Slice
     display-material: BREAD
@@ -744,9 +772,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: pepperoni_pizza
-            amount: 1
+        - material: PAPER
+          nexo-item-id: pepperoni_pizza
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -761,6 +789,7 @@ recipes:
         nexo-item-id: pepperoni_pizza_slice
         amount: 6
 
+    category: Pizza
   simmer_tomato_soup:
     display-name: Tomato Soup
     display-material: BEETROOT_SOUP
@@ -769,10 +798,10 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: BEETROOT
-            amount: 3
-          - material: BOWL
-            amount: 1
+        - material: BEETROOT
+          amount: 3
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -788,6 +817,7 @@ recipes:
         nexo-item-id: tomato_soup
         amount: 1
 
+    category: Soups & Vegetables
   cook_chicken_soup:
     display-name: Chicken Soup
     display-material: RABBIT_STEW
@@ -796,10 +826,10 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: CHICKEN
-            amount: 2
-          - material: BOWL
-            amount: 1
+        - material: CHICKEN
+          amount: 2
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -815,6 +845,7 @@ recipes:
         nexo-item-id: chicken_soup
         amount: 1
 
+    category: Soups & Vegetables
   bake_croissants:
     display-name: Croissants
     display-material: BREAD
@@ -823,12 +854,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 3
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 2
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 3
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -844,6 +875,7 @@ recipes:
         nexo-item-id: croissants
         amount: 2
 
+    category: Bread & Pastries
   bake_chocolate_croissant:
     display-name: Chocolate Croissant
     display-material: BREAD
@@ -852,11 +884,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: croissants
-            amount: 1
-          - material: COCOA_BEANS
-            amount: 2
+        - material: PAPER
+          nexo-item-id: croissants
+          amount: 1
+        - material: COCOA_BEANS
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -871,6 +903,7 @@ recipes:
         nexo-item-id: chocolate_croissant
         amount: 2
 
+    category: Bread & Pastries
   fry_fries:
     display-name: Fries
     display-material: POTATO
@@ -879,8 +912,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: POTATO
-            amount: 3
+        - material: POTATO
+          amount: 3
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -895,6 +928,7 @@ recipes:
         nexo-item-id: fries
         amount: 2
 
+    category: Snacks
   make_potato_salad:
     display-name: Potato Salad
     display-material: POTATO
@@ -903,11 +937,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: POTATO
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
+        - material: POTATO
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -920,6 +954,7 @@ recipes:
         nexo-item-id: potato_salad
         amount: 1
 
+    category: Soups & Vegetables
   make_beetroot_salad:
     display-name: Beetroot Salad
     display-material: BEETROOT
@@ -928,10 +963,10 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: BEETROOT
-            amount: 3
-          - material: BOWL
-            amount: 1
+        - material: BEETROOT
+          amount: 3
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -944,6 +979,7 @@ recipes:
         nexo-item-id: beetroot_salad
         amount: 1
 
+    category: Soups & Vegetables
   bake_blueberry_pie:
     display-name: Blueberry Pie
     display-material: PUMPKIN_PIE
@@ -952,14 +988,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
-          - material: SWEET_BERRIES
-            amount: 4
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
+        - material: SWEET_BERRIES
+          amount: 4
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -977,6 +1013,7 @@ recipes:
         nexo-item-id: blueberry_pie
         amount: 1
 
+    category: Desserts
   slice_blueberry_pie:
     display-name: Blueberry Pie Slice
     display-material: PUMPKIN_PIE
@@ -985,9 +1022,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: blueberry_pie
-            amount: 1
+        - material: PAPER
+          nexo-item-id: blueberry_pie
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1002,6 +1039,7 @@ recipes:
         nexo-item-id: blueberry_pie_slice
         amount: 4
 
+    category: Desserts
   make_hamburger:
     display-name: Hamburger
     display-material: COOKED_BEEF
@@ -1010,11 +1048,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: full_bread
-            amount: 1
-          - material: BEEF
-            amount: 1
+        - material: PAPER
+          nexo-item-id: full_bread
+          amount: 1
+        - material: BEEF
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1029,6 +1067,7 @@ recipes:
         nexo-item-id: hamburger
         amount: 1
 
+    category: Meat & Fast Food
   make_hamburger_with_barbecue_sauce:
     display-name: BBQ Hamburger
     display-material: COOKED_BEEF
@@ -1037,11 +1076,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: hamburger
-            amount: 1
-          - material: HONEY_BOTTLE
-            amount: 1
+        - material: PAPER
+          nexo-item-id: hamburger
+          amount: 1
+        - material: HONEY_BOTTLE
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1054,6 +1093,7 @@ recipes:
         nexo-item-id: hamburger_with_barbecue_sauce
         amount: 1
 
+    category: Meat & Fast Food
   bake_churro:
     display-name: Churro
     display-material: COOKIE
@@ -1062,11 +1102,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: SUGAR
-            amount: 2
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: SUGAR
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1081,6 +1121,7 @@ recipes:
         nexo-item-id: churro
         amount: 3
 
+    category: Desserts
   dip_chocolate_churro:
     display-name: Chocolate Churro
     display-material: COOKIE
@@ -1089,11 +1130,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: churro
-            amount: 2
-          - material: COCOA_BEANS
-            amount: 2
+        - material: PAPER
+          nexo-item-id: churro
+          amount: 2
+        - material: COCOA_BEANS
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1106,6 +1147,7 @@ recipes:
         nexo-item-id: chocolate_churro
         amount: 2
 
+    category: Desserts
   bake_plain_muffins:
     display-name: Plain Muffins
     display-material: CAKE
@@ -1114,12 +1156,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1135,6 +1177,7 @@ recipes:
         nexo-item-id: plain_muffin
         amount: 3
 
+    category: Desserts
   bake_chocolate_muffins:
     display-name: Chocolate Muffins
     display-material: CAKE
@@ -1143,11 +1186,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: plain_muffin
-            amount: 2
-          - material: COCOA_BEANS
-            amount: 2
+        - material: PAPER
+          nexo-item-id: plain_muffin
+          amount: 2
+        - material: COCOA_BEANS
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1160,6 +1203,7 @@ recipes:
         nexo-item-id: chocolate_muffin
         amount: 2
 
+    category: Desserts
   bake_filled_pancake:
     display-name: Filled Pancake
     display-material: HONEY_BOTTLE
@@ -1168,11 +1212,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: pancakes
-            amount: 1
-          - material: SWEET_BERRIES
-            amount: 2
+        - material: PAPER
+          nexo-item-id: pancakes
+          amount: 1
+        - material: SWEET_BERRIES
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1185,6 +1229,7 @@ recipes:
         nexo-item-id: filled_pancake
         amount: 1
 
+    category: Desserts
   bake_hamcheese_croissant:
     display-name: Ham Cheese Croissant
     display-material: BREAD
@@ -1193,14 +1238,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: croissants
-            amount: 1
-          - material: PORKCHOP
-            amount: 1
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: croissants
+          amount: 1
+        - material: PORKCHOP
+          amount: 1
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1215,6 +1260,7 @@ recipes:
         nexo-item-id: hamcheese_croissant
         amount: 1
 
+    category: Bread & Pastries
   cook_chicken_leg:
     display-name: Cooked Chicken Leg
     display-material: CHICKEN
@@ -1223,8 +1269,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: CHICKEN
-            amount: 1
+        - material: CHICKEN
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1239,6 +1285,7 @@ recipes:
         nexo-item-id: cooked_chicken_leg
         amount: 1
 
+    category: Meat & Fast Food
   cook_whole_chicken:
     display-name: Cooked Chicken
     display-material: CHICKEN
@@ -1247,8 +1294,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: CHICKEN
-            amount: 2
+        - material: CHICKEN
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1263,6 +1310,7 @@ recipes:
         nexo-item-id: cooked_chicken
         amount: 1
 
+    category: Meat & Fast Food
   bake_bacon:
     display-name: Baked Bacon
     display-material: PORKCHOP
@@ -1271,8 +1319,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PORKCHOP
-            amount: 2
+        - material: PORKCHOP
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1287,6 +1335,7 @@ recipes:
         nexo-item-id: baked_bacon
         amount: 2
 
+    category: Meat & Fast Food
   fry_baked_egg:
     display-name: Baked Egg
     display-material: EGG
@@ -1295,8 +1344,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: EGG
-            amount: 2
+        - material: EGG
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1311,6 +1360,7 @@ recipes:
         nexo-item-id: baked_egg
         amount: 2
 
+    category: Meat & Fast Food
   make_eggs_and_bacon:
     display-name: Eggs and Bacon
     display-material: EGG
@@ -1319,12 +1369,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: baked_egg
-            amount: 1
-          - material: PAPER
-            nexo-item-id: baked_bacon
-            amount: 1
+        - material: PAPER
+          nexo-item-id: baked_egg
+          amount: 1
+        - material: PAPER
+          nexo-item-id: baked_bacon
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1337,6 +1387,7 @@ recipes:
         nexo-item-id: eggs_and_bacon
         amount: 1
 
+    category: Meat & Fast Food
   make_chocolate_chip:
     display-name: Chocolate Chips
     display-material: COCOA_BEANS
@@ -1345,10 +1396,10 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: COCOA_BEANS
-            amount: 3
-          - material: SUGAR
-            amount: 1
+        - material: COCOA_BEANS
+          amount: 3
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1361,6 +1412,7 @@ recipes:
         nexo-item-id: chocolate_chip
         amount: 3
 
+    category: Ingredients
   bake_chocolate_chip_muffins:
     display-name: Chocolate Chip Muffins
     display-material: CAKE
@@ -1369,12 +1421,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: plain_muffin
-            amount: 2
-          - material: PAPER
-            nexo-item-id: chocolate_chip
-            amount: 2
+        - material: PAPER
+          nexo-item-id: plain_muffin
+          amount: 2
+        - material: PAPER
+          nexo-item-id: chocolate_chip
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1387,6 +1439,7 @@ recipes:
         nexo-item-id: chocolate_chip_muffin
         amount: 2
 
+    category: Desserts
   make_chocolate_egg:
     display-name: Chocolate Egg
     display-material: EGG
@@ -1395,12 +1448,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: EGG
-            amount: 1
-          - material: COCOA_BEANS
-            amount: 3
-          - material: SUGAR
-            amount: 1
+        - material: EGG
+          amount: 1
+        - material: COCOA_BEANS
+          amount: 3
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1413,6 +1466,7 @@ recipes:
         nexo-item-id: chocolate_egg
         amount: 1
 
+    category: Meat & Fast Food
   bake_plain_cake:
     display-name: Plain Cake
     display-material: CAKE
@@ -1421,14 +1475,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 3
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
-          - material: SUGAR
-            amount: 2
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 3
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
+        - material: SUGAR
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1441,6 +1495,7 @@ recipes:
         nexo-item-id: plain_cake
         amount: 1
 
+    category: Desserts
   slice_plain_cake:
     display-name: Plain Cake Slice
     display-material: CAKE
@@ -1449,9 +1504,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: plain_cake
-            amount: 1
+        - material: PAPER
+          nexo-item-id: plain_cake
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1466,6 +1521,7 @@ recipes:
         nexo-item-id: plain_cake_slice
         amount: 4
 
+    category: Desserts
   bake_red_velvet_cake:
     display-name: Red Velvet Cake
     display-material: CAKE
@@ -1474,13 +1530,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: plain_cake
-            amount: 1
-          - material: BEETROOT
-            amount: 2
-          - material: COCOA_BEANS
-            amount: 2
+        - material: PAPER
+          nexo-item-id: plain_cake
+          amount: 1
+        - material: BEETROOT
+          amount: 2
+        - material: COCOA_BEANS
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1493,6 +1549,7 @@ recipes:
         nexo-item-id: red_velvet_cake
         amount: 1
 
+    category: Desserts
   slice_red_velvet_cake:
     display-name: Red Velvet Cake Slice
     display-material: CAKE
@@ -1501,9 +1558,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: red_velvet_cake
-            amount: 1
+        - material: PAPER
+          nexo-item-id: red_velvet_cake
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1518,6 +1575,7 @@ recipes:
         nexo-item-id: red_velvet_cake_slice
         amount: 4
 
+    category: Desserts
   bake_white_cheesecake:
     display-name: White Cheesecake
     display-material: CAKE
@@ -1526,14 +1584,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: plain_cake
-            amount: 1
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 2
-          - material: SUGAR
-            amount: 2
+        - material: PAPER
+          nexo-item-id: plain_cake
+          amount: 1
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 2
+        - material: SUGAR
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1546,6 +1604,7 @@ recipes:
         nexo-item-id: white_cheesecake
         amount: 1
 
+    category: Desserts
   slice_white_cheesecake:
     display-name: White Cheesecake Slice
     display-material: CAKE
@@ -1554,9 +1613,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: white_cheesecake
-            amount: 1
+        - material: PAPER
+          nexo-item-id: white_cheesecake
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1571,6 +1630,7 @@ recipes:
         nexo-item-id: white_cheesecake_slice
         amount: 4
 
+    category: Desserts
   bake_lava_cake:
     display-name: Lava Cake
     display-material: CAKE
@@ -1579,12 +1639,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: chocolate_cake
-            amount: 1
-          - material: PAPER
-            nexo-item-id: chocolate_chip
-            amount: 3
+        - material: PAPER
+          nexo-item-id: chocolate_cake
+          amount: 1
+        - material: PAPER
+          nexo-item-id: chocolate_chip
+          amount: 3
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1599,6 +1659,7 @@ recipes:
         nexo-item-id: lava_cake
         amount: 1
 
+    category: Desserts
   make_tiramisu:
     display-name: Tiramisu
     display-material: CAKE
@@ -1607,13 +1668,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: plain_cake_slice
-            amount: 2
-          - material: COCOA_BEANS
-            amount: 2
-          - material: MILK_BUCKET
-            amount: 1
+        - material: PAPER
+          nexo-item-id: plain_cake_slice
+          amount: 2
+        - material: COCOA_BEANS
+          amount: 2
+        - material: MILK_BUCKET
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1626,6 +1687,7 @@ recipes:
         nexo-item-id: tiramisu
         amount: 1
 
+    category: Desserts
   bake_brown_bread:
     display-name: Brown Bread
     display-material: BREAD
@@ -1634,11 +1696,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: WHEAT
-            amount: 2
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: WHEAT
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1651,6 +1713,7 @@ recipes:
         nexo-item-id: brown_bread
         amount: 1
 
+    category: Bread & Pastries
   slice_brown_bread:
     display-name: Brown Bread Slice
     display-material: BREAD
@@ -1659,9 +1722,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: brown_bread
-            amount: 1
+        - material: PAPER
+          nexo-item-id: brown_bread
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1676,6 +1739,7 @@ recipes:
         nexo-item-id: brown_bread_slice
         amount: 4
 
+    category: Bread & Pastries
   bake_white_bread:
     display-name: White Bread
     display-material: BREAD
@@ -1684,12 +1748,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1702,6 +1766,7 @@ recipes:
         nexo-item-id: white_bread
         amount: 1
 
+    category: Bread & Pastries
   slice_white_bread:
     display-name: White Bread Slice
     display-material: BREAD
@@ -1710,9 +1775,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: white_bread
-            amount: 1
+        - material: PAPER
+          nexo-item-id: white_bread
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1727,6 +1792,7 @@ recipes:
         nexo-item-id: white_bread_slice
         amount: 4
 
+    category: Bread & Pastries
   make_grilled_cheese_sandwich:
     display-name: Grilled Cheese Sandwich
     display-material: BREAD
@@ -1735,12 +1801,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: white_bread_slice
-            amount: 2
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: white_bread_slice
+          amount: 2
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1755,6 +1821,7 @@ recipes:
         nexo-item-id: grilled_cheese_sandwich
         amount: 1
 
+    category: Bread & Pastries
   cut_cheese_slice:
     display-name: Cheese Slice
     display-material: PAPER
@@ -1763,9 +1830,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1780,6 +1847,7 @@ recipes:
         nexo-item-id: cheese_slice
         amount: 3
 
+    category: Ingredients
   make_cheese_wheel:
     display-name: Cheese Wheel
     display-material: PAPER
@@ -1788,9 +1856,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 4
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 4
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1803,6 +1871,7 @@ recipes:
         nexo-item-id: cheese_wheel
         amount: 1
 
+    category: Ingredients
   make_cheese_pasta:
     display-name: Cheese Pasta
     display-material: BOWL
@@ -1811,14 +1880,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 2
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 2
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1831,6 +1900,7 @@ recipes:
         nexo-item-id: cheese_pasta
         amount: 1
 
+    category: Pasta
   make_pasta_tomato:
     display-name: Pasta Tomato
     display-material: BOWL
@@ -1839,14 +1909,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: tomato
-            amount: 2
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: tomato
+          amount: 2
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1859,6 +1929,7 @@ recipes:
         nexo-item-id: pasta_tomato
         amount: 1
 
+    category: Pasta
   make_spaghetti_and_meatballs:
     display-name: Spaghetti and Meatballs
     display-material: BOWL
@@ -1867,11 +1938,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: pasta_tomato
-            amount: 1
-          - material: BEEF
-            amount: 2
+        - material: PAPER
+          nexo-item-id: pasta_tomato
+          amount: 1
+        - material: BEEF
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1886,6 +1957,7 @@ recipes:
         nexo-item-id: spaghetti_and_meatballs
         amount: 1
 
+    category: Meat & Fast Food
   bake_tomato_pizza:
     display-name: Tomato Pizza
     display-material: BREAD
@@ -1894,15 +1966,15 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: tomato
-            amount: 3
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: tomato
+          amount: 3
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1915,6 +1987,7 @@ recipes:
         nexo-item-id: tomato_pizza
         amount: 1
 
+    category: Pizza
   bake_egg_pizza:
     display-name: Egg Pizza
     display-material: BREAD
@@ -1923,11 +1996,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cheese_pizza
-            amount: 1
-          - material: EGG
-            amount: 2
+        - material: PAPER
+          nexo-item-id: cheese_pizza
+          amount: 1
+        - material: EGG
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1940,6 +2013,7 @@ recipes:
         nexo-item-id: egg_pizza
         amount: 1
 
+    category: Pizza
   slice_egg_pizza:
     display-name: Egg Pizza Slice
     display-material: BREAD
@@ -1948,9 +2022,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: egg_pizza
-            amount: 1
+        - material: PAPER
+          nexo-item-id: egg_pizza
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -1965,6 +2039,7 @@ recipes:
         nexo-item-id: egg_pizza_slice
         amount: 4
 
+    category: Pizza
   season_cheese_pizza:
     display-name: Seasoned Cheese Pizza
     display-material: BREAD
@@ -1973,12 +2048,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cheese_pizza
-            amount: 1
-          - material: PAPER
-            nexo-item-id: garlic
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cheese_pizza
+          amount: 1
+        - material: PAPER
+          nexo-item-id: garlic
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -1991,6 +2066,7 @@ recipes:
         nexo-item-id: seasoned_cheese_pizza
         amount: 1
 
+    category: Pizza
   season_tomato_pizza:
     display-name: Seasoned Tomato Pizza
     display-material: BREAD
@@ -1999,12 +2075,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: tomato_pizza
-            amount: 1
-          - material: PAPER
-            nexo-item-id: garlic
-            amount: 1
+        - material: PAPER
+          nexo-item-id: tomato_pizza
+          amount: 1
+        - material: PAPER
+          nexo-item-id: garlic
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2017,6 +2093,7 @@ recipes:
         nexo-item-id: seasoned_tomato_pizza
         amount: 1
 
+    category: Pizza
   season_egg_pizza:
     display-name: Seasoned Egg Pizza
     display-material: BREAD
@@ -2025,12 +2102,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: egg_pizza
-            amount: 1
-          - material: PAPER
-            nexo-item-id: garlic
-            amount: 1
+        - material: PAPER
+          nexo-item-id: egg_pizza
+          amount: 1
+        - material: PAPER
+          nexo-item-id: garlic
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2043,6 +2120,7 @@ recipes:
         nexo-item-id: seasoned_egg_pizza
         amount: 1
 
+    category: Pizza
   make_barbecue_sauce:
     display-name: Barbecue Sauce
     display-material: HONEY_BOTTLE
@@ -2051,13 +2129,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: HONEY_BOTTLE
-            amount: 1
-          - material: PAPER
-            nexo-item-id: tomato
-            amount: 2
-          - material: SUGAR
-            amount: 1
+        - material: HONEY_BOTTLE
+          amount: 1
+        - material: PAPER
+          nexo-item-id: tomato
+          amount: 2
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2070,6 +2148,7 @@ recipes:
         nexo-item-id: barbecue_sauce
         amount: 1
 
+    category: Ingredients
   make_ketchup:
     display-name: Ketchup
     display-material: HONEY_BOTTLE
@@ -2078,11 +2157,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: tomato
-            amount: 3
-          - material: SUGAR
-            amount: 1
+        - material: PAPER
+          nexo-item-id: tomato
+          amount: 3
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2095,6 +2174,7 @@ recipes:
         nexo-item-id: ketchup
         amount: 1
 
+    category: Ingredients
   make_mustard:
     display-name: Mustard
     display-material: HONEY_BOTTLE
@@ -2103,10 +2183,10 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: WHEAT_SEEDS
-            amount: 3
-          - material: HONEY_BOTTLE
-            amount: 1
+        - material: WHEAT_SEEDS
+          amount: 3
+        - material: HONEY_BOTTLE
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2119,6 +2199,7 @@ recipes:
         nexo-item-id: mustard
         amount: 1
 
+    category: Ingredients
   assemble_mustard_hotdog:
     display-name: Mustard Hotdog
     display-material: BREAD
@@ -2127,12 +2208,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: hotdog
-            amount: 1
-          - material: PAPER
-            nexo-item-id: mustard
-            amount: 1
+        - material: PAPER
+          nexo-item-id: hotdog
+          amount: 1
+        - material: PAPER
+          nexo-item-id: mustard
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2145,6 +2226,7 @@ recipes:
         nexo-item-id: mustard_hotdog
         amount: 1
 
+    category: Meat & Fast Food
   assemble_jalapeno_hotdog:
     display-name: Jalapeno Hotdog
     display-material: BREAD
@@ -2153,12 +2235,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: hotdog
-            amount: 1
-          - material: PAPER
-            nexo-item-id: green_chili_pepper
-            amount: 1
+        - material: PAPER
+          nexo-item-id: hotdog
+          amount: 1
+        - material: PAPER
+          nexo-item-id: green_chili_pepper
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2171,6 +2253,7 @@ recipes:
         nexo-item-id: jalapeno_hotdog
         amount: 1
 
+    category: Meat & Fast Food
   batter_corndog:
     display-name: Corndog
     display-material: BREAD
@@ -2179,12 +2262,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: hotdog
-            amount: 1
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 1
+        - material: PAPER
+          nexo-item-id: hotdog
+          amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2199,6 +2282,7 @@ recipes:
         nexo-item-id: corndog
         amount: 1
 
+    category: Meat & Fast Food
   fry_chicken_nuggets:
     display-name: Chicken Nuggets
     display-material: CHICKEN
@@ -2207,11 +2291,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: CHICKEN
-            amount: 1
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 1
+        - material: CHICKEN
+          amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2226,6 +2310,7 @@ recipes:
         nexo-item-id: chicken_nuggets
         amount: 4
 
+    category: Meat & Fast Food
   fry_onion_rings:
     display-name: Onion Rings
     display-material: BREAD
@@ -2234,12 +2319,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: brown_onion
-            amount: 1
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 1
+        - material: PAPER
+          nexo-item-id: brown_onion
+          amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2254,6 +2339,7 @@ recipes:
         nexo-item-id: onion_rings
         amount: 3
 
+    category: Snacks
   cook_hotwing:
     display-name: Hotwing
     display-material: CHICKEN
@@ -2262,12 +2348,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cooked_chicken_leg
-            amount: 1
-          - material: PAPER
-            nexo-item-id: red_chili_pepper
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cooked_chicken_leg
+          amount: 1
+        - material: PAPER
+          nexo-item-id: red_chili_pepper
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2282,6 +2368,7 @@ recipes:
         nexo-item-id: hotwing
         amount: 1
 
+    category: Meat & Fast Food
   make_honey_mustard_hotwing:
     display-name: Honey Mustard Hotwing
     display-material: CHICKEN
@@ -2290,14 +2377,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: hotwing
-            amount: 1
-          - material: PAPER
-            nexo-item-id: mustard
-            amount: 1
-          - material: HONEY_BOTTLE
-            amount: 1
+        - material: PAPER
+          nexo-item-id: hotwing
+          amount: 1
+        - material: PAPER
+          nexo-item-id: mustard
+          amount: 1
+        - material: HONEY_BOTTLE
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2310,6 +2397,7 @@ recipes:
         nexo-item-id: honey_mustard_hotwing
         amount: 1
 
+    category: Meat & Fast Food
   cook_salmon:
     display-name: Cooked Salmon
     display-material: SALMON
@@ -2318,8 +2406,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: SALMON
-            amount: 2
+        - material: SALMON
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2334,6 +2422,7 @@ recipes:
         nexo-item-id: cooked_salmon
         amount: 2
 
+    category: Seafood
   cook_cod:
     display-name: Cod
     display-material: COD
@@ -2342,8 +2431,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: COD
-            amount: 2
+        - material: COD
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2358,6 +2447,7 @@ recipes:
         nexo-item-id: cod
         amount: 2
 
+    category: Seafood
   cook_shrimp:
     display-name: Cooked Shrimp
     display-material: COD
@@ -2366,9 +2456,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: raw_shrim
-            amount: 2
+        - material: PAPER
+          nexo-item-id: raw_shrim
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2383,6 +2473,7 @@ recipes:
         nexo-item-id: cooked_shrimp
         amount: 2
 
+    category: Seafood
   make_fish_dinner:
     display-name: Fish Dinner
     display-material: BOWL
@@ -2391,13 +2482,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cooked_salmon
-            amount: 1
-          - material: POTATO
-            amount: 2
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cooked_salmon
+          amount: 1
+        - material: POTATO
+          amount: 2
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2410,6 +2501,7 @@ recipes:
         nexo-item-id: fish_dinner
         amount: 1
 
+    category: Seafood
   make_finished_salmon_dish:
     display-name: Finished Salmon Dish
     display-material: BOWL
@@ -2418,13 +2510,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cooked_salmon
-            amount: 1
-          - material: CARROT
-            amount: 1
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cooked_salmon
+          amount: 1
+        - material: CARROT
+          amount: 1
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2437,6 +2529,7 @@ recipes:
         nexo-item-id: finished_salmon_dish
         amount: 1
 
+    category: Seafood
   cook_steak:
     display-name: Cooked Steak
     display-material: COOKED_BEEF
@@ -2445,8 +2538,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: BEEF
-            amount: 2
+        - material: BEEF
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2461,6 +2554,7 @@ recipes:
         nexo-item-id: cooked_steak
         amount: 2
 
+    category: Meat & Fast Food
   cook_ribs:
     display-name: Cooked Ribs
     display-material: PORKCHOP
@@ -2469,8 +2563,8 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PORKCHOP
-            amount: 3
+        - material: PORKCHOP
+          amount: 3
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2485,6 +2579,7 @@ recipes:
         nexo-item-id: cooked_ribs
         amount: 2
 
+    category: Meat & Fast Food
   make_meatball:
     display-name: Meatball
     display-material: BEEF
@@ -2493,11 +2588,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: BEEF
-            amount: 2
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 1
+        - material: BEEF
+          amount: 2
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2510,6 +2605,7 @@ recipes:
         nexo-item-id: meatball
         amount: 3
 
+    category: Meat & Fast Food
   bake_meat_pie:
     display-name: Meat Pie
     display-material: PUMPKIN_PIE
@@ -2518,15 +2614,15 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: meatball
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: meatball
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2541,6 +2637,7 @@ recipes:
         nexo-item-id: meat_pie
         amount: 1
 
+    category: Meat & Fast Food
   bake_blueberry_pancake:
     display-name: Blueberry Pancake
     display-material: HONEY_BOTTLE
@@ -2549,11 +2646,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: pancakes
-            amount: 1
-          - material: SWEET_BERRIES
-            amount: 2
+        - material: PAPER
+          nexo-item-id: pancakes
+          amount: 1
+        - material: SWEET_BERRIES
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2566,6 +2663,7 @@ recipes:
         nexo-item-id: blueberry_pancake
         amount: 1
 
+    category: Desserts
   make_butter_waffle:
     display-name: Butter Waffle
     display-material: HONEY_BOTTLE
@@ -2574,12 +2672,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: waffle
-            amount: 1
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
+        - material: PAPER
+          nexo-item-id: waffle
+          amount: 1
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2592,6 +2690,7 @@ recipes:
         nexo-item-id: butter_waffle
         amount: 1
 
+    category: Breakfast
   make_syrup_waffle:
     display-name: Syrup Waffle
     display-material: HONEY_BOTTLE
@@ -2600,11 +2699,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: waffle
-            amount: 1
-          - material: HONEY_BOTTLE
-            amount: 1
+        - material: PAPER
+          nexo-item-id: waffle
+          amount: 1
+        - material: HONEY_BOTTLE
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2617,6 +2716,7 @@ recipes:
         nexo-item-id: syrup_waffle
         amount: 1
 
+    category: Breakfast
   make_cream_waffle:
     display-name: Cream Waffle
     display-material: HONEY_BOTTLE
@@ -2625,13 +2725,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: waffle
-            amount: 1
-          - material: MILK_BUCKET
-            amount: 1
-          - material: SUGAR
-            amount: 1
+        - material: PAPER
+          nexo-item-id: waffle
+          amount: 1
+        - material: MILK_BUCKET
+          amount: 1
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2644,6 +2744,7 @@ recipes:
         nexo-item-id: cream_waffle
         amount: 1
 
+    category: Breakfast
   make_ice_waffle:
     display-name: Ice Waffle
     display-material: HONEY_BOTTLE
@@ -2652,13 +2753,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: waffle
-            amount: 1
-          - material: SNOWBALL
-            amount: 2
-          - material: MILK_BUCKET
-            amount: 1
+        - material: PAPER
+          nexo-item-id: waffle
+          amount: 1
+        - material: SNOWBALL
+          amount: 2
+        - material: MILK_BUCKET
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2671,6 +2772,7 @@ recipes:
         nexo-item-id: ice_waffle
         amount: 1
 
+    category: Breakfast
   bake_powdered_donut:
     display-name: Powdered Donut
     display-material: COOKIE
@@ -2679,11 +2781,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: chocolate_donut
-            amount: 1
-          - material: SUGAR
-            amount: 2
+        - material: PAPER
+          nexo-item-id: chocolate_donut
+          amount: 1
+        - material: SUGAR
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2696,6 +2798,7 @@ recipes:
         nexo-item-id: powdered_donut
         amount: 1
 
+    category: Desserts
   fill_jam_donut:
     display-name: Jam Filled Donut
     display-material: COOKIE
@@ -2704,11 +2807,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: powdered_donut
-            amount: 1
-          - material: SWEET_BERRIES
-            amount: 2
+        - material: PAPER
+          nexo-item-id: powdered_donut
+          amount: 1
+        - material: SWEET_BERRIES
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2721,6 +2824,7 @@ recipes:
         nexo-item-id: jam_filled_donut
         amount: 1
 
+    category: Desserts
   fill_cream_donut:
     display-name: Cream Filled Donut
     display-material: COOKIE
@@ -2729,13 +2833,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: powdered_donut
-            amount: 1
-          - material: MILK_BUCKET
-            amount: 1
-          - material: SUGAR
-            amount: 1
+        - material: PAPER
+          nexo-item-id: powdered_donut
+          amount: 1
+        - material: MILK_BUCKET
+          amount: 1
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2748,6 +2852,7 @@ recipes:
         nexo-item-id: cream_filled_donut
         amount: 1
 
+    category: Desserts
   sprinkle_chocolate_donut:
     display-name: Sprinkled Chocolate Donut
     display-material: COOKIE
@@ -2756,14 +2861,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: chocolate_donut
-            amount: 1
-          - material: SUGAR
-            amount: 2
-          - material: PAPER
-            nexo-item-id: chocolate_chip
-            amount: 1
+        - material: PAPER
+          nexo-item-id: chocolate_donut
+          amount: 1
+        - material: SUGAR
+          amount: 2
+        - material: PAPER
+          nexo-item-id: chocolate_chip
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2776,6 +2881,7 @@ recipes:
         nexo-item-id: sprinkled_chocolate_donut
         amount: 1
 
+    category: Desserts
   make_blue_cheese:
     display-name: Blue Cheese
     display-material: PAPER
@@ -2784,11 +2890,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: MILK_BUCKET
-            amount: 1
-          - material: PAPER
-            nexo-item-id: salt
-            amount: 1
+        - material: MILK_BUCKET
+          amount: 1
+        - material: PAPER
+          nexo-item-id: salt
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2801,6 +2907,7 @@ recipes:
         nexo-item-id: blue_cheese
         amount: 1
 
+    category: Ingredients
   slice_blue_cheese:
     display-name: Blue Cheese Slice
     display-material: PAPER
@@ -2809,9 +2916,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: blue_cheese
-            amount: 1
+        - material: PAPER
+          nexo-item-id: blue_cheese
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2826,6 +2933,7 @@ recipes:
         nexo-item-id: blue_cheese_slice
         amount: 3
 
+    category: Ingredients
   make_goat_cheese:
     display-name: Goat Cheese
     display-material: PAPER
@@ -2834,11 +2942,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: MILK_BUCKET
-            amount: 1
-          - material: PAPER
-            nexo-item-id: salt
-            amount: 1
+        - material: MILK_BUCKET
+          amount: 1
+        - material: PAPER
+          nexo-item-id: salt
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2851,6 +2959,7 @@ recipes:
         nexo-item-id: goat_cheese
         amount: 1
 
+    category: Ingredients
   slice_goat_cheese:
     display-name: Goat Cheese Slice
     display-material: PAPER
@@ -2859,9 +2968,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: goat_cheese
-            amount: 1
+        - material: PAPER
+          nexo-item-id: goat_cheese
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -2876,6 +2985,7 @@ recipes:
         nexo-item-id: goat_cheese_slice
         amount: 3
 
+    category: Ingredients
   make_filled_egg:
     display-name: Filled Egg
     display-material: EGG
@@ -2884,12 +2994,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: baked_egg
-            amount: 1
-          - material: PAPER
-            nexo-item-id: cheese_slice
-            amount: 1
+        - material: PAPER
+          nexo-item-id: baked_egg
+          amount: 1
+        - material: PAPER
+          nexo-item-id: cheese_slice
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2902,6 +3012,7 @@ recipes:
         nexo-item-id: filled_egg
         amount: 2
 
+    category: Meat & Fast Food
   make_black_olive_filled_egg:
     display-name: Black Olive Filled Egg
     display-material: EGG
@@ -2910,12 +3021,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: filled_egg
-            amount: 1
-          - material: PAPER
-            nexo-item-id: black_olive
-            amount: 1
+        - material: PAPER
+          nexo-item-id: filled_egg
+          amount: 1
+        - material: PAPER
+          nexo-item-id: black_olive
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2928,6 +3039,7 @@ recipes:
         nexo-item-id: black_olive_filled_egg
         amount: 2
 
+    category: Meat & Fast Food
   make_caviar_cracker:
     display-name: Caviar Cracker
     display-material: COOKIE
@@ -2936,12 +3048,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cracker
-            amount: 1
-          - material: PAPER
-            nexo-item-id: caviar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cracker
+          amount: 1
+        - material: PAPER
+          nexo-item-id: caviar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2954,6 +3066,7 @@ recipes:
         nexo-item-id: caviar_cracker
         amount: 2
 
+    category: Seafood
   make_olive_cracker:
     display-name: Olive Cracker
     display-material: COOKIE
@@ -2962,12 +3075,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cracker
-            amount: 1
-          - material: PAPER
-            nexo-item-id: green_olive
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cracker
+          amount: 1
+        - material: PAPER
+          nexo-item-id: green_olive
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -2980,6 +3093,7 @@ recipes:
         nexo-item-id: olive_cracker
         amount: 2
 
+    category: Snacks
   make_pizza_cracker:
     display-name: Pizza Cracker
     display-material: COOKIE
@@ -2988,15 +3102,15 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cracker
-            amount: 1
-          - material: PAPER
-            nexo-item-id: tomato
-            amount: 1
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cracker
+          amount: 1
+        - material: PAPER
+          nexo-item-id: tomato
+          amount: 1
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3011,6 +3125,7 @@ recipes:
         nexo-item-id: pizza_cracker
         amount: 2
 
+    category: Pizza
   make_veggie_cracker:
     display-name: Veggie Cracker
     display-material: COOKIE
@@ -3019,14 +3134,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cracker
-            amount: 1
-          - material: CARROT
-            amount: 1
-          - material: PAPER
-            nexo-item-id: cucumber
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cracker
+          amount: 1
+        - material: CARROT
+          amount: 1
+        - material: PAPER
+          nexo-item-id: cucumber
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3039,6 +3154,7 @@ recipes:
         nexo-item-id: veggie_cracker
         amount: 2
 
+    category: Meat & Fast Food
   make_chocolate_pudding:
     display-name: Chocolate Pudding
     display-material: BOWL
@@ -3047,14 +3163,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: MILK_BUCKET
-            amount: 1
-          - material: COCOA_BEANS
-            amount: 2
-          - material: SUGAR
-            amount: 2
-          - material: BOWL
-            amount: 1
+        - material: MILK_BUCKET
+          amount: 1
+        - material: COCOA_BEANS
+          amount: 2
+        - material: SUGAR
+          amount: 2
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3067,6 +3183,7 @@ recipes:
         nexo-item-id: chocolate_pudding
         amount: 1
 
+    category: Desserts
   make_vanilla_pudding:
     display-name: Vanilla Pudding
     display-material: BOWL
@@ -3075,12 +3192,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: MILK_BUCKET
-            amount: 1
-          - material: SUGAR
-            amount: 2
-          - material: BOWL
-            amount: 1
+        - material: MILK_BUCKET
+          amount: 1
+        - material: SUGAR
+          amount: 2
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3093,6 +3210,7 @@ recipes:
         nexo-item-id: vanilla_pudding
         amount: 1
 
+    category: Desserts
   make_brown_pudding:
     display-name: Brown Pudding
     display-material: BOWL
@@ -3101,12 +3219,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: chocolate_pudding
-            amount: 1
-          - material: PAPER
-            nexo-item-id: brownie
-            amount: 1
+        - material: PAPER
+          nexo-item-id: chocolate_pudding
+          amount: 1
+        - material: PAPER
+          nexo-item-id: brownie
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3119,6 +3237,7 @@ recipes:
         nexo-item-id: brown_pudding
         amount: 1
 
+    category: Desserts
   make_chocolate_milk:
     display-name: Chocolate Milk
     display-material: MILK_BUCKET
@@ -3127,12 +3246,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: MILK_BUCKET
-            amount: 1
-          - material: COCOA_BEANS
-            amount: 2
-          - material: SUGAR
-            amount: 1
+        - material: MILK_BUCKET
+          amount: 1
+        - material: COCOA_BEANS
+          amount: 2
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3145,6 +3264,7 @@ recipes:
         nexo-item-id: chocolate_milk
         amount: 1
 
+    category: Drinks
   make_hot_chocolate:
     display-name: Hot Chocolate
     display-material: MILK_BUCKET
@@ -3153,12 +3273,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: chocolate_milk
-            amount: 1
-          - material: PAPER
-            nexo-item-id: whipped_cream
-            amount: 1
+        - material: PAPER
+          nexo-item-id: chocolate_milk
+          amount: 1
+        - material: PAPER
+          nexo-item-id: whipped_cream
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3173,6 +3293,7 @@ recipes:
         nexo-item-id: hot_chocolate
         amount: 1
 
+    category: Drinks
   brew_coffee_cup:
     display-name: Coffee Cup
     display-material: PAPER
@@ -3181,12 +3302,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: coffee
-            amount: 1
-          - material: PAPER
-            nexo-item-id: vegan_coffee_cup
-            amount: 1
+        - material: PAPER
+          nexo-item-id: coffee
+          amount: 1
+        - material: PAPER
+          nexo-item-id: vegan_coffee_cup
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3199,6 +3320,7 @@ recipes:
         nexo-item-id: coffee_cup
         amount: 1
 
+    category: Drinks
   brew_espresso:
     display-name: Espresso
     display-material: PAPER
@@ -3207,12 +3329,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: coffee
-            amount: 2
-          - material: PAPER
-            nexo-item-id: vegan_coffee_cup
-            amount: 1
+        - material: PAPER
+          nexo-item-id: coffee
+          amount: 2
+        - material: PAPER
+          nexo-item-id: vegan_coffee_cup
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3227,6 +3349,7 @@ recipes:
         nexo-item-id: espresso
         amount: 1
 
+    category: Drinks
   brew_double_espresso:
     display-name: Double Espresso
     display-material: PAPER
@@ -3235,9 +3358,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: espresso
-            amount: 2
+        - material: PAPER
+          nexo-item-id: espresso
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3250,6 +3373,7 @@ recipes:
         nexo-item-id: double_espresso
         amount: 1
 
+    category: Drinks
   brew_latte:
     display-name: Latte
     display-material: PAPER
@@ -3258,11 +3382,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: espresso
-            amount: 1
-          - material: MILK_BUCKET
-            amount: 1
+        - material: PAPER
+          nexo-item-id: espresso
+          amount: 1
+        - material: MILK_BUCKET
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3275,6 +3399,7 @@ recipes:
         nexo-item-id: latte
         amount: 1
 
+    category: Drinks
   make_strawberry_milk:
     display-name: Strawberry Milk
     display-material: MILK_BUCKET
@@ -3283,13 +3408,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: MILK_BUCKET
-            amount: 1
-          - material: PAPER
-            nexo-item-id: strawberry
-            amount: 2
-          - material: SUGAR
-            amount: 1
+        - material: MILK_BUCKET
+          amount: 1
+        - material: PAPER
+          nexo-item-id: strawberry
+          amount: 2
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3302,6 +3427,7 @@ recipes:
         nexo-item-id: strawberry_milk
         amount: 1
 
+    category: Drinks
   cook_beet_soup:
     display-name: Beet Soup
     display-material: BOWL
@@ -3310,10 +3436,10 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: BEETROOT
-            amount: 3
-          - material: BOWL
-            amount: 1
+        - material: BEETROOT
+          amount: 3
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3326,6 +3452,7 @@ recipes:
         nexo-item-id: beet_soup
         amount: 1
 
+    category: Soups & Vegetables
   cook_pea_soup:
     display-name: Pea Soup
     display-material: BOWL
@@ -3334,11 +3461,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: peas
-            amount: 3
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: peas
+          amount: 3
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3351,6 +3478,7 @@ recipes:
         nexo-item-id: pea_soup
         amount: 1
 
+    category: Soups & Vegetables
   cook_paprika_soup:
     display-name: Paprika Soup
     display-material: BOWL
@@ -3359,14 +3487,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: red_paprika
-            amount: 2
-          - material: PAPER
-            nexo-item-id: yellow_paprika
-            amount: 1
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: red_paprika
+          amount: 2
+        - material: PAPER
+          nexo-item-id: yellow_paprika
+          amount: 1
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3379,6 +3507,7 @@ recipes:
         nexo-item-id: paprika_soup
         amount: 1
 
+    category: Soups & Vegetables
   cook_spinach_soup:
     display-name: Spinach Soup
     display-material: BOWL
@@ -3387,11 +3516,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: green_bean
-            amount: 2
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: green_bean
+          amount: 2
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3404,6 +3533,7 @@ recipes:
         nexo-item-id: spinach_soup
         amount: 1
 
+    category: Soups & Vegetables
   cook_curry_soup:
     display-name: Curry Soup
     display-material: BOWL
@@ -3412,14 +3542,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: ginger
-            amount: 1
-          - material: PAPER
-            nexo-item-id: green_chili_pepper
-            amount: 1
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: ginger
+          amount: 1
+        - material: PAPER
+          nexo-item-id: green_chili_pepper
+          amount: 1
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3432,6 +3562,7 @@ recipes:
         nexo-item-id: curry_soup
         amount: 1
 
+    category: Soups & Vegetables
   cook_fish_curry_soup:
     display-name: Fish Curry Soup
     display-material: BOWL
@@ -3440,12 +3571,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: curry_soup
-            amount: 1
-          - material: PAPER
-            nexo-item-id: cooked_salmon
-            amount: 1
+        - material: PAPER
+          nexo-item-id: curry_soup
+          amount: 1
+        - material: PAPER
+          nexo-item-id: cooked_salmon
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3458,6 +3589,7 @@ recipes:
         nexo-item-id: fish_curry_soup
         amount: 1
 
+    category: Seafood
   make_salad_dish:
     display-name: Salad Dish
     display-material: BOWL
@@ -3466,13 +3598,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cucumber
-            amount: 1
-          - material: CARROT
-            amount: 1
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cucumber
+          amount: 1
+        - material: CARROT
+          amount: 1
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3485,6 +3617,7 @@ recipes:
         nexo-item-id: salad_dish
         amount: 1
 
+    category: Soups & Vegetables
   make_tomato_dish:
     display-name: Tomato Dish
     display-material: BOWL
@@ -3493,11 +3626,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: tomato
-            amount: 3
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: tomato
+          amount: 3
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3510,6 +3643,7 @@ recipes:
         nexo-item-id: tomato_dish
         amount: 1
 
+    category: Soups & Vegetables
   make_potato_dish:
     display-name: Potato Dish
     display-material: BOWL
@@ -3518,13 +3652,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: POTATO
-            amount: 3
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
-          - material: BOWL
-            amount: 1
+        - material: POTATO
+          amount: 3
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3537,6 +3671,7 @@ recipes:
         nexo-item-id: potato_dish
         amount: 1
 
+    category: Soups & Vegetables
   stuff_filled_potato:
     display-name: Filled Potato
     display-material: POTATO
@@ -3545,11 +3680,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: POTATO
-            amount: 2
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 1
+        - material: POTATO
+          amount: 2
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3564,6 +3699,7 @@ recipes:
         nexo-item-id: filled_potato
         amount: 1
 
+    category: Soups & Vegetables
   stuff_filled_paprika:
     display-name: Filled Paprika
     display-material: PAPER
@@ -3572,15 +3708,15 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: red_paprika
-            amount: 1
-          - material: PAPER
-            nexo-item-id: rice_bowl
-            amount: 1
-          - material: PAPER
-            nexo-item-id: cheddar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: red_paprika
+          amount: 1
+        - material: PAPER
+          nexo-item-id: rice_bowl
+          amount: 1
+        - material: PAPER
+          nexo-item-id: cheddar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3593,6 +3729,7 @@ recipes:
         nexo-item-id: filled_paprika
         amount: 1
 
+    category: Soups & Vegetables
   stuff_filled_pumpkin:
     display-name: Filled Pumpkin
     display-material: PUMPKIN
@@ -3601,13 +3738,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PUMPKIN
-            amount: 1
-          - material: CARROT
-            amount: 1
-          - material: PAPER
-            nexo-item-id: green_bean
-            amount: 1
+        - material: PUMPKIN
+          amount: 1
+        - material: CARROT
+          amount: 1
+        - material: PAPER
+          nexo-item-id: green_bean
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3620,6 +3757,7 @@ recipes:
         nexo-item-id: filled_pumpkin
         amount: 1
 
+    category: Soups & Vegetables
   bake_redberry_pie:
     display-name: Redberry Pie
     display-material: PUMPKIN_PIE
@@ -3628,15 +3766,15 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 2
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
-          - material: PAPER
-            nexo-item-id: red_berries
-            amount: 3
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 2
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
+        - material: PAPER
+          nexo-item-id: red_berries
+          amount: 3
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3651,6 +3789,7 @@ recipes:
         nexo-item-id: redberry_pie
         amount: 1
 
+    category: Desserts
   slice_redberry_pie:
     display-name: Redberry Pie Slice
     display-material: PUMPKIN_PIE
@@ -3659,9 +3798,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: redberry_pie
-            amount: 1
+        - material: PAPER
+          nexo-item-id: redberry_pie
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3676,6 +3815,7 @@ recipes:
         nexo-item-id: redberry_pie_slice
         amount: 4
 
+    category: Desserts
   bake_dark_chocolate_cake:
     display-name: Dark Chocolate Cake
     display-material: CAKE
@@ -3684,12 +3824,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: plain_cake
-            amount: 1
-          - material: PAPER
-            nexo-item-id: dark_chocolate_piece
-            amount: 3
+        - material: PAPER
+          nexo-item-id: plain_cake
+          amount: 1
+        - material: PAPER
+          nexo-item-id: dark_chocolate_piece
+          amount: 3
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3702,6 +3842,7 @@ recipes:
         nexo-item-id: dark_chocolate_cake
         amount: 1
 
+    category: Desserts
   slice_dark_chocolate_cake:
     display-name: Dark Chocolate Cake Slice
     display-material: CAKE
@@ -3710,9 +3851,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: dark_chocolate_cake
-            amount: 1
+        - material: PAPER
+          nexo-item-id: dark_chocolate_cake
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3727,6 +3868,7 @@ recipes:
         nexo-item-id: dark_chocolate_cake_slice
         amount: 4
 
+    category: Desserts
   make_milk_chocolate_bar:
     display-name: Milk Chocolate Bar
     display-material: PAPER
@@ -3735,12 +3877,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: COCOA_BEANS
-            amount: 3
-          - material: MILK_BUCKET
-            amount: 1
-          - material: SUGAR
-            amount: 1
+        - material: COCOA_BEANS
+          amount: 3
+        - material: MILK_BUCKET
+          amount: 1
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3753,6 +3895,7 @@ recipes:
         nexo-item-id: milk_chocolate_bar
         amount: 1
 
+    category: Drinks
   break_milk_chocolate_piece:
     display-name: Milk Chocolate Piece
     display-material: PAPER
@@ -3761,9 +3904,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: milk_chocolate_bar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: milk_chocolate_bar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3778,6 +3921,7 @@ recipes:
         nexo-item-id: milk_chocolate_piece
         amount: 4
 
+    category: Drinks
   make_dark_chocolate_bar:
     display-name: Dark Chocolate Bar
     display-material: PAPER
@@ -3786,10 +3930,10 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: COCOA_BEANS
-            amount: 4
-          - material: SUGAR
-            amount: 1
+        - material: COCOA_BEANS
+          amount: 4
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3802,6 +3946,7 @@ recipes:
         nexo-item-id: dark_chocolate_bar
         amount: 1
 
+    category: Desserts
   break_dark_chocolate_piece:
     display-name: Dark Chocolate Piece
     display-material: PAPER
@@ -3810,9 +3955,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: dark_chocolate_bar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: dark_chocolate_bar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3827,6 +3972,7 @@ recipes:
         nexo-item-id: dark_chocolate_piece
         amount: 4
 
+    category: Desserts
   make_white_chocolate_bar:
     display-name: White Chocolate Bar
     display-material: PAPER
@@ -3835,10 +3981,10 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: MILK_BUCKET
-            amount: 1
-          - material: SUGAR
-            amount: 3
+        - material: MILK_BUCKET
+          amount: 1
+        - material: SUGAR
+          amount: 3
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3851,6 +3997,7 @@ recipes:
         nexo-item-id: white_chocolate_bar
         amount: 1
 
+    category: Desserts
   break_white_chocolate_piece:
     display-name: White Chocolate Piece
     display-material: PAPER
@@ -3859,9 +4006,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: white_chocolate_bar
-            amount: 1
+        - material: PAPER
+          nexo-item-id: white_chocolate_bar
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3876,6 +4023,7 @@ recipes:
         nexo-item-id: white_chocolate_piece
         amount: 4
 
+    category: Desserts
   make_chocolate_sauce_brownie:
     display-name: Chocolate Sauce Brownie
     display-material: COOKIE
@@ -3884,12 +4032,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: brownie
-            amount: 1
-          - material: PAPER
-            nexo-item-id: chocolate_pudding
-            amount: 1
+        - material: PAPER
+          nexo-item-id: brownie
+          amount: 1
+        - material: PAPER
+          nexo-item-id: chocolate_pudding
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3902,6 +4050,7 @@ recipes:
         nexo-item-id: chocolate_sauce_brownie
         amount: 1
 
+    category: Desserts
   make_chocolate_strawberry:
     display-name: Chocolate Strawberry
     display-material: SWEET_BERRIES
@@ -3910,12 +4059,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: strawberry
-            amount: 2
-          - material: PAPER
-            nexo-item-id: milk_chocolate_piece
-            amount: 2
+        - material: PAPER
+          nexo-item-id: strawberry
+          amount: 2
+        - material: PAPER
+          nexo-item-id: milk_chocolate_piece
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3928,6 +4077,7 @@ recipes:
         nexo-item-id: chocolate_strawberry
         amount: 2
 
+    category: Desserts
   make_chocolate_whipped_cream:
     display-name: Chocolate Whipped Cream
     display-material: PAPER
@@ -3936,11 +4086,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: whipped_cream
-            amount: 1
-          - material: COCOA_BEANS
-            amount: 1
+        - material: PAPER
+          nexo-item-id: whipped_cream
+          amount: 1
+        - material: COCOA_BEANS
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -3953,6 +4103,7 @@ recipes:
         nexo-item-id: chocolate_whipped_cream
         amount: 1
 
+    category: Desserts
   bake_fortune_cookie:
     display-name: Fortune Cookie
     display-material: COOKIE
@@ -3961,11 +4112,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 1
-          - material: SUGAR
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 1
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -3980,6 +4131,7 @@ recipes:
         nexo-item-id: fortune_cookie
         amount: 2
 
+    category: Desserts
   bake_checkered_cookie:
     display-name: Checkered Cookie
     display-material: COOKIE
@@ -3988,13 +4140,13 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 1
-          - material: COCOA_BEANS
-            amount: 1
-          - material: SUGAR
-            amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 1
+        - material: COCOA_BEANS
+          amount: 1
+        - material: SUGAR
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -4009,6 +4161,7 @@ recipes:
         nexo-item-id: checkered_cookie
         amount: 2
 
+    category: Desserts
   bake_red_velvet_cookie:
     display-name: Red Velvet Cookie
     display-material: COOKIE
@@ -4017,12 +4170,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: red_velvet_cake_slice
-            amount: 1
-          - material: PAPER
-            nexo-item-id: flour
-            amount: 1
+        - material: PAPER
+          nexo-item-id: red_velvet_cake_slice
+          amount: 1
+        - material: PAPER
+          nexo-item-id: flour
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -4037,6 +4190,7 @@ recipes:
         nexo-item-id: red_velvet_cookie
         amount: 2
 
+    category: Desserts
   can_sardine:
     display-name: Sardine Can
     display-material: PAPER
@@ -4045,12 +4199,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: sardine
-            amount: 1
-          - material: PAPER
-            nexo-item-id: salt
-            amount: 1
+        - material: PAPER
+          nexo-item-id: sardine
+          amount: 1
+        - material: PAPER
+          nexo-item-id: salt
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4063,6 +4217,7 @@ recipes:
         nexo-item-id: sardine_can
         amount: 1
 
+    category: Seafood
   open_sardine_can:
     display-name: Open Sardine Can
     display-material: PAPER
@@ -4071,9 +4226,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: sardine_can
-            amount: 1
+        - material: PAPER
+          nexo-item-id: sardine_can
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -4088,6 +4243,7 @@ recipes:
         nexo-item-id: open_sardine_can
         amount: 1
 
+    category: Seafood
   prepare_red_snapper:
     display-name: Red Snapper
     display-material: COD
@@ -4096,9 +4252,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: red_snapper
-            amount: 1
+        - material: PAPER
+          nexo-item-id: red_snapper
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -4113,6 +4269,7 @@ recipes:
         nexo-item-id: red_snapper
         amount: 1
 
+    category: Seafood
   make_tuna_slice:
     display-name: Tuna Slice
     display-material: COD
@@ -4121,9 +4278,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: tuna
-            amount: 1
+        - material: PAPER
+          nexo-item-id: tuna
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -4138,6 +4295,7 @@ recipes:
         nexo-item-id: tuna_slice
         amount: 3
 
+    category: Seafood
   roll_tuna_sushi:
     display-name: Tuna Sushi
     display-material: KELP
@@ -4146,12 +4304,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: tuna_slice
-            amount: 1
-          - material: PAPER
-            nexo-item-id: rice_bowl
-            amount: 1
+        - material: PAPER
+          nexo-item-id: tuna_slice
+          amount: 1
+        - material: PAPER
+          nexo-item-id: rice_bowl
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4164,6 +4322,7 @@ recipes:
         nexo-item-id: tuna_sushi
         amount: 2
 
+    category: Seafood
   roll_tuna_sushi2:
     display-name: Tuna Sushi 2
     display-material: KELP
@@ -4172,12 +4331,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: tuna_slice
-            amount: 1
-          - material: PAPER
-            nexo-item-id: soy_sauce
-            amount: 1
+        - material: PAPER
+          nexo-item-id: tuna_slice
+          amount: 1
+        - material: PAPER
+          nexo-item-id: soy_sauce
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4190,6 +4349,7 @@ recipes:
         nexo-item-id: tuna_sushi2
         amount: 2
 
+    category: Seafood
   make_onigiri:
     display-name: Onigiri
     display-material: KELP
@@ -4198,11 +4358,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: rice_bowl
-            amount: 1
-          - material: KELP
-            amount: 1
+        - material: PAPER
+          nexo-item-id: rice_bowl
+          amount: 1
+        - material: KELP
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4215,6 +4375,7 @@ recipes:
         nexo-item-id: onigiri
         amount: 2
 
+    category: Seafood
   make_small_sushi_1:
     display-name: Small Sushi 1
     display-material: KELP
@@ -4223,12 +4384,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: salmon_slice
-            amount: 1
-          - material: PAPER
-            nexo-item-id: rice_bowl
-            amount: 1
+        - material: PAPER
+          nexo-item-id: salmon_slice
+          amount: 1
+        - material: PAPER
+          nexo-item-id: rice_bowl
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4241,6 +4402,7 @@ recipes:
         nexo-item-id: small_sushi_1
         amount: 2
 
+    category: Seafood
   make_small_sushi_2:
     display-name: Small Sushi 2
     display-material: KELP
@@ -4249,12 +4411,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: tuna_slice
-            amount: 1
-          - material: PAPER
-            nexo-item-id: rice_bowl
-            amount: 1
+        - material: PAPER
+          nexo-item-id: tuna_slice
+          amount: 1
+        - material: PAPER
+          nexo-item-id: rice_bowl
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4267,6 +4429,7 @@ recipes:
         nexo-item-id: small_sushi_2
         amount: 2
 
+    category: Seafood
   cook_lobster_dinner:
     display-name: Lobster Dinner
     display-material: BOWL
@@ -4275,14 +4438,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: lobster
-            amount: 1
-          - material: PAPER
-            nexo-item-id: butter
-            amount: 1
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: lobster
+          amount: 1
+        - material: PAPER
+          nexo-item-id: butter
+          amount: 1
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -4297,6 +4460,7 @@ recipes:
         nexo-item-id: lobster_dinner
         amount: 1
 
+    category: Seafood
   cook_mussle_pot:
     display-name: Mussle Pot
     display-material: BOWL
@@ -4305,11 +4469,11 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: mussle
-            amount: 3
-          - material: BOWL
-            amount: 1
+        - material: PAPER
+          nexo-item-id: mussle
+          amount: 3
+        - material: BOWL
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4322,6 +4486,7 @@ recipes:
         nexo-item-id: mussle_pot
         amount: 1
 
+    category: Seafood
   empty_mussle_pot:
     display-name: Empty Mussle Pot
     display-material: BOWL
@@ -4330,9 +4495,9 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: mussle_pot
-            amount: 1
+        - material: PAPER
+          nexo-item-id: mussle_pot
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_HIT
@@ -4347,6 +4512,7 @@ recipes:
         nexo-item-id: empty_mussle_pot
         amount: 1
 
+    category: Seafood
   make_ham_cheese_pizza_slice:
     display-name: Ham Cheese Pizza Slice
     display-material: BREAD
@@ -4355,12 +4521,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cheese_pizza_slice
-            amount: 1
-          - material: PAPER
-            nexo-item-id: ham
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cheese_pizza_slice
+          amount: 1
+        - material: PAPER
+          nexo-item-id: ham
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4373,6 +4539,7 @@ recipes:
         nexo-item-id: ham_cheese_pizza_slice
         amount: 1
 
+    category: Pizza
   make_hawaiian_pizza:
     display-name: Hawaiian Pizza
     display-material: BREAD
@@ -4381,15 +4548,15 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cheese_pizza
-            amount: 1
-          - material: PAPER
-            nexo-item-id: ham
-            amount: 1
-          - material: PAPER
-            nexo-item-id: pineapple_slice
-            amount: 2
+        - material: PAPER
+          nexo-item-id: cheese_pizza
+          amount: 1
+        - material: PAPER
+          nexo-item-id: ham
+          amount: 1
+        - material: PAPER
+          nexo-item-id: pineapple_slice
+          amount: 2
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4402,6 +4569,7 @@ recipes:
         nexo-item-id: hawaiian_pizza
         amount: 1
 
+    category: Pizza
   make_meat_pizza_slice:
     display-name: Meat Pizza Slice
     display-material: BREAD
@@ -4410,12 +4578,12 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cheese_pizza_slice
-            amount: 1
-          - material: PAPER
-            nexo-item-id: meatball
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cheese_pizza_slice
+          amount: 1
+        - material: PAPER
+          nexo-item-id: meatball
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4428,6 +4596,7 @@ recipes:
         nexo-item-id: meat_pizza_slice
         amount: 1
 
+    category: Pizza
   make_veggie_pizza_slice:
     display-name: Veggie Pizza Slice
     display-material: BREAD
@@ -4436,14 +4605,14 @@ recipes:
       1:
         type: INSERT_ITEM
         requirements:
-          - material: PAPER
-            nexo-item-id: cheese_pizza_slice
-            amount: 1
-          - material: CARROT
-            amount: 1
-          - material: PAPER
-            nexo-item-id: green_paprika
-            amount: 1
+        - material: PAPER
+          nexo-item-id: cheese_pizza_slice
+          amount: 1
+        - material: CARROT
+          amount: 1
+        - material: PAPER
+          nexo-item-id: green_paprika
+          amount: 1
       2:
         type: MINI_GAME
         mini-game-type: DOT_STYLE_MIX
@@ -4456,179 +4625,180 @@ recipes:
         nexo-item-id: veggie_pizza_slice
         amount: 1
 
+    category: Pizza
 workstations:
   kitchen_stove:
     block-material: BARRIER
     item-material: PAPER
     nexo-item-id: kitchen_stove
     recipes:
-      - mill_flour
-      - churn_butter
-      - slice_apples
-      - bake_baguette
-      - bake_full_bread
-      - bake_apple_pie
-      - cut_apple_pie
-      - bake_blueberry_muffins
-      - prepare_salmon_slice
-      - roll_salmon_sushi
-      - cook_steak_dinner
-      - slice_carrots
-      - make_cheddar
-      - cook_sausage
-      - slice_sausage
-      - make_pancakes
-      - bake_waffle
-      - bake_brownie
-      - bake_chocolate_cake
-      - slice_chocolate_cake
-      - bake_chocolate_donut
-      - bake_carrot_cake
-      - grill_cheeseburger
-      - assemble_hotdog
-      - bake_cheese_pizza
-      - slice_cheese_pizza
-      - bake_pepperoni_pizza
-      - slice_pepperoni_pizza
-      - simmer_tomato_soup
-      - cook_chicken_soup
-      - bake_croissants
-      - bake_chocolate_croissant
-      - fry_fries
-      - make_potato_salad
-      - make_beetroot_salad
-      - bake_blueberry_pie
-      - slice_blueberry_pie
-      - make_hamburger
-      - make_hamburger_with_barbecue_sauce
-      - bake_churro
-      - dip_chocolate_churro
-      - bake_plain_muffins
-      - bake_chocolate_muffins
-      - bake_filled_pancake
-      - bake_hamcheese_croissant
-      - cook_chicken_leg
-      - cook_whole_chicken
-      - bake_bacon
-      - fry_baked_egg
-      - make_eggs_and_bacon
-      - make_chocolate_chip
-      - bake_chocolate_chip_muffins
-      - make_chocolate_egg
-      - bake_plain_cake
-      - slice_plain_cake
-      - bake_red_velvet_cake
-      - slice_red_velvet_cake
-      - bake_white_cheesecake
-      - slice_white_cheesecake
-      - bake_lava_cake
-      - make_tiramisu
-      - bake_brown_bread
-      - slice_brown_bread
-      - bake_white_bread
-      - slice_white_bread
-      - make_grilled_cheese_sandwich
-      - cut_cheese_slice
-      - make_cheese_wheel
-      - make_cheese_pasta
-      - make_pasta_tomato
-      - make_spaghetti_and_meatballs
-      - bake_tomato_pizza
-      - bake_egg_pizza
-      - slice_egg_pizza
-      - season_cheese_pizza
-      - season_tomato_pizza
-      - season_egg_pizza
-      - make_barbecue_sauce
-      - make_ketchup
-      - make_mustard
-      - assemble_mustard_hotdog
-      - assemble_jalapeno_hotdog
-      - batter_corndog
-      - fry_chicken_nuggets
-      - fry_onion_rings
-      - cook_hotwing
-      - make_honey_mustard_hotwing
-      - cook_salmon
-      - cook_cod
-      - can_sardine
-      - open_sardine_can
-      - prepare_red_snapper
-      - cook_shrimp
-      - make_fish_dinner
-      - make_finished_salmon_dish
-      - cook_steak
-      - cook_ribs
-      - make_meatball
-      - bake_meat_pie
-      - bake_blueberry_pancake
-      - make_butter_waffle
-      - make_syrup_waffle
-      - make_cream_waffle
-      - make_ice_waffle
-      - bake_powdered_donut
-      - fill_jam_donut
-      - fill_cream_donut
-      - sprinkle_chocolate_donut
-      - make_blue_cheese
-      - slice_blue_cheese
-      - make_goat_cheese
-      - slice_goat_cheese
-      - make_filled_egg
-      - make_black_olive_filled_egg
-      - make_caviar_cracker
-      - make_olive_cracker
-      - make_pizza_cracker
-      - make_veggie_cracker
-      - make_chocolate_pudding
-      - make_vanilla_pudding
-      - make_brown_pudding
-      - make_chocolate_milk
-      - make_hot_chocolate
-      - brew_coffee_cup
-      - brew_espresso
-      - brew_double_espresso
-      - brew_latte
-      - make_strawberry_milk
-      - cook_beet_soup
-      - cook_pea_soup
-      - cook_paprika_soup
-      - cook_spinach_soup
-      - cook_curry_soup
-      - cook_fish_curry_soup
-      - make_salad_dish
-      - make_tomato_dish
-      - make_potato_dish
-      - stuff_filled_potato
-      - stuff_filled_paprika
-      - stuff_filled_pumpkin
-      - bake_redberry_pie
-      - slice_redberry_pie
-      - bake_dark_chocolate_cake
-      - slice_dark_chocolate_cake
-      - make_milk_chocolate_bar
-      - break_milk_chocolate_piece
-      - make_dark_chocolate_bar
-      - break_dark_chocolate_piece
-      - make_white_chocolate_bar
-      - break_white_chocolate_piece
-      - make_chocolate_sauce_brownie
-      - make_chocolate_strawberry
-      - make_chocolate_whipped_cream
-      - bake_fortune_cookie
-      - bake_checkered_cookie
-      - bake_red_velvet_cookie
-      - make_tuna_slice
-      - roll_tuna_sushi
-      - roll_tuna_sushi2
-      - make_onigiri
-      - make_small_sushi_1
-      - make_small_sushi_2
-      - cook_lobster_dinner
-      - cook_mussle_pot
-      - empty_mussle_pot
-      - make_ham_cheese_pizza_slice
-      - make_hawaiian_pizza
-      - make_meat_pizza_slice
-      - make_veggie_pizza_slice
+    - mill_flour
+    - churn_butter
+    - slice_apples
+    - bake_baguette
+    - bake_full_bread
+    - bake_apple_pie
+    - cut_apple_pie
+    - bake_blueberry_muffins
+    - prepare_salmon_slice
+    - roll_salmon_sushi
+    - cook_steak_dinner
+    - slice_carrots
+    - make_cheddar
+    - cook_sausage
+    - slice_sausage
+    - make_pancakes
+    - bake_waffle
+    - bake_brownie
+    - bake_chocolate_cake
+    - slice_chocolate_cake
+    - bake_chocolate_donut
+    - bake_carrot_cake
+    - grill_cheeseburger
+    - assemble_hotdog
+    - bake_cheese_pizza
+    - slice_cheese_pizza
+    - bake_pepperoni_pizza
+    - slice_pepperoni_pizza
+    - simmer_tomato_soup
+    - cook_chicken_soup
+    - bake_croissants
+    - bake_chocolate_croissant
+    - fry_fries
+    - make_potato_salad
+    - make_beetroot_salad
+    - bake_blueberry_pie
+    - slice_blueberry_pie
+    - make_hamburger
+    - make_hamburger_with_barbecue_sauce
+    - bake_churro
+    - dip_chocolate_churro
+    - bake_plain_muffins
+    - bake_chocolate_muffins
+    - bake_filled_pancake
+    - bake_hamcheese_croissant
+    - cook_chicken_leg
+    - cook_whole_chicken
+    - bake_bacon
+    - fry_baked_egg
+    - make_eggs_and_bacon
+    - make_chocolate_chip
+    - bake_chocolate_chip_muffins
+    - make_chocolate_egg
+    - bake_plain_cake
+    - slice_plain_cake
+    - bake_red_velvet_cake
+    - slice_red_velvet_cake
+    - bake_white_cheesecake
+    - slice_white_cheesecake
+    - bake_lava_cake
+    - make_tiramisu
+    - bake_brown_bread
+    - slice_brown_bread
+    - bake_white_bread
+    - slice_white_bread
+    - make_grilled_cheese_sandwich
+    - cut_cheese_slice
+    - make_cheese_wheel
+    - make_cheese_pasta
+    - make_pasta_tomato
+    - make_spaghetti_and_meatballs
+    - bake_tomato_pizza
+    - bake_egg_pizza
+    - slice_egg_pizza
+    - season_cheese_pizza
+    - season_tomato_pizza
+    - season_egg_pizza
+    - make_barbecue_sauce
+    - make_ketchup
+    - make_mustard
+    - assemble_mustard_hotdog
+    - assemble_jalapeno_hotdog
+    - batter_corndog
+    - fry_chicken_nuggets
+    - fry_onion_rings
+    - cook_hotwing
+    - make_honey_mustard_hotwing
+    - cook_salmon
+    - cook_cod
+    - can_sardine
+    - open_sardine_can
+    - prepare_red_snapper
+    - cook_shrimp
+    - make_fish_dinner
+    - make_finished_salmon_dish
+    - cook_steak
+    - cook_ribs
+    - make_meatball
+    - bake_meat_pie
+    - bake_blueberry_pancake
+    - make_butter_waffle
+    - make_syrup_waffle
+    - make_cream_waffle
+    - make_ice_waffle
+    - bake_powdered_donut
+    - fill_jam_donut
+    - fill_cream_donut
+    - sprinkle_chocolate_donut
+    - make_blue_cheese
+    - slice_blue_cheese
+    - make_goat_cheese
+    - slice_goat_cheese
+    - make_filled_egg
+    - make_black_olive_filled_egg
+    - make_caviar_cracker
+    - make_olive_cracker
+    - make_pizza_cracker
+    - make_veggie_cracker
+    - make_chocolate_pudding
+    - make_vanilla_pudding
+    - make_brown_pudding
+    - make_chocolate_milk
+    - make_hot_chocolate
+    - brew_coffee_cup
+    - brew_espresso
+    - brew_double_espresso
+    - brew_latte
+    - make_strawberry_milk
+    - cook_beet_soup
+    - cook_pea_soup
+    - cook_paprika_soup
+    - cook_spinach_soup
+    - cook_curry_soup
+    - cook_fish_curry_soup
+    - make_salad_dish
+    - make_tomato_dish
+    - make_potato_dish
+    - stuff_filled_potato
+    - stuff_filled_paprika
+    - stuff_filled_pumpkin
+    - bake_redberry_pie
+    - slice_redberry_pie
+    - bake_dark_chocolate_cake
+    - slice_dark_chocolate_cake
+    - make_milk_chocolate_bar
+    - break_milk_chocolate_piece
+    - make_dark_chocolate_bar
+    - break_dark_chocolate_piece
+    - make_white_chocolate_bar
+    - break_white_chocolate_piece
+    - make_chocolate_sauce_brownie
+    - make_chocolate_strawberry
+    - make_chocolate_whipped_cream
+    - bake_fortune_cookie
+    - bake_checkered_cookie
+    - bake_red_velvet_cookie
+    - make_tuna_slice
+    - roll_tuna_sushi
+    - roll_tuna_sushi2
+    - make_onigiri
+    - make_small_sushi_1
+    - make_small_sushi_2
+    - cook_lobster_dinner
+    - cook_mussle_pot
+    - empty_mussle_pot
+    - make_ham_cheese_pizza_slice
+    - make_hawaiian_pizza
+    - make_meat_pizza_slice
+    - make_veggie_pizza_slice
     permission: ""
