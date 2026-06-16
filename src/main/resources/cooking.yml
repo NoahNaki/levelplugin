@@ -1,46 +1,5 @@
 # LevelPlugin cooking definitions. This bundled file is refreshed into the plugin data folder on startup.
 recipes:
-  roasted_carrot:
-    display-name: Roasted Carrot
-    display-material: CARROT
-    description: A simple starter recipe for testing multi-ingredient insertion.
-    stages:
-      1:
-        type: INSERT_ITEM
-        # Optional tooltip: "Add ingredients"
-        requirements:
-          - material: CARROT
-            amount: 2
-          - material: BEEF
-            amount: 1
-      2:
-        type: MINI_GAME
-        mini-game-type: DOT_STYLE_HIT
-        duration-ticks: 200
-        bar-size: 10
-        target-score: 3
-        health: 2
-        speed-ticks: 5
-        hit-target-symbol: "●"
-        hit-hook-symbol: "●"
-        hit-line-symbol: "●"
-        health-symbol: "🔥"
-      3:
-        type: MINI_GAME
-        mini-game-type: DOT_STYLE_MIX
-        duration-ticks: 120
-        bar-size: 10
-        required-clicks: 20
-        mix-filled-symbol: "🔥"
-        mix-empty-symbol: "🔥"
-      4:
-        type: WAIT
-        duration-ticks: 80
-    rewards:
-      1:
-        material: BAKED_POTATO
-        amount: 1
-
   mill_flour:
     display-name: Flour
     display-material: WHEAT
@@ -4503,7 +4462,6 @@ workstations:
     item-material: PAPER
     nexo-item-id: kitchen_stove
     recipes:
-      - roasted_carrot
       - mill_flour
       - churn_butter
       - slice_apples
