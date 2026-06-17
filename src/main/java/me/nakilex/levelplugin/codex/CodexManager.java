@@ -463,7 +463,6 @@ public class CodexManager {
         if (!playerConfig.getConfig().contains(path)) {
             playerConfig.getConfig().set(path + ".name", displayName == null || displayName.isBlank() ? normalized : displayName);
             playerConfig.saveConfigFile();
-            notifyDiscovery(player, "Food", displayName == null || displayName.isBlank() ? normalized : displayName);
         }
     }
 

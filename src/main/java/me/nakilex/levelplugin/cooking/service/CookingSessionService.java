@@ -1,6 +1,8 @@
 package me.nakilex.levelplugin.cooking.service;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.advancement.AdvancementToastUtil;
+import me.nakilex.levelplugin.advancement.model.AdvancementDisplay;
 import me.nakilex.levelplugin.cooking.model.CookingRecipe;
 import me.nakilex.levelplugin.cooking.model.CookingStage;
 import me.nakilex.levelplugin.cooking.registry.CookingRecipeRegistry;
@@ -17,6 +19,7 @@ import me.nakilex.levelplugin.cooking.util.CookingLocationKey;
 import me.nakilex.levelplugin.utils.ChatMessageUtil;
 import me.nakilex.levelplugin.cooking.util.CookingChatMessageUtil;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -289,7 +292,14 @@ public class CookingSessionService implements CookingStageExecutor.StageSessionC
 
     private void complete(Player player, ActiveCookingSession session, CookingRecipe recipe, Location rewardDropLocation) {
         Location workstationLocation = rewardDropLocation != null ? rewardDropLocation : session.workstationKey().toLocation();
-        rewardService.grantRewards(player, workstationLocation, recipe.rewards(), session.craftAmount());
+        boolean discoveredNewRecipe = rewardService.grantRewards(player, workstationLocation, recipe.rewards(), session.craftAmount());
+        if (discoveredNewRecipe) {
+            AdvancementToastUtil.showToast(player,
+                    recipe.displayMaterial() == null ? Material.PAPER : recipe.displayMaterial(),
+                    "New Recipe Crafted",
+                    recipe.displayName(),
+                    AdvancementDisplay.FrameType.TASK);
+        }
         effectsService.playCookingComplete(player, workstationLocation);
         cleanupSession(session);
         sessionRegistry.removeByWorkstation(session.workstationKey());

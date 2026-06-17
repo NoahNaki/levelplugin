@@ -493,6 +493,10 @@ public class StrongholdRunManager implements Listener {
         }
         Player player = event.getPlayer();
         ActiveRun run = activeRuns.get(player.getWorld().getUID());
+        if (run == null) {
+            return;
+        }
+
         Block clicked = event.getClickedBlock();
         if (!isLockedStrongholdDoor(clicked)) {
             return;

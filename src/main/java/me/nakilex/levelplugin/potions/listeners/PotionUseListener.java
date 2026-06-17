@@ -184,7 +184,19 @@ public class PotionUseListener implements Listener {
 
     @EventHandler
     public void onPotionConsume(PlayerItemConsumeEvent event) {
-        event.setCancelled(true); // Always cancel consume animation
+        ItemStack item = event.getItem();
+
+        if (item == null || !item.hasItemMeta()) {
+            return;
+        }
+
+        ItemMeta meta = item.getItemMeta();
+        PersistentDataContainer data = meta.getPersistentDataContainer();
+        NamespacedKey key = new NamespacedKey(plugin, "potion_uuid");
+
+        if (data.has(key, PersistentDataType.STRING)) {
+            event.setCancelled(true);
+        }
     }
 
     private String toRoman(int number) {
