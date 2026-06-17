@@ -77,7 +77,7 @@ public final class CookingMiniGameBarFormatter {
             title.append(i < progressSlots ? MIX_FILLED_COLOR : LINE_COLOR)
                     .append(i < progressSlots ? safeFilledSymbol : safeEmptySymbol);
         }
-        return new CookingMiniGameVisual(title.toString(), "");
+        return new CookingMiniGameVisual(title.toString(), org.bukkit.ChatColor.GRAY + "Right-click rapidly");
     }
 
     private static String hitSubtitle(int score, int targetScore) {

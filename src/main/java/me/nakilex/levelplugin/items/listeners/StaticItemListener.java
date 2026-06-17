@@ -10,6 +10,7 @@ import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.WorldExclusionUtil;
 import me.nakilex.levelplugin.utils.FullInventoryListener;
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -255,6 +256,10 @@ public class StaticItemListener implements Listener {
         if (craftingInventory == null) {
             return;
         }
+        if (shouldDisableCraftingShortcuts(player)) {
+            clearCraftingShortcutItems(craftingInventory);
+            return;
+        }
         for (int raw = 1; raw <= 4; raw++) {
             craftingInventory.setItem(raw, createCraftingMenuItem(player, raw));
         }
@@ -278,6 +283,10 @@ public class StaticItemListener implements Listener {
         if (player == null || !player.isOnline() || view == null) {
             return;
         }
+        if (shouldDisableCraftingShortcuts(player)) {
+            clearInventoryDebugSession(player, view);
+            return;
+        }
         if (view.getTopInventory() instanceof CraftingInventory craftingInventory) {
             applyCraftingShortcutItems(player, craftingInventory);
         }
@@ -286,7 +295,7 @@ public class StaticItemListener implements Listener {
 
     private static void applyInventoryDebugSessionNextTick(Player player) {
         Main main = Main.getInstance();
-        if (main == null || player == null) {
+        if (main == null || player == null || shouldDisableCraftingShortcuts(player)) {
             return;
         }
         Bukkit.getScheduler().runTaskLater(main, () -> {
@@ -299,7 +308,7 @@ public class StaticItemListener implements Listener {
 
     private static void applyInventoryDebugSessionBurst(Player player, int attempts) {
         Main main = Main.getInstance();
-        if (main == null || player == null || attempts <= 0) {
+        if (main == null || player == null || attempts <= 0 || shouldDisableCraftingShortcuts(player)) {
             return;
         }
         for (int tick = 1; tick <= attempts; tick++) {
@@ -314,7 +323,7 @@ public class StaticItemListener implements Listener {
 
     private static void reapplyInventoryDebugSessionAfterClose(Player player) {
         Main main = Main.getInstance();
-        if (main == null || player == null) {
+        if (main == null || player == null || shouldDisableCraftingShortcuts(player)) {
             return;
         }
         for (int tick = 1; tick <= 3; tick++) {
@@ -398,6 +407,10 @@ public class StaticItemListener implements Listener {
                 && view.getTopInventory().getType() == InventoryType.CRAFTING;
     }
 
+    private static boolean shouldDisableCraftingShortcuts(Player player) {
+        return player != null && player.getGameMode() == GameMode.CREATIVE;
+    }
+
     private static boolean shouldSkipCraftingMenu(Player player) {
         return true;
     }
@@ -424,7 +437,7 @@ public class StaticItemListener implements Listener {
         if (!isCraftingMenuContext(view)) {
             return;
         }
-        boolean applyMenu = !shouldSkipCraftingMenu(player);
+        boolean applyMenu = !shouldDisableCraftingShortcuts(player) && !shouldSkipCraftingMenu(player);
         setCraftingMenuSlots(player, view, applyMenu);
         player.setItemOnCursor(null);
         if (applyMenu) {
@@ -438,6 +451,11 @@ public class StaticItemListener implements Listener {
 
     private static void queueCraftingMenuRefresh(Player player) {
         if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (shouldDisableCraftingShortcuts(player)) {
+            clearInventoryDebugSession(player, player.getOpenInventory());
+            PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.remove(player.getUniqueId());
             return;
         }
         PLAYERS_NEEDING_CRAFTING_MENU_REFRESH.add(player.getUniqueId());
@@ -563,6 +581,10 @@ public class StaticItemListener implements Listener {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
+        if (shouldDisableCraftingShortcuts(player)) {
+            clearInventoryDebugSession(player, event.getView());
+            return;
+        }
         if (isCraftingMenuContext(event.getView())
                 && event.getView().getTopInventory() instanceof CraftingInventory) {
             applyInventoryDebugSession(player, event.getView());
@@ -600,6 +622,10 @@ public class StaticItemListener implements Listener {
         if (isCraftingMenuContext(event.getView())
                 && isManagedCraftingRawSlot(event.getRawSlot())
                 && hasCraftingShortcutItems(event.getView())) {
+            if (shouldDisableCraftingShortcuts(player)) {
+                clearInventoryDebugSession(player, event.getView());
+                return;
+            }
             event.setCancelled(true);
             event.setResult(Event.Result.DENY);
             if (event.getCursor() != null && !event.getCursor().getType().isAir()) {
@@ -621,6 +647,10 @@ public class StaticItemListener implements Listener {
     @EventHandler
     public void onInventoryClose(org.bukkit.event.inventory.InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        if (shouldDisableCraftingShortcuts(player)) {
+            clearInventoryDebugSession(player, event.getView());
             return;
         }
         if (isCraftingMenuContext(event.getView())

@@ -138,13 +138,19 @@ public class WieldStyleDebugManager implements Listener {
         }
         ItemStack weapon = player.getInventory().getItemInMainHand();
         WieldSession session = sessions.get(player.getUniqueId());
-        if (!ItemUtil.canUseWeapon(player, weapon)) {
+        if (!isCustomStatWeapon(weapon) || !ItemUtil.canUseWeapon(player, weapon)) {
             if (session != null && session.autoManaged) {
                 disable(player.getUniqueId());
             }
             return;
         }
         enableForEquippedWeapon(player, weapon);
+    }
+
+    private boolean isCustomStatWeapon(ItemStack weapon) {
+        return weapon != null
+                && !weapon.getType().isAir()
+                && ItemManager.getInstance().getCustomItemFromItemStack(weapon) != null;
     }
 
     private void enableForEquippedWeapon(Player player, ItemStack weapon) {

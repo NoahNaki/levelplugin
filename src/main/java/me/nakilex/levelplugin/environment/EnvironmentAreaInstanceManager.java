@@ -2133,9 +2133,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                                                            org.bukkit.entity.EntityType fallbackType) {
         org.bukkit.entity.EntityType type = fallbackType == null ? org.bukkit.entity.EntityType.PLAYER : fallbackType;
         String name = template == null || template.getName() == null ? "Kingdom NPC" : template.getName();
-        // Do not use Citizens NPC#copy() here. In practice copied NPCs can keep the
-        // template entity/stored location, which makes post-load clones appear back
-        // in the source world instead of the player's kingdom instance.
         return CitizensAPI.getNPCRegistry().createNPC(type, name);
     }
 
