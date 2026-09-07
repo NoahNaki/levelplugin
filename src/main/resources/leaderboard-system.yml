@@ -1,0 +1,82 @@
+# Native leaderboard engine. The IDs intentionally match ajLeaderboards so existing
+# DeluxeMenus, holograms and EdPrison configuration continue to work unchanged.
+refresh-ticks: 1200
+
+no-data:
+  name: '---'
+  value: '---'
+
+resets:
+  time-zone: Europe/Amsterdam
+  week-start: SUNDAY
+
+boards:
+  vault_eco_balance:
+    placeholder: '%vault_eco_balance%'
+    value-type: NUMBER
+  coinsengine_balance_raw_coins:
+    placeholder: '%coinsengine_balance_raw_coins%'
+    value-type: NUMBER
+  coinsengine_balance_rounded_coins:
+    placeholder: '%coinsengine_balance_rounded_coins%'
+    value-type: NUMBER
+  coinsengine_balance_rounded_deliveries:
+    placeholder: '%coinsengine_balance_rounded_deliveries%'
+    value-type: NUMBER
+  coinsengine_balance_rounded_factoriespcompleted:
+    placeholder: '%coinsengine_balance_rounded_factoriespcompleted%'
+    value-type: NUMBER
+  edprison_currency_tokens:
+    placeholder: '%edprison_currency_tokens%'
+    value-type: NUMBER
+  edprison_gang_points:
+    placeholder: '%edprison_gang_points%'
+    value-type: NUMBER
+  edprison_level_pickaxe:
+    placeholder: '%edprison_level_pickaxe%'
+    value-type: INTEGER
+  quests_completed:
+    placeholder: '%quests_completed%'
+    value-type: INTEGER
+  superbvote_votes:
+    placeholder: '%superbvote_votes%'
+    value-type: INTEGER
+  statistic_animals_bred:
+    placeholder: '%statistic_animals_bred%'
+    value-type: INTEGER
+  statistic_chest_opened:
+    placeholder: '%statistic_chest_opened%'
+    value-type: INTEGER
+  statistic_craft_item:
+    placeholder: '%statistic_craft_item%'
+    value-type: INTEGER
+  statistic_damage_dealt:
+    placeholder: '%statistic_damage_dealt%'
+    value-type: INTEGER
+  statistic_deaths:
+    placeholder: '%statistic_deaths%'
+    value-type: INTEGER
+  statistic_fall_one_cm:
+    placeholder: '%statistic_fall_one_cm%'
+    value-type: INTEGER
+  statistic_jump:
+    placeholder: '%statistic_jump%'
+    value-type: INTEGER
+  statistic_mine_block:
+    placeholder: '%statistic_mine_block%'
+    value-type: INTEGER
+  statistic_mob_kills:
+    placeholder: '%statistic_mob_kills%'
+    value-type: INTEGER
+  statistic_player_kills:
+    placeholder: '%statistic_player_kills%'
+    value-type: INTEGER
+  statistic_sleep_in_bed:
+    placeholder: '%statistic_sleep_in_bed%'
+    value-type: INTEGER
+  statistic_time_played:
+    placeholder: '%statistic_time_played%'
+    value-type: TIME_SECONDS
+  statistic_time_since_death:
+    placeholder: '%statistic_time_since_death%'
+    value-type: TIME_SECONDS

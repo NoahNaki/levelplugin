@@ -241,6 +241,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.environment.stage.TownStageManager townStageManager;
     private me.nakilex.levelplugin.environment.stage.BuildingStageManager buildingStageManager;
     private me.nakilex.levelplugin.leaderboards.LeaderboardManager leaderboardManager;
+    private me.nakilex.levelplugin.leaderboards.compat.LeaderboardSystem leaderboardSystem;
     private me.nakilex.levelplugin.leaderboards.DuelStatsManager duelStatsManager;
     private me.nakilex.levelplugin.animatedlb.LeaderboardManager animatedLbManager;
     private final Map<UUID, List<NPC>> activeBowDrones = new HashMap<>();
@@ -279,6 +280,7 @@ public class PluginBootstrap {
     private CursorMenuManager cursorMenuManager;
     private CookingModule cookingModule;
     private BlockGlowUtil blockGlowUtil;
+    private boolean dungeonsEnabled;
 
     public PluginBootstrap(Main plugin) {
         this.plugin = plugin;
@@ -313,6 +315,8 @@ public class PluginBootstrap {
                 duelStatsManager,
                 settingsManager,
                 environmentManager);
+        leaderboardSystem = new me.nakilex.levelplugin.leaderboards.compat.LeaderboardSystem(plugin);
+        leaderboardSystem.start();
         CitizensAPI.getTraitFactory().registerTrait(net.citizensnpcs.api.trait.TraitInfo.create(MetadataTrait.class).withName("MetadataTrait"));
         mobRewardsConfig = new MobRewardsConfig(plugin);
         customMobManager = new CustomMobManager(plugin);
@@ -378,7 +382,8 @@ public class PluginBootstrap {
         String hubWorld = customConfig != null
                 ? customConfig.getString("server.hub-world", "hub")
                 : "hub";
-        worldManager.ensureWorldsLoaded("flatland", "redrocks", hubWorld);
+        worldManager.ensureWorldsLoaded("flatland", "redrocks", "spawn", hubWorld);
+        dungeonsEnabled = customConfig.getBoolean("enable-dungeons", false);
         NpcApi.initialize(new NpcRegistry(plugin));
         serverSelectionManager = new me.nakilex.levelplugin.server.ServerSelectionManager(plugin);
 
@@ -387,7 +392,11 @@ public class PluginBootstrap {
         itemRegistryV2.load();
         cookingModule = new CookingModule(plugin);
         cookingModule.load();
-        toolManager = new me.nakilex.levelplugin.items.tools.ToolManager();
+        boolean miningToolsEnabled = customConfig.getBoolean("features.mining-tools", false);
+        toolManager = new me.nakilex.levelplugin.items.tools.ToolManager(miningToolsEnabled);
+        if (!miningToolsEnabled) {
+            plugin.getLogger().info("Mining tool system is archived; pickaxes belong to the prison core.");
+        }
         configManager = new ConfigManager(plugin);
         cooldownManager = new CooldownManager(plugin, configManager, null);
         lootChestManager = new LootChestManager(plugin, configManager, cooldownManager, potionManager);
@@ -431,13 +440,15 @@ public class PluginBootstrap {
         strongholdShrineManager = new StrongholdShrineManager(plugin);
         strongholdRunManager = new StrongholdRunManager(plugin, strongholdShrineManager);
         arenaInstanceManager = new ArenaInstanceManager(plugin);
-        stagedDungeonManager = new me.nakilex.levelplugin.stageddungeon.StagedDungeonManager(plugin, arenaInstanceManager);
-        gemDungeonGUI = stagedDungeonManager.getDefinition("gem")
-                .map(definition -> new me.nakilex.levelplugin.stageddungeon.StagedDungeonGUI(stagedDungeonManager, definition))
-                .orElse(null);
-        coinDungeonGUI = stagedDungeonManager.getDefinition("coin")
-                .map(definition -> new me.nakilex.levelplugin.stageddungeon.StagedDungeonGUI(stagedDungeonManager, definition))
-                .orElse(null);
+        if (dungeonsEnabled) {
+            stagedDungeonManager = new me.nakilex.levelplugin.stageddungeon.StagedDungeonManager(plugin, arenaInstanceManager);
+            gemDungeonGUI = stagedDungeonManager.getDefinition("gem")
+                    .map(definition -> new me.nakilex.levelplugin.stageddungeon.StagedDungeonGUI(stagedDungeonManager, definition))
+                    .orElse(null);
+            coinDungeonGUI = stagedDungeonManager.getDefinition("coin")
+                    .map(definition -> new me.nakilex.levelplugin.stageddungeon.StagedDungeonGUI(stagedDungeonManager, definition))
+                    .orElse(null);
+        }
         friendManager = new FriendManager();
         guildManager = me.nakilex.levelplugin.guild.GuildManager.getInstance();
         guildManager.init(plugin);
@@ -450,8 +461,12 @@ public class PluginBootstrap {
         guildSettingsGUI.setMemberGUI(guildMemberGUI);
         guildSiegeManager = me.nakilex.levelplugin.guild.siege.GuildSiegeManager.getInstance();
         guildSiegeManager.init(plugin);
-        gemsManager = new GemsManager();
+        boolean gemSystemEnabled = customConfig.getBoolean("features.gem-system", false);
+        gemsManager = new GemsManager(gemSystemEnabled);
         gemGui = new GemExchangeGUI(plugin, gemsManager);
+        if (!gemSystemEnabled) {
+            plugin.getLogger().info("Gem system is archived; the prison core owns the gem currency.");
+        }
         auctionHouseManager = new me.nakilex.levelplugin.auctionhouse.AuctionHouseManager(plugin, economyManager);
         auctionHouseGUI = new me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI(plugin, auctionHouseManager, economyManager);
         tipsCfg = new TipsConfigManager(plugin);
@@ -542,16 +557,20 @@ public class PluginBootstrap {
         motdManager = new me.nakilex.levelplugin.motd.MotdManager(plugin);
         fakeBlockManager = new me.nakilex.levelplugin.fakeblock.FakeBlockManager();
         questGateManager = new me.nakilex.levelplugin.fakeblock.QuestGateManager(plugin, fakeBlockManager);
-        dungeonRatingManager = new me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager(plugin);
-        dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin, lootChestManager);
-        dungeonManager.cleanupOldInstanceWorlds();
-        dungeonManager.getBuilder().cleanupOrphans();
-        dungeonListGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonListGUI(dungeonManager);
-        dungeonLeaveGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonLeaveGUI(dungeonManager);
-        catacombsManager = new me.nakilex.levelplugin.catacombs.CatacombsManager(plugin, dungeonManager);
-        scoreboardManager.setCatacombsManager(catacombsManager);
-        catacombsGUI = new me.nakilex.levelplugin.catacombs.CatacombsGUI(catacombsManager);
-        plugin.getServer().getPluginManager().registerEvents(catacombsGUI, plugin);
+        if (dungeonsEnabled) {
+            dungeonRatingManager = new me.nakilex.levelplugin.dungeon.rating.DungeonRatingManager(plugin);
+            dungeonManager = new me.nakilex.levelplugin.dungeon.DungeonManager(plugin, lootChestManager);
+            dungeonManager.cleanupOldInstanceWorlds();
+            dungeonManager.getBuilder().cleanupOrphans();
+            dungeonListGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonListGUI(dungeonManager);
+            dungeonLeaveGUI = new me.nakilex.levelplugin.dungeon.gui.DungeonLeaveGUI(dungeonManager);
+            catacombsManager = new me.nakilex.levelplugin.catacombs.CatacombsManager(plugin, dungeonManager);
+            scoreboardManager.setCatacombsManager(catacombsManager);
+            catacombsGUI = new me.nakilex.levelplugin.catacombs.CatacombsGUI(catacombsManager);
+            plugin.getServer().getPluginManager().registerEvents(catacombsGUI, plugin);
+        } else {
+            plugin.getLogger().info("Dungeon systems are disabled by enable-dungeons: false.");
+        }
         townStageManager = new me.nakilex.levelplugin.environment.stage.TownStageManager(plugin);
         buildingStageManager = new me.nakilex.levelplugin.environment.stage.BuildingStageManager(plugin);
         cooldownManager.setLootChestManager(lootChestManager);
@@ -566,11 +585,13 @@ public class PluginBootstrap {
         wanderingMerchantManager = new me.nakilex.levelplugin.npc.wandering.WanderingMerchantManager(plugin);
         pathfindingManager = new PathfindingManager(plugin);
         mercenaryManager = new MercenaryManager(plugin);
-        dungeonExpeditionManager = new me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager(
-                plugin,
-                dungeonManager,
-                mercenaryAffinityManager);
         mercenaryAffinityManager = new me.nakilex.levelplugin.mercenary.MercenaryAffinityManager(plugin);
+        if (dungeonsEnabled) {
+            dungeonExpeditionManager = new me.nakilex.levelplugin.pathfinding.DungeonExpeditionManager(
+                    plugin,
+                    dungeonManager,
+                    mercenaryAffinityManager);
+        }
         mercenaryExpeditionManager = new me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager(
                 plugin,
                 mercenaryAffinityManager,
@@ -687,10 +708,14 @@ public class PluginBootstrap {
         );
         plugin.getCommand("pweather").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalWeatherCommand(playerEnvironmentService));
         plugin.getCommand("ptime").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalTimeCommand(playerEnvironmentService));
-        me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
-                new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
-        plugin.getCommand("catacombs").setExecutor(catacombsCommand);
-        plugin.getCommand("catacombs").setTabCompleter(catacombsCommand);
+        if (dungeonsEnabled) {
+            me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
+                    new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
+            plugin.getCommand("catacombs").setExecutor(catacombsCommand);
+            plugin.getCommand("catacombs").setTabCompleter(catacombsCommand);
+        } else {
+            CommandRegistry.registerArchivedCommand(plugin.getCommand("catacombs"), "Dungeon");
+        }
         me.nakilex.levelplugin.mercenary.board.ExpeditionBoardCommand expeditionBoardCommand =
                 new me.nakilex.levelplugin.mercenary.board.ExpeditionBoardCommand(expeditionBoardManager);
         plugin.getCommand("expeditionboard").setExecutor(expeditionBoardCommand);
@@ -703,11 +728,21 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.animatedlb.AnimatedLeaderboardPlugin(animatedLbManager);
         plugin.getCommand("animatedlb").setExecutor(animatedLbCmd);
         plugin.getCommand("animatedlb").setTabCompleter(animatedLbCmd);
+        me.nakilex.levelplugin.leaderboards.compat.LeaderboardCommand leaderboardCommand =
+                new me.nakilex.levelplugin.leaderboards.compat.LeaderboardCommand(leaderboardSystem);
+        plugin.getCommand("ajleaderboards").setExecutor(leaderboardCommand);
+        plugin.getCommand("ajleaderboards").setTabCompleter(leaderboardCommand);
+        plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.world.WorldRulesListener(worldManager), plugin);
         if (gemDungeonGUI != null) {
             plugin.getCommand("gemdungeon").setExecutor(new me.nakilex.levelplugin.stageddungeon.StagedDungeonCommand(gemDungeonGUI));
+        } else if (!dungeonsEnabled) {
+            CommandRegistry.registerArchivedCommand(plugin.getCommand("gemdungeon"), "Dungeon");
         }
         if (coinDungeonGUI != null) {
             plugin.getCommand("coindungeon").setExecutor(new me.nakilex.levelplugin.stageddungeon.StagedDungeonCommand(coinDungeonGUI));
+        } else if (!dungeonsEnabled) {
+            CommandRegistry.registerArchivedCommand(plugin.getCommand("coindungeon"), "Dungeon");
         }
 
         me.nakilex.levelplugin.guild.siege.GuildSiegeCommand siegeCmd =
@@ -728,7 +763,7 @@ public class PluginBootstrap {
         if (essenceSystemEnabled) {
             furnitureGuiMapper.register("altar", player -> ClassEssenceUpgradeGUI.openInvest(player, null));
         }
-        java.util.List.of(
+        if (dungeonsEnabled) java.util.List.of(
                 "portal_decoration_animated_v1_portal_1",
                 "portal_decoration_animated_v1_portal_2",
                 "portal_decoration_animated_v1_portal_3",
@@ -752,7 +787,9 @@ public class PluginBootstrap {
         plugin.getServer().getPluginManager().registerEvents(strongholdQueueGUI, plugin);
         plugin.getServer().getPluginManager().registerEvents(strongholdShrineManager, plugin);
         plugin.getServer().getPluginManager().registerEvents(strongholdRunManager, plugin);
-        plugin.getServer().getPluginManager().registerEvents(stagedDungeonManager, plugin);
+        if (stagedDungeonManager != null) {
+            plugin.getServer().getPluginManager().registerEvents(stagedDungeonManager, plugin);
+        }
         if (gemDungeonGUI != null) {
             plugin.getServer().getPluginManager().registerEvents(gemDungeonGUI, plugin);
         }
@@ -893,6 +930,17 @@ public class PluginBootstrap {
         if (Bukkit.getPluginManager().getPlugin("PlaceholderAPI") != null) {
             new NakiPlaceholderExpansion(plugin).register();
             new LevelPlaceholderExpansion(plugin).register();
+            if (!Bukkit.getPluginManager().isPluginEnabled("ajLeaderboards")) {
+                new me.nakilex.levelplugin.leaderboards.compat.AjLeaderboardPlaceholderExpansion(
+                        plugin, leaderboardSystem).register();
+                plugin.getLogger().info("Registered native ajLeaderboards-compatible placeholders.");
+            } else {
+                plugin.getLogger().info("ajLeaderboards is still installed; its placeholder expansion remains active for this boot.");
+            }
+            if (!Bukkit.getPluginManager().isPluginEnabled("Multiverse-Core")) {
+                new me.nakilex.levelplugin.world.MultiverseCorePlaceholderExpansion(plugin, worldManager).register();
+                plugin.getLogger().info("Registered Multiverse-Core-compatible world placeholders.");
+            }
         }
     }
 
@@ -979,6 +1027,7 @@ public class PluginBootstrap {
             guildSiegeManager.save();
         }
         if (leaderboardManager != null) leaderboardManager.removeAll();
+        if (leaderboardSystem != null) leaderboardSystem.close();
         if (animatedLbManager != null) animatedLbManager.remove();
         if (duelStatsManager != null) duelStatsManager.save();
         if (townStageManager != null) townStageManager.despawnAll();
@@ -1115,6 +1164,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.environment.stage.TownStageManager getTownStageManager() { return townStageManager; }
     public me.nakilex.levelplugin.environment.stage.BuildingStageManager getBuildingStageManager() { return buildingStageManager; }
     public me.nakilex.levelplugin.leaderboards.LeaderboardManager getLeaderboardManager() { return leaderboardManager; }
+    public me.nakilex.levelplugin.leaderboards.compat.LeaderboardSystem getLeaderboardSystem() { return leaderboardSystem; }
     public me.nakilex.levelplugin.leaderboards.DuelStatsManager getDuelStatsManager() { return duelStatsManager; }
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseManager getAuctionHouseManager() { return auctionHouseManager; }
     public me.nakilex.levelplugin.auctionhouse.AuctionHouseGUI getAuctionHouseGUI() { return auctionHouseGUI; }
@@ -1252,6 +1302,9 @@ public class PluginBootstrap {
         }
         if (!customConfig.contains("features.duel-system")) {
             customConfig.set("features.duel-system", false);
+        }
+        if (!customConfig.contains("enable-dungeons")) {
+            customConfig.set("enable-dungeons", false);
         }
         if (!customConfig.contains("debug.chunk-loading")) {
             customConfig.set("debug.chunk-loading", false);

@@ -194,6 +194,9 @@ public class MercenaryExpeditionManager {
 
     private void rebuildExpeditionsFromLayouts() {
         expeditions.clear();
+        if (dungeonManager == null) {
+            return;
+        }
         List<Map.Entry<String, String>> layouts = new ArrayList<>(dungeonManager.getLayoutEntries());
         layouts.sort(Comparator.comparing(entry -> ChatColor.stripColor(entry.getValue())));
         for (Map.Entry<String, String> entry : layouts) {

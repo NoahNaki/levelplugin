@@ -35,9 +35,28 @@ public class ToolManager {
     private final NamespacedKey fishingEnchantKey = new NamespacedKey(Main.getInstance(), "fishing_enchant");
     private final NamespacedKey fishingEnchantCountKey = new NamespacedKey(Main.getInstance(), "fishing_enchant_count");
 
+    private final boolean miningToolsEnabled;
+
     public ToolManager() {
+        this(true);
+    }
+
+    /**
+     * @param miningToolsEnabled when false, pickaxes are not registered as custom tools.
+     *                           X-Prison owns DIAMOND_PICKAXE / NETHERITE_PICKAXE on the prison
+     *                           side, and a pickaxe that is not in {@code materialLookup} is
+     *                           invisible to {@link #isToolMaterial}, which is what every tooltip
+     *                           refresh gates on - so LevelPlugin never rewrites prison pickaxe lore.
+     */
+    public ToolManager(boolean miningToolsEnabled) {
         instance = this;
+        this.miningToolsEnabled = miningToolsEnabled;
         loadDefaults();
+    }
+
+    /** @return whether pickaxes are managed by LevelPlugin rather than by the prison core */
+    public boolean isMiningToolsEnabled() {
+        return miningToolsEnabled;
     }
 
     public static ToolManager getInstance() {
@@ -45,12 +64,14 @@ public class ToolManager {
     }
 
     private void loadDefaults() {
-        addTool(Material.WOODEN_PICKAXE, ToolTier.TIER_I, ToolDiscipline.MINING);
-        addTool(Material.STONE_PICKAXE, ToolTier.TIER_II, ToolDiscipline.MINING);
-        addTool(Material.GOLDEN_PICKAXE, ToolTier.TIER_III, ToolDiscipline.MINING);
-        addTool(Material.IRON_PICKAXE, ToolTier.TIER_IV, ToolDiscipline.MINING);
-        addTool(Material.DIAMOND_PICKAXE, ToolTier.TIER_V, ToolDiscipline.MINING);
-        addTool(Material.NETHERITE_PICKAXE, ToolTier.TIER_VI, ToolDiscipline.MINING);
+        if (miningToolsEnabled) {
+            addTool(Material.WOODEN_PICKAXE, ToolTier.TIER_I, ToolDiscipline.MINING);
+            addTool(Material.STONE_PICKAXE, ToolTier.TIER_II, ToolDiscipline.MINING);
+            addTool(Material.GOLDEN_PICKAXE, ToolTier.TIER_III, ToolDiscipline.MINING);
+            addTool(Material.IRON_PICKAXE, ToolTier.TIER_IV, ToolDiscipline.MINING);
+            addTool(Material.DIAMOND_PICKAXE, ToolTier.TIER_V, ToolDiscipline.MINING);
+            addTool(Material.NETHERITE_PICKAXE, ToolTier.TIER_VI, ToolDiscipline.MINING);
+        }
 
         addTool(Material.WOODEN_AXE, ToolTier.TIER_I, ToolDiscipline.WOODCUTTING);
         addTool(Material.STONE_AXE, ToolTier.TIER_II, ToolDiscipline.WOODCUTTING);

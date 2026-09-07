@@ -345,8 +345,12 @@ public class ListenerRegistry {
         pm.registerEvents(new WaystoneListener(fastTravelGUI, fastTravelManager, plugin.getModelGateManager()), plugin);
         pm.registerEvents(new ExplorationListener(fastTravelManager, plugin.getLocationMusicManager()), plugin);
         pm.registerEvents(new FastTravelRespawnListener(fastTravelManager), plugin);
-        pm.registerEvents(dungeonListGUI, plugin);
-        pm.registerEvents(dungeonLeaveGUI, plugin);
+        if (dungeonListGUI != null) {
+            pm.registerEvents(dungeonListGUI, plugin);
+        }
+        if (dungeonLeaveGUI != null) {
+            pm.registerEvents(dungeonLeaveGUI, plugin);
+        }
         pm.registerEvents(motdManager, plugin);
         pm.registerEvents(upgradeGUI, plugin);
         pm.registerEvents(buildingUpgradeGUI, plugin);

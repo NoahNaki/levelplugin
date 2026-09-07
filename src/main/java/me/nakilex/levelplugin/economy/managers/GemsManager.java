@@ -14,6 +14,31 @@ import java.util.List;
 
 public class GemsManager {
 
+    /**
+     * When false the whole currency is archived: balances read as 0 and every grant, set and
+     * deduct is a no-op, so content that still awards gems simply pays nothing.
+     * <p>
+     * The manager stays instantiated on purpose. Gems are referenced from roughly fifteen
+     * systems (field bosses, dungeons, quests, salvage, merchants, mail, pet summons, spell
+     * decks, stronghold runs); handing those a null manager would trade a tidy field for a
+     * scattering of NPEs at runtime. Disabling from the inside gives the same player-visible
+     * outcome with no call site left to miss.
+     */
+    private final boolean enabled;
+
+    public GemsManager() {
+        this(true);
+    }
+
+    public GemsManager(boolean enabled) {
+        this.enabled = enabled;
+    }
+
+    /** @return whether LevelPlugin's gem currency is active */
+    public boolean isEnabled() {
+        return enabled;
+    }
+
     private static final Material FRAGMENT = Material.MEDIUM_AMETHYST_BUD;
     private static final Material SHARD    = Material.AMETHYST_SHARD;
     private static final Material CLUSTER  = Material.AMETHYST_CLUSTER;
@@ -21,8 +46,9 @@ public class GemsManager {
     private static final int PER_SHARD   =   64;
     private static final int PER_CLUSTER = PER_SHARD * PER_SHARD; // 4096
 
-    /** Total gem‐units in the player’s inventory. */
+    /** Total gem‐units in the player’s inventory, or 0 while archived. */
     public int getTotalUnits(Player player) {
+        if (!enabled) return 0;
         PlayerInventory inv = player.getInventory();
         int fragments = inv.all(FRAGMENT).values().stream().mapToInt(ItemStack::getAmount).sum();
         int shards    = inv.all(SHARD).   values().stream().mapToInt(ItemStack::getAmount).sum();
@@ -82,6 +108,7 @@ public class GemsManager {
      * them into the minimal number of clusters/shards/fragments.
      */
     public void setTotalUnits(Player player, int units) {
+        if (!enabled) return;
         var inv = player.getInventory();
         inv.remove(CLUSTER);
         inv.remove(SHARD);
@@ -102,6 +129,7 @@ public class GemsManager {
 
     /** Add units (can be >4096) to the player. */
     public void addUnits(Player player, int units) {
+        if (!enabled) return;
         int current = getTotalUnits(player);
         setTotalUnits(player, current + units);
     }
@@ -141,6 +169,7 @@ public class GemsManager {
 
     /** Deduct units; throws if insufficient. */
     public void deductUnits(Player player, int units) {
+        if (!enabled) return;
         int current = getTotalUnits(player);
         if (current < units) {
             throw new IllegalArgumentException("Not enough gems!");
@@ -150,6 +179,7 @@ public class GemsManager {
 
     /** Get the “breakdown” into [clusters, shards, fragments]. */
     public int[] breakdown(Player player) {
+        if (!enabled) return new int[]{0, 0, 0};
         int total    = getTotalUnits(player);
         int clusters = total / PER_CLUSTER;
         int rem      = total % PER_CLUSTER;

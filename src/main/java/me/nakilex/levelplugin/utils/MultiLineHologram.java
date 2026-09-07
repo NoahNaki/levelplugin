@@ -51,6 +51,9 @@ public class MultiLineHologram {
     /** Spawn hologram lines with the given text. */
     public void spawn(List<String> textLines) {
         despawn();
+        if (location == null || location.getWorld() == null || textLines == null || textLines.isEmpty()) {
+            return;
+        }
         Location base = location.clone();
         double offset = 0.0;
         for (String text : textLines) {
@@ -71,6 +74,10 @@ public class MultiLineHologram {
 
     /** Update lines without respawning if count matches, otherwise respawn. */
     public void setLines(List<String> textLines) {
+        if (textLines == null) {
+            despawn();
+            return;
+        }
         if (lines.size() != textLines.size()) {
             spawn(textLines);
             return;

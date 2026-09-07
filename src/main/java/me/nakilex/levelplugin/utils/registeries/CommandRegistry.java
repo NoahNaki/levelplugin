@@ -335,11 +335,16 @@ public class CommandRegistry {
         plugin.getCommand("dmgnumber").setExecutor(new DmgNumberCommand(dmgToggleManager));
         plugin.getCommand("dmgchat").setExecutor(new DmgChatCommand(settingsGUI.getSettingsManager()));
         plugin.getCommand("settings").setExecutor(new SettingsCommand(settingsGUI));
-        AddGemsCommand addGemsCmd = new AddGemsCommand(gemsManager);
-        plugin.getCommand("addgems").setExecutor(addGemsCmd);
-        plugin.getCommand("addgems").setTabCompleter(addGemsCmd);
-        plugin.getCommand("gems").setExecutor(new GemsBalanceCommand(gemsManager));
-        plugin.getCommand("gemexchange").setExecutor(new GemExchangeCommand(gemGui));
+        // Gem commands are only bound while the gem system is active. They are also removed from
+        // plugin.yml, so /gems resolves to the prison core's own gems currency instead of being
+        // shadowed by a LevelPlugin command that reports a balance of zero.
+        if (gemsManager.isEnabled()) {
+            AddGemsCommand addGemsCmd = new AddGemsCommand(gemsManager);
+            plugin.getCommand("addgems").setExecutor(addGemsCmd);
+            plugin.getCommand("addgems").setTabCompleter(addGemsCmd);
+            plugin.getCommand("gems").setExecutor(new GemsBalanceCommand(gemsManager));
+            plugin.getCommand("gemexchange").setExecutor(new GemExchangeCommand(gemGui));
+        }
         plugin.getCommand("tipsreload").setExecutor(new TipsReloadCommand(tipsCfg, broadcastMgr));
         ToggleCommand toggleCmd = new ToggleCommand(plugin);
         plugin.getCommand("toggle").setExecutor(toggleCmd);
@@ -454,10 +459,14 @@ public class CommandRegistry {
         plugin.getCommand("wm").setExecutor(new WanderingMerchantCommand(wmManager));
 
         plugin.getCommand("cutscene").setExecutor(new me.nakilex.levelplugin.cutscene.commands.CutsceneCommand(plugin.getCutsceneManager()));
-        me.nakilex.levelplugin.dungeon.DungeonCommand dungeonCmd =
-                new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin);
-        plugin.getCommand("dungeon").setExecutor(dungeonCmd);
-        plugin.getCommand("dungeon").setTabCompleter(dungeonCmd);
+        if (plugin.getCustomConfig().getBoolean("enable-dungeons", false)) {
+            me.nakilex.levelplugin.dungeon.DungeonCommand dungeonCmd =
+                    new me.nakilex.levelplugin.dungeon.DungeonCommand(plugin);
+            plugin.getCommand("dungeon").setExecutor(dungeonCmd);
+            plugin.getCommand("dungeon").setTabCompleter(dungeonCmd);
+        } else {
+            registerArchivedCommand(plugin.getCommand("dungeon"), "Dungeon");
+        }
         me.nakilex.levelplugin.world.WorldCommand worldCmd = new me.nakilex.levelplugin.world.WorldCommand(plugin.getWorldManager());
         plugin.getCommand("world").setExecutor(worldCmd);
         plugin.getCommand("world").setTabCompleter(worldCmd);
@@ -536,7 +545,7 @@ public class CommandRegistry {
         }
     }
 
-    private static void registerArchivedCommand(PluginCommand command, String systemName) {
+    public static void registerArchivedCommand(PluginCommand command, String systemName) {
         TabExecutor archivedHandler = new TabExecutor() {
             @Override
             public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {

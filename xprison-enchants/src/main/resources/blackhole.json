@@ -1,0 +1,45 @@
+{
+  "class": "me.nakilex.xprisonenchants.enchant.BlackHoleEnchant",
+  "id": 202,
+  "rawName": "blackhole",
+  "name": "<dark_purple><bold>Black Hole</bold></dark_purple>",
+  "enabled": true,
+  "increaseCostBy": "baseCost * pow(1.08, level)",
+  "maxLevel": 10,
+  "currency": "TOKENS",
+  "initialCost": 750000,
+  "pickaxeLevelRequired": 1,
+  "chance": 0.001,
+  "maxBlocks": 110,
+  "currencyToGive": "MONEY",
+  "countBlocksBroken": true,
+  "eventStrategy": "AGGREGATE",
+  "message": "<gradient:#FFD700:#FFEA00><bold>ENCHANT</bold></gradient> <dark_gray>\u00bb </dark_gray><gray>You got </gray><yellow><bold>%amount% %currency% </bold></yellow><gray>from </gray><dark_purple><bold>Black Hole</bold></dark_purple><gray>.</gray>",
+  "prestige": {
+    "enabled": true,
+    "maxPrestige": 5,
+    "requiredActivationsFormula": "2000 * pow(10, prestige)",
+    "multiplierPerPrestige": 0.2
+  },
+  "refund": {
+    "enabled": true,
+    "guiSlot": 40,
+    "guiPage": 1,
+    "percentage": 40.0
+  },
+  "gui": {
+    "name": "<dark_purple><bold>Black Hole</bold></dark_purple>",
+    "material": "BLACK_CONCRETE",
+    "customModelData": 0,
+    "slot": 40,
+    "page": 1,
+    "description": [
+      "<gray>Collapses a sphere of the mine into</gray>",
+      "<gray>a singularity above your pickaxe.</gray>"
+    ]
+  },
+  "baseRadius": 5.5,
+  "maxRadius": 9.0,
+  "durationTicks": 55,
+  "coreHeight": 2.5
+}

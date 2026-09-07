@@ -218,14 +218,19 @@ commands:
   hub:
     description: Return to the hub
     usage: /hub
-  addgems:
-    description: Adjust a player's gems (can be negative)
-    usage: /addgems <player|@everyone> <amount>
-    permission: none
-  gems:
-    description: Check your gem balance.
-  gemexchange:
-    description: Open the gem exchange GUI
+  # ARCHIVED (features.gem-system: false) - the prison core owns the gems currency now.
+  # These stay commented out rather than merely unbound: a plugin.yml command is claimed at
+  # LOAD time, which is before X-Prison registers its currency commands at enable time, so
+  # leaving them declared would keep /gems pointing at LevelPlugin and only ever print usage.
+  # Re-enable the feature flag and uncomment these together.
+  #addgems:
+  #  description: Adjust a player's gems (can be negative)
+  #  usage: /addgems <player|@everyone> <amount>
+  #  permission: none
+  #gems:
+  #  description: Check your gem balance.
+  #gemexchange:
+  #  description: Open the gem exchange GUI
   tipsreload:
     description: Reload auto-broadcast tips
     usage: /<command>
@@ -405,6 +410,12 @@ commands:
   world:
     description: Manage worlds
     usage: /world <create|import|delete|unload|tp|spawn|setspawn|list|info>
+    aliases: [mv]
+  ajleaderboards:
+    description: Manage LevelPlugin's native leaderboards
+    usage: /ajleaderboards <status|reload|update [player|all]|save>
+    aliases: [ajlb, ajl, alb]
+    permission: levelplugin.leaderboards.admin
   centertooltip:
     description: Give an item with a centered tooltip
     usage: /centertooltip
@@ -461,4 +472,6 @@ commands:
 
 permissions:
   levelplugin.animatedlb:
+    default: op
+  levelplugin.leaderboards.admin:
     default: op

@@ -281,6 +281,10 @@ public class DebugCommand implements TabExecutor, Listener {
                     sender.sendMessage(ChatColor.RED + "Players only.");
                     return true;
                 }
+                if (dungeonExpeditionManager == null) {
+                    sender.sendMessage(ChatColor.RED + "Dungeon systems are currently disabled.");
+                    return true;
+                }
                 dungeonExpeditionManager.startCrimsonReliquaryExpedition(dungeonPlayer);
                 return true;
 

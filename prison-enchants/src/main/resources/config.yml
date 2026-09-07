@@ -1,0 +1,60 @@
+# Only regions matching this expression may be changed by an enchant.
+# Current prison mines are minea..minez and minep1/minep3/minep5/minep7.
+mine-region-pattern: '(?i)^mine(?:[a-z]|p\d+)$'
+
+# At most one cinematic effect may run per player. This prevents a single
+# block break from stacking several entity-heavy effects on top of each other.
+max-concurrent-effects: 4
+
+# Extra blocks are submitted to Prison's ExplosiveBlockBreakEvent so Prison
+# remains responsible for drops, Fortune, pickup, SellAll and mine counters.
+rewards:
+  use-prison-explosive-event: true
+  credit-edprison-pickaxe-blocks: true
+  edprison-pickaxe-block-currency: pickaxeblocks
+
+# Uses the same visual grammar as EdPrison: [!] System → message.
+messages:
+  mine-not-found: '&8[&c&l!&8] &c&lPickaxe &8→ &7Your enchant could not find a protected mine region here.'
+  tornado-result: '&8[&b&l!&8] &b&lTornado &8→ &7Ripped through &f%blocks% &7blocks!'
+  blackhole-result: '&8[&5&l!&8] &5&lBlack Hole &8→ &7Consumed &f%blocks% &7blocks!'
+  meteors-start: '&8[&c&l!&8] &c&lMeteor Shower &8→ &7Meteors are raining over the mine!'
+  meteors-result: '&8[&c&l!&8] &c&lMeteor Shower &8→ &7Destroyed &f%blocks% &7blocks!'
+  acidrain-start: '&8[&a&l!&8] &a&lAcid Rain &8→ &7Corrosive rain is falling over the mine!'
+  acidrain-result: '&8[&a&l!&8] &a&lAcid Rain &8→ &7Melted &f%blocks% &7blocks!'
+
+tornado:
+  max-enchant-level: 5000
+  duration-ticks: 70
+  base-radius: 5.0
+  max-radius: 8.0
+  base-blocks: 42
+  max-blocks: 90
+
+blackhole:
+  max-enchant-level: 7500
+  duration-ticks: 55
+  base-radius: 5.5
+  max-radius: 9.0
+  base-blocks: 50
+  max-blocks: 110
+
+meteors:
+  max-enchant-level: 7500
+  base-count: 7
+  max-count: 14
+  interval-ticks: 6
+  impact-radius: 2
+  search-radius: 12
+  max-blocks-per-impact: 28
+
+acidrain:
+  max-enchant-level: 10000
+  duration-ticks: 100
+  pulse-interval-ticks: 5
+  fall-ticks: 12
+  spawn-height: 14.0
+  base-columns: 5
+  max-columns: 10
+  radius: 9
+  max-total-blocks: 130

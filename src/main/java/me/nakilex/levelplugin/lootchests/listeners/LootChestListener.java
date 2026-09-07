@@ -177,8 +177,9 @@ public class LootChestListener implements Listener {
                 () -> lootChestManager.playClosingAnimation(chestId), 12L);
         org.bukkit.Bukkit.getScheduler().runTaskLater(Main.getInstance(), () -> {
             lootChestManager.removeChest(chestId);
-            if (!lootChestManager.isNonRespawningChest(chestId)
-                    && !Main.getInstance().getDungeonManager().isInstanceWorld(loc.getWorld())) {
+            me.nakilex.levelplugin.dungeon.DungeonManager dungeonManager = Main.getInstance().getDungeonManager();
+            boolean inDungeon = dungeonManager != null && dungeonManager.isInstanceWorld(loc.getWorld());
+            if (!lootChestManager.isNonRespawningChest(chestId) && !inDungeon) {
                 lootChestManager.getCooldownManager().startChestCooldown(chestId);
             }
         }, 40L);

@@ -16,6 +16,7 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
+import org.bukkit.World;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -51,10 +52,10 @@ public class GuildSiegeManager {
     private final Set<UUID> defenders = new HashSet<>();
     private final Map<UUID, Location> respawnPoints = new HashMap<>();
 
-    private final Location center = new Location(Bukkit.getWorld("world"), 192, 73, -71);
-    private final Location teleportLocation = new Location(Bukkit.getWorld("world"), 193, 67, -174);
+    private Location center;
+    private Location teleportLocation;
     private static final double RADIUS = 8.0;
-    private final Location ownerHologramLocation = new Location(Bukkit.getWorld("world"), 200, 76, -78);
+    private Location ownerHologramLocation;
 
     private File dataFile;
     private String ownerGuild = null;
@@ -76,6 +77,7 @@ public class GuildSiegeManager {
 
     public void init(Main plugin) {
         this.plugin = plugin;
+        initializeLocations();
         dataFile = new File(plugin.getDataFolder(), "siege.yml");
         if (!dataFile.exists()) {
             try {
@@ -93,6 +95,30 @@ public class GuildSiegeManager {
         startAnnouncements();
         updateOwnerHologram();
         applyTownVisibility();
+    }
+
+    private void initializeLocations() {
+        String configuredWorldName = plugin.getCustomConfig().getString("guild-siege.world", "world");
+        World world = Bukkit.getWorld(configuredWorldName);
+        if (world == null) {
+            world = Bukkit.getWorlds().stream().findFirst().orElse(null);
+            if (world != null) {
+                plugin.getLogger().warning("Guild siege world '" + configuredWorldName
+                        + "' is not loaded. Falling back to '" + world.getName() + "'.");
+            }
+        }
+
+        center = configuredLocation("guild-siege.center", world, 192, 73, -71);
+        teleportLocation = configuredLocation("guild-siege.teleport", world, 193, 67, -174);
+        ownerHologramLocation = configuredLocation("guild-siege.owner-hologram", world, 200, 76, -78);
+    }
+
+    private Location configuredLocation(String path, World world, double x, double y, double z) {
+        return new Location(
+                world,
+                plugin.getCustomConfig().getDouble(path + ".x", x),
+                plugin.getCustomConfig().getDouble(path + ".y", y),
+                plugin.getCustomConfig().getDouble(path + ".z", z));
     }
 
     public void save() {
@@ -700,6 +726,9 @@ public class GuildSiegeManager {
 
     private void updateOwnerHologram() {
         if (bossBar != null) return; // during active siege we show boss bar instead
+        if (ownerHologramLocation == null || ownerHologramLocation.getWorld() == null) {
+            return;
+        }
         if (ownerHologram == null) {
             ownerHologram = new MultiLineHologram(ownerHologramLocation, "siege_owner");
         }

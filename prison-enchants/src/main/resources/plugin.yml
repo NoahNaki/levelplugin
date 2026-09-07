@@ -1,0 +1,20 @@
+name: PrisonEnchants
+version: 1.0.0
+main: me.nakilex.prisonenchants.PrisonEnchantsPlugin
+api-version: '1.21'
+author: Nakilex
+description: Cinematic custom pickaxe enchants for EdPrison.
+depend: [EdPrison, WorldGuard]
+softdepend: [Prison]
+
+commands:
+  prisonenchants:
+    description: Internal trigger and administrative test command.
+    usage: /prisonenchants <trigger|test|reload> ...
+    aliases: [peffects]
+    permission: prisonenchants.admin
+
+permissions:
+  prisonenchants.admin:
+    description: Allows testing and reloading PrisonEnchants.
+    default: op

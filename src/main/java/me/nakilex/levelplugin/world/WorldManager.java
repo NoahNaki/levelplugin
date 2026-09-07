@@ -9,6 +9,7 @@ import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
 import org.bukkit.World.Environment;
 import org.bukkit.GameRule;
+import org.bukkit.GameMode;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -31,6 +32,7 @@ public class WorldManager {
     private final Main plugin;
     private final Map<String, Location> spawns = new HashMap<>();
     private final Set<String> persistentWorlds = new HashSet<>();
+    private final Map<String, WorldSettings> worldSettings = new HashMap<>();
     private File file;
     private FileConfiguration config;
 
@@ -42,11 +44,36 @@ public class WorldManager {
     private void load() {
         spawns.clear();
         persistentWorlds.clear();
+        worldSettings.clear();
         file = new File(plugin.getDataFolder(), "worlds.yml");
         if (!file.exists()) {
             try { file.createNewFile(); } catch (IOException e) { e.printStackTrace(); }
         }
         config = YamlConfiguration.loadConfiguration(file);
+        List<String> worlds = config.getStringList("worlds");
+        for (String w : worlds) {
+            persistentWorlds.add(w.toLowerCase());
+            if (Bukkit.getWorld(w) == null) {
+                importWorld(w);
+            }
+        }
+        if (config.isConfigurationSection("settings")) {
+            for (String w : config.getConfigurationSection("settings").getKeys(false)) {
+                String path = "settings." + w + ".";
+                GameMode gameMode = null;
+                String configuredMode = config.getString(path + "gamemode", "");
+                if (!configuredMode.isBlank()) {
+                    try {
+                        gameMode = GameMode.valueOf(configuredMode.toUpperCase(java.util.Locale.ROOT));
+                    } catch (IllegalArgumentException ex) {
+                        plugin.getLogger().warning("Ignoring invalid gamemode for world '" + w + "': " + configuredMode);
+                    }
+                }
+                worldSettings.put(w.toLowerCase(), new WorldSettings(
+                        config.getString(path + "alias", w), gameMode,
+                        config.getBoolean(path + "allow-flight", false)));
+            }
+        }
         if (config.isConfigurationSection("spawns")) {
             for (String w : config.getConfigurationSection("spawns").getKeys(false)) {
                 String path = "spawns." + w;
@@ -58,13 +85,6 @@ public class WorldManager {
                 float yaw = (float) config.getDouble(path + ".yaw", 0);
                 float pitch = (float) config.getDouble(path + ".pitch", 0);
                 spawns.put(w.toLowerCase(), new Location(world, x, y, z, yaw, pitch));
-            }
-        }
-        List<String> worlds = config.getStringList("worlds");
-        for (String w : worlds) {
-            persistentWorlds.add(w.toLowerCase());
-            if (Bukkit.getWorld(w) == null) {
-                importWorld(w);
             }
         }
         for (World world : Bukkit.getWorlds()) {
@@ -168,6 +188,28 @@ public class WorldManager {
 
     public Location getSpawn(World world) {
         return spawns.getOrDefault(world.getName().toLowerCase(), world.getSpawnLocation());
+    }
+
+    public String getAlias(World world) {
+        if (world == null) return "";
+        WorldSettings settings = worldSettings.get(world.getName().toLowerCase());
+        return settings == null || settings.alias() == null || settings.alias().isBlank()
+                ? world.getName() : settings.alias();
+    }
+
+    /** Applies the per-world game mode and flight rules that Multiverse previously enforced. */
+    public void applyPlayerRules(Player player) {
+        if (player == null) return;
+        WorldSettings settings = worldSettings.get(player.getWorld().getName().toLowerCase());
+        if (settings == null) return;
+        if (settings.gameMode() != null && player.getGameMode() != settings.gameMode()) {
+            player.setGameMode(settings.gameMode());
+        }
+        boolean intrinsicallyFlying = player.getGameMode() == GameMode.CREATIVE
+                || player.getGameMode() == GameMode.SPECTATOR;
+        boolean allowFlight = settings.allowFlight() || intrinsicallyFlying;
+        if (!allowFlight && player.isFlying()) player.setFlying(false);
+        player.setAllowFlight(allowFlight);
     }
 
     public boolean teleport(Player player, String worldName) {
@@ -281,4 +323,6 @@ public class WorldManager {
             }
         }
     }
+
+    private record WorldSettings(String alias, GameMode gameMode, boolean allowFlight) {}
 }
