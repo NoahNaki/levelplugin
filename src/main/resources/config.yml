@@ -195,3 +195,36 @@ fishing-mini-games:
     speed-per-tick: 0.035
     zone-width: 0.22
     bars: [BAR_1, BAR_2, BAR_3, BAR_4, BAR_5, BAR_6, BAR_7, BAR_8, BAR_9]
+
+# Per-player kingdom mine, registered with X-Prison over the kingdom's mine cuboid.
+# The mine is created when the kingdom finishes pasting and deleted when the instance
+# world goes away, because X-Prison persists mines but the instance worlds do not.
+environment:
+  kingdom-mine:
+    enabled: true
+    # Name of an existing X-Prison mine to copy the block composition from. Tune that
+    # mine in X-Prison's own GUI and every new kingdom mine picks the change up.
+    palette-source: 'A'
+    # 0 disables the timed reset and leaves the mine on percentage-based resets only.
+    reset-interval-seconds: 300
+    # The mine plot, in 'flatland' template coordinates (the same space the kingdom build
+    # is authored in). Tune it in-game with /kingdom minearea pos1 / pos2 rather than by
+    # hand; the values below are the built-in default.
+    # The ORE cuboid only - the volume X-Prison refills. Mirrors the 'mine:' block of an
+    # X-PrivateMines schematic. Tune with /kingdom minearea pos1 / pos2.
+    region:
+      x1: 3814
+      y1: -44
+      z1: -3410
+      x2: 3842
+      y2: 50
+      z2: -3382
+    # The whole mine build, protected so only the ore cuboid is mineable. Mirrors the
+    # 'region:' block of a schematic.
+    build-region:
+      x1: 3774
+      y1: -59
+      z1: -3439
+      x2: 3869
+      y2: 76
+      z2: -3344

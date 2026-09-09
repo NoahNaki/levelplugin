@@ -1,0 +1,57 @@
+# Development-only glyphs for /dialogdemo.
+# Copy these entries into the server's Nexo glyph configuration when testing.
+
+dialog_glyph_test_8:
+  texture: icons_pack/dialog_glyph_test
+  ascent: 7
+  height: 8
+dialog_glyph_test_12:
+  texture: icons_pack/dialog_glyph_test
+  ascent: 11
+  height: 12
+dialog_glyph_test_16:
+  texture: icons_pack/dialog_glyph_test
+  ascent: 15
+  height: 16
+dialog_glyph_test_24:
+  texture: icons_pack/dialog_glyph_test
+  ascent: 23
+  height: 24
+dialog_glyph_test_32:
+  texture: icons_pack/dialog_glyph_test
+  ascent: 31
+  height: 32
+dialog_glyph_test_48:
+  texture: icons_pack/dialog_glyph_test
+  ascent: 47
+  height: 48
+
+# Reusable white translucent selection layer. Tint this component to any color
+# and move it behind a column with Nexo's Shift glyphs.
+dialog_reward_highlight:
+  texture: icons_pack/dialog_reward_highlight
+  ascent: -4
+  height: 150
+
+# Franuka RPG UI pack v1.7 sample assets. The 1x button textures are 48x16;
+# the mini-icon textures are 16x16. Their aspect ratios are preserved.
+dialog_rpg_button_normal:
+  texture: dialog_demo/rpg_button_normal
+  ascent: 15
+  height: 16
+dialog_rpg_button_selected:
+  texture: dialog_demo/rpg_button_selected
+  ascent: 15
+  height: 16
+dialog_rpg_button_pressed:
+  texture: dialog_demo/rpg_button_pressed
+  ascent: 15
+  height: 16
+dialog_rpg_star_normal:
+  texture: dialog_demo/rpg_star_normal
+  ascent: 15
+  height: 16
+dialog_rpg_star_selected:
+  texture: dialog_demo/rpg_star_selected
+  ascent: 15
+  height: 16

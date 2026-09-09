@@ -42,6 +42,11 @@ public class PersonalEnvironmentSettingsGUI implements Listener {
         this.environmentService = environmentService;
     }
 
+    /** Exposed so the settings dialogs can edit weather and time as a form. */
+    public PlayerEnvironmentService getEnvironmentService() {
+        return environmentService;
+    }
+
     public void setSettingsGUI(SettingsGUI settingsGUI) {
         this.settingsGUI = settingsGUI;
     }

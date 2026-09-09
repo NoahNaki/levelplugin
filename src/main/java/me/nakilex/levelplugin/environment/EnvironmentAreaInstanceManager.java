@@ -67,7 +67,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -80,7 +82,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private static final String SOURCE_WORLD = "flatland";
     private static final int PASTE_X = 0;
-    private static final int PASTE_Y = -40;
+    private static final int PASTE_Y = -60;
     private static final int PASTE_Z = 0;
     private static final int AREA_SPACING_BLOCKS = 1500;
     /**
@@ -88,7 +90,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
      * itself (not absolute source-world coordinates), so every player gets a
      * valid per-session cuboid regardless of world/offset.
      */
-    private static final int BORDER_MIN_Y_OFFSET = -108; // matches provided -44 relative to paste Y=-40
+    private static final int BORDER_MIN_Y_OFFSET = -108; // permissive lower bound, relative to PASTE_Y
     private static final String HOLOGRAM_TAG_PREFIX = "environment_area_build:";
     private static final int BUILD_COST_COINS = 100;
     private static final long PAYMENT_ANIMATION_TICKS = 28L;
@@ -108,8 +110,18 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             new CoinVisual(1, Material.COPPER_INGOT, "copper_coin")
     );
 
-    private static final Cuboid AREA = new Cuboid(4058, -44, -3603, 3489, 330, -3145);
-    private static final Cuboid KINGDOM_MINE_AREA = new Cuboid(3885, 81, -3502, 3774, -24, -3366);
+    private static final Cuboid AREA = new Cuboid(4058, -64, -3603, 3489, 330, -3145);
+    /**
+     * Default kingdom mine plot, in {@link #SOURCE_WORLD} template coordinates. Overridden by
+     * {@code environment.kingdom-mine.region} so the plot can be retuned in-game without a
+     * rebuild - see {@code /kingdom minearea}.
+     */
+    private static final Cuboid KINGDOM_MINE_AREA_DEFAULT = new Cuboid(3814, -44, -3410, 3842, 50, -3382);
+    /**
+     * The whole mine build, protected so only the ore cuboid above is mineable. Mirrors the
+     * {@code region:} block of an X-PrivateMines schematic.
+     */
+    private static final Cuboid KINGDOM_MINE_SHELL_DEFAULT = new Cuboid(3774, -59, -3439, 3869, 76, -3344);
     private static final Cuboid FINISHED_WORLD_AREA = new Cuboid(4058, -44, -2685, 3489, 330, -3143);
     private static final WorldPoint FINISHED_WORLD_ANCHOR = new WorldPoint(3489, 77, -3143);
     private static final WorldPoint EMPTY_WORLD_ANCHOR = new WorldPoint(3489, 77, -3603);
@@ -194,7 +206,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private BukkitTask npcAmbientAnimationTask;
     private final Map<String, List<String>> lastHologramLinesByTag = new HashMap<>();
     private final Map<UUID, List<AnimatedLeaderboard>> animatedLeaderboardsByOwner = new HashMap<>();
-    private final Map<String, CuboidTemplate> templateCache = new ConcurrentHashMap<>();
+    private final Map<String, CompletableFuture<CuboidTemplate>> templateCache = new ConcurrentHashMap<>();
+    private final Set<UUID> initializing = ConcurrentHashMap.newKeySet();
     private final Map<UUID, java.util.Set<Integer>> builtSlotsByProfile = new HashMap<>();
     private final Map<UUID, Integer> farmBuildingLevelByProfile = new HashMap<>();
     private final Map<UUID, Integer> palaceBuildingLevelByProfile = new HashMap<>();
@@ -210,6 +223,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Map<UUID, UUID> pendingConfirmJoinOwner = new HashMap<>();
     private final Map<UUID, PendingBuildAction> pendingBuildActions = new HashMap<>();
     private final KingdomNpcSoundManager npcSoundManager;
+    private final KingdomMineService mineService;
+    /** Live kingdom mine plot in template coordinates; see {@link #KINGDOM_MINE_AREA_DEFAULT}. */
+    private Cuboid kingdomMineArea;
+    /** Live protected shell in template coordinates; see {@link #KINGDOM_MINE_SHELL_DEFAULT}. */
+    private Cuboid kingdomMineShell;
     private static final String COOP_CONFIRM_TITLE = "Confirm Co-op Join";
     private static final String BUILD_CONFIRM_TITLE = "Confirm Build Action";
     private static final String ENV_AREA_CLONE_KEY = "levelplugin_env_area_clone";
@@ -217,10 +235,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private EnvironmentAreaInstanceManager(Main plugin) {
         this.plugin = plugin;
         this.npcSoundManager = new KingdomNpcSoundManager(plugin);
+        this.mineService = new KingdomMineService(plugin);
+        this.kingdomMineArea = loadCuboid(MINE_AREA_PATH, KINGDOM_MINE_AREA_DEFAULT);
+        this.kingdomMineShell = loadCuboid(MINE_SHELL_PATH, KINGDOM_MINE_SHELL_DEFAULT);
         Bukkit.getPluginManager().registerEvents(this, plugin);
         startHologramRefreshTask();
         startBuildTimerTask();
         startNpcAmbientAnimationTask();
+        // Instance worlds are deleted on quit, so any kingdom mine present at boot is stale.
+        Bukkit.getScheduler().runTask(plugin, mineService::sweepOrphans);
     }
 
 
@@ -342,28 +365,64 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return false;
         }
 
-        CuboidTemplate areaTemplate = getOrCaptureTemplate(source, "area:base", AREA);
-        // Warm mine template cache early; allows deferred gameplay setup after join without first-hit capture delay.
-        Cuboid resolvedMineArea = resolveKingdomTemplateCuboid(KINGDOM_MINE_AREA);
-        getOrCaptureTemplate(source, "area:mine", resolvedMineArea);
-        Map<Integer, CuboidTemplate> buildingTemplates = new HashMap<>();
-        for (BuildingTemplate building : BUILDINGS) {
-            buildingTemplates.put(building.slot(),
-                    getOrCaptureTemplate(source, "building:" + building.id().toLowerCase(Locale.ROOT), building.source()));
+        if (!initializing.add(target.getUniqueId())) {
+            ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO,
+                    "Your kingdom is already being prepared.");
+            return false;
         }
 
+        // The base area is pasted into a freshly generated void world, so its air can be
+        // dropped; buildings stamp over that area and need their air to carve interiors.
+        CompletableFuture<CuboidTemplate> areaFuture = getOrCaptureTemplate(source, "area:base", AREA, true);
+        Map<Integer, CuboidTemplate> buildingTemplates = new ConcurrentHashMap<>();
+
+        List<CompletableFuture<?>> pending = new ArrayList<>();
+        pending.add(areaFuture);
+        // No separate mine capture: the mine plot is inside AREA, so its blocks already arrive
+        // with the base paste, and X-Prison owns the mine contents from there.
+        for (BuildingTemplate building : BUILDINGS) {
+            pending.add(getOrCaptureTemplate(source,
+                    "building:" + building.id().toLowerCase(Locale.ROOT), building.source(), false)
+                    .thenAccept(template -> buildingTemplates.put(building.slot(), template)));
+        }
+
+        ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO, "Preparing your kingdom...");
+        CompletableFuture.allOf(pending.toArray(new CompletableFuture[0]))
+                .whenComplete((ignored, error) -> Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (error != null) {
+                        initializing.remove(target.getUniqueId());
+                        plugin.getLogger().severe("[EnvironmentArea] Template capture failed: " + error);
+                        if (target.isOnline()) {
+                            ChatMessageUtil.send(target, ChatMessageUtil.MessageType.ERROR,
+                                    "Could not prepare the kingdom templates.");
+                        }
+                        return;
+                    }
+                    if (target.isOnline()) {
+                        pasteInitializedArea(target, areaFuture.join(), buildingTemplates);
+                    } else {
+                        initializing.remove(target.getUniqueId());
+                    }
+                }));
+        return true;
+    }
+
+    /** Second half of {@link #initialize(Player)}, once every template is captured. */
+    private void pasteInitializedArea(Player target,
+                                      CuboidTemplate areaTemplate,
+                                      Map<Integer, CuboidTemplate> buildingTemplates) {
         World world = recreateWorld(target.getUniqueId());
         if (world == null) {
+            initializing.remove(target.getUniqueId());
             ChatMessageUtil.send(target, ChatMessageUtil.MessageType.ERROR,
                     "Could not create environment instance world.");
-            return false;
+            return;
         }
 
         SlotOffset offset = slotOffsetFor(target.getUniqueId());
         int originX = PASTE_X + offset.dx();
         int originY = PASTE_Y;
         int originZ = PASTE_Z + offset.dz();
-        areaTemplate.paste(world, originX, originY, originZ);
         EnvironmentAreaSession old = sessions.remove(target.getUniqueId());
         if (old != null) {
             old.removeHolograms();
@@ -371,12 +430,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         removeAnimatedLeaderboard(target.getUniqueId());
 
+        // Register the session before the paste runs: the session is what makes a kingdom
+        // "active", and a multi-second batched paste must not leave /kingdom visit failing.
+        // The border is pure arithmetic over the origin, so it needs no pasted blocks.
         WorldCuboid border = createSessionBorder(world, originX, originY, originZ);
         EnvironmentAreaSession session = new EnvironmentAreaSession(target.getUniqueId(), world, buildingTemplates, originX, originY, originZ, border);
         sessions.put(target.getUniqueId(), session);
-        spawnBuildHolograms(session);
-        applySavedBuilds(target, session);
-        spawnAnimatedLeaderboard(session);
 
         Location spawn = toPastedLocation(world, EMPTY_WORLD_SPAWN, originX, originY, originZ);
         if (spawn == null) {
@@ -390,10 +449,31 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         spawn.setPitch(0.0f);
         world.setSpawnLocation(spawn);
         lastValidLocations.put(target.getUniqueId(), spawn.clone());
-        target.teleport(spawn);
-        ChatMessageUtil.send(target, ChatMessageUtil.MessageType.SUCCESS,
-                "Initialized environment area in " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
-        return true;
+
+        Location finalSpawn = spawn;
+        areaTemplate.pasteBatched(plugin, world, originX, originY, originZ, () -> {
+            // Register the X-Prison mine only once its blocks exist, so the first reset has
+            // real terrain to work against.
+            WorldCuboid ore = toPastedCuboid(resolveKingdomTemplateCuboid(kingdomMineArea),
+                    originX, originY, originZ);
+            WorldCuboid shell = toPastedCuboid(resolveKingdomTemplateCuboid(kingdomMineShell),
+                    originX, originY, originZ);
+            mineService.createFor(target.getUniqueId(), world,
+                    new int[]{ore.minX(), ore.minY(), ore.minZ(), ore.maxX(), ore.maxY(), ore.maxZ()},
+                    new int[]{shell.minX(), shell.minY(), shell.minZ(), shell.maxX(), shell.maxY(), shell.maxZ()});
+
+            spawnBuildHolograms(session);
+            applySavedBuilds(target, session);
+            spawnAnimatedLeaderboard(session);
+            initializing.remove(target.getUniqueId());
+            if (!target.isOnline()) {
+                return;
+            }
+            // Teleport only once the ground exists, otherwise the player drops through it.
+            target.teleport(finalSpawn);
+            ChatMessageUtil.send(target, ChatMessageUtil.MessageType.SUCCESS,
+                    "Initialized environment area in " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
+        });
     }
 
     public boolean isMineBlock(Player player, Block block) {
@@ -405,13 +485,47 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (session == null || !session.world().equals(block.getWorld())) {
             return false;
         }
-        Cuboid resolvedMineArea = resolveKingdomTemplateCuboid(KINGDOM_MINE_AREA);
+        Cuboid resolvedMineArea = resolveKingdomTemplateCuboid(kingdomMineArea);
         WorldCuboid mine = toPastedCuboid(resolvedMineArea, session.originX(), session.originY(), session.originZ());
         return mine.contains(block.getLocation());
     }
 
     public boolean hasSession(UUID playerId) {
         return playerId != null && sessions.containsKey(playerId);
+    }
+
+    /** Returns whether the player can currently enter their own or joined co-op kingdom. */
+    public boolean hasAccessibleKingdom(UUID playerId) {
+        if (playerId == null) return false;
+        UUID ownerId = resolveAreaOwner(playerId);
+        return sessions.containsKey(ownerId) && !initializing.contains(ownerId);
+    }
+
+    /** Returns whether an asynchronous kingdom creation is already underway for this player. */
+    public boolean isInitializing(UUID playerId) {
+        return playerId != null && initializing.contains(playerId);
+    }
+
+    /** Teleports a player to the spawn of their own or joined co-op kingdom. */
+    public boolean teleportToKingdom(Player player) {
+        if (player == null) return false;
+        UUID ownerId = resolveAreaOwner(player.getUniqueId());
+        if (initializing.contains(ownerId)) return false;
+        EnvironmentAreaSession session = sessions.get(ownerId);
+        if (session == null || session.world() == null) return false;
+        Location destination = lastValidLocations.getOrDefault(ownerId, session.world().getSpawnLocation()).clone();
+        return player.teleport(destination);
+    }
+
+    /** Snapshot of active kingdom owners used by the visit browser. */
+    public List<UUID> getActiveKingdomOwners() {
+        return sessions.keySet().stream()
+                .filter(ownerId -> !initializing.contains(ownerId))
+                .toList();
+    }
+
+    public UUID getKingdomPartner(UUID ownerId) {
+        return ownerId == null ? null : coopPartnerByOwner.get(ownerId);
     }
 
     public void invite(Player owner, Player target) {
@@ -574,7 +688,14 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (playerId == null) return;
         EnvironmentAreaSession session = sessions.remove(playerId);
         if (session != null) {
+            BukkitTask buildTask = activeBuildTasks.remove(playerId);
+            if (buildTask != null) buildTask.cancel();
             session.removeHolograms();
+            cleanupEnvironmentAreaCitizensClones(session.world());
+            // Drop the mine before the world goes away, or X-Prison keeps a mine pointing
+            // at a deleted world and tries to load it again next boot.
+            mineService.removeFor(playerId, session.world());
+            movePlayersOutOfSessionWorld(session.world());
             Bukkit.unloadWorld(session.world(), false);
             deleteWorldFolder(session.world().getName());
         }
@@ -586,8 +707,35 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (owner != null) coopPartnerByOwner.remove(owner);
     }
 
+    private void movePlayersOutOfSessionWorld(World sessionWorld) {
+        if (sessionWorld == null || sessionWorld.getPlayers().isEmpty()) return;
+        World fallbackWorld = Bukkit.getWorlds().stream()
+                .filter(world -> !world.equals(sessionWorld))
+                .findFirst()
+                .orElse(null);
+        if (fallbackWorld == null) return;
+        Location fallback = fallbackWorld.getSpawnLocation();
+        for (Player occupant : new ArrayList<>(sessionWorld.getPlayers())) {
+            occupant.teleport(fallback);
+        }
+    }
+
+    /** Permanently clears the active profile's saved kingdom progress and unloads its session. */
+    public void deleteKingdom(Player player) {
+        if (player == null) return;
+        Integer activeSlot = me.nakilex.levelplugin.player.profile.ProfileManager.getInstance()
+                .getActiveSlot(player.getUniqueId());
+        int slot = activeSlot == null ? 0 : Math.max(0, activeSlot);
+        removeKingdom(player.getUniqueId());
+        clearProfileKingdomProgress(player.getUniqueId(), slot);
+    }
+
     public void visit(Player visitor, Player owner) {
         if (visitor == null || owner == null) return;
+        if (initializing.contains(owner.getUniqueId())) {
+            ChatMessageUtil.send(visitor, ChatMessageUtil.MessageType.INFO, "That player's kingdom is still being prepared.");
+            return;
+        }
         EnvironmentAreaSession session = sessions.get(owner.getUniqueId());
         if (session == null) {
             ChatMessageUtil.send(visitor, ChatMessageUtil.MessageType.ERROR, "That player's kingdom is not active.");
@@ -617,8 +765,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             return List.of("Unknown template: " + templateName);
         }
 
-        CuboidTemplate template = getOrCaptureTemplate(source,
-                "building:" + building.id().toLowerCase(Locale.ROOT), building.source());
+        CompletableFuture<CuboidTemplate> future = getOrCaptureTemplate(source,
+                "building:" + building.id().toLowerCase(Locale.ROOT), building.source(), false);
+        if (!future.isDone()) {
+            // Capture runs off-thread; blocking here would stall the server that is doing it.
+            return List.of("Capturing template " + building.id() + "; run this again in a moment.");
+        }
+        CuboidTemplate template = future.join();
         Map<Material, Integer> counts = new HashMap<>();
         for (CuboidTemplate.BlockCopy copy : template.blocks()) {
             counts.merge(copy.data().getMaterial(), 1, Integer::sum);
@@ -650,16 +803,35 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return names;
     }
 
-    private CuboidTemplate capture(World source, Cuboid cuboid) {
-        return CuboidTemplate.capture(
+    /**
+     * @param skipAir {@code true} only when the template is pasted into freshly generated
+     *                void terrain. Building templates are stamped over the already-pasted
+     *                base area, so their air has to be kept to carve out the interior.
+     */
+    private CompletableFuture<CuboidTemplate> captureAsync(World source, Cuboid cuboid, boolean skipAir) {
+        return CuboidTemplate.captureAsync(
+                plugin,
                 new Location(source, cuboid.x1(), cuboid.y1(), cuboid.z1()),
                 new Location(source, cuboid.x2(), cuboid.y2(), cuboid.z2()),
-                false);
+                skipAir,
+                java.util.Set.of());
     }
 
-    private CuboidTemplate getOrCaptureTemplate(World source, String templateKey, Cuboid cuboid) {
+    private CompletableFuture<CuboidTemplate> getOrCaptureTemplate(World source,
+                                                                   String templateKey,
+                                                                   Cuboid cuboid,
+                                                                   boolean skipAir) {
         String worldScopedKey = source.getUID() + ":" + templateKey;
-        return templateCache.computeIfAbsent(worldScopedKey, ignored -> capture(source, cuboid));
+        return templateCache.computeIfAbsent(worldScopedKey, ignored -> {
+            CompletableFuture<CuboidTemplate> future = captureAsync(source, cuboid, skipAir);
+            // A failed capture must not poison the cache; drop it so the next call retries.
+            future.whenComplete((template, error) -> {
+                if (error != null) {
+                    templateCache.remove(worldScopedKey);
+                }
+            });
+            return future;
+        });
     }
 
 
@@ -1382,6 +1554,45 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return blacksmithBuildingLevelByProfile.computeIfAbsent(scoped,
                 id -> Math.max(0, plugin.getPlayerConfig().getConfig().getInt("players." + id + ".environment.area.blacksmith-building-level", 0)));
     }
+
+    /** Read-only building data for kingdom menus and other presentation layers. */
+    public List<KingdomBuildingSnapshot> getKingdomBuildings(Player viewer) {
+        if (viewer == null) return List.of();
+        UUID ownerId = resolveAreaOwner(viewer.getUniqueId());
+        Player progressOwner = Bukkit.getPlayer(ownerId);
+        if (progressOwner == null) progressOwner = viewer;
+        UUID scoped = resolveProfileScopedId(progressOwner);
+        List<KingdomBuildingSnapshot> snapshots = new ArrayList<>(BUILDINGS.size());
+        for (BuildingTemplate building : BUILDINGS) {
+            int level = resolveCurrentLevel(progressOwner, building.slot());
+            boolean built = isSlotBuilt(scoped, building.slot(), level);
+            Long finishAt = getBuildFinishAt(scoped, building.slot());
+            snapshots.add(new KingdomBuildingSnapshot(
+                    building.slot(), building.id(), building.displayName(), building.marker(),
+                    built ? Math.max(1, level) : 0, maxLevelForSlot(building.slot()), built,
+                    finishAt == null ? 0L : finishAt));
+        }
+        return List.copyOf(snapshots);
+    }
+
+    /** Moves the player near a building's construction hologram in their accessible kingdom. */
+    public boolean teleportToBuilding(Player player, int slot) {
+        if (player == null) return false;
+        UUID ownerId = resolveAreaOwner(player.getUniqueId());
+        if (initializing.contains(ownerId)) return false;
+        EnvironmentAreaSession session = sessions.get(ownerId);
+        BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
+        if (session == null || building == null) return false;
+        Location marker = findMarker(session, building);
+        if (marker == null) return false;
+        Location destination = marker.clone();
+        destination.setYaw(player.getLocation().getYaw());
+        destination.setPitch(player.getLocation().getPitch());
+        return player.teleport(destination);
+    }
+
+    public record KingdomBuildingSnapshot(int slot, String id, String displayName, Material icon,
+                                           int level, int maxLevel, boolean built, long finishAtMs) {}
 
 
     private void setFarmBuildingLevel(UUID scoped, int level) {
@@ -2308,6 +2519,82 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 originZ + (source.maxZ() - AREA.minZ()));
     }
 
+    private static final String MINE_AREA_PATH = "environment.kingdom-mine.region";
+    private static final String MINE_SHELL_PATH = "environment.kingdom-mine.build-region";
+
+    private Cuboid loadCuboid(String path, Cuboid fallback) {
+        var section = plugin.getConfig().getConfigurationSection(path);
+        if (section == null) {
+            return fallback;
+        }
+        return new Cuboid(
+                section.getInt("x1", fallback.x1()),
+                section.getInt("y1", fallback.y1()),
+                section.getInt("z1", fallback.z1()),
+                section.getInt("x2", fallback.x2()),
+                section.getInt("y2", fallback.y2()),
+                section.getInt("z2", fallback.z2()));
+    }
+
+    /** @return the ore cuboid in {@link #SOURCE_WORLD} template coordinates */
+    public int[] kingdomMineRegion() {
+        Cuboid c = kingdomMineArea;
+        return new int[]{c.minX(), c.minY(), c.minZ(), c.maxX(), c.maxY(), c.maxZ()};
+    }
+
+    /** @return the protected build shell in {@link #SOURCE_WORLD} template coordinates */
+    public int[] kingdomMineShellRegion() {
+        Cuboid c = kingdomMineShell;
+        return new int[]{c.minX(), c.minY(), c.minZ(), c.maxX(), c.maxY(), c.maxZ()};
+    }
+
+    /** Persists a new protected shell, in template coordinates. */
+    public void setKingdomMineShellRegion(int x1, int y1, int z1, int x2, int y2, int z2) {
+        kingdomMineShell = new Cuboid(x1, y1, z1, x2, y2, z2);
+        plugin.getConfig().set(MINE_SHELL_PATH + ".x1", x1);
+        plugin.getConfig().set(MINE_SHELL_PATH + ".y1", y1);
+        plugin.getConfig().set(MINE_SHELL_PATH + ".z1", z1);
+        plugin.getConfig().set(MINE_SHELL_PATH + ".x2", x2);
+        plugin.getConfig().set(MINE_SHELL_PATH + ".y2", y2);
+        plugin.getConfig().set(MINE_SHELL_PATH + ".z2", z2);
+        plugin.saveConfig();
+    }
+
+    /**
+     * Persists a new kingdom mine plot. Coordinates are in {@link #SOURCE_WORLD} template
+     * space; existing kingdoms keep their current mine until they are recreated.
+     */
+    public void setKingdomMineRegion(int x1, int y1, int z1, int x2, int y2, int z2) {
+        kingdomMineArea = new Cuboid(x1, y1, z1, x2, y2, z2);
+        plugin.getConfig().set(MINE_AREA_PATH + ".x1", x1);
+        plugin.getConfig().set(MINE_AREA_PATH + ".y1", y1);
+        plugin.getConfig().set(MINE_AREA_PATH + ".z1", z1);
+        plugin.getConfig().set(MINE_AREA_PATH + ".x2", x2);
+        plugin.getConfig().set(MINE_AREA_PATH + ".y2", y2);
+        plugin.getConfig().set(MINE_AREA_PATH + ".z2", z2);
+        plugin.saveConfig();
+    }
+
+    /** @return the source world name that mine-plot coordinates are authored against */
+    public static String sourceWorldName() {
+        return SOURCE_WORLD;
+    }
+
+    /**
+     * Projects the configured mine plot into the caller's live instance world, so the plot can
+     * be verified without recreating the kingdom.
+     * @return {minX,minY,minZ,maxX,maxY,maxZ} or null when the player has no active kingdom
+     */
+    public int[] kingdomMineRegionInInstance(UUID ownerId) {
+        EnvironmentAreaSession session = sessions.get(resolveAreaOwner(ownerId));
+        if (session == null) {
+            return null;
+        }
+        WorldCuboid plot = toPastedCuboid(resolveKingdomTemplateCuboid(kingdomMineArea),
+                session.originX(), session.originY(), session.originZ());
+        return new int[]{plot.minX(), plot.minY(), plot.minZ(), plot.maxX(), plot.maxY(), plot.maxZ()};
+    }
+
     private WorldCuboid createSessionBorder(World world, int originX, int originY, int originZ) {
         WorldCuboid pastedArea = toPastedCuboid(AREA, originX, originY, originZ);
         return new WorldCuboid(
@@ -2544,6 +2831,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         removeAnimatedLeaderboard(id);
         session.removeHolograms();
         cleanupEnvironmentAreaCitizensClones(session.world());
+        mineService.removeFor(id, session.world());
         Bukkit.unloadWorld(session.world(), false);
         deleteWorldFolder(session.world().getName());
     }
@@ -2566,7 +2854,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         for (EnvironmentAreaSession session : new ArrayList<>(sessions.values())) {
             if (session != null) {
                 session.removeHolograms();
-                    }
+                // Shutdown does not delete the instance worlds, but they are wiped on the
+                // next join anyway, so the mines must not outlive this process.
+                mineService.removeFor(session.ownerId(), session.world());
+            }
         }
         for (List<AnimatedLeaderboard> boards : new ArrayList<>(animatedLeaderboardsByOwner.values())) {
             boards.forEach(AnimatedLeaderboard::remove);

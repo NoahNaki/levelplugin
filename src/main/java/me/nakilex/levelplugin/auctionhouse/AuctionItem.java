@@ -8,6 +8,7 @@ import java.util.UUID;
  * Represents a single listing in the auction house.
  */
 public class AuctionItem {
+    private final UUID listingId;
     private final UUID seller;
     private final ItemStack item;
     private final int startingPrice;
@@ -21,6 +22,11 @@ public class AuctionItem {
     private final AuctionCategory category;
 
     public AuctionItem(UUID seller, ItemStack item, int startingPrice, int binPrice, long durationHours, int listingTax) {
+        this(UUID.randomUUID(), seller, item, startingPrice, binPrice, durationHours, listingTax);
+    }
+
+    public AuctionItem(UUID listingId, UUID seller, ItemStack item, int startingPrice, int binPrice, long durationHours, int listingTax) {
+        this.listingId = listingId == null ? UUID.randomUUID() : listingId;
         this.seller = seller;
         this.item = item;
         this.startingPrice = startingPrice;
@@ -32,6 +38,10 @@ public class AuctionItem {
         this.status = AuctionStatus.ACTIVE;
         this.listingTax = listingTax;
         this.category = AuctionCategory.fromItem(item);
+    }
+
+    public UUID getListingId() {
+        return listingId;
     }
 
     public UUID getSeller() {

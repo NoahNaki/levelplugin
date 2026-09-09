@@ -10,10 +10,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
-import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -45,8 +41,6 @@ public class AuctionHouseGUI implements Listener {
     private static final String MY_LISTINGS_TITLE = "Your Listings";
     private static final int INFO_SLOT = 8;
     private static final int REFRESH_SLOT = 0;
-    private static final int CONFIRM_SIZE = 27;
-    private static final String CONFIRM_TITLE = "Confirm Purchase";
     private static final int[] LISTING_SLOTS = {
             10,11,12,13,14,15,16,
             19,20,21,22,23,24,25,
@@ -58,25 +52,14 @@ public class AuctionHouseGUI implements Listener {
     private final JavaPlugin plugin;
     private final AuctionHouseManager manager;
     private final EconomyManager economy;
-    private final NamespacedKey indexKey;
+    private final NamespacedKey listingKey;
+    private final AuctionDialogService dialogs;
 
-    private static class ListingData {
-        ItemStack item;
-        int step = 0;
-        int start;
-        int bin;
-        long duration;
-    }
-
-    private final Map<UUID, ListingData> pending = new HashMap<>();
     private final Map<UUID, Integer> pageMap = new HashMap<>();
     private final Map<UUID, String> searchTerms = new HashMap<>();
     private final Map<UUID, Integer> levelFilters = new HashMap<>();
     private final Map<UUID, Integer> rarityFilters = new HashMap<>();
     private final Map<UUID, Integer> sortModes = new HashMap<>();
-    private final Set<UUID> awaitingSearch = new HashSet<>();
-    private final Map<UUID, Integer> awaitingBid = new HashMap<>();
-    private final Map<UUID, Integer> confirmPurchase = new HashMap<>();
     private final Map<UUID, Integer> myPageMap = new HashMap<>();
     private final List<GuiWidget> widgets;
     private boolean canPrevPage;
@@ -86,7 +69,8 @@ public class AuctionHouseGUI implements Listener {
         this.plugin = plugin;
         this.manager = manager;
         this.economy = economy;
-        this.indexKey = new NamespacedKey(plugin, "auction_index");
+        this.listingKey = new NamespacedKey(plugin, "auction_listing_id");
+        this.dialogs = new AuctionDialogService(plugin, manager, economy);
         this.widgets = buildWidgets();
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
@@ -142,7 +126,11 @@ public class AuctionHouseGUI implements Listener {
                 }
                 meta.setLore(lore);
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-                meta.getPersistentDataContainer().set(indexKey, PersistentDataType.INTEGER, i);
+                meta.getPersistentDataContainer().set(
+                        listingKey,
+                        PersistentDataType.STRING,
+                        ai.getListingId().toString()
+                );
                 stack.setItemMeta(meta);
             }
             inv.setItem(LISTING_SLOTS[slot++], stack);
@@ -223,12 +211,13 @@ public class AuctionHouseGUI implements Listener {
             player.sendMessage(ChatColor.RED + "You cannot list that item.");
             return;
         }
-        ListingData data = new ListingData();
-        data.item = hand.clone();
-        pending.put(player.getUniqueId(), data);
-        player.getInventory().setItemInMainHand(null);
-        player.closeInventory();
-        player.sendMessage(ChatColor.YELLOW + "Enter starting price or 'cancel'.");
+
+        ItemStack expectedHandItem = hand.clone();
+        dialogs.showSellDialog(
+                player,
+                expectedHandItem,
+                () -> open(player, pageMap.getOrDefault(player.getUniqueId(), 0))
+        );
     }
 
     private void handleSearchClick(Player player, ClickType click) {
@@ -237,9 +226,22 @@ public class AuctionHouseGUI implements Listener {
             open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
             return;
         }
-        awaitingSearch.add(player.getUniqueId());
-        player.closeInventory();
-        player.sendMessage(ChatColor.YELLOW + "Enter search term or 'cancel'.");
+
+        String current = searchTerms.getOrDefault(player.getUniqueId(), "");
+        dialogs.showSearchDialog(
+                player,
+                current,
+                term -> {
+                    if (term == null || term.isBlank()) {
+                        searchTerms.remove(player.getUniqueId());
+                    } else {
+                        searchTerms.put(player.getUniqueId(), term);
+                    }
+                    pageMap.put(player.getUniqueId(), 0);
+                    open(player, 0);
+                },
+                () -> open(player, pageMap.getOrDefault(player.getUniqueId(), 0))
+        );
     }
 
     private void handleLevelFilterClick(Player player, ClickType click) {
@@ -292,23 +294,6 @@ public class AuctionHouseGUI implements Listener {
 
     @EventHandler
     public void onClick(InventoryClickEvent e) {
-        if (e.getView().getTitle().equals(CONFIRM_TITLE)) {
-            e.setCancelled(true);
-            Player player = (Player) e.getWhoClicked();
-            UUID id = player.getUniqueId();
-            Integer index = confirmPurchase.get(id);
-            if (index == null) return;
-            if (e.getRawSlot() == 11) {
-                manager.buyNow(player, index);
-                confirmPurchase.remove(id);
-                Bukkit.getScheduler().runTaskLater(plugin, () -> open(player, pageMap.getOrDefault(id, 0)), 1L);
-            } else if (e.getRawSlot() == 15) {
-                confirmPurchase.remove(id);
-                Bukkit.getScheduler().runTaskLater(plugin, () -> open(player, pageMap.getOrDefault(id, 0)), 1L);
-            }
-            return;
-        }
-
         if (e.getView().getTitle().equals(MY_LISTINGS_TITLE)) {
             handleMyListingsClick(e);
             return;
@@ -324,132 +309,28 @@ public class AuctionHouseGUI implements Listener {
             return;
         }
 
-        Integer idx = clicked.getItemMeta().getPersistentDataContainer().get(indexKey, PersistentDataType.INTEGER);
-        if (idx == null) return;
-        AuctionItem ai = manager.getAuctions().get(idx);
+        AuctionItem ai = resolveClickedAuction(clicked);
+        if (ai == null) {
+            player.sendMessage(ChatColor.RED + "That auction is no longer available.");
+            open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+            return;
+        }
+
+        UUID listingId = ai.getListingId();
+        Runnable returnToBrowser = () -> open(player, pageMap.getOrDefault(player.getUniqueId(), 0));
+
         if (ai.getSeller().equals(player.getUniqueId())) {
-            if (manager.cancelListing(player, idx)) {
-                player.sendMessage(ChatColor.RED + "Listing cancelled.");
-            }
-            Bukkit.getScheduler().runTaskLater(plugin, () -> open(player, pageMap.getOrDefault(player.getUniqueId(), 0)), 1L);
+            dialogs.showCancelListingDialog(player, listingId, returnToBrowser);
             return;
         }
 
         if (e.getClick() == ClickType.RIGHT) {
-            awaitingBid.put(player.getUniqueId(), idx);
-            player.closeInventory();
-            player.sendMessage(ChatColor.YELLOW + "Enter bid amount or 'cancel'.");
+            dialogs.showBidDialog(player, listingId, returnToBrowser);
+        } else if (ai.getBinPrice() > 0) {
+            dialogs.showPurchaseDialog(player, listingId, returnToBrowser);
         } else {
-            if (ai.getBinPrice() > 0) {
-                openConfirmGUI(player, idx);
-            } else {
-                player.sendMessage(ChatColor.RED + "This item has no BIN price.");
-            }
+            player.sendMessage(ChatColor.RED + "This item has no BIN price. Right-click it to place a bid.");
         }
-    }
-
-    @EventHandler
-    public void onChat(AsyncPlayerChatEvent e) {
-        UUID id = e.getPlayer().getUniqueId();
-        if (awaitingSearch.remove(id)) {
-            e.setCancelled(true);
-            String msg = e.getMessage();
-            if (msg.equalsIgnoreCase("cancel")) {
-                searchTerms.remove(id);
-            } else {
-                searchTerms.put(id, msg.trim());
-            }
-            Bukkit.getScheduler().runTask(plugin, () -> open(e.getPlayer(), pageMap.getOrDefault(id, 0)));
-            return;
-        }
-        Integer bidIndex = awaitingBid.get(id);
-        if (bidIndex != null) {
-            e.setCancelled(true);
-            String msg = e.getMessage();
-            if (msg.equalsIgnoreCase("cancel")) {
-                awaitingBid.remove(id);
-                Bukkit.getScheduler().runTask(plugin, () -> open(e.getPlayer(), pageMap.getOrDefault(id, 0)));
-                return;
-            }
-            try {
-                int amount = Integer.parseInt(msg);
-                awaitingBid.remove(id);
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (manager.bid(e.getPlayer(), bidIndex, amount)) {
-                        e.getPlayer().sendMessage(ChatColor.GREEN + "Bid placed.");
-                    }
-                    open(e.getPlayer(), pageMap.getOrDefault(id, 0));
-                });
-            } catch (NumberFormatException ex) {
-                e.getPlayer().sendMessage(ChatColor.RED + "Invalid number. Type again or 'cancel'.");
-            }
-            return;
-        }
-
-        ListingData data = pending.get(id);
-        if (data == null) return;
-        e.setCancelled(true);
-        String msg = e.getMessage();
-        if (msg.equalsIgnoreCase("cancel")) {
-            ItemStack item = data.item;
-            pending.remove(id);
-            Bukkit.getScheduler().runTask(plugin, () -> e.getPlayer().getInventory().addItem(item));
-            e.getPlayer().sendMessage(ChatColor.RED + "Listing cancelled.");
-            return;
-        }
-        try {
-            switch (data.step) {
-                case 0 -> {
-                    data.start = Integer.parseInt(msg);
-                    data.step = 1;
-                    e.getPlayer().sendMessage(ChatColor.YELLOW + "Enter BIN price or 0.");
-                }
-                case 1 -> {
-                    data.bin = Integer.parseInt(msg);
-                    data.step = 2;
-                    e.getPlayer().sendMessage(ChatColor.YELLOW + "Enter duration in hours (e.g. 6)");
-                }
-                case 2 -> {
-                    data.duration = Long.parseLong(msg);
-                    if (data.duration > AuctionHouseManager.MAX_DURATION_HOURS) {
-                        data.duration = AuctionHouseManager.MAX_DURATION_HOURS;
-                        e.getPlayer().sendMessage(ChatColor.YELLOW + "Duration capped at " + AuctionHouseManager.MAX_DURATION_HOURS + "h.");
-                    }
-                    ItemStack item = data.item;
-                    pending.remove(id);
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-                        if (!manager.listItem(e.getPlayer(), item, data.start, data.bin, data.duration)) {
-                            e.getPlayer().getInventory().addItem(item);
-                        }
-                        open(e.getPlayer(), pageMap.getOrDefault(id, 0));
-                    });
-                }
-            }
-        } catch (NumberFormatException ex) {
-            e.getPlayer().sendMessage(ChatColor.RED + "Invalid number. Type again or 'cancel'.");
-        }
-    }
-
-    @EventHandler
-    public void onMove(PlayerMoveEvent e) {
-        if (!pending.containsKey(e.getPlayer().getUniqueId())) return;
-        if (e.getFrom().getBlockX() != e.getTo().getBlockX() ||
-                e.getFrom().getBlockY() != e.getTo().getBlockY() ||
-                e.getFrom().getBlockZ() != e.getTo().getBlockZ()) {
-            cancelPending(e.getPlayer());
-        }
-    }
-
-    @EventHandler
-    public void onInventoryOpen(InventoryOpenEvent e) {
-        if (pending.containsKey(e.getPlayer().getUniqueId())) {
-            cancelPending((Player) e.getPlayer());
-        }
-    }
-
-    @EventHandler
-    public void onQuit(PlayerQuitEvent e) {
-        cancelPending(e.getPlayer());
     }
 
     private ItemStack createFiller() {
@@ -618,20 +499,15 @@ public class AuctionHouseGUI implements Listener {
                 .border()
                 .build();
         List<AuctionItem> list = new ArrayList<>();
-        List<Integer> indices = new ArrayList<>();
-        List<AuctionItem> all = manager.getAuctions();
-        for (int i = 0; i < all.size(); i++) {
-            AuctionItem ai = all.get(i);
+        for (AuctionItem ai : manager.getAuctions()) {
             if (ai.getSeller().equals(player.getUniqueId())) {
                 list.add(ai);
-                indices.add(i);
             }
         }
         int startIndex = page * ITEMS_PER_PAGE;
         int slot = 0;
         for (int i = startIndex; i < list.size() && slot < ITEMS_PER_PAGE; i++) {
             AuctionItem ai = list.get(i);
-            int globalIdx = indices.get(i);
             ItemStack stack = ai.getItem().clone();
             ItemMeta meta = stack.getItemMeta();
             if (meta != null) {
@@ -649,7 +525,11 @@ public class AuctionHouseGUI implements Listener {
                 lore.add(ChatColor.RED + "Click to cancel listing");
                 meta.setLore(lore);
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-                meta.getPersistentDataContainer().set(indexKey, PersistentDataType.INTEGER, globalIdx);
+                meta.getPersistentDataContainer().set(
+                        listingKey,
+                        PersistentDataType.STRING,
+                        ai.getListingId().toString()
+                );
                 stack.setItemMeta(meta);
             }
             inv.setItem(LISTING_SLOTS[slot++], stack);
@@ -684,12 +564,13 @@ public class AuctionHouseGUI implements Listener {
                 player.sendMessage(ChatColor.RED + "You cannot list that item.");
                 return;
             }
-            ListingData data = new ListingData();
-            data.item = hand.clone();
-            pending.put(player.getUniqueId(), data);
-            player.getInventory().setItemInMainHand(null);
-            player.closeInventory();
-            player.sendMessage(ChatColor.YELLOW + "Enter starting price or 'cancel'.");
+
+            ItemStack expectedHandItem = hand.clone();
+            dialogs.showSellDialog(
+                    player,
+                    expectedHandItem,
+                    () -> openMyListings(player, myPageMap.getOrDefault(player.getUniqueId(), 0))
+            );
             return;
         }
 
@@ -705,31 +586,29 @@ public class AuctionHouseGUI implements Listener {
             return;
         }
 
-        Integer idx = clicked.getItemMeta().getPersistentDataContainer().get(indexKey, PersistentDataType.INTEGER);
-        if (idx == null) return;
-        if (manager.cancelListing(player, idx)) {
-            player.sendMessage(ChatColor.RED + "Listing cancelled.");
+        AuctionItem auction = resolveClickedAuction(clicked);
+        if (auction == null) {
+            player.sendMessage(ChatColor.RED + "That auction is no longer available.");
+            openMyListings(player, myPageMap.getOrDefault(player.getUniqueId(), 0));
+            return;
         }
-        Bukkit.getScheduler().runTaskLater(plugin, () -> openMyListings(player, myPageMap.getOrDefault(player.getUniqueId(), 0)), 1L);
+
+        dialogs.showCancelListingDialog(
+                player,
+                auction.getListingId(),
+                () -> openMyListings(player, myPageMap.getOrDefault(player.getUniqueId(), 0))
+        );
     }
 
-    private void openConfirmGUI(Player player, int index) {
-        Inventory inv = GuiBuilder.create(CONFIRM_SIZE, CONFIRM_TITLE)
-                .filler(Material.GRAY_STAINED_GLASS_PANE)
-                .build();
-        AuctionItem ai = manager.getAuctions().get(index);
-        inv.setItem(11, getNexoItem("check", ChatColor.GREEN + "Confirm"));
-        inv.setItem(13, ai.getItem().clone());
-        inv.setItem(15, getNexoItem("cross", ChatColor.RED + "Cancel"));
-        confirmPurchase.put(player.getUniqueId(), index);
-        player.openInventory(inv);
-    }
-
-    private void cancelPending(Player player) {
-        ListingData data = pending.remove(player.getUniqueId());
-        if (data != null) {
-            player.getInventory().addItem(data.item);
-            player.sendMessage(ChatColor.RED + "Listing cancelled.");
+    private AuctionItem resolveClickedAuction(ItemStack clicked) {
+        if (clicked == null || !clicked.hasItemMeta()) return null;
+        String rawId = clicked.getItemMeta().getPersistentDataContainer()
+                .get(listingKey, PersistentDataType.STRING);
+        if (rawId == null) return null;
+        try {
+            return manager.getAuction(UUID.fromString(rawId));
+        } catch (IllegalArgumentException ignored) {
+            return null;
         }
     }
 

@@ -75,7 +75,7 @@ public class StatsMenuListener implements Listener {
 
 
             if (displayName.equalsIgnoreCase("Settings")) {
-                player.performCommand("settings");
+                player.performCommand("setting");
                 return;
             }
 

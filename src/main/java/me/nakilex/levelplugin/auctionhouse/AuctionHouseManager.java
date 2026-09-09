@@ -86,7 +86,27 @@ public class AuctionHouseManager {
     }
 
     public synchronized List<AuctionItem> getAuctions() {
-        return auctions;
+        return new ArrayList<>(auctions);
+    }
+
+    public synchronized AuctionItem getAuction(UUID listingId) {
+        if (listingId == null) return null;
+        for (AuctionItem auction : auctions) {
+            if (listingId.equals(auction.getListingId())) {
+                return auction;
+            }
+        }
+        return null;
+    }
+
+    private int findAuctionIndex(UUID listingId) {
+        if (listingId == null) return -1;
+        for (int i = 0; i < auctions.size(); i++) {
+            if (listingId.equals(auctions.get(i).getListingId())) {
+                return i;
+            }
+        }
+        return -1;
     }
 
     /**
@@ -94,8 +114,29 @@ public class AuctionHouseManager {
      * seller's earnings when the item is sold.
      */
     public synchronized boolean listItem(Player seller, ItemStack item, int startPrice, int binPrice, long durationHours) {
-        if (me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(item)) {
-            seller.sendMessage(ChatColor.RED + "Soulbound items cannot be listed.");
+        if (item == null || item.getType().isAir()) {
+            ChatMessageUtil.send(seller, MessageType.ERROR, "There is no item to list.");
+            return false;
+        }
+        if (me.nakilex.levelplugin.items.listeners.StaticItemListener.isStaticItem(item)
+                || me.nakilex.levelplugin.items.utils.ItemUtil.isSoulbound(item)) {
+            ChatMessageUtil.send(seller, MessageType.ERROR, "You cannot list that item.");
+            return false;
+        }
+        if (startPrice <= 0) {
+            ChatMessageUtil.send(seller, MessageType.ERROR, "Starting price must be greater than 0.");
+            return false;
+        }
+        if (binPrice < 0) {
+            ChatMessageUtil.send(seller, MessageType.ERROR, "BIN price cannot be negative.");
+            return false;
+        }
+        if (binPrice > 0 && binPrice < startPrice) {
+            ChatMessageUtil.send(seller, MessageType.ERROR, "BIN price cannot be lower than the starting price.");
+            return false;
+        }
+        if (durationHours < 1) {
+            ChatMessageUtil.send(seller, MessageType.ERROR, "Auction duration must be at least 1 hour.");
             return false;
         }
         long hours = Math.min(durationHours, MAX_DURATION_HOURS);
@@ -122,22 +163,32 @@ public class AuctionHouseManager {
         if (index < 0 || index >= auctions.size()) return false;
         AuctionItem ai = auctions.get(index);
         if (ai.getStatus() != AuctionStatus.ACTIVE) return false;
+        if (ai.getSeller().equals(bidder.getUniqueId())) {
+            ChatMessageUtil.send(bidder, MessageType.ERROR, "You cannot bid on your own auction.");
+            return false;
+        }
         int minBid = Math.max(ai.getStartingPrice(), ai.getCurrentBid() + 1);
         if (amount < minBid) {
             ChatMessageUtil.send(bidder, MessageType.ERROR,
                     "Bid must be at least " + ChatColor.YELLOW + minBid + " <glyph:coins_icon>");
             return false;
         }
-        if (economyManager.getBalance(bidder) < amount) {
+        int availableBalance = economyManager.getBalance(bidder);
+        if (bidder.getUniqueId().equals(ai.getHighestBidder())) {
+            availableBalance += ai.getCurrentBid();
+        }
+        if (availableBalance < amount) {
             ChatMessageUtil.send(bidder, MessageType.ERROR,
                     "Not enough " + ChatColor.YELLOW + "<glyph:coins_icon>" + ChatColor.RED + "!");
             return false;
         }
-        // refund previous bidder
+        // Refund the previous escrow before reserving the new bid. This also
+        // lets the current highest bidder raise their own bid by only paying the difference.
         if (ai.getHighestBidder() != null) {
-            economyManager.addCoins(ai.getHighestBidder(), ai.getCurrentBid(), false);
-            Player prev = Bukkit.getPlayer(ai.getHighestBidder());
-            if (prev != null) {
+            UUID previousBidderId = ai.getHighestBidder();
+            economyManager.addCoins(previousBidderId, ai.getCurrentBid(), false);
+            Player prev = Bukkit.getPlayer(previousBidderId);
+            if (prev != null && !prev.getUniqueId().equals(bidder.getUniqueId())) {
                 prev.sendMessage(bidder.getName() + " outbid you on an auction.");
             }
         }
@@ -155,6 +206,15 @@ public class AuctionHouseManager {
         }
         me.nakilex.levelplugin.Main.getInstance().getQuestManager().handleAuctionBid(bidder, id);
         return true;
+    }
+
+    public synchronized boolean bid(Player bidder, UUID listingId, int amount) {
+        int index = findAuctionIndex(listingId);
+        if (index < 0) {
+            ChatMessageUtil.send(bidder, MessageType.ERROR, "That auction is no longer available.");
+            return false;
+        }
+        return bid(bidder, index, amount);
     }
 
     private void applyAntiSnipeExtension(AuctionItem item, Player bidder) {
@@ -179,13 +239,33 @@ public class AuctionHouseManager {
         if (index < 0 || index >= auctions.size()) return false;
         AuctionItem ai = auctions.get(index);
         if (ai.getStatus() != AuctionStatus.ACTIVE) return false;
+        if (ai.getSeller().equals(buyer.getUniqueId())) {
+            ChatMessageUtil.send(buyer, MessageType.ERROR, "You cannot buy your own auction.");
+            return false;
+        }
         int price = ai.getBinPrice();
         if (price <= 0) return false;
-        if (economyManager.getBalance(buyer) < price) {
+
+        int availableBalance = economyManager.getBalance(buyer);
+        if (buyer.getUniqueId().equals(ai.getHighestBidder())) {
+            availableBalance += ai.getCurrentBid();
+        }
+        if (availableBalance < price) {
             ChatMessageUtil.send(buyer, MessageType.ERROR,
                     "Not enough " + ChatColor.YELLOW + "<glyph:coins_icon>" + ChatColor.RED + "!");
             return false;
         }
+
+        // A BIN purchase ends the auction immediately, so any escrowed bid must be refunded.
+        if (ai.getHighestBidder() != null && ai.getCurrentBid() > 0) {
+            economyManager.addCoins(ai.getHighestBidder(), ai.getCurrentBid(), false);
+            Player previousBidder = Bukkit.getPlayer(ai.getHighestBidder());
+            if (previousBidder != null && !previousBidder.getUniqueId().equals(buyer.getUniqueId())) {
+                ChatMessageUtil.send(previousBidder, MessageType.INFO,
+                        "An auction you bid on was bought using BIN. Your bid was refunded.");
+            }
+        }
+
         economyManager.deductCoins(buyer, price);
         int payout = price - ai.getListingTax();
         if (payout < 0) payout = 0;
@@ -217,6 +297,15 @@ public class AuctionHouseManager {
         return true;
     }
 
+    public synchronized boolean buyNow(Player buyer, UUID listingId) {
+        int index = findAuctionIndex(listingId);
+        if (index < 0) {
+            ChatMessageUtil.send(buyer, MessageType.ERROR, "That auction is no longer available.");
+            return false;
+        }
+        return buyNow(buyer, index);
+    }
+
     /**
      * Cancel an active listing owned by the given player.
      * The item is returned to the seller's inventory.
@@ -240,6 +329,15 @@ public class AuctionHouseManager {
         auctions.remove(index);
         saveAuctions();
         return true;
+    }
+
+    public synchronized boolean cancelListing(Player seller, UUID listingId) {
+        int index = findAuctionIndex(listingId);
+        if (index < 0) {
+            ChatMessageUtil.send(seller, MessageType.ERROR, "That auction is no longer available.");
+            return false;
+        }
+        return cancelListing(seller, index);
     }
 
     private synchronized void checkExpired() {
@@ -300,6 +398,13 @@ public class AuctionHouseManager {
         for (String key : config.getConfigurationSection("auctions").getKeys(false)) {
             String base = "auctions." + key + ".";
             UUID seller = UUID.fromString(config.getString(base + "seller"));
+            UUID listingId;
+            try {
+                listingId = UUID.fromString(config.getString(base + "id"));
+            } catch (Exception ignored) {
+                // Existing auction files predate stable listing IDs. Generate one on migration.
+                listingId = UUID.randomUUID();
+            }
             int start = config.getInt(base + "start");
             int bin = config.getInt(base + "bin");
             int currentBid = config.getInt(base + "currentBid");
@@ -310,7 +415,7 @@ public class AuctionHouseManager {
             AuctionStatus status = statusStr != null ? AuctionStatus.valueOf(statusStr) : AuctionStatus.ACTIVE;
             ItemStack item = config.getItemStack(base + "item");
             int tax = config.getInt(base + "tax", 0);
-            AuctionItem ai = new AuctionItem(seller, item, start, bin, 1, tax); // duration ignored
+            AuctionItem ai = new AuctionItem(listingId, seller, item, start, bin, 1, tax); // duration ignored
             ai.setCurrentBid(currentBid);
             if (bidderStr != null) ai.setHighestBidder(UUID.fromString(bidderStr));
             // overwrite times and status
@@ -352,6 +457,7 @@ public class AuctionHouseManager {
         for (int i = 0; i < auctions.size(); i++) {
             AuctionItem ai = auctions.get(i);
             String base = "auctions." + i + ".";
+            config.set(base + "id", ai.getListingId().toString());
             config.set(base + "seller", ai.getSeller().toString());
             config.set(base + "start", ai.getStartingPrice());
             config.set(base + "bin", ai.getBinPrice());

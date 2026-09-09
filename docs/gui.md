@@ -104,7 +104,7 @@ It also centralizes the input-slot rules in `SalvageGUI.isInputSlot`, which the 
 - **Merchant**: uses `ActionWidget` for offer slots with centralized purchase handling.
 - **Profile Selection**: uses `ActionWidget` for profile slots plus edit/confirm controls.
 - **Quest Journal**: uses `ActionWidget` for quest entries, filters, and abandon confirmations.
-- **Settings**: uses `ActionWidget` for toggles, filters, and navigation.
+- **Settings**: native dialogs are the main front-end (`SettingsDialogService`); the `ActionWidget` inventory menu is kept as `openLegacyMenu` and reached from the dialog's "Classic Menu" button. Both apply values through `SettingsActions`.
 - **Fishing Catalog**: uses `ActionWidget` for catalog entries and paging controls.
 
 ## 7) UX styling guidance

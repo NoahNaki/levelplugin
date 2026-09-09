@@ -395,7 +395,7 @@ public class StaticItemListener implements Listener {
                 yield true;
             }
             case 4 -> {
-                runStaticAction(player, delayOneTick, () -> player.performCommand("settings"));
+                runStaticAction(player, delayOneTick, () -> player.performCommand("setting"));
                 yield true;
             }
             default -> false;
@@ -789,7 +789,7 @@ public class StaticItemListener implements Listener {
             return;
         }
         if (item.isSimilar(STATIC_SETTINGS)) {
-            runStaticAction(player, delayOneTick, () -> player.performCommand("settings"));
+            runStaticAction(player, delayOneTick, () -> player.performCommand("setting"));
             return;
         }
         if (item.isSimilar(STATIC_COMPASS)) {

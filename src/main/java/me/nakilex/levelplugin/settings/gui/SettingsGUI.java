@@ -1,6 +1,7 @@
 package me.nakilex.levelplugin.settings.gui;
 
 import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.settings.SettingsActions;
 import me.nakilex.levelplugin.settings.managers.SettingsManager;
 import me.nakilex.levelplugin.settings.data.PlayerSettings;
 import me.nakilex.levelplugin.settings.data.PlayerVisibility;
@@ -54,9 +55,14 @@ public class SettingsGUI implements Listener {
     private SpellKeybindGUI spellKeybindGUI;
     private SpellUpgradeGUI spellUpgradeGUI;
     private PersonalEnvironmentSettingsGUI personalEnvironmentSettingsGUI;
+    private SettingsDialogService dialogService;
+    private me.nakilex.levelplugin.spells.gui.SpellKeybindDialogService keybindDialogService;
+
+    private final SettingsActions actions;
 
     public SettingsGUI(SettingsManager settingsManager) {
         this.settingsManager = settingsManager;
+        this.actions = new SettingsActions(settingsManager);
     }
 
     public SettingsManager getSettingsManager() {
@@ -75,7 +81,56 @@ public class SettingsGUI implements Listener {
         this.personalEnvironmentSettingsGUI = personalEnvironmentSettingsGUI;
     }
 
+    /**
+     * Main settings entry point. Settings are a form rather than a browser, so
+     * this opens the native dialog front-end; the inventory menu it replaced is
+     * still reachable from that dialog's "Classic Menu" button.
+     */
     public void openSettingsMenu(Player player) {
+        dialogs().showRootDialog(player);
+    }
+
+    private SettingsDialogService dialogs() {
+        // Built lazily: SettingsGUI is constructed during bootstrap, before the
+        // plugin instance the dialog service schedules against is available.
+        if (dialogService == null) {
+            dialogService = new SettingsDialogService(Main.getInstance(), settingsManager, this);
+        }
+        return dialogService;
+    }
+
+    /** True while Office Errands is in progress and player visibility is frozen. */
+    public boolean isVisibilityLocked(Player player) {
+        return isOfficeErrandsLocked(player);
+    }
+
+    /** Keybinds are a native dialog; the inventory editor stays reachable from the classic menu. */
+    public void openSpellKeybinds(Player player) {
+        if (keybindDialogService == null) {
+            keybindDialogService = new me.nakilex.levelplugin.spells.gui.SpellKeybindDialogService(
+                    Main.getInstance(), settingsManager, this::openSettingsMenu);
+        }
+        keybindDialogService.open(player);
+    }
+
+    public void openLegacySpellKeybinds(Player player) {
+        if (spellKeybindGUI != null) {
+            spellKeybindGUI.open(player);
+        }
+    }
+
+    /** Exposed so the settings dialogs can edit personal weather and time as a form. */
+    public me.nakilex.levelplugin.settings.environment.PlayerEnvironmentService getEnvironmentService() {
+        return personalEnvironmentSettingsGUI == null ? null : personalEnvironmentSettingsGUI.getEnvironmentService();
+    }
+
+    public void openSpellUpgrades(Player player) {
+        if (spellUpgradeGUI != null) {
+            spellUpgradeGUI.open(player);
+        }
+    }
+
+    public void openLegacyMenu(Player player) {
         PlayerSettings playerSettings = settingsManager.getSettings(player);
         Filter filter = filters.getOrDefault(player.getUniqueId(), Filter.ALL);
 
@@ -287,11 +342,7 @@ public class SettingsGUI implements Listener {
                     (click, context) -> cycleSpellInputMode(context.player(), settings)));
             entries.add(new SettingEntry("Spell Keybinds",
                     context -> createSpellKeybindsItem(),
-                    (click, context) -> {
-                        if (spellKeybindGUI != null) {
-                            spellKeybindGUI.open(context.player());
-                        }
-                    }));
+                    (click, context) -> openLegacySpellKeybinds(context.player())));
             entries.add(new SettingEntry("Spells",
                     context -> createSpellUpgradesItem(),
                     (click, context) -> {
@@ -428,7 +479,7 @@ public class SettingsGUI implements Listener {
                 ? (currentIndex + 1) % values.length
                 : (currentIndex - 1 + values.length) % values.length;
         filters.put(player.getUniqueId(), values[nextIndex]);
-        openSettingsMenu(player);
+        openLegacyMenu(player);
     }
 
     private void cycleSort(Player player, boolean forward) {
@@ -439,51 +490,45 @@ public class SettingsGUI implements Listener {
                 ? (currentIndex + 1) % values.length
                 : (currentIndex - 1 + values.length) % values.length;
         sorts.put(player.getUniqueId(), values[nextIndex]);
-        openSettingsMenu(player);
+        openLegacyMenu(player);
     }
 
+    // Every toggle below flips the value and hands it to SettingsActions, which
+    // owns the side effects shared with the native settings dialogs.
+
     private void toggleDamageChat(Player player, PlayerSettings settings) {
-        settings.toggleDmgChat();
-        boolean enabled = settings.isDmgChatEnabled();
-        ChatToggleManager.getInstance().setEnabled(player, enabled);
-        ToggleFeedbackUtil.sendToggle(player, "Damage chat", enabled);
-        openSettingsMenu(player);
+        actions.setDamageChat(player, settings, !settings.isDmgChatEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleDamageNumbers(Player player, PlayerSettings settings) {
-        settings.toggleDmgNumber();
-        Bukkit.dispatchCommand(player, "dmgnumber");
-        openSettingsMenu(player);
+        actions.setDamageNumbers(player, settings, !settings.isDmgNumberEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleDropDetails(Player player, PlayerSettings settings) {
-        Bukkit.dispatchCommand(player, "toggle dropdetails");
-        openSettingsMenu(player);
+        actions.setDropDetails(player, settings, !settings.isDropDetailsEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleDropDetailsChat(Player player, PlayerSettings settings) {
-        Bukkit.dispatchCommand(player, "toggle dropdetailschat");
-        openSettingsMenu(player);
+        actions.setDropDetailsChat(player, settings, !settings.isDropDetailsChatEnabled());
+        openLegacyMenu(player);
     }
 
     private void togglePartyGlow(Player player, PlayerSettings settings) {
-        settings.togglePartyGlow();
-        Bukkit.dispatchCommand(player, "partyglow");
-        openSettingsMenu(player);
+        actions.setPartyGlow(player, settings, !settings.isPartyGlowEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleFriendGlow(Player player, PlayerSettings settings) {
-        settings.toggleFriendGlow();
-        Bukkit.dispatchCommand(player, "friendglow");
-        openSettingsMenu(player);
+        actions.setFriendGlow(player, settings, !settings.isFriendGlowEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleBalancePublic(Player player, PlayerSettings settings) {
-        settings.toggleBalancePublic();
-        me.nakilex.levelplugin.Main main = me.nakilex.levelplugin.Main.getInstance();
-        if (main != null && main.getLeaderboardManager() != null) {
-        }
-        openSettingsMenu(player);
+        actions.setBalancePublic(player, settings, !settings.isBalancePublic());
+        openLegacyMenu(player);
     }
 
     private void toggleVisibility(Player player, PlayerSettings settings, boolean locked) {
@@ -491,85 +536,74 @@ public class SettingsGUI implements Listener {
             me.nakilex.levelplugin.utils.ChatMessageUtil.send(player,
                     me.nakilex.levelplugin.utils.ChatMessageUtil.MessageType.ERROR,
                     "Player visibility is locked during Office Errands.");
-            openSettingsMenu(player);
+            openLegacyMenu(player);
             return;
         }
-        settings.cyclePlayerVisibility();
-        me.nakilex.levelplugin.Main.getInstance()
-                .getPlayerVisibilityManager().updatePlayer(player);
-        openSettingsMenu(player);
+        PlayerVisibility[] values = PlayerVisibility.values();
+        PlayerVisibility next = values[(settings.getPlayerVisibility().ordinal() + 1) % values.length];
+        actions.setPlayerVisibility(player, settings, next);
+        openLegacyMenu(player);
     }
 
     private void toggleAutoSkipCutscenes(Player player, PlayerSettings settings) {
-        settings.toggleAutoSkipCutscenes();
-        openSettingsMenu(player);
+        actions.setAutoSkipCutscenes(player, settings, !settings.isAutoSkipCutscenes());
+        openLegacyMenu(player);
     }
 
     private void toggleAutoSkipSongs(Player player, PlayerSettings settings) {
-        Bukkit.dispatchCommand(player, "toggle songskip");
-        openSettingsMenu(player);
+        actions.setAutoSkipSongs(player, settings, !settings.isAutoSkipSongs());
+        openLegacyMenu(player);
     }
 
     private void toggleNpcSoundEffects(Player player, PlayerSettings settings) {
-        settings.toggleNpcSoundEffects();
-        settingsManager.saveActiveProfileSettings(player);
-        ToggleFeedbackUtil.sendToggle(player, "NPC sound effects", settings.isNpcSoundEffectsEnabled());
-        openSettingsMenu(player);
+        actions.setNpcSoundEffects(player, settings, !settings.isNpcSoundEffectsEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleAchievementSoundEffects(Player player, PlayerSettings settings) {
-        settings.toggleAchievementSoundEffects();
-        settingsManager.saveActiveProfileSettings(player);
-        ToggleFeedbackUtil.sendToggle(player, "Achievement sound effects", settings.isAchievementSoundEffectsEnabled());
-        openSettingsMenu(player);
+        actions.setAchievementSoundEffects(player, settings, !settings.isAchievementSoundEffectsEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleSkillPointReminder(Player player, PlayerSettings settings) {
-        settings.toggleSkillPointReminder();
-        openSettingsMenu(player);
+        actions.setSkillPointReminder(player, settings, !settings.isSkillPointReminderEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleFullInventoryTitle(Player player, PlayerSettings settings) {
-        settings.toggleFullInventoryTitle();
-        openSettingsMenu(player);
+        actions.setFullInventoryTitle(player, settings, !settings.isFullInventoryTitleEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleTips(Player player, PlayerSettings settings) {
-        settings.toggleTipsEnabled();
-        ToggleFeedbackUtil.sendToggle(player, "Tips", settings.isTipsEnabled());
-        openSettingsMenu(player);
+        actions.setTips(player, settings, !settings.isTipsEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleChatGames(Player player, PlayerSettings settings) {
-        settings.toggleChatGamesEnabled();
-        ToggleFeedbackUtil.sendToggle(player, "Chat games", settings.isChatGamesEnabled());
-        openSettingsMenu(player);
+        actions.setChatGames(player, settings, !settings.isChatGamesEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleBoosterBossBar(Player player, PlayerSettings settings) {
-        settings.toggleBoosterBossBar();
-        var boosterManager = Main.getInstance().getBoosterManager();
-        if (boosterManager != null) {
-            boosterManager.refreshBossBar(player);
-        }
-        openSettingsMenu(player);
+        actions.setBoosterBossBar(player, settings, !settings.isBoosterBossBarEnabled());
+        openLegacyMenu(player);
     }
 
     private void toggleQuestTrackingParticles(Player player, PlayerSettings settings) {
-        settings.toggleQuestTrackingParticles();
-        openSettingsMenu(player);
+        actions.setQuestTrackingParticles(player, settings, !settings.isQuestTrackingParticlesEnabled());
+        openLegacyMenu(player);
     }
 
     private void cycleLootFilter(Player player, PlayerSettings settings, boolean forward) {
+        // Cycling has no side effects of its own, so it stays local.
         settings.cycleLootPickupRarity(forward);
-        openSettingsMenu(player);
+        openLegacyMenu(player);
     }
 
     private void cycleSpellInputMode(Player player, PlayerSettings settings) {
-        settings.cycleSpellInputMode();
-        settingsManager.saveActiveProfileSettings(player);
-        me.nakilex.levelplugin.spells.input.SpellInputHudManager.getInstance().sync(player);
-        openSettingsMenu(player);
+        actions.setSpellInputMode(player, settings, settings.getSpellInputMode().next());
+        openLegacyMenu(player);
     }
 
     private ItemStack createPersonalEnvironmentItem() {

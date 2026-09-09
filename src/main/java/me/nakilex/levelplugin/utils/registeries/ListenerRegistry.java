@@ -95,6 +95,7 @@ import me.nakilex.levelplugin.pet.listeners.PetCombatEffectListener;
 import me.nakilex.levelplugin.pet.listeners.PetMovementListener;
 import me.nakilex.levelplugin.pet.listeners.PetProtectionListener;
 import me.nakilex.levelplugin.pet.listeners.PetUtilityEffectListener;
+import me.nakilex.levelplugin.pet.listeners.PetXPrisonEffectListener;
 import me.nakilex.levelplugin.server.LevelPluginCommandGuard;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import org.bukkit.configuration.file.FileConfiguration;
@@ -188,10 +189,10 @@ public class ListenerRegistry {
             pm.registerEvents(customMobManager.getAdminGui(), plugin);
             pm.registerEvents(new MobStatusDebugListener(customMobManager), plugin);
         }
-        pm.registerEvents(new me.nakilex.levelplugin.player.mining.listeners.KingdomMineRegenListener(
-                plugin,
-                me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin),
-                plugin.getMiningRewardsConfig()), plugin);
+        // KingdomMineRegenListener is retired: the kingdom mine is an X-Prison mine now, so
+        // the prison core owns breaking, rewards and resets there. The listener also gated on
+        // the archived LevelPlugin tool system, which meant it cancelled every break in the
+        // mine and let nothing through. See KingdomMineService.
         pm.registerEvents(new me.nakilex.levelplugin.player.farming.listeners.WheatHarvestListener(plugin.getFarmingManager(), plugin.getFarmingRewardsConfig()), plugin);
         pm.registerEvents(new me.nakilex.levelplugin.player.fishing.listeners.FishingListener(
                 plugin,
@@ -215,6 +216,9 @@ public class ListenerRegistry {
             pm.registerEvents(new PetCombatEffectListener(petManager), plugin);
             pm.registerEvents(new PetMovementListener(petManager), plugin);
             pm.registerEvents(new PetProtectionListener(petManager), plugin);
+            if (pm.isPluginEnabled("X-Prison")) {
+                pm.registerEvents(new PetXPrisonEffectListener(plugin, petManager), plugin);
+            }
         }
         if (petGUI != null) {
             pm.registerEvents(petGUI, plugin);

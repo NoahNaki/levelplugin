@@ -1,3 +1,4 @@
+config-version: 3
 pets:
   meadow_mote:
     name: §fMeadow Mote
@@ -57,34 +58,48 @@ pets:
     - type: EXTRA_JUMP
       base: 1
       per-level: 0
+  prison_spore:
+    name: §fPrison Spore
+    rarity: COMMON
+    models:
+    - cubee-warped_fungus
+    max-level: 60
+    xp-per-level: 95
+    owned-stats:
+      tec: 1
+      wil: 1
+    effects:
+    - type: XPRISON_TOKEN_BOOST
+      base: 0.01
+      per-level: 0.00025
   ember_cube:
-    name: §cEmber Cube
+    name: §cPickaxe Cubee
     rarity: RARE
     models:
     - cubee-warden
     max-level: 100
     xp-per-level: 150
     owned-stats:
-      str: 4
-      tec: 2
+      str: 2
+      tec: 4
     effects:
-    - type: DAMAGE_BOOST
-      base: 0.07
-      per-level: 0.0012
+    - type: XPRISON_PICKAXE_XP_BOOST
+      base: 0.04
+      per-level: 0.00045
   gilded_mite:
-    name: §bGilded Mite
-    rarity: RARE
+    name: §aToken Mite
+    rarity: UNCOMMON
     models:
     - cubee-enderman
     max-level: 90
     xp-per-level: 140
     owned-stats:
-      wil: 4
-      tec: 2
+      wil: 2
+      tec: 3
     effects:
-    - type: COIN_DAMAGE
-      base: 1.0
-      per-level: 0.01
+    - type: XPRISON_TOKEN_BOOST
+      base: 0.02
+      per-level: 0.0003
   stormwing:
     name: §dStormwing
     rarity: EPIC
@@ -100,33 +115,19 @@ pets:
       base: 0.06
       per-level: 0.0012
   dusk_reaper:
-    name: §dDusk Reaper
+    name: §dPrestige Reaper
     rarity: EPIC
     models:
-    - cubee-wither
+    - cubee-the_wither
     max-level: 120
     xp-per-level: 180
     owned-stats:
-      str: 5
-      tec: 3
+      str: 3
+      tec: 5
     effects:
-    - type: EXECUTE_NON_BOSS
-      base: 0.06
-      per-level: 0.002
-  warped_fungus_sprite:
-    name: §aWarped Fungus Sprite
-    rarity: UNCOMMON
-    models:
-    - cubee-warped_fungus
-    max-level: 90
-    xp-per-level: 110
-    owned-stats:
-      wil: 2
-      int: 2
-    effects:
-    - type: GATHERING_XP_BOOST
-      base: 0.04
-      per-level: 0.0008
+    - type: SOUL_HARVEST
+      base: 1
+      per-level: 0
   soul_valley_shade:
     name: §aSoul Valley Shade
     rarity: UNCOMMON
@@ -183,20 +184,6 @@ pets:
     - type: LOW_HEALTH_DAMAGE
       base: 0.05
       per-level: 0.001
-  wave_rider:
-    name: §cWave Rider
-    rarity: RARE
-    models:
-    - cubee-ender_pearl
-    max-level: 100
-    xp-per-level: 150
-    owned-stats:
-      agi: 3
-      int: 2
-    effects:
-    - type: STRONGHOLD_WAVE_RIDER
-      base: 2
-      per-level: 0
   crimson_bloom:
     name: §cCrimson Bloom
     rarity: RARE
@@ -282,7 +269,7 @@ pets:
       base: 0.05
       per-level: 0.0009
   ender_chest_keeper:
-    name: §cEnder Chest Keeper
+    name: §cPayday Keeper
     rarity: RARE
     models:
     - cubee-ender_chest
@@ -292,9 +279,9 @@ pets:
       tec: 4
       wil: 1
     effects:
-    - type: SALVAGE_COINS_BONUS
-      base: 0.05
-      per-level: 0.001
+    - type: XPRISON_MONEY_BOOST
+      base: 0.025
+      per-level: 0.00035
   end_stone_ward:
     name: §cEnd Stone Ward
     rarity: RARE
@@ -369,19 +356,19 @@ pets:
       base: 0.1
       per-level: 0.0014
   light_dragon:
-    name: §6Light Dragon
-    rarity: LEGENDARY
+    name: §dGemlight Dragon
+    rarity: EPIC
     models:
     - cubee-light_dragon
-    max-level: 140
-    xp-per-level: 210
+    max-level: 130
+    xp-per-level: 195
     owned-stats:
       int: 6
       dex: 3
     effects:
-    - type: QUEST_COINS_BONUS
-      base: 0.12
-      per-level: 0.0016
+    - type: CRYSTAL_RUSH
+      base: 1
+      per-level: 0
   ice_dragon:
     name: §6Ice Dragon
     rarity: LEGENDARY
@@ -425,7 +412,7 @@ pets:
       base: 0.16
       per-level: 0.0018
   earth_dragon:
-    name: §6Earth Dragon
+    name: §6Quarry Dragon
     rarity: LEGENDARY
     models:
     - cubee-earth_dragon
@@ -435,9 +422,9 @@ pets:
       vit: 7
       str: 2
     effects:
-    - type: BOSS_DAMAGE
-      base: 0.08
-      per-level: 0.0012
+    - type: SEISMIC_OVERDRIVE
+      base: 1
+      per-level: 0
   darkness_dragon:
     name: §4Darkness Dragon
     rarity: MYTHIC
@@ -470,7 +457,7 @@ pets:
       base: 1
       per-level: 0
   vault_hound:
-    name: §6Vault Hound
+    name: §6Token Vault Hound
     rarity: LEGENDARY
     models:
     - cubee-ender_chest
@@ -480,9 +467,9 @@ pets:
       tec: 6
       wil: 3
     effects:
-    - type: CHEST_PROXIMITY_OPEN
-      base: 4.0
-      per-level: 0.03
+    - type: BURIED_VAULT
+      base: 1
+      per-level: 0
   relic_magnetar:
     name: §6Relic Magnetar
     rarity: LEGENDARY
@@ -497,67 +484,11 @@ pets:
     - type: ITEM_MAGNET
       base: 4.5
       per-level: 0.035
-  crystal_gremlin:
-    name: §dCrystal Gremlin
-    rarity: EPIC
-    models:
-    - cubee-amethyst
-    max-level: 120
-    xp-per-level: 180
-    owned-stats:
-      tec: 4
-      int: 4
-    effects:
-    - type: GEM_DUNGEON_YIELD
-      base: 0.08
-      per-level: 0.0012
-  gilded_treasurer:
-    name: §6Gilded Treasurer
-    rarity: LEGENDARY
-    models:
-    - cubee-gold
-    max-level: 140
-    xp-per-level: 210
-    owned-stats:
-      tec: 6
-      wil: 3
-    effects:
-    - type: COIN_DUNGEON_YIELD
-      base: 0.10
-      per-level: 0.0014
-  sweep_scarab:
-    name: §bSweep Scarab
-    rarity: RARE
-    models:
-    - cubee-beetle
-    max-level: 100
-    xp-per-level: 150
-    owned-stats:
-      agi: 3
-      tec: 3
-    effects:
-    - type: STAGED_DUNGEON_SWEEP_ATTEMPTS
-      base: 1
-      per-level: 0
-  stronghold_pathfinder:
-    name: §6Stronghold Pathfinder
-    rarity: LEGENDARY
-    models:
-    - cubee-compass
-    max-level: 140
-    xp-per-level: 210
-    owned-stats:
-      str: 4
-      agi: 4
-    effects:
-    - type: STRONGHOLD_WAVE_RIDER
-      base: 1
-      per-level: 0
   dungeon_packrat:
     name: §dDungeon Packrat
     rarity: EPIC
     models:
-    - cubee-rat
+    - rpg_rat
     max-level: 120
     xp-per-level: 180
     owned-stats:

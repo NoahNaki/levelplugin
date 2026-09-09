@@ -125,6 +125,7 @@ import me.nakilex.levelplugin.server.ConnectCommand;
 import me.nakilex.levelplugin.server.HubCommand;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import me.nakilex.levelplugin.luxdialogues.LuxDialogueTestCommand;
+import me.nakilex.levelplugin.dialogdemo.NativeDialogDemoCommand;
 import org.bukkit.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -245,6 +246,10 @@ public class CommandRegistry {
         LuxDialogueTestCommand luxDialogueTestCommand = new LuxDialogueTestCommand(plugin);
         plugin.getCommand("luxapitest").setExecutor(luxDialogueTestCommand);
         plugin.getCommand("luxapitest").setTabCompleter(luxDialogueTestCommand);
+
+        NativeDialogDemoCommand nativeDialogDemoCommand = new NativeDialogDemoCommand(plugin);
+        plugin.getCommand("dialogdemo").setExecutor(nativeDialogDemoCommand);
+        plugin.getCommand("dialogdemo").setTabCompleter(nativeDialogDemoCommand);
         me.nakilex.levelplugin.items.commands.GenerateItemCommand genItemCmd = new me.nakilex.levelplugin.items.commands.GenerateItemCommand();
         plugin.getCommand("genitem").setExecutor(genItemCmd);
         plugin.getCommand("genitem").setTabCompleter(genItemCmd);
@@ -334,7 +339,7 @@ public class CommandRegistry {
         plugin.getCommand("bpunlock").setTabCompleter(battlePassUnlockCommand);
         plugin.getCommand("dmgnumber").setExecutor(new DmgNumberCommand(dmgToggleManager));
         plugin.getCommand("dmgchat").setExecutor(new DmgChatCommand(settingsGUI.getSettingsManager()));
-        plugin.getCommand("settings").setExecutor(new SettingsCommand(settingsGUI));
+        plugin.getCommand("setting").setExecutor(new SettingsCommand(settingsGUI));
         // Gem commands are only bound while the gem system is active. They are also removed from
         // plugin.yml, so /gems resolves to the prison core's own gems currency instead of being
         // shadowed by a LevelPlugin command that reports a balance of zero.
@@ -443,7 +448,11 @@ public class CommandRegistry {
         CoopCommand coopCommand = new CoopCommand(plugin.getEnvironmentManager());
         plugin.getCommand("coop").setExecutor(coopCommand);
         plugin.getCommand("coop").setTabCompleter(coopCommand);
-        KingdomCommand kingdomCommand = new KingdomCommand(me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin));
+        me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager kingdomManager =
+                me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin);
+        me.nakilex.levelplugin.environment.KingdomGUI kingdomGUI =
+                new me.nakilex.levelplugin.environment.KingdomGUI(plugin, kingdomManager);
+        KingdomCommand kingdomCommand = new KingdomCommand(kingdomManager, kingdomGUI);
         plugin.getCommand("kingdom").setExecutor(kingdomCommand);
         plugin.getCommand("kingdom").setTabCompleter(kingdomCommand);
         new me.nakilex.levelplugin.environment.PalaceGUI(plugin, me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(plugin));

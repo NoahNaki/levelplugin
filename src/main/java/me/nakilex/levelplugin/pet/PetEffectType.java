@@ -48,6 +48,29 @@ public enum PetEffectType {
     GATHERING_XP_BOOST("gathering_xp_boost", "Harvester",
             value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
                     + ChatColor.GRAY + " gathering XP"),
+    XPRISON_MONEY_BOOST("xprison_money_boost", "Payday",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " X-Prison Money from mining"),
+    XPRISON_TOKEN_BOOST("xprison_token_boost", "Token Find",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " X-Prison Tokens from mining"),
+    XPRISON_GEM_BOOST("xprison_gem_boost", "Gem Find",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " X-Prison Gems from mining"),
+    XPRISON_PICKAXE_XP_BOOST("xprison_pickaxe_xp_boost", "Tool Training",
+            value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
+                    + ChatColor.GRAY + " X-Prison pickaxe XP"),
+    SOUL_HARVEST("soul_harvest", "Soul Harvest",
+            value -> "Mine blocks to harvest part of your recent "
+                    + ChatColor.LIGHT_PURPLE + "prison earnings"),
+    CRYSTAL_RUSH("crystal_rush", "Crystal Rush",
+            value -> "Charge a timed hunt for " + ChatColor.AQUA + "three crystal blocks"),
+    SEISMIC_OVERDRIVE("seismic_overdrive", "Seismic Overdrive",
+            value -> "Charge a mining frenzy with boosted rewards and "
+                    + ChatColor.GREEN + "pickaxe XP"),
+    BURIED_VAULT("buried_vault", "Buried Vault",
+            value -> "Track down hidden vault blocks for "
+                    + ChatColor.GOLD + "randomized prison loot"),
     SALVAGE_COINS_BONUS("salvage_coins_bonus", "Scrapper's Cut",
             value -> "Gain " + ChatColor.GREEN + "+" + formatPercent(value)
                     + ChatColor.GRAY + " coins from salvage"),

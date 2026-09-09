@@ -17,7 +17,6 @@ import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
@@ -29,7 +28,11 @@ import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.Vector;
 
 import java.io.File;
-import java.util.ArrayList;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -46,6 +49,31 @@ public class PetManager {
     private static final long FOLLOW_UPDATE_TICKS = 1L;
     private static final int MAX_TIER = 5;
     private static final int PITY_THRESHOLD = 60;
+    private static final int PET_CONFIG_VERSION = 3;
+    /**
+     * Kept in code as a migration guard because pets.yml is copied with replace=false.
+     * Existing servers may therefore still have these retired definitions in their data folder.
+     */
+    private static final Set<String> RETIRED_PET_IDS = Set.of(
+            "warped_fungus_sprite",
+            "wave_rider",
+            "crystal_gremlin",
+            "gilded_treasurer",
+            "sweep_scarab",
+            "stronghold_pathfinder"
+    );
+    /** Definitions intentionally replaced by the X-Prison pet rework through config version 3. */
+    private static final Set<String> PRISON_REWORK_PET_IDS = Set.of(
+            "prison_spore",
+            "ember_cube",
+            "gilded_mite",
+            "dusk_reaper",
+            "ender_chest_keeper",
+            "light_dragon",
+            "earth_dragon",
+            "vault_hound",
+            "dungeon_packrat"
+    );
     private static final List<ItemRarity> GACHA_RARITIES = List.of(
             ItemRarity.COMMON,
             ItemRarity.UNCOMMON,
@@ -95,20 +123,94 @@ public class PetManager {
         mergeRarityPools.clear();
         plugin.saveResource("pets.yml", false);
         File file = new File(plugin.getDataFolder(), "pets.yml");
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
+        YamlConfiguration config = YamlConfiguration.loadConfiguration(file);
+        migratePetConfig(file, config);
         ConfigurationSection root = config.getConfigurationSection("pets");
         if (root == null) {
             plugin.getLogger().warning("No pets configured in pets.yml");
             return;
         }
         for (String key : root.getKeys(false)) {
+            String normalizedKey = key.toLowerCase(Locale.ROOT);
+            if (RETIRED_PET_IDS.contains(normalizedKey)) {
+                continue;
+            }
             ConfigurationSection petSection = root.getConfigurationSection(key);
             PetDefinition def = PetDefinition.fromConfig(key, petSection);
             if (def != null) {
-                definitions.put(key.toLowerCase(Locale.ROOT), def);
+                definitions.put(normalizedKey, def);
             }
         }
         rebuildMergeRarityPools();
+    }
+
+    private void migratePetConfig(File file, YamlConfiguration config) {
+        if (config.getInt("config-version", 0) >= PET_CONFIG_VERSION) {
+            return;
+        }
+
+        YamlConfiguration bundled = loadBundledPetConfig();
+        ConfigurationSection bundledPets = bundled == null ? null : bundled.getConfigurationSection("pets");
+        if (bundledPets == null) {
+            plugin.getLogger().warning("Unable to load bundled pets.yml for the X-Prison pet migration.");
+            return;
+        }
+
+        ConfigurationSection configuredPets = config.getConfigurationSection("pets");
+        if (configuredPets == null) {
+            configuredPets = config.createSection("pets");
+        }
+
+        for (String retiredId : RETIRED_PET_IDS) {
+            configuredPets.set(retiredId, null);
+        }
+        for (String petId : PRISON_REWORK_PET_IDS) {
+            ConfigurationSection bundledPet = bundledPets.getConfigurationSection(petId);
+            if (bundledPet == null) {
+                continue;
+            }
+            configuredPets.set(petId, null);
+            ConfigurationSection migratedPet = configuredPets.createSection(petId);
+            copySection(bundledPet, migratedPet);
+        }
+        config.set("config-version", PET_CONFIG_VERSION);
+
+        try {
+            File backup = new File(file.getParentFile(), "pets.yml.pre-v3-prison-rework.bak");
+            if (file.isFile() && !backup.exists()) {
+                Files.copy(file.toPath(), backup.toPath());
+            }
+            config.save(file);
+            plugin.getLogger().info("Migrated pets.yml to config version " + PET_CONFIG_VERSION
+                    + " for the X-Prison pet rework.");
+        } catch (IOException e) {
+            plugin.getLogger().warning("Could not persist the X-Prison pet migration: " + e.getMessage());
+        }
+    }
+
+    private YamlConfiguration loadBundledPetConfig() {
+        try (InputStream input = plugin.getResource("pets.yml")) {
+            if (input == null) {
+                return null;
+            }
+            try (InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+                return YamlConfiguration.loadConfiguration(reader);
+            }
+        } catch (IOException e) {
+            plugin.getLogger().warning("Could not read bundled pets.yml: " + e.getMessage());
+            return null;
+        }
+    }
+
+    private static void copySection(ConfigurationSection source, ConfigurationSection target) {
+        for (String key : source.getKeys(false)) {
+            ConfigurationSection child = source.getConfigurationSection(key);
+            if (child != null) {
+                copySection(child, target.createSection(key));
+            } else {
+                target.set(key, source.get(key));
+            }
+        }
     }
 
     public void reload() {
@@ -402,6 +504,14 @@ public class PetManager {
         }
         PetDefinition def = getDefinition(petId).orElse(null);
         if (def == null) {
+            PetProfile profile = dataStore.getProfile(player.getUniqueId());
+            if (RETIRED_PET_IDS.contains(petId.toLowerCase(Locale.ROOT))
+                    && petId.equalsIgnoreCase(profile.activePetId())) {
+                profile.setActivePetId(null);
+                dataStore.saveProfile(player.getUniqueId());
+                PetChatUtil.send(player, "That pet is no longer available.");
+                return false;
+            }
             PetChatUtil.send(player, "Unknown pet: " + petId);
             return false;
         }
