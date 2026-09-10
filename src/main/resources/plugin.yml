@@ -85,6 +85,16 @@ commands:
     usage: /dialogdemo [notice|confirm|input|glyphs|ui|rewards]
     aliases: [nativedialog, ndialog]
     permission: none
+  marketdemo:
+    description: Market screen over the custom shop window, with a live alignment editor
+    usage: /marketdemo [origin|pitch|window|size|advance|slot|nudge|reset|dump]
+    aliases: [market, mkt]
+    permission: none
+  marketstall:
+    description: Single-offer pet showcase framed in the market stall
+    usage: /marketstall [pet|size|nudge|reset|dump]
+    aliases: [marketpet, stall]
+    permission: none
   opsword:
     description: Gives an admin sword with overwhelming power
     usage: /opsword

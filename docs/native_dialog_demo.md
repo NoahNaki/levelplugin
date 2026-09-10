@@ -19,6 +19,8 @@ LevelPlugin already has its own NPC dialogue manager and a LuxDialogues bridge. 
 /dialogdemo rewards
 /dialogdemo hex
 /dialogdemo equipment [player]
+/marketdemo
+/marketstall
 ```
 
 Aliases:
@@ -213,6 +215,284 @@ The glyph entries deliberately carry **no `char:`** in either build — Nexo ass
 #### The state swap is free now
 
 Native dialogs still have no hover callback, so a node's texture can only change by replacing the dialog. The `ui` demo above warns that this repositions the cursor — it no longer does. This screen sets `after_action NONE` with `pause(false)`, so the client never tears the screen down between states and the pointer stays exactly where the player clicked. That is what makes a click-through node tree feel acceptable rather than jarring.
+
+## The market screen (`/marketdemo`)
+
+A 5x3 market painted over a custom shop-window texture, plus the in-game
+editor used to align it. Lives in `dialogdemo/market/` rather than in the demo
+command, because the alignment machinery is the reusable part.
+
+### Real items cannot be gridded — this is the wall, not a workaround
+
+Dialogs have exactly two body kinds, `item` and `plainMessage`; every body is
+its own row; every row self-centres. `DialogBase.Builder` has no column,
+anchor or alignment field at any level. The `equipment` screen above hit this
+and had to become a centred vertical column with the labels stripped.
+
+So *"real `ItemStack`s sitting in those 15 slots"* is not reachable at any
+spacing. It is not a matter of finding the right offsets — the offsets do not
+exist. Anything that needs an actual grid over fixed background art has to be
+glyphs in a `plainMessage`, positioned by shift characters.
+
+### Horizontal: a private shift font
+
+Nexo's `Shift` glyphs live in its generated `default.json`, which this server
+fails to deserialize (see "Gaps use spaces, not Shift" above), so every shift
+renders as a missing-glyph mark. The `hex` node worked around it with 4px
+spaces, which cannot move left and cannot land between multiples of 4 — fine
+for one node, useless for a 15-cell grid.
+
+The market ships its own font instead: `assets/minecraft/font/space.json`, a
+vanilla `space` provider with power-of-two advances from -1024 to +1024 at
+`..` (negative) and `..` (positive). Separate file,
+separate codepoints, so Nexo's broken include cannot affect it, and every
+integer offset decomposes exactly with no rounding or accumulation. Selected
+per-component with `.font(Key.key("minecraft:space"))`.
+
+This is worth reusing anywhere the `rewards` demo currently shows stray marks.
+
+### Vertical: derive the ascent, do not invent it
+
+Ascent lives in the pack the client already downloaded, so it is not tunable
+from the server — the same wall the `hex` node documents. Text lines advance
+in 9px steps, far too coarse to align to a slot. The way round it is the
+lesson that node already lands on: **pre-bake every value and select at
+runtime.** `market.yml` carries one entry per ascent per size, and the
+renderer asks for the id it wants.
+
+**Derive the relationship from something known-good rather than reasoning it
+out.** The first version used `size - 1 + remainder`, which put row 1 ten
+pixels high and moved the wrong way as the remainder grew. The window slices
+are the fixed point: they render correctly at `ascent: 9` on line L, sitting at
+art y = `L*9`. That pins it, and height drops out entirely:
+
+```java
+ascent = line * 9 + 9 - y;
+```
+
+For row 1 (`y = 92`, line 10) that is **7**, against the 17 the old formula
+produced.
+
+### The same error is why nothing was clickable
+
+A dialog hit-tests a click to a single 9px strip at the line's baseline. An
+icon drawn ten pixels above its own line has art and hit area that **do not
+overlap at all**, so its callback — correctly attached, correctly registered —
+was simply unreachable. Exactly the failure the `hex` node had before slicing.
+
+Fixing the ascent is not sufficient alone. A 16px icon spans more than one 9px
+strip, so a single emission still leaves most of its face dead. Each good is
+therefore emitted **once per line its art overlaps**:
+
+```java
+// line L's strip covers art rows [L*9+2, L*9+11]; the icon covers [y, y+h]
+if (strip <= y - 11 || strip >= y + height - 2) continue;
+```
+
+Row 1 emits on 2 lines, row 2 on 3. The repeat emissions draw identical pixels
+in the identical place, so they cost nothing visually and the whole face
+becomes clickable. This is the button-free way to get a real click target out
+of arbitrary art, and it needs no sliced textures — unlike the hex node, which
+slices because it also wants control over the focus ring's height.
+
+### Paint order and hit order are the same order — and they want opposites
+
+Fixing the ascent made the icons *visible* in the right place but still dead:
+no click, no hover. Both go through the same lookup — the client walks the line
+accumulating each component's advance and takes the **first** component whose
+range holds the cursor — so a single cause explains both symptoms, which is
+what pointed at it.
+
+The window slice was emitted first on every line and spans the full 257px, so
+it absorbed every cursor position in the window. The icons after it were
+unreachable, callbacks and tooltips intact and never consulted.
+
+**`/dialogdemo hex` is the control case.** Its `clickableNode` puts only the
+art slices on a line, with nothing before them, so nothing absorbs and it works.
+That contrast is what identified this, and it is worth keeping in mind: a
+clickable glyph on a line by itself behaves completely differently from the
+same glyph after a full-width one.
+
+The bind is that paint order and hit order are one order. The icon must be
+painted **last** to sit on top of the window, and hit-tested **first** to be
+reachable.
+
+The way out needs no texture changes, and **the hit target does not have to be
+the icon.** It only needs the icon's advance and the icon's style — so it is a
+shift: it moves the pen exactly as far and draws nothing.
+
+```java
+// pass 1 -- shift(advance) carrying hover + click, before the slice.
+//           Zero pixels. This is what the cursor resolves to.
+// ... the window slice ...
+// pass 2 -- the real glyph, once, on the LAST line its art reaches (any
+//           earlier line and a later slice would paint over it).
+```
+
+The first version of this emitted the real glyph as the hit copy, relying on
+the window to hide it. That drew every icon **4-6 times** to show it once — the
+icons span 2-3 lines and both passes ran on each. Redundant work for a
+guarantee the shift gives outright.
+
+Cutting transparent holes in the window art would also work, but it bakes the
+slot positions into the texture and kills live tuning. Double emission keeps
+every position a server-side number.
+
+Note the pad still has to account for both passes — a line carries two sets of
+icon advances now, and it must still close at exactly 257.
+
+### Pad every line to the same width, or the window tears
+
+A dialog centres **each line on its own measured width**, and shift characters
+count toward that width. A line carrying icons therefore measures differently
+from a bare one: row 1 came to 214px against a bare line's 257px, so it centred
+21px off and the window rendered visibly torn, with pieces of frame poking out
+past the edges.
+
+This is the `hex` docs' "every slice must report the same width, or the stack
+shears" one level up — it applies to the whole line, shifts included. Every
+line closes with a pad back to the window's own advance:
+
+```java
+out = out.append(shift(WINDOW_ADVANCE - pen));
+```
+
+Worth reaching for the moment any line in a stacked-glyph screen carries
+something the others do not.
+
+### Draw order: icons on top of the window
+
+The window art is sliced into 9px rows exactly like the hex node. For each
+line the renderer draws that slice, shifts the pen back to x=0, then draws
+whichever icons land on that line. Later glyphs paint over earlier ones on the
+same line, so the goods sit on top of the window rather than beside it.
+
+### Icons come from the existing icons_pack
+
+No new textures. `market.yml` only adds glyph entries pointing at files
+already in `pack/assets/minecraft/textures/icons_pack/` — `mines`, `anvil`,
+`coins`, `diamond`, `token`, `key`, `crown`, `lottery` and so on.
+
+**Each good carries its own advance, and this is not optional.** Minecraft
+derives a bitmap glyph's advance from the texture's aspect ratio, and these
+icons are not all square: `mines` is 17x16, `anvil` is 16x11, `lottery` is
+20x15. The renderer has to know how far the pen moved to place the next icon
+on the same line, so one shared advance constant leaves everything after a
+non-square icon drifting right — and it accumulates across the row.
+`scratchpad/gen_market_icons.py` measures each texture and prints the values
+to paste into `MarketGood`; regenerate rather than guessing after a swap.
+
+`slot_icon.png` is still in the pack: a white 16x16 calibration target (border,
+corner ticks, centre dot) that tints to any colour. It is not used by the
+market any more, but it is the right thing to drop into a slot when a new
+screen needs its geometry checked.
+
+Tooltips use the carrier-item trick from the `hex` section, so each good keeps
+its rarity frame.
+
+### The editor
+
+Every value is a server-side number read at render time, so each edit takes
+effect on the next render — no restart, no pack rebuild. The dialog sets
+`after_action NONE` with `pause(false)`, so re-rendering after every edit
+leaves the cursor exactly where it was.
+
+```text
+/marketdemo                       open the screen
+/marketdemo origin <x> <y>        top-left of slot 0, relative to the art
+/marketdemo pitch <x> <y>         centre-to-centre slot spacing
+/marketdemo window <x> <y>        move the whole window
+/marketdemo size <16|24>          pre-baked icon size
+/marketdemo advance <px>          global advance correction (normally 0)
+/marketdemo slot <0-14> <dx> <dy> per-slot correction
+/marketdemo nudge <dir> [amount]  move origin by 1px (or n)
+/marketdemo reset
+/marketdemo dump
+```
+
+`dump` prints the tuned numbers as a paste-ready `MarketLayout` block plus the
+resolved slot origins, to **both chat and the server console** — chat wraps
+and mangles it, `latest.log` does not, and the log is what gets copied back.
+
+**Read `advance` before reaching for per-slot nudges.** A wrong advance shows
+up as icons drifting progressively further right across a row — slot 0 correct,
+slot 4 worst. That is one number, not five nudges. Per-slot nudges are for
+genuine one-off exceptions in the art, and `dump` only emits the non-zero ones
+so they stay visible as exceptions.
+
+### Regenerating the assets
+
+```bash
+python scratchpad/gen_market_icons.py     # 840 glyph entries over existing textures
+python scratchpad/slice_shop_window.py    # 29 window slices + their glyph entries
+python scratchpad/fit_grid.py             # re-fit the grid from the PNG
+```
+
+`fit_grid.py` detects the slot fills by colour saturation and fits a regular
+grid, writing `scratchpad/shop_window_debug.png` with the detected fills in
+magenta and the fitted icon boxes in cyan. It measured this texture as slot
+fills of 25x27 at x 40/78/116/154/192 and y 87/128/169 — **pitch 38 across and
+41 down, both exact, no rounding**. That is why a drifting row means a wrong
+advance rather than a wrong pitch.
+
+Note the earlier `measure_shop_window.py` keyed on the slots' dark outlines and
+only found 7 of 15; saturation on the fills found all 15 cleanly. Worth knowing
+which way round to try first on the next asset.
+
+All three are generated output — regenerate rather than hand-editing
+`nexo/glyphs/market.yml` or `market_window.yml`.
+
+
+## The stall showcase (`/marketstall`)
+
+Aliases: `marketpet`, `stall`.
+
+The bundle-store shape rather than the grid shape — one offer, shown large,
+with the art doing the work. Modelled on a Starter Bundle screen: the item
+framed in the middle, its name under it, a price button below that.
+
+`market_stall.yml` carries the stall (13 slices of 9px off the cropped 172x109
+art) and the pet (one 207x272 texture at four baked heights, ascents 1..h+8).
+
+**Crop the source to its content bounding box before anything else.** Both raw
+files carried a lot of empty margin, and a glyph's advance comes from the
+texture's aspect ratio — uncropped, the advance describes the margin rather
+than the art, and nothing lines up afterwards.
+
+The stall's transparent interior measures **134x76 at x 19..152, y 25..100**,
+centre (85.5, 62.5). A 64px pet renders 49px wide, so it centres at (61, 30).
+Those are the defaults; `/marketstall pet <x> <y>`, `size`, `nudge`, `reset`
+and `dump` tune them live, same contract as the market editor.
+
+Per line the renderer emits the pet's zero-pixel hit target, then the stall
+slice, then the pet itself if this is the last line its art reaches — the same
+three rules the market screen arrived at, which is why they now live in
+`DialogPixels` rather than in either screen.
+
+### Font glyph textures are capped at 256x256
+
+The pet did not render at all on the first attempt — the stall drew fine and
+the pet was a missing-character box, both from the same yml file.
+
+**Minecraft stitches font glyphs into a 256x256 atlas.** A bitmap larger than
+that in either dimension cannot be placed, and it is dropped with no error
+anywhere: nothing in the server log, nothing in the client log, just a blank
+where the art should be. The raw pet render was 207x**272**.
+
+The diagnosis came from scanning every glyph texture in the pack rather than
+guessing: of 1367, exactly one exceeded 256, and it was the one that failed.
+256 itself is fine — the shop window slices are 256x9 and render — so the cap
+is inclusive, and the generator now scales the longest side down to it.
+
+`scratchpad/check_glyph_textures.py` runs that scan against the deployed pack
+and exits non-zero on any oversize texture. Worth running after adding art;
+this failure mode is completely silent otherwise.
+
+### `DialogPixels`
+
+`shift`, `glyph`, `ascentFor`, `lastLineFor` and `styledTooltip`, shared by both
+screens. Each encodes a rule that is not obvious and was expensive to find
+once; duplicating them into a second screen was how they would drift.
 
 ### `equipment`
 

@@ -30,6 +30,23 @@ public final class LuxDialoguesBridge {
         return Boolean.TRUE.equals(result);
     }
 
+    /**
+     * Non-throwing variant of {@link #isInDialogue(Player)} for hot paths like the per-tick action
+     * bar loop, which can neither handle a checked exception nor log once per player per tick.
+     * Anything unexpected (LuxDialogues missing, provider not ready, API changed) reports the
+     * player as not in a dialogue, so callers keep their pre-existing behaviour.
+     */
+    public static boolean isInDialogueQuietly(Player player) {
+        if (!isPluginEnabled() || player == null) {
+            return false;
+        }
+        try {
+            return isInDialogue(player);
+        } catch (ReflectiveOperationException | RuntimeException ex) {
+            return false;
+        }
+    }
+
     public static void clearDialogue(Player player) throws ReflectiveOperationException {
         Object provider = getProvider();
         Method clearDialogue = provider.getClass().getMethod("clearDialogue", Player.class);

@@ -33,6 +33,12 @@ public class ActionBarTask extends BukkitRunnable {
                 playersWithActionBarStatus.remove(player.getUniqueId());
                 continue;
             }
+            if (me.nakilex.levelplugin.luxdialogues.LuxDialoguesBridge.isInDialogueQuietly(player)) {
+                // Deliberately no clearActionBarStatus() here: sending an empty action bar would
+                // fight the dialogue the same way our status text does. Just stop writing.
+                playersWithActionBarStatus.remove(player.getUniqueId());
+                continue;
+            }
 
             StatsManager statsManager = StatsManager.getInstance();
             CooldownIndicatorManager.Info info = CooldownIndicatorManager.getInstance().get(player);

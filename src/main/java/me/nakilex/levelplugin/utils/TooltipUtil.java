@@ -17,6 +17,21 @@ public final class TooltipUtil {
     private TooltipUtil() {}
 
     /**
+     * Mouse-button glyph tokens, backed by {@code resourcepack/nexo/glyphs/mouse.yml}. Public so
+     * lore built outside the helpers below can use the same icons instead of re-typing the tag.
+     */
+    public static final String GLYPH_LEFT_CLICK = "<glyph:mouse_left>";
+    public static final String GLYPH_RIGHT_CLICK = "<glyph:mouse_right>";
+
+    /**
+     * Build a single click-instruction line: white glyph + label, then the grey action text.
+     * The glyph stays white so Minecraft's font tinting leaves the icon's own colours alone.
+     */
+    private static String clickLine(String glyph, String label, String action) {
+        return ChatColor.WHITE + glyph + " " + label + " " + ChatColor.GRAY + action;
+    }
+
+    /**
      * Create a textual progress bar for the given values using the standard
      * colours defined in {@link GuiUtil}.
      *
@@ -86,10 +101,10 @@ public final class TooltipUtil {
     public static List<String> clickInstructions(String leftAction, String rightAction) {
         List<String> lore = new ArrayList<>(2);
         if (leftAction != null) {
-            lore.add(ChatColor.WHITE + "Left-click " + ChatColor.GRAY + leftAction);
+            lore.add(clickLine(GLYPH_LEFT_CLICK, "Left-click", leftAction));
         }
         if (rightAction != null) {
-            lore.add(ChatColor.WHITE + "Right-click " + ChatColor.GRAY + rightAction);
+            lore.add(clickLine(GLYPH_RIGHT_CLICK, "Right-click", rightAction));
         }
         return lore;
     }
@@ -105,10 +120,10 @@ public final class TooltipUtil {
     public static List<String> sneakClickInstructions(String leftAction, String rightAction) {
         List<String> lore = new ArrayList<>(2);
         if (leftAction != null) {
-            lore.add(ChatColor.WHITE + "Sneak + Left-click " + ChatColor.GRAY + leftAction);
+            lore.add(clickLine(GLYPH_LEFT_CLICK, "Sneak + Left-click", leftAction));
         }
         if (rightAction != null) {
-            lore.add(ChatColor.WHITE + "Sneak + Right-click " + ChatColor.GRAY + rightAction);
+            lore.add(clickLine(GLYPH_RIGHT_CLICK, "Sneak + Right-click", rightAction));
         }
         return lore;
     }

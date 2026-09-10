@@ -1,0 +1,23 @@
+# Generic mouse-button glyphs.
+#
+# Intended for tooltips, item lore, GUI titles and any other text Nexo parses -
+# nothing here is tied to a particular feature, so reuse them anywhere with
+# <glyph:mouse_left> / <glyph:mouse_right>.
+#
+# Deliberately no explicit `char:`. Nexo auto-assigns the codepoint, which is
+# the convention across this pack and sidesteps the duplicate-codepoint clashes
+# that hand-picked chars have caused elsewhere (see interface.yml).
+#
+# Source textures are 5x8px, so `height: 8` renders them at native scale and
+# `ascent: 7` sits them on the normal text baseline - i.e. inline with a line
+# of lore rather than floating above it.
+
+mouse_left:
+  texture: mouse/left_click_small
+  ascent: 7
+  height: 8
+
+mouse_right:
+  texture: mouse/right_click_small
+  ascent: 7
+  height: 8

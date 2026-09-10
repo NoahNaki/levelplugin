@@ -126,6 +126,8 @@ import me.nakilex.levelplugin.server.HubCommand;
 import me.nakilex.levelplugin.server.ServerSelectionManager;
 import me.nakilex.levelplugin.luxdialogues.LuxDialogueTestCommand;
 import me.nakilex.levelplugin.dialogdemo.NativeDialogDemoCommand;
+import me.nakilex.levelplugin.dialogdemo.market.MarketDialogDemo;
+import me.nakilex.levelplugin.dialogdemo.market.StallDialogDemo;
 import org.bukkit.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -250,6 +252,14 @@ public class CommandRegistry {
         NativeDialogDemoCommand nativeDialogDemoCommand = new NativeDialogDemoCommand(plugin);
         plugin.getCommand("dialogdemo").setExecutor(nativeDialogDemoCommand);
         plugin.getCommand("dialogdemo").setTabCompleter(nativeDialogDemoCommand);
+
+        MarketDialogDemo marketDialogDemo = new MarketDialogDemo(plugin);
+        plugin.getCommand("marketdemo").setExecutor(marketDialogDemo);
+        plugin.getCommand("marketdemo").setTabCompleter(marketDialogDemo);
+
+        StallDialogDemo stallDialogDemo = new StallDialogDemo(plugin);
+        plugin.getCommand("marketstall").setExecutor(stallDialogDemo);
+        plugin.getCommand("marketstall").setTabCompleter(stallDialogDemo);
         me.nakilex.levelplugin.items.commands.GenerateItemCommand genItemCmd = new me.nakilex.levelplugin.items.commands.GenerateItemCommand();
         plugin.getCommand("genitem").setExecutor(genItemCmd);
         plugin.getCommand("genitem").setTabCompleter(genItemCmd);
