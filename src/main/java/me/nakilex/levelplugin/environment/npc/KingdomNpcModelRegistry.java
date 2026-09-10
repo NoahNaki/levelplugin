@@ -110,10 +110,13 @@ public final class KingdomNpcModelRegistry {
         if (stripped == null) {
             return "";
         }
-        return stripped.toLowerCase(Locale.ROOT)
+        String normalized = stripped.toLowerCase(Locale.ROOT)
                 .replaceAll("[^a-z0-9]+", " ")
                 .trim()
                 .replaceAll(" +", " ");
+        // A labelled NPC is named "[NPC] Blacksmith"; the brackets collapse to a leading "npc "
+        // token here, which would stop the exact-match lookup finding "blacksmith".
+        return normalized.startsWith("npc ") ? normalized.substring(4) : normalized;
     }
 
     private record NpcModelDefinition(String modelId, String sceneAnimation, boolean useDefaultAmbientAnimations) {}

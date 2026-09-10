@@ -8,7 +8,28 @@ import java.util.Locale;
  * Utility helpers for normalizing and comparing NPC names regardless of color codes or spacing.
  */
 public final class NpcNameUtil {
+    /**
+     * Leading "[NPC]" badge, as it appears once a name has been colour-stripped and lowercased.
+     * Citizens can only show one line of text on the nameplate, so labelled NPCs carry the badge
+     * in their actual name; matching has to look past it to find the plain name underneath.
+     */
+    private static final java.util.regex.Pattern NPC_BADGE_PREFIX =
+            java.util.regex.Pattern.compile("^\\[\\s*npc\\s*]\\s*");
+
     private NpcNameUtil() {
+    }
+
+    /**
+     * Drop a leading "[NPC]" badge from an already-normalized name.
+     *
+     * @param normalizedName colour-stripped, lowercased name
+     * @return the name without its badge prefix
+     */
+    public static String stripBadgePrefix(String normalizedName) {
+        if (normalizedName == null) {
+            return null;
+        }
+        return NPC_BADGE_PREFIX.matcher(normalizedName).replaceFirst("").trim();
     }
 
     public static String normalize(String npcName) {
@@ -24,7 +45,7 @@ public final class NpcNameUtil {
             return "";
         }
         String collapsedWhitespace = trimmed.replaceAll("\\s+", " ");
-        return collapsedWhitespace.toLowerCase(Locale.ROOT);
+        return stripBadgePrefix(collapsedWhitespace.toLowerCase(Locale.ROOT));
     }
 
     public static boolean equalsNormalized(String npcName, String expectedName) {

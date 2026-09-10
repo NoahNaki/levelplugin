@@ -93,7 +93,7 @@ public class QuestNPCEffectTask extends BukkitRunnable {
 
     private void handleNpc(Player player, Map<String, TextDisplay> map, Set<String> processed,
                            String source, int npcId, String npcName, Location location, Quest quest) {
-        if (quest == null && getServiceGlyph(npcName.toLowerCase()) == null) {
+        if (quest == null && getServiceGlyph(me.nakilex.levelplugin.utils.NpcNameUtil.normalize(npcName)) == null) {
             removeDisplay(map, processed, source, npcId);
             return;
         }
@@ -152,12 +152,12 @@ public class QuestNPCEffectTask extends BukkitRunnable {
                 }
             }
         }
-        return getServiceGlyph(npcName.toLowerCase());
+        return getServiceGlyph(me.nakilex.levelplugin.utils.NpcNameUtil.normalize(npcName));
     }
 
     private void updateDisplay(Player player, String key, Location baseLocation, String npcName, String glyph,
                                TextDisplay disp, Map<String, TextDisplay> map) {
-        if (getServiceGlyph(npcName.toLowerCase()) == null) {
+        if (getServiceGlyph(me.nakilex.levelplugin.utils.NpcNameUtil.normalize(npcName)) == null) {
             player.spawnParticle(Particle.HAPPY_VILLAGER, baseLocation.clone().add(0, 2, 0), 1, 0, 0, 0, 0);
         }
 

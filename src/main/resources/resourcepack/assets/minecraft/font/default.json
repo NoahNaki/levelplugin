@@ -1,0 +1,49 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "default/chat/left_mouse_click.png",
+      "ascent": 8,
+      "height": 16,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "default/chat/right_mouse_click.png",
+      "ascent": 8,
+      "height": 16,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "default/chat/empty_16.png",
+      "ascent": 8,
+      "height": 16,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "mouse/right_click_small.png",
+      "height": 8,
+      "ascent": 7,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "mouse/left_click_small.png",
+      "height": 8,
+      "ascent": 7,
+      "chars": [
+        ""
+      ]
+    }
+  ]
+}

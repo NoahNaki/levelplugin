@@ -171,10 +171,12 @@ public final class KingdomNpcSoundManager {
         if (stripped == null) {
             return "";
         }
-        return stripped.toLowerCase(Locale.ROOT)
+        String normalized = stripped.toLowerCase(Locale.ROOT)
                 .replaceAll("[^a-z0-9]+", " ")
                 .trim()
                 .replaceAll(" +", " ");
+        // See KingdomNpcModelRegistry: strip the "[NPC]" badge that labelled NPCs carry.
+        return normalized.startsWith("npc ") ? normalized.substring(4) : normalized;
     }
 
     private String nullSafe(String value) {
