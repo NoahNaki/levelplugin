@@ -2072,8 +2072,6 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.NAMEPLATE_VISIBLE, true));
             clone.data().setPersistent(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED,
                     template.data().get(net.citizensnpcs.api.npc.NPC.Metadata.DEFAULT_PROTECTED, true));
-            copyCitizensHologramLines(template, clone);
-
             clone.spawn(dest);
             if (!ensureCitizensNpcAtDestination(clone, dest)) {
                 plugin.getLogger().warning("[EnvironmentArea] Citizens clone failed to spawn at destination for templateId="
@@ -2343,45 +2341,27 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private net.citizensnpcs.api.npc.NPC cloneCitizensNpc(net.citizensnpcs.api.npc.NPC template,
                                                            org.bukkit.entity.EntityType fallbackType) {
+        // Citizens' own deep copy (what /npc copy uses): it serialises the template to a memory
+        // key and loads it into the new NPC, so every trait comes along - skin, hologram label,
+        // look-close, equipment. Building this by hand only ever carried name and entity type,
+        // which is why pasted kingdoms showed bare default-skin NPCs with no label.
+        if (template != null) {
+            try {
+                net.citizensnpcs.api.npc.NPC copied = template.copy();
+                if (copied != null) {
+                    return copied;
+                }
+                plugin.getLogger().warning("[EnvironmentArea] Citizens copy() returned null for templateId="
+                        + template.getId() + " name='" + template.getName() + "'; falling back to a bare NPC.");
+            } catch (RuntimeException ex) {
+                plugin.getLogger().warning("[EnvironmentArea] Citizens copy() failed for templateId="
+                        + template.getId() + " name='" + template.getName()
+                        + "'; falling back to a bare NPC: " + ex.getMessage());
+            }
+        }
         org.bukkit.entity.EntityType type = fallbackType == null ? org.bukkit.entity.EntityType.PLAYER : fallbackType;
         String name = template == null || template.getName() == null ? "Kingdom NPC" : template.getName();
         return CitizensAPI.getNPCRegistry().createNPC(type, name);
-    }
-
-    /**
-     * Carries the template's hologram label (the "[NPC] Name / action / right-click" stack) onto a
-     * kingdom clone. {@link #cloneCitizensNpc} only reproduces name and entity type, so without this
-     * the pasted buildings show bare NPCs while the flatland templates show their labels.
-     *
-     * Line height is intentionally not copied: the templates leave it at the Citizens default, and
-     * copying a resolved value would freeze clones against later config changes.
-     */
-    private void copyCitizensHologramLines(net.citizensnpcs.api.npc.NPC template,
-                                           net.citizensnpcs.api.npc.NPC clone) {
-        if (template == null || clone == null || !template.hasTrait(net.citizensnpcs.trait.HologramTrait.class)) {
-            return;
-        }
-        net.citizensnpcs.trait.HologramTrait source =
-                template.getTraitNullable(net.citizensnpcs.trait.HologramTrait.class);
-        if (source == null) {
-            return;
-        }
-        java.util.List<String> lines = source.getLines();
-        if (lines == null || lines.isEmpty()) {
-            return;
-        }
-        try {
-            net.citizensnpcs.trait.HologramTrait destination =
-                    clone.getOrAddTrait(net.citizensnpcs.trait.HologramTrait.class);
-            destination.clear();
-            for (String line : lines) {
-                destination.addLine(line);
-            }
-        } catch (RuntimeException ex) {
-            // A missing label must never abort the building paste.
-            plugin.getLogger().warning("[EnvironmentArea] Could not copy hologram lines for NPC '"
-                    + template.getName() + "': " + ex.getMessage());
-        }
     }
 
     private void loadNpcDestinationChunk(Location destination) {

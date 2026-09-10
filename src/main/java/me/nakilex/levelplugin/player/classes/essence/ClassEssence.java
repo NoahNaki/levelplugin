@@ -598,7 +598,7 @@ public final class ClassEssence {
 
         List<String> lore = new ArrayList<>();
         String rarityGlyph = "<glyph:" + rarity.name().toLowerCase() + ">";
-        lore.add(rarityGlyph + "<glyph:essence>");
+        lore.add(TooltipUtil.glyphRow(rarityGlyph, "<glyph:essence>"));
         lore.add("");
         int gearScore = getGearScore(stack);
         lore.add(ChatColor.GRAY + "Gear Score: "

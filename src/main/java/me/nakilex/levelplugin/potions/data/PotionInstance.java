@@ -70,7 +70,7 @@ public class PotionInstance {
         ItemRarity rarity = ItemRarity.fromTier(template.getTier());
 
         String rarityGlyph = "<glyph:" + rarity.name().toLowerCase() + ">";
-        lore.add(rarityGlyph + "<glyph:potion>");
+        lore.add(TooltipUtil.glyphRow(rarityGlyph, "<glyph:potion>"));
         lore.add("");
         lore.add(ChatColor.WHITE + "Effect:");
         String bulletColor = mana ? ChatColor.AQUA.toString() : ChatColor.RED.toString();

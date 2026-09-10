@@ -390,7 +390,7 @@ public class ItemUtil {
         } else if (me.nakilex.levelplugin.items.data.WeaponType.matchType(new ItemStack(origMat)) != null) {
             typeGlyph = "<glyph:weapon>";
         }
-        lore.add(rarityGlyph + typeGlyph);
+        lore.add(me.nakilex.levelplugin.utils.TooltipUtil.glyphRow(rarityGlyph, typeGlyph));
         lore.add(""); // Blank line for spacing
 
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
@@ -828,7 +828,7 @@ public class ItemUtil {
         } else if (wType != null) {
             typeGlyph = "<glyph:weapon>";
         }
-        lore.add(rarityGlyph + typeGlyph);
+        lore.add(me.nakilex.levelplugin.utils.TooltipUtil.glyphRow(rarityGlyph, typeGlyph));
         lore.add(""); // Blank line for spacing
 
         // --- Class Requirement ---
@@ -1062,7 +1062,7 @@ public class ItemUtil {
         centerGearName(stack);
 
         List<String> lore = new ArrayList<>();
-        lore.add(tier.getRarity().getSymbol() + "<glyph:tool>");
+        lore.add(me.nakilex.levelplugin.utils.TooltipUtil.glyphRow(tier.getRarity().getSymbol(), "<glyph:tool>"));
         lore.add("");
         ToolDiscipline discipline = customTool != null ? customTool.getDiscipline() : ToolDiscipline.MINING;
         int level = 0;

@@ -24,6 +24,30 @@ public final class TooltipUtil {
     public static final String GLYPH_RIGHT_CLICK = "<glyph:mouse_right>";
 
     /**
+     * Join glyph tokens into a lore line that renders upright.
+     *
+     * A legacy lore line whose first character is a formatting code gets an explicit style, but a
+     * line made purely of glyph tokens has no code at all, so it inherits vanilla's item-lore
+     * default - which is italic, and shears the glyph's artwork. Leading with white fixes that and
+     * is the neutral choice: a font glyph is tinted by the text colour, and white leaves the
+     * texture's own colours untouched.
+     *
+     * @param glyphs glyph tokens, e.g. {@code "<glyph:common>"}, in render order
+     * @return upright lore line
+     */
+    public static String glyphRow(String... glyphs) {
+        StringBuilder row = new StringBuilder(ChatColor.WHITE.toString());
+        if (glyphs != null) {
+            for (String glyph : glyphs) {
+                if (glyph != null && !glyph.isBlank()) {
+                    row.append(glyph);
+                }
+            }
+        }
+        return row.toString();
+    }
+
+    /**
      * Build a single click-instruction line. The glyph replaces the old "Left-click"/"Right-click"
      * wording outright, so a line reads "<icon> to go forward". The glyph stays white so
      * Minecraft's font tinting leaves the icon's own colours alone.
@@ -526,7 +550,7 @@ public final class TooltipUtil {
         if (!type.isEmpty() && !type.startsWith("<glyph:")) {
             type = "<glyph:" + type + ">";
         }
-        return resolved.getSymbol() + type;
+        return glyphRow(resolved.getSymbol(), type);
     }
 
     /**
