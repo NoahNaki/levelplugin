@@ -24,11 +24,17 @@ public final class TooltipUtil {
     public static final String GLYPH_RIGHT_CLICK = "<glyph:mouse_right>";
 
     /**
-     * Build a single click-instruction line: white glyph + label, then the grey action text.
-     * The glyph stays white so Minecraft's font tinting leaves the icon's own colours alone.
+     * Build a single click-instruction line. The glyph replaces the old "Left-click"/"Right-click"
+     * wording outright, so a line reads "<icon> to go forward". The glyph stays white so
+     * Minecraft's font tinting leaves the icon's own colours alone.
+     *
+     * @param glyph  mouse glyph token
+     * @param prefix optional wording kept in front of the icon (e.g. "Sneak +"), or {@code null}
+     * @param action grey action text following the icon
      */
-    private static String clickLine(String glyph, String label, String action) {
-        return ChatColor.WHITE + glyph + " " + label + " " + ChatColor.GRAY + action;
+    private static String clickLine(String glyph, String prefix, String action) {
+        String lead = (prefix == null || prefix.isBlank()) ? "" : prefix.trim() + " ";
+        return ChatColor.WHITE + lead + glyph + " " + ChatColor.GRAY + action;
     }
 
     /**
@@ -92,38 +98,39 @@ public final class TooltipUtil {
     }
 
     /**
-     * Generate standard left/right click instruction lines.
+     * Generate standard left/right click instruction lines, e.g. "&lt;icon&gt; to go forward".
+     * The mouse glyph stands in for the old "Left-click"/"Right-click" wording.
      *
-     * @param leftAction  description following "Left-click" or {@code null}
-     * @param rightAction description following "Right-click" or {@code null}
+     * @param leftAction  description following the left-click icon, or {@code null}
+     * @param rightAction description following the right-click icon, or {@code null}
      * @return list of formatted instruction lines
      */
     public static List<String> clickInstructions(String leftAction, String rightAction) {
         List<String> lore = new ArrayList<>(2);
         if (leftAction != null) {
-            lore.add(clickLine(GLYPH_LEFT_CLICK, "Left-click", leftAction));
+            lore.add(clickLine(GLYPH_LEFT_CLICK, null, leftAction));
         }
         if (rightAction != null) {
-            lore.add(clickLine(GLYPH_RIGHT_CLICK, "Right-click", rightAction));
+            lore.add(clickLine(GLYPH_RIGHT_CLICK, null, rightAction));
         }
         return lore;
     }
 
     /**
-     * Generate standard sneak + click instruction lines. This mirrors the base click instruction
-     * styling while calling out the sneak modifier for clarity.
+     * Generate standard sneak + click instruction lines, e.g. "Sneak + &lt;icon&gt; to do X".
+     * The "Sneak +" wording is kept because there is no sneak glyph to replace it with.
      *
-     * @param leftAction  description following "Sneak + Left-click" or {@code null}
-     * @param rightAction description following "Sneak + Right-click" or {@code null}
+     * @param leftAction  description following the left-click icon, or {@code null}
+     * @param rightAction description following the right-click icon, or {@code null}
      * @return list of formatted instruction lines
      */
     public static List<String> sneakClickInstructions(String leftAction, String rightAction) {
         List<String> lore = new ArrayList<>(2);
         if (leftAction != null) {
-            lore.add(clickLine(GLYPH_LEFT_CLICK, "Sneak + Left-click", leftAction));
+            lore.add(clickLine(GLYPH_LEFT_CLICK, "Sneak +", leftAction));
         }
         if (rightAction != null) {
-            lore.add(clickLine(GLYPH_RIGHT_CLICK, "Sneak + Right-click", rightAction));
+            lore.add(clickLine(GLYPH_RIGHT_CLICK, "Sneak +", rightAction));
         }
         return lore;
     }
