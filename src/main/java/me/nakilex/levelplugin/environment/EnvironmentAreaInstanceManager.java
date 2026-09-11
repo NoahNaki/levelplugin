@@ -200,6 +200,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
+    private final Map<UUID, BukkitTask> pendingInstanceCleanupTasks = new HashMap<>();
     private final Map<UUID, Map<Integer, Long>> buildFinishAtByProfile = new HashMap<>();
     private BukkitTask buildTimerTask;
     private BukkitTask hologramRefreshTask;
@@ -244,6 +245,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         startNpcAmbientAnimationTask();
         // Instance worlds are deleted on quit, so any kingdom mine present at boot is stale.
         Bukkit.getScheduler().runTask(plugin, mineService::sweepOrphans);
+        Bukkit.getScheduler().runTask(plugin, this::prewarmTemplates);
     }
 
 
@@ -358,6 +360,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (target == null || !target.isOnline()) {
             return false;
         }
+        cancelPendingInstanceCleanup(target.getUniqueId());
         World source = Bukkit.getWorld(SOURCE_WORLD);
         if (source == null) {
             ChatMessageUtil.send(target, ChatMessageUtil.MessageType.ERROR,
@@ -373,6 +376,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
         // The base area is pasted into a freshly generated void world, so its air can be
         // dropped; buildings stamp over that area and need their air to carve interiors.
+        long initializationStartedAtNanos = System.nanoTime();
         CompletableFuture<CuboidTemplate> areaFuture = getOrCaptureTemplate(source, "area:base", AREA, true);
         Map<Integer, CuboidTemplate> buildingTemplates = new ConcurrentHashMap<>();
 
@@ -399,7 +403,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                         return;
                     }
                     if (target.isOnline()) {
-                        pasteInitializedArea(target, areaFuture.join(), buildingTemplates);
+                        pasteInitializedArea(target, areaFuture.join(), buildingTemplates, initializationStartedAtNanos);
                     } else {
                         initializing.remove(target.getUniqueId());
                     }
@@ -410,7 +414,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     /** Second half of {@link #initialize(Player)}, once every template is captured. */
     private void pasteInitializedArea(Player target,
                                       CuboidTemplate areaTemplate,
-                                      Map<Integer, CuboidTemplate> buildingTemplates) {
+                                      Map<Integer, CuboidTemplate> buildingTemplates,
+                                      long initializationStartedAtNanos) {
+        long worldStartedAtNanos = System.nanoTime();
         World world = recreateWorld(target.getUniqueId());
         if (world == null) {
             initializing.remove(target.getUniqueId());
@@ -418,6 +424,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     "Could not create environment instance world.");
             return;
         }
+        long worldMillis = elapsedMillis(worldStartedAtNanos);
 
         SlotOffset offset = slotOffsetFor(target.getUniqueId());
         int originX = PASTE_X + offset.dx();
@@ -451,7 +458,25 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         lastValidLocations.put(target.getUniqueId(), spawn.clone());
 
         Location finalSpawn = spawn;
-        areaTemplate.pasteBatched(plugin, world, originX, originY, originZ, () -> {
+        int blocksPerTick = plugin.getConfig().getInt(
+                "environment.kingdom-initialization.paste.max-blocks-per-tick",
+                CuboidTemplate.DEFAULT_PASTE_BLOCKS_PER_TICK);
+        double millisPerTick = plugin.getConfig().getDouble(
+                "environment.kingdom-initialization.paste.max-millis-per-tick",
+                CuboidTemplate.DEFAULT_PASTE_MILLIS_PER_TICK);
+        int progressStep = Math.max(1, plugin.getConfig().getInt(
+                "environment.kingdom-initialization.progress-percent-step", 25));
+        int[] nextProgress = {progressStep};
+        long pasteStartedAtNanos = System.nanoTime();
+        areaTemplate.pasteBatched(plugin, world, originX, originY, originZ,
+                new CuboidTemplate.PasteOptions(blocksPerTick, millisPerTick), progress -> {
+                    if (progress.percent() < nextProgress[0] || progress.percent() >= 100 || !target.isOnline()) {
+                        return;
+                    }
+                    ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO,
+                            "Building your kingdom... " + ChatColor.WHITE + progress.percent() + "%");
+                    nextProgress[0] += progressStep;
+                }, () -> {
             // Register the X-Prison mine only once its blocks exist, so the first reset has
             // real terrain to work against.
             WorldCuboid ore = toPastedCuboid(resolveKingdomTemplateCuboid(kingdomMineArea),
@@ -473,7 +498,15 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             target.teleport(finalSpawn);
             ChatMessageUtil.send(target, ChatMessageUtil.MessageType.SUCCESS,
                     "Initialized environment area in " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
+            plugin.getLogger().info("[EnvironmentArea] Initialized kingdom for " + target.getUniqueId()
+                    + ": " + areaTemplate.blockCount() + " base blocks, world=" + worldMillis + "ms, paste="
+                    + elapsedMillis(pasteStartedAtNanos) + "ms, total="
+                    + elapsedMillis(initializationStartedAtNanos) + "ms.");
         });
+    }
+
+    private static long elapsedMillis(long startedAtNanos) {
+        return (System.nanoTime() - startedAtNanos) / 1_000_000L;
     }
 
     public boolean isMineBlock(Player player, Block block) {
@@ -510,6 +543,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     public boolean teleportToKingdom(Player player) {
         if (player == null) return false;
         UUID ownerId = resolveAreaOwner(player.getUniqueId());
+        cancelPendingInstanceCleanup(ownerId);
         if (initializing.contains(ownerId)) return false;
         EnvironmentAreaSession session = sessions.get(ownerId);
         if (session == null || session.world() == null) return false;
@@ -686,6 +720,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     public void removeKingdom(UUID playerId) {
         if (playerId == null) return;
+        cancelPendingInstanceCleanup(playerId);
         EnvironmentAreaSession session = sessions.remove(playerId);
         if (session != null) {
             BukkitTask buildTask = activeBuildTasks.remove(playerId);
@@ -831,6 +866,33 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 }
             });
             return future;
+        });
+    }
+
+    /** Warms the shared cache so the first player does not pay the source capture cost. */
+    private void prewarmTemplates() {
+        if (!plugin.getConfig().getBoolean("environment.kingdom-initialization.prewarm-templates", true)) return;
+        World source = Bukkit.getWorld(SOURCE_WORLD);
+        if (source == null) {
+            plugin.getLogger().warning("[EnvironmentArea] Cannot prewarm kingdom templates: source world '"
+                    + SOURCE_WORLD + "' is not loaded.");
+            return;
+        }
+        long startedAtNanos = System.nanoTime();
+        List<CompletableFuture<?>> pending = new ArrayList<>();
+        CompletableFuture<CuboidTemplate> base = getOrCaptureTemplate(source, "area:base", AREA, true);
+        pending.add(base);
+        for (BuildingTemplate building : BUILDINGS) {
+            pending.add(getOrCaptureTemplate(source,
+                    "building:" + building.id().toLowerCase(Locale.ROOT), building.source(), false));
+        }
+        CompletableFuture.allOf(pending.toArray(new CompletableFuture[0])).whenComplete((ignored, error) -> {
+            if (error != null) {
+                plugin.getLogger().warning("[EnvironmentArea] Kingdom template prewarm failed: " + error);
+                return;
+            }
+            plugin.getLogger().info("[EnvironmentArea] Prewarmed " + pending.size() + " kingdom templates in "
+                    + elapsedMillis(startedAtNanos) + "ms; base contains " + base.join().blockCount() + " blocks.");
         });
     }
 
@@ -2839,18 +2901,27 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onQuit(PlayerQuitEvent event) {
-        UUID id = event.getPlayer().getUniqueId();
-        EnvironmentAreaSession session = sessions.remove(id);
-        lastValidLocations.remove(id);
+        UUID id = resolveAreaOwner(event.getPlayer().getUniqueId());
+        EnvironmentAreaSession session = sessions.get(id);
         if (session == null) {
             return;
         }
-        removeAnimatedLeaderboard(id);
-        session.removeHolograms();
-        cleanupEnvironmentAreaCitizensClones(session.world());
-        mineService.removeFor(id, session.world());
-        Bukkit.unloadWorld(session.world(), false);
-        deleteWorldFolder(session.world().getName());
+        cancelPendingInstanceCleanup(id);
+        long seconds = Math.max(0L, plugin.getConfig().getLong(
+                "environment.kingdom-initialization.quit-cleanup-grace-seconds", 300L));
+        pendingInstanceCleanupTasks.put(id, Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            pendingInstanceCleanupTasks.remove(id);
+            EnvironmentAreaSession current = sessions.get(id);
+            if (current == null || current.world().getPlayers().stream().anyMatch(Player::isOnline)) return;
+            removeKingdom(id);
+            plugin.getLogger().info("[EnvironmentArea] Removed inactive kingdom instance for " + id + ".");
+        }, seconds * 20L));
+    }
+
+    private void cancelPendingInstanceCleanup(UUID playerId) {
+        if (playerId == null) return;
+        BukkitTask task = pendingInstanceCleanupTasks.remove(resolveAreaOwner(playerId));
+        if (task != null) task.cancel();
     }
 
     public void shutdown() {
@@ -2868,6 +2939,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         }
         activeBuildTasks.clear();
+        for (BukkitTask task : new ArrayList<>(pendingInstanceCleanupTasks.values())) {
+            if (task != null) task.cancel();
+        }
+        pendingInstanceCleanupTasks.clear();
         for (EnvironmentAreaSession session : new ArrayList<>(sessions.values())) {
             if (session != null) {
                 session.removeHolograms();

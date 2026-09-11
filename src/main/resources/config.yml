@@ -200,6 +200,19 @@ fishing-mini-games:
 # The mine is created when the kingdom finishes pasting and deleted when the instance
 # world goes away, because X-Prison persists mines but the instance worlds do not.
 environment:
+  kingdom-initialization:
+    # Warm the base/building templates after startup so the first player does not wait
+    # for the large source-world capture.
+    prewarm-templates: true
+    # Keep an empty instance briefly after disconnects so a reconnect avoids a rebuild.
+    # Set to 0 to restore immediate cleanup.
+    quit-cleanup-grace-seconds: 300
+    # Chat preparation updates are sent at this percentage interval.
+    progress-percent-step: 25
+    paste:
+      # Both ceilings apply per tick. Higher values finish sooner but risk larger tick spikes.
+      max-blocks-per-tick: 20000
+      max-millis-per-tick: 8.0
   kingdom-mine:
     enabled: true
     # Name of an existing X-Prison mine to copy the block composition from. Tune that
