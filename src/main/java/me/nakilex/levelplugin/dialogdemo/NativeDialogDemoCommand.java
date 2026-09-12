@@ -12,6 +12,7 @@ import io.papermc.paper.registry.data.dialog.body.DialogBody;
 import io.papermc.paper.registry.data.dialog.input.DialogInput;
 import io.papermc.paper.registry.data.dialog.type.DialogType;
 import me.nakilex.levelplugin.items.utils.ItemUtil;
+import me.nakilex.levelplugin.dialogdemo.store.StoreDialogDemo;
 import me.nakilex.levelplugin.utils.HeadUtil;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
@@ -140,9 +141,11 @@ public final class NativeDialogDemoCommand implements TabExecutor {
     private final Map<UUID, NodeState> hexStates = new HashMap<>();
 
     private final JavaPlugin plugin;
+    private final StoreDialogDemo storeDialog;
 
     public NativeDialogDemoCommand(JavaPlugin plugin) {
         this.plugin = plugin;
+        this.storeDialog = new StoreDialogDemo(plugin);
     }
 
     @Override
@@ -162,6 +165,7 @@ public final class NativeDialogDemoCommand implements TabExecutor {
             case "ui", "rpg" -> showRpgUiDemo(player, 0);
             case "rewards", "daily" -> showDailyRewards(player);
             case "rewardbuttons", "buttons" -> showDailyRewardButtons(player);
+            case "store", "shop" -> storeDialog.show(player);
             case "hex", "states", "element5" -> {
                 if (args.length > 1) {
                     handleHexTuning(player, args);
@@ -178,7 +182,7 @@ public final class NativeDialogDemoCommand implements TabExecutor {
                 }
             }
             default -> player.sendMessage(ChatColor.RED + "Usage: /" + label
-                    + " [notice|confirm|input|glyphs|ui|rewards|rewardbuttons|hex|equipment]");
+                    + " [notice|confirm|input|glyphs|ui|rewards|rewardbuttons|store|hex|equipment]");
         }
 
         return true;
@@ -1260,7 +1264,7 @@ public final class NativeDialogDemoCommand implements TabExecutor {
 
         String prefix = args[0].toLowerCase(Locale.ROOT);
         List<String> options = Arrays.asList(
-                "notice", "confirm", "input", "glyphs", "ui", "rewards", "rewardbuttons", "hex", "equipment"
+                "notice", "confirm", "input", "glyphs", "ui", "rewards", "rewardbuttons", "store", "hex", "equipment"
         );
         List<String> matches = new ArrayList<>();
         for (String option : options) {

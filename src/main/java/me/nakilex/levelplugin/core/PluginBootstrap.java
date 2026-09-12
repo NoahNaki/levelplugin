@@ -280,6 +280,7 @@ public class PluginBootstrap {
     private CursorMenuManager cursorMenuManager;
     private CookingModule cookingModule;
     private BlockGlowUtil blockGlowUtil;
+    private me.nakilex.levelplugin.xprison.XPrisonEnchantsIntegration xPrisonEnchantsIntegration;
     private boolean dungeonsEnabled;
 
     public PluginBootstrap(Main plugin) {
@@ -299,6 +300,8 @@ public class PluginBootstrap {
         setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);
         initializeManagers();
+        xPrisonEnchantsIntegration = new me.nakilex.levelplugin.xprison.XPrisonEnchantsIntegration(plugin);
+        xPrisonEnchantsIntegration.enable();
         HologramUtil.removeMobHolograms();
         playerConfig.loadAllPlayers();
         itemConfig = new ItemConfig(plugin);
@@ -968,6 +971,10 @@ public class PluginBootstrap {
     }
 
     public void disable() {
+        if (xPrisonEnchantsIntegration != null) {
+            xPrisonEnchantsIntegration.disable();
+            xPrisonEnchantsIntegration = null;
+        }
         TaskRegistry.stopTasks();
         if (chatGameManager != null) chatGameManager.stop();
         if (mercenaryManager != null) mercenaryManager.unbindAll();

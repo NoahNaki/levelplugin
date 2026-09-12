@@ -6,6 +6,7 @@ import me.nakilex.levelplugin.player.attributes.managers.StatsManager;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.entity.Player;
+import me.nakilex.levelplugin.utils.FlightUtil;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -63,20 +64,18 @@ public class PlayerClassManager {
         if (player == null) return;
         setPlayerClass(player.getUniqueId(), playerClass);
 
-        // Update flight permission based on the new class.
-        // Archers, Rogues, Deadeye and PhoenixHunter can double jump (flight). Other classes cannot.
-        if (player.getGameMode() != GameMode.CREATIVE) {
-            if (playerClass == PlayerClass.ARCHER
+        // Double-jump only owns allowFlight when it had to enable it itself.
+        // Never revoke X-Prison Fly (or another already-active flight source)
+        // simply because the selected class has no air jumps.
+        if (player.getGameMode() != GameMode.CREATIVE && player.getGameMode() != GameMode.SPECTATOR) {
+            boolean canDoubleJump = playerClass == PlayerClass.ARCHER
                     || playerClass == PlayerClass.ROGUE
                     || playerClass == PlayerClass.DEADEYE
-                    || playerClass == PlayerClass.PHOENIXHUNTER) {
-                player.setAllowFlight(true);
+                    || playerClass == PlayerClass.PHOENIXHUNTER;
+            if (canDoubleJump) {
+                FlightUtil.ensureDoubleJumpFlight(player);
             } else {
-                player.setAllowFlight(false);
-                // Also, if the player was flying, stop them from flying.
-                if (player.isFlying()) {
-                    player.setFlying(false);
-                }
+                FlightUtil.releaseDoubleJumpFlight(player);
             }
         }
     }

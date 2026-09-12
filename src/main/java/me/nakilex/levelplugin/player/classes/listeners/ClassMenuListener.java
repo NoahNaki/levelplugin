@@ -5,6 +5,7 @@ import me.nakilex.levelplugin.player.classes.data.PlayerClass;
 import me.nakilex.levelplugin.player.classes.managers.PlayerClassManager;
 import me.nakilex.levelplugin.player.level.managers.LevelManager;
 import me.nakilex.levelplugin.utils.ChatFormatter;
+import me.nakilex.levelplugin.utils.FlightUtil;
 import org.bukkit.ChatColor;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -75,9 +76,10 @@ public class ClassMenuListener implements Listener {
                     || selectedClass == PlayerClass.ROGUE
                     || selectedClass == PlayerClass.DEADEYE
                     || selectedClass == PlayerClass.PHOENIXHUNTER);
-            player.setAllowFlight(canDJ);
-            if (!canDJ) {
-                player.setFlying(false);
+            if (canDJ) {
+                FlightUtil.ensureDoubleJumpFlight(player);
+            } else {
+                FlightUtil.releaseDoubleJumpFlight(player);
             }
 
             ChatFormatter.constructDivider(player, "§6§l-", 45);

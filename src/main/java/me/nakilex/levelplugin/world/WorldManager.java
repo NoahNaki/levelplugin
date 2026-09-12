@@ -14,6 +14,7 @@ import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import me.nakilex.levelplugin.utils.FileUtil;
+import me.nakilex.levelplugin.utils.FlightUtil;
 
 import java.io.File;
 import java.io.IOException;
@@ -207,7 +208,9 @@ public class WorldManager {
         }
         boolean intrinsicallyFlying = player.getGameMode() == GameMode.CREATIVE
                 || player.getGameMode() == GameMode.SPECTATOR;
-        boolean allowFlight = settings.allowFlight() || intrinsicallyFlying;
+        boolean managedFlight = FlightUtil.hasXPrisonFlyEnchant(player)
+                || FlightUtil.isDoubleJumpFlightOwned(player);
+        boolean allowFlight = settings.allowFlight() || intrinsicallyFlying || managedFlight;
         if (!allowFlight && player.isFlying()) player.setFlying(false);
         player.setAllowFlight(allowFlight);
     }

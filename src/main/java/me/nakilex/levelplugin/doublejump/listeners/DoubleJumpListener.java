@@ -7,6 +7,7 @@ import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.pet.PetEffectType;
 import me.nakilex.levelplugin.pet.PetManager;
 import me.nakilex.levelplugin.spells.ArcSlashCombatUtil;
+import me.nakilex.levelplugin.utils.FlightUtil;
 import org.bukkit.GameMode;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
@@ -17,6 +18,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 import org.bukkit.util.Vector;
 
@@ -77,6 +79,14 @@ public class DoubleJumpListener implements Listener {
             return;
         }
 
+        // A real flight source must win over the temporary allowFlight flag used
+        // to make double-jump possible. In particular, do not turn X-Prison Fly
+        // into a double jump when the player actually wants to start flying.
+        if (FlightUtil.hasXPrisonFlyEnchant(player) || player.isFlying()) {
+            FlightUtil.relinquishDoubleJumpOwnership(player);
+            return;
+        }
+
         StatsManager.PlayerStats ps = StatsManager
             .getInstance()
             .getPlayerStats(player.getUniqueId());
@@ -87,7 +97,9 @@ public class DoubleJumpListener implements Listener {
             event.setCancelled(true);
             remaining--;
             remainingJumps.put(player.getUniqueId(), remaining);
-            player.setAllowFlight(remaining > 0);
+            if (remaining <= 0) {
+                FlightUtil.releaseDoubleJumpFlight(player);
+            }
 
             int totalAgi = ps.baseAgility + ps.bonusAgility;
 
@@ -146,9 +158,31 @@ public class DoubleJumpListener implements Listener {
         int bonusJumps = getBonusJumps(player.getUniqueId());
         int total = Math.max(0, baseJumps + bonusJumps);
         remainingJumps.put(player.getUniqueId(), total);
-        if (player.getGameMode() != GameMode.CREATIVE) {
-            player.setAllowFlight(total > 0);
+        if (player.getGameMode() == GameMode.CREATIVE || player.getGameMode() == GameMode.SPECTATOR) {
+            FlightUtil.relinquishDoubleJumpOwnership(player);
+            return;
         }
+
+        if (FlightUtil.hasXPrisonFlyEnchant(player) || player.isFlying()) {
+            // Somebody else owns flight. Keep the jump charges, but do not
+            // overwrite that subsystem's allowFlight state when landing.
+            FlightUtil.relinquishDoubleJumpOwnership(player);
+            return;
+        }
+
+        if (total > 0) {
+            FlightUtil.ensureDoubleJumpFlight(player);
+        } else {
+            FlightUtil.releaseDoubleJumpFlight(player);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        UUID id = event.getPlayer().getUniqueId();
+        remainingJumps.remove(id);
+        lastJumpMillis.remove(id);
+        FlightUtil.clear(id);
     }
 
     private int getBonusJumps(UUID playerId) {

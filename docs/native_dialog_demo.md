@@ -17,6 +17,7 @@ LevelPlugin already has its own NPC dialogue manager and a LuxDialogues bridge. 
 /dialogdemo glyphs
 /dialogdemo ui
 /dialogdemo rewards
+/dialogdemo store
 /dialogdemo hex
 /dialogdemo equipment [player]
 /marketdemo
@@ -74,6 +75,10 @@ The included demo textures are from **RPG UI asset pack (by Franuka) v1.7** and 
 ### `rewards`
 
 Shows a Daily Rewards layout prototype with seven weekday columns and separate free/VIP-style reward rows. It uses the existing 48px black-square glyph for every reward box, highlights Wednesday in text, and places reward labels below both rows. Each placeholder has a hover tooltip and a non-refreshing click callback so the cursor remains in place.
+
+### `store`
+
+Shows a full store prototype assembled from the supplied store component pack. Five gem offers, category tabs, account information, a two-line cart, removal controls and checkout are painted into one native dialog canvas. Offer and cart interactions use line-local invisible hit targets; cart changes re-show the dialog with `after_action NONE`, preserving the cursor. Checkout is intentionally a demo callback and never performs a purchase.
 
 ### `hex`
 
