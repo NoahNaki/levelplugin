@@ -29,6 +29,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 /**
  * Reusable in-memory block template captured from a cuboid selection.
@@ -55,7 +56,8 @@ public final class CuboidTemplate {
 
     /** Concurrent async chunk loads; the disk I/O is off-thread, so this can be generous. */
     private static final int CHUNK_LOADS_IN_FLIGHT = 16;
-    private static final int PASTE_BLOCKS_PER_TICK = 20_000;
+    public static final int DEFAULT_PASTE_BLOCKS_PER_TICK = 20_000;
+    public static final double DEFAULT_PASTE_MILLIS_PER_TICK = 8.0D;
 
     private final String sourceWorldName;
     private final int minX;
@@ -348,20 +350,51 @@ public final class CuboidTemplate {
      * {@code onDone} runs on the server thread once every block has been written.
      */
     public void pasteBatched(Plugin plugin, World world, int baseX, int baseY, int baseZ, Runnable onDone) {
+        pasteBatched(plugin, world, baseX, baseY, baseZ, PasteOptions.defaults(), null, onDone);
+    }
+
+    /**
+     * Pastes using both a block ceiling and a wall-clock budget per tick. The time budget keeps
+     * unusually expensive block/chunk writes from consuming an entire tick, while the block ceiling
+     * prevents cheap writes from producing an unbounded burst. Progress is reported at most once per
+     * scheduler tick and is suitable for chat, boss bars, logs, or metrics.
+     */
+    public void pasteBatched(Plugin plugin,
+                             World world,
+                             int baseX,
+                             int baseY,
+                             int baseZ,
+                             PasteOptions options,
+                             Consumer<PasteProgress> onProgress,
+                             Runnable onDone) {
         if (world == null) {
             if (onDone != null) {
                 onDone.run();
             }
             return;
         }
+        PasteOptions safeOptions = options == null ? PasteOptions.defaults() : options.normalized();
         new BukkitRunnable() {
             private int index;
+            private int ticks;
+            private final long startedAtNanos = System.nanoTime();
 
             @Override
             public void run() {
-                int end = Math.min(blockCount, index + PASTE_BLOCKS_PER_TICK);
+                long tickStartedAtNanos = System.nanoTime();
+                int end = Math.min(blockCount, index + safeOptions.maxBlocksPerTick());
+                long budgetNanos = (long) (safeOptions.maxMillisPerTick() * 1_000_000.0D);
                 for (; index < end; index++) {
                     writeBlock(world, baseX, baseY, baseZ, index);
+                    if ((index & 255) == 255 && System.nanoTime() - tickStartedAtNanos >= budgetNanos) {
+                        index++;
+                        break;
+                    }
+                }
+                ticks++;
+                if (onProgress != null) {
+                    onProgress.accept(new PasteProgress(index, blockCount, ticks,
+                            (System.nanoTime() - startedAtNanos) / 1_000_000L));
                 }
                 if (index < blockCount) {
                     return;
@@ -373,6 +406,22 @@ public final class CuboidTemplate {
                 }
             }
         }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    public record PasteOptions(int maxBlocksPerTick, double maxMillisPerTick) {
+        public PasteOptions normalized() {
+            return new PasteOptions(Math.max(1, maxBlocksPerTick), Math.max(0.25D, maxMillisPerTick));
+        }
+
+        public static PasteOptions defaults() {
+            return new PasteOptions(DEFAULT_PASTE_BLOCKS_PER_TICK, DEFAULT_PASTE_MILLIS_PER_TICK);
+        }
+    }
+
+    public record PasteProgress(int completedBlocks, int totalBlocks, int elapsedTicks, long elapsedMillis) {
+        public int percent() {
+            return totalBlocks <= 0 ? 100 : Math.min(100, (int) ((completedBlocks * 100L) / totalBlocks));
+        }
     }
 
     private void writeBlock(World world, int baseX, int baseY, int baseZ, int index) {
