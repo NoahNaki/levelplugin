@@ -5,6 +5,7 @@ import com.nexomc.nexo.api.NexoFurniture;
 import com.nexomc.nexo.mechanics.custom_block.CustomBlockMechanic;
 import com.nexomc.nexo.mechanics.furniture.FurnitureMechanic;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -56,6 +57,7 @@ public final class CuboidTemplate {
     /** Concurrent async chunk loads; the disk I/O is off-thread, so this can be generous. */
     private static final int CHUNK_LOADS_IN_FLIGHT = 16;
     private static final int PASTE_BLOCKS_PER_TICK = 20_000;
+    private static final int PASTE_TIME_CHECK_INTERVAL = 256;
 
     private final String sourceWorldName;
     private final int minX;
@@ -375,6 +377,195 @@ public final class CuboidTemplate {
         }.runTaskTimer(plugin, 0L, 1L);
     }
 
+    /**
+     * Preloads every destination chunk and pastes with an adaptive per-tick time budget.
+     * Chunks remain ticketed until the paste and Nexo finishing pass have completed.
+     */
+    public CompletableFuture<PasteStats> pasteBatchedAdaptive(Plugin plugin,
+                                                               World world,
+                                                               int baseX,
+                                                               int baseY,
+                                                               int baseZ,
+                                                               PasteOptions requestedOptions) {
+        Objects.requireNonNull(plugin, "plugin");
+        Objects.requireNonNull(world, "world");
+        PasteOptions options = requestedOptions == null ? PasteOptions.defaults() : requestedOptions.normalized();
+        CompletableFuture<PasteStats> result = new CompletableFuture<>();
+        long preloadStarted = System.nanoTime();
+
+        preloadDestinationChunks(plugin, world, baseX, baseZ, options.chunkPreloadConcurrency())
+                .whenComplete((lease, preloadError) -> {
+                    if (preloadError != null) {
+                        result.completeExceptionally(preloadError);
+                        return;
+                    }
+                    long preloadNanos = System.nanoTime() - preloadStarted;
+                    Runnable beginPaste = () -> startAdaptivePaste(
+                            plugin, world, baseX, baseY, baseZ, options, lease, preloadNanos, result);
+                    if (Bukkit.isPrimaryThread()) {
+                        beginPaste.run();
+                    } else {
+                        Bukkit.getScheduler().runTask(plugin, beginPaste);
+                    }
+                });
+        return result;
+    }
+
+    private void startAdaptivePaste(Plugin plugin,
+                                    World world,
+                                    int baseX,
+                                    int baseY,
+                                    int baseZ,
+                                    PasteOptions options,
+                                    ChunkTicketLease lease,
+                                    long preloadNanos,
+                                    CompletableFuture<PasteStats> result) {
+        long pasteStarted = System.nanoTime();
+        new BukkitRunnable() {
+            private int index;
+            private int batchSize = options.initialBlocksPerTick();
+            private int batches;
+            private int smallestBatch = Integer.MAX_VALUE;
+            private int largestBatch;
+            private long activeNanos;
+            private long maxBatchNanos;
+
+            @Override
+            public void run() {
+                long batchStarted = System.nanoTime();
+                int batchStartIndex = index;
+                try {
+                    int hardEnd = Math.min(blockCount, index + batchSize);
+                    while (index < hardEnd) {
+                        writeBlock(world, baseX, baseY, baseZ, index++);
+                        int written = index - batchStartIndex;
+                        if (written >= options.minimumBlocksPerTick()
+                                && written % PASTE_TIME_CHECK_INTERVAL == 0
+                                && System.nanoTime() - batchStarted >= options.targetNanosPerTick()) {
+                            break;
+                        }
+                    }
+
+                    long batchNanos = System.nanoTime() - batchStarted;
+                    int written = index - batchStartIndex;
+                    if (written > 0) {
+                        batches++;
+                        activeNanos += batchNanos;
+                        maxBatchNanos = Math.max(maxBatchNanos, batchNanos);
+                        smallestBatch = Math.min(smallestBatch, written);
+                        largestBatch = Math.max(largestBatch, written);
+                        batchSize = nextBatchSize(options, batchSize, written, batchNanos);
+                    }
+
+                    if (index < blockCount) {
+                        return;
+                    }
+
+                    cancel();
+                    long finishingStarted = System.nanoTime();
+                    pasteNexo(world, baseX, baseY, baseZ);
+                    long finishingNanos = System.nanoTime() - finishingStarted;
+                    lease.release();
+                    result.complete(new PasteStats(
+                            lease.chunkCount(),
+                            blockCount,
+                            batches,
+                            preloadNanos,
+                            System.nanoTime() - pasteStarted,
+                            activeNanos,
+                            maxBatchNanos,
+                            finishingNanos,
+                            smallestBatch == Integer.MAX_VALUE ? 0 : smallestBatch,
+                            largestBatch));
+                } catch (Throwable throwable) {
+                    cancel();
+                    lease.release();
+                    result.completeExceptionally(throwable);
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 1L);
+    }
+
+    private static int nextBatchSize(PasteOptions options,
+                                     int currentBatchSize,
+                                     int written,
+                                     long elapsedNanos) {
+        if (written <= 0 || elapsedNanos <= 0L) {
+            return currentBatchSize;
+        }
+        long estimated = Math.round(written * (options.targetNanosPerTick() / (double) elapsedNanos));
+        int target = (int) Math.max(options.minimumBlocksPerTick(),
+                Math.min(options.maximumBlocksPerTick(), estimated));
+        int smoothed = (int) Math.round((currentBatchSize * 0.5D) + (target * 0.5D));
+        return Math.max(options.minimumBlocksPerTick(),
+                Math.min(options.maximumBlocksPerTick(), smoothed));
+    }
+
+    private CompletableFuture<ChunkTicketLease> preloadDestinationChunks(Plugin plugin,
+                                                                          World world,
+                                                                          int baseX,
+                                                                          int baseZ,
+                                                                          int concurrency) {
+        List<int[]> chunkKeys = new ArrayList<>();
+        int minChunkX = baseX >> 4;
+        int maxChunkX = (baseX + width - 1) >> 4;
+        int minChunkZ = baseZ >> 4;
+        int maxChunkZ = (baseZ + depth - 1) >> 4;
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                chunkKeys.add(new int[]{chunkX, chunkZ});
+            }
+        }
+
+        CompletableFuture<ChunkTicketLease> result = new CompletableFuture<>();
+        if (chunkKeys.isEmpty()) {
+            result.complete(new ChunkTicketLease(plugin, List.of()));
+            return result;
+        }
+
+        List<Chunk> ticketed = new ArrayList<>(chunkKeys.size());
+        java.util.concurrent.atomic.AtomicInteger next = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicInteger completed = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicBoolean failed = new java.util.concurrent.atomic.AtomicBoolean(false);
+        Runnable[] pump = new Runnable[1];
+        pump[0] = () -> {
+            if (failed.get()) {
+                return;
+            }
+            int index = next.getAndIncrement();
+            if (index >= chunkKeys.size()) {
+                return;
+            }
+            int chunkX = chunkKeys.get(index)[0];
+            int chunkZ = chunkKeys.get(index)[1];
+            world.getChunkAtAsync(chunkX, chunkZ, true).whenComplete((chunk, error) -> {
+                if (failed.get()) {
+                    return;
+                }
+                if (error != null || chunk == null) {
+                    if (failed.compareAndSet(false, true)) {
+                        new ChunkTicketLease(plugin, ticketed).release();
+                        result.completeExceptionally(error == null
+                                ? new IllegalStateException("Chunk preload returned null for " + chunkX + "," + chunkZ)
+                                : error);
+                    }
+                    return;
+                }
+                chunk.addPluginChunkTicket(plugin);
+                ticketed.add(chunk);
+                if (completed.incrementAndGet() == chunkKeys.size()) {
+                    result.complete(new ChunkTicketLease(plugin, ticketed));
+                    return;
+                }
+                pump[0].run();
+            });
+        };
+        for (int i = 0; i < Math.min(Math.max(1, concurrency), chunkKeys.size()); i++) {
+            pump[0].run();
+        }
+        return result;
+    }
+
     private void writeBlock(World world, int baseX, int baseY, int baseZ, int index) {
         int linear = positions[index];
         int relZ = linear % depth;
@@ -490,6 +681,63 @@ public final class CuboidTemplate {
 
     public List<NexoFurnitureCopy> nexoFurniture() {
         return nexoFurniture;
+    }
+
+    public record PasteOptions(long targetNanosPerTick,
+                               int initialBlocksPerTick,
+                               int minimumBlocksPerTick,
+                               int maximumBlocksPerTick,
+                               int chunkPreloadConcurrency) {
+        public static PasteOptions defaults() {
+            return new PasteOptions(20_000_000L, 20_000, 2_000, 50_000, 16);
+        }
+
+        private PasteOptions normalized() {
+            long targetNanos = Math.max(1_000_000L, Math.min(45_000_000L, targetNanosPerTick));
+            int minimum = Math.max(1, minimumBlocksPerTick);
+            int maximum = Math.max(minimum, maximumBlocksPerTick);
+            int initial = Math.max(minimum, Math.min(maximum, initialBlocksPerTick));
+            int concurrency = Math.max(1, Math.min(64, chunkPreloadConcurrency));
+            return new PasteOptions(targetNanos, initial, minimum, maximum, concurrency);
+        }
+    }
+
+    public record PasteStats(int preloadedChunks,
+                             int blocks,
+                             int batches,
+                             long preloadNanos,
+                             long pasteWallNanos,
+                             long activeNanos,
+                             long maxBatchNanos,
+                             long finishingNanos,
+                             int smallestBatch,
+                             int largestBatch) {
+    }
+
+    private static final class ChunkTicketLease {
+        private final Plugin plugin;
+        private final List<Chunk> chunks;
+        private final java.util.concurrent.atomic.AtomicBoolean released = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+        private ChunkTicketLease(Plugin plugin, List<Chunk> chunks) {
+            this.plugin = plugin;
+            this.chunks = List.copyOf(chunks);
+        }
+
+        private int chunkCount() {
+            return chunks.size();
+        }
+
+        private void release() {
+            if (!released.compareAndSet(false, true)) {
+                return;
+            }
+            for (Chunk chunk : chunks) {
+                if (chunk != null) {
+                    chunk.removePluginChunkTicket(plugin);
+                }
+            }
+        }
     }
 
     private static int linear(int relX, int relY, int relZ, int height, int depth) {

@@ -91,12 +91,6 @@ public final class KingdomNpcSoundManager {
         }.runTaskTimer(plugin, 20L, profile.intervalTicks());
 
         tasksByNpcId.put(npcId, task);
-        plugin.getLogger().info("[EnvironmentArea/NpcSound] Started sound profile for npcName='"
-                + npcName + "' building='" + nullSafe(buildingId)
-                + "' model='" + nullSafe(modelId)
-                + "' npcId=" + npcId
-                + " intervalTicks=" + profile.intervalTicks()
-                + " cues=" + profile.cues().size());
     }
 
     public void stop(int npcId) {
@@ -177,9 +171,5 @@ public final class KingdomNpcSoundManager {
                 .replaceAll(" +", " ");
         // See KingdomNpcModelRegistry: strip the "[NPC]" badge that labelled NPCs carry.
         return normalized.startsWith("npc ") ? normalized.substring(4) : normalized;
-    }
-
-    private String nullSafe(String value) {
-        return value == null ? "" : value;
     }
 }

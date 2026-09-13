@@ -4,7 +4,6 @@ import org.bukkit.ChatColor;
 
 import java.util.Locale;
 import java.util.Map;
-import java.util.StringJoiner;
 
 /**
  * Central mapping for kingdom Citizens NPC display names and their ModelEngine behaviour.
@@ -45,41 +44,6 @@ public final class KingdomNpcModelRegistry {
     public static boolean shouldUseDefaultAmbientAnimations(String npcName) {
         NpcModelDefinition definition = resolveDefinition(npcName);
         return definition == null || definition.useDefaultAmbientAnimations();
-    }
-
-    public static String debugResolution(String npcName) {
-        String normalizedName = normalizeName(npcName);
-        if (normalizedName.isBlank()) {
-            return "raw='" + npcName + "', normalized='', matched=false";
-        }
-
-        NpcModelDefinition exactMatch = NPC_DEFINITIONS.get(normalizedName);
-        if (exactMatch != null) {
-            return "raw='" + npcName + "', normalized='" + normalizedName + "', matched=exact, model='"
-                    + exactMatch.modelId() + "', scene='" + exactMatch.sceneAnimation()
-                    + "', defaultAmbient=" + exactMatch.useDefaultAmbientAnimations();
-        }
-
-        for (Map.Entry<String, NpcModelDefinition> entry : NPC_DEFINITIONS.entrySet()) {
-            if (normalizedName.contains(entry.getKey())) {
-                NpcModelDefinition definition = entry.getValue();
-                return "raw='" + npcName + "', normalized='" + normalizedName + "', matched=contains:'"
-                        + entry.getKey() + "', model='" + definition.modelId() + "', scene='"
-                        + definition.sceneAnimation() + "', defaultAmbient="
-                        + definition.useDefaultAmbientAnimations();
-            }
-        }
-
-        return "raw='" + npcName + "', normalized='" + normalizedName + "', matched=false, known=["
-                + knownNames() + "]";
-    }
-
-    private static String knownNames() {
-        StringJoiner joiner = new StringJoiner(", ");
-        for (String name : NPC_DEFINITIONS.keySet()) {
-            joiner.add(name);
-        }
-        return joiner.toString();
     }
 
     private static NpcModelDefinition resolveDefinition(String npcName) {

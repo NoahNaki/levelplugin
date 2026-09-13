@@ -106,9 +106,6 @@ public final class KingdomMineService {
                 minesApi.setMineResetInterval(mine, resetIntervalSeconds);
             }
             minesApi.resetMine(mine);
-            plugin.getLogger().info("[KingdomMine] Created " + name + " in " + world.getName()
-                    + " ore " + ore[0] + "," + ore[1] + "," + ore[2]
-                    + " -> " + ore[3] + "," + ore[4] + "," + ore[5]);
         } catch (Throwable throwable) {
             plugin.getLogger().warning("[KingdomMine] Could not create mine " + name + ": " + throwable);
         }

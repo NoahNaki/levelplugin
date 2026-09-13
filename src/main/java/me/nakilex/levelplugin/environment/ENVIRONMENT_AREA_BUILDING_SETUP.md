@@ -69,8 +69,7 @@ After changes:
    - Run `/debug area initialize <player>`
    - Confirm hologram appears at expected location.
    - Purchase build and verify replacement appears in correct empty-world counterpart region.
-3. Check logs for debug line:
-   - `[EnvironmentArea] Building '<id>' ... sourceDims=... destMin=... destMax=... blockCount=...`
+3. Check the `[KingdomGeneration]` console timings after a kingdom is initialized.
 
 ## Common Failure Modes
 - Build says complete but no visible change:

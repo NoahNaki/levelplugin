@@ -200,6 +200,17 @@ fishing-mini-games:
 # The mine is created when the kingdom finishes pasting and deleted when the instance
 # world goes away, because X-Prison persists mines but the instance worlds do not.
 environment:
+  kingdom-generation:
+    # Destination chunks are generated asynchronously before the block paste begins.
+    # Higher values use more concurrent chunk-generation work during preparation.
+    chunk-preload-concurrency: 16
+    paste:
+      # The paste adapts its block count to spend approximately this much main-thread
+      # time per tick. Keep this below 50ms to leave room for the rest of the server tick.
+      target-milliseconds-per-tick: 20.0
+      initial-blocks-per-tick: 20000
+      minimum-blocks-per-tick: 2000
+      maximum-blocks-per-tick: 50000
   kingdom-mine:
     enabled: true
     # Name of an existing X-Prison mine to copy the block composition from. Tune that
