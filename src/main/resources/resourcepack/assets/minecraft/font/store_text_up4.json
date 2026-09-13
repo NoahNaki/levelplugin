@@ -1,14 +1,10 @@
 {
   "providers": [
     {
-      "type": "reference",
-      "id": "minecraft:include/space"
-    },
-    {
       "type": "bitmap",
-      "file": "minecraft:font/store_ascii.png",
-      "ascent": 7,
-      "height": 8,
+      "file": "minecraft:font/store_text_up4.png",
+      "ascent": 11,
+      "height": 11,
       "chars": [
         " !\"#$%&'()*+,-./",
         "0123456789:;<=>?",

@@ -50,6 +50,9 @@ public final class StoreDialogDemo {
      * client's Force Unicode Font option change advances behind our back.
      */
     private static final Key STORE_TEXT_FONT = Key.key("minecraft", "store_text");
+    /** Vertical variants used for text inside buttons that sit between the 9px slice rows. */
+    private static final Key STORE_TEXT_UP_3_FONT = Key.key("minecraft", "store_text_up3");
+    private static final Key STORE_TEXT_UP_4_FONT = Key.key("minecraft", "store_text_up4");
     /** A single space-provider character whose advance is exactly WIDTH. */
     private static final String WIDTH_ANCHOR = "\uF821";
     /** Minecraft bitmap glyphs add one pixel of advance after their visible width. */
@@ -178,8 +181,17 @@ public final class StoreDialogDemo {
 
         for (Label label : labels) {
             int width = storeTextWidth(label.text);
+            Key font = switch (row) {
+                // The small price buttons and checkout text render about 3px too low.
+                case 18, 33 -> STORE_TEXT_UP_3_FONT;
+
+                // The wide price buttons sit about 4px below the center of their green area.
+                case 36 -> STORE_TEXT_UP_4_FONT;
+
+                default -> STORE_TEXT_FONT;
+            };
             line = line.append(shift(label.x))
-                    .append(Component.text(label.text, label.color).font(STORE_TEXT_FONT))
+                    .append(Component.text(label.text, label.color).font(font))
                     .append(shift(-(label.x + width)));
         }
         return line;
