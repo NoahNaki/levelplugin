@@ -44,6 +44,20 @@ public final class StoreDialogDemo {
     private static final int LINE_HEIGHT = 9;
     private static final int CHUNK_WIDTH = 240;
     private static final int CHUNKS = 4;
+    private static final int BUTTON_HEIGHT = 17;
+    private static final int TAB_Y = 0;
+    private static final int TAB_HEIGHT = 23;
+    private static final int GEMS_TAB_X = 32;
+    private static final int VIP_TAB_X = 114;
+    private static final int TAB_WIDTH = 79;
+    private static final int CHECKOUT_X = 474;
+    private static final int CHECKOUT_Y = 283;
+    private static final int CHECKOUT_WIDTH = 203;
+    private static final int REMOVE_X = 670;
+    private static final int REMOVE_SIZE = 24;
+    private static final int FIRST_REMOVE_Y = 211;
+    private static final int SECOND_REMOVE_Y = 240;
+    private static final int CART_PRICE_RIGHT = 662;
     private static final Key SPACE_FONT = Key.key("minecraft", "space");
     /**
      * Unfiltered vanilla bitmap font. Using minecraft:default here lets the
@@ -59,11 +73,11 @@ public final class StoreDialogDemo {
     private static final int GLYPH_GAP = 1;
 
     private static final Offer[] OFFERS = {
-            new Offer(1_000, "$4.99", 7, 152, 89),
-            new Offer(2_000, "$9.99", 158, 152, 89),
-            new Offer(5_000, "$24.99", 309, 152, 89),
-            new Offer(13_000, "$49.99", 7, 312, 153),
-            new Offer(30_000, "$99.99", 232, 312, 153)
+            new Offer(1_000, "$4.99", 62, 153, 67),
+            new Offer(2_000, "$9.99", 196, 153, 67),
+            new Offer(5_000, "$24.99", 330, 153, 67),
+            new Offer(13_000, "$49.99", 71, 301, 121),
+            new Offer(30_000, "$99.99", 276, 301, 121)
     };
 
     private final JavaPlugin plugin;
@@ -71,13 +85,13 @@ public final class StoreDialogDemo {
 
     public StoreDialogDemo(JavaPlugin plugin) {
         this.plugin = plugin;
-        plugin.getLogger().info("[DialogDemoStore] Loaded width-pinned bitmap layout v5.");
+        plugin.getLogger().info("[DialogDemoStore] Loaded compact width-pinned bitmap layout v10.");
     }
 
     public void show(Player player) {
         StoreState state = states.computeIfAbsent(player.getUniqueId(), ignored -> new StoreState());
-        ActionButton close = ActionButton.builder(Component.text("Close", NamedTextColor.RED))
-                .width(340)
+        ActionButton close = ActionButton.builder(Component.text("Close", NamedTextColor.WHITE))
+                .width(280)
                 .action(DialogAction.customClick((response, audience) -> {
                     if (audience instanceof Player clicked) {
                         Bukkit.getScheduler().runTask(plugin, clicked::closeDialog);
@@ -104,24 +118,24 @@ public final class StoreDialogDemo {
             // Invisible, line-local hit targets go before the opaque canvas.
             for (int i = 0; i < OFFERS.length; i++) {
                 Offer offer = OFFERS[i];
-                if (row >= offer.buttonY / LINE_HEIGHT && row <= (offer.buttonY + 24) / LINE_HEIGHT) {
+                if (rowIntersects(row, offer.buttonY, BUTTON_HEIGHT)) {
                     int index = i;
                     out = out.append(hit(offer.buttonX, offer.buttonWidth,
                             "Add " + offer.gems + " Gems", () -> add(player, index)));
                 }
             }
-            if (row == 0) {
-                out = out.append(hit(0, 102, "Gems", () -> message(player, "Gems category selected.")))
-                        .append(hit(105, 102, "VIP", () -> message(player, "VIP products are coming next.")));
+            if (rowIntersects(row, TAB_Y, TAB_HEIGHT)) {
+                out = out.append(hit(GEMS_TAB_X, TAB_WIDTH, "Gems", () -> message(player, "Gems category selected.")))
+                        .append(hit(VIP_TAB_X, TAB_WIDTH, "VIP", () -> message(player, "VIP products are coming next.")));
             }
-            if (row >= 32 && row <= 34) {
-                out = out.append(hit(464, 254, "Checkout", () -> checkout(player, state)));
+            if (rowIntersects(row, CHECKOUT_Y, BUTTON_HEIGHT)) {
+                out = out.append(hit(CHECKOUT_X, CHECKOUT_WIDTH, "Checkout", () -> checkout(player, state)));
             }
-            if (row >= 24 && row <= 26 && !state.cart.isEmpty()) {
-                out = out.append(hit(694, 26, "Remove first item", () -> remove(player, state, 0)));
+            if (rowIntersects(row, FIRST_REMOVE_Y, REMOVE_SIZE) && !state.cart.isEmpty()) {
+                out = out.append(hit(REMOVE_X, REMOVE_SIZE, "Remove first item", () -> remove(player, state, 0)));
             }
-            if (row >= 27 && row <= 29 && state.cart.size() > 1) {
-                out = out.append(hit(694, 26, "Remove second item", () -> remove(player, state, 1)));
+            if (rowIntersects(row, SECOND_REMOVE_Y, REMOVE_SIZE) && state.cart.size() > 1) {
+                out = out.append(hit(REMOVE_X, REMOVE_SIZE, "Remove second item", () -> remove(player, state, 1)));
             }
 
             int pen = 0;
@@ -147,46 +161,46 @@ public final class StoreDialogDemo {
     private Component appendLabels(Component line, int row, StoreState state) {
         List<Label> labels = new ArrayList<>();
         if (row == 1) {
-            labels.add(new Label(40, "Gems", NamedTextColor.WHITE));
-            labels.add(new Label(148, "VIP", NamedTextColor.DARK_GRAY));
+            labels.add(centeredLabel(GEMS_TAB_X, TAB_WIDTH, "Gems", NamedTextColor.WHITE));
+            labels.add(centeredLabel(VIP_TAB_X, TAB_WIDTH, "VIP", NamedTextColor.DARK_GRAY));
         }
         if (row == 14) {
-            labels.add(new Label(16, "1,000 Gems", NamedTextColor.LIGHT_PURPLE));
-            labels.add(new Label(167, "2,000 Gems", NamedTextColor.LIGHT_PURPLE));
-            labels.add(new Label(318, "5,000 Gems", NamedTextColor.LIGHT_PURPLE));
+            labels.add(new Label(43, "1,000 Gems", NamedTextColor.LIGHT_PURPLE));
+            labels.add(new Label(177, "2,000 Gems", NamedTextColor.LIGHT_PURPLE));
+            labels.add(new Label(311, "5,000 Gems", NamedTextColor.LIGHT_PURPLE));
         }
         if (row == 18) {
-            labels.add(new Label(43, "$4.99", NamedTextColor.WHITE));
-            labels.add(new Label(194, "$9.99", NamedTextColor.WHITE));
-            labels.add(new Label(340, "$24.99", NamedTextColor.WHITE));
+            labels.add(iconButtonLabel(62, 67, "$4.99", NamedTextColor.WHITE));
+            labels.add(iconButtonLabel(196, 67, "$9.99", NamedTextColor.WHITE));
+            labels.add(iconButtonLabel(330, 67, "$24.99", NamedTextColor.WHITE));
         }
-        if (row == 32) {
-            labels.add(new Label(16, "13,000 Gems", NamedTextColor.LIGHT_PURPLE));
-            labels.add(new Label(241, "30,000 Gems", NamedTextColor.LIGHT_PURPLE));
+        if (row == 30) {
+            labels.add(new Label(43, "13,000 Gems", NamedTextColor.LIGHT_PURPLE));
+            labels.add(new Label(248, "30,000 Gems", NamedTextColor.LIGHT_PURPLE));
         }
-        if (row == 36) {
-            labels.add(new Label(58, "$49.99", NamedTextColor.WHITE));
-            labels.add(new Label(278, "$99.99", NamedTextColor.WHITE));
+        if (row == 34) {
+            labels.add(iconButtonLabel(71, 121, "$49.99", NamedTextColor.WHITE));
+            labels.add(iconButtonLabel(276, 121, "$99.99", NamedTextColor.WHITE));
         }
-        if (row == 5) labels.add(new Label(549, "Your Account", NamedTextColor.GOLD));
-        if (row == 7) labels.add(new Label(551, "0 Gems", NamedTextColor.LIGHT_PURPLE));
-        if (row == 9) labels.add(new Label(551, "Rank: VIP", NamedTextColor.GOLD));
-        if (row == 10) labels.add(new Label(551, "Status: Expires in", NamedTextColor.DARK_GRAY));
-        if (row == 11) labels.add(new Label(551, "30d 23h", NamedTextColor.DARK_GRAY));
-        if (row == 21) labels.add(new Label(467, "YOUR CART", NamedTextColor.WHITE));
-        if (row == 24 && !state.cart.isEmpty()) labels.add(cartLabel(state.cart.get(0), 467));
-        if (row == 27 && state.cart.size() > 1) labels.add(cartLabel(state.cart.get(1), 467));
-        if (row == 30) labels.add(new Label(467, "Total: " + total(state), NamedTextColor.WHITE));
-        if (row == 33) labels.add(new Label(552, "Checkout", NamedTextColor.WHITE));
+        if (row == 5) labels.add(new Label(545, "Your Account", NamedTextColor.GOLD));
+        if (row == 7) labels.add(new Label(547, "0 Gems", NamedTextColor.LIGHT_PURPLE));
+        if (row == 9) labels.add(new Label(547, "Rank: VIP", NamedTextColor.GOLD));
+        if (row == 10) labels.add(new Label(547, "Status: Expires in", NamedTextColor.DARK_GRAY));
+        if (row == 11) labels.add(new Label(547, "30d 23h", NamedTextColor.DARK_GRAY));
+        if (row == 20) labels.add(new Label(463, "YOUR CART", NamedTextColor.WHITE));
+        if (row == 24 && !state.cart.isEmpty()) labels.add(cartLabel(state.cart.get(0), 463));
+        if (row == 27 && state.cart.size() > 1) labels.add(cartLabel(state.cart.get(1), 463));
+        if (row == 30) labels.add(new Label(463, "Total: " + total(state), NamedTextColor.WHITE));
+        if (row == 32) labels.add(iconButtonLabel(CHECKOUT_X, CHECKOUT_WIDTH, "Checkout", NamedTextColor.WHITE));
 
         for (Label label : labels) {
             int width = storeTextWidth(label.text);
             Key font = switch (row) {
                 // The small price buttons and checkout text render about 3px too low.
-                case 18, 33 -> STORE_TEXT_UP_3_FONT;
+                case 18, 32 -> STORE_TEXT_UP_3_FONT;
 
                 // The wide price buttons sit about 4px below the center of their green area.
-                case 36 -> STORE_TEXT_UP_4_FONT;
+                case 34 -> STORE_TEXT_UP_4_FONT;
 
                 default -> STORE_TEXT_FONT;
             };
@@ -203,10 +217,27 @@ public final class StoreDialogDemo {
         // One component with a measured spacer keeps the amount left-aligned
         // and the price at a stable column without introducing another
         // independently positioned text run on the same canvas row.
-        int gapPixels = Math.max(4, 205 - storeTextWidth(item) - storeTextWidth(offer.price));
+        int priceStart = CART_PRICE_RIGHT - storeTextWidth(offer.price);
+        int gapPixels = Math.max(4, priceStart - x - storeTextWidth(item));
         int spaces = Math.max(1, gapPixels / 4);
         return new Label(x, item + " ".repeat(spaces) + offer.price,
                 NamedTextColor.DARK_GRAY);
+    }
+
+    private static Label centeredLabel(int x, int width, String text, NamedTextColor color) {
+        return new Label(x + (width - storeTextWidth(text)) / 2, text, color);
+    }
+
+    private static Label iconButtonLabel(int x, int width, String text, NamedTextColor color) {
+        int iconWidth = 10;
+        int gap = 3;
+        int contentWidth = iconWidth + gap + storeTextWidth(text);
+        return new Label(x + (width - contentWidth) / 2 + iconWidth + gap, text, color);
+    }
+
+    private static boolean rowIntersects(int row, int y, int height) {
+        int rowTop = row * LINE_HEIGHT;
+        return rowTop < y + height && rowTop + LINE_HEIGHT > y;
     }
 
     /** Exact advances from Minecraft 1.21.8's built-in font/ascii.png. */

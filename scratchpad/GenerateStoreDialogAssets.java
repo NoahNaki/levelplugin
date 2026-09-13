@@ -6,58 +6,86 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-/** Builds the /dialogdemo store canvas from store_ui_components.zip. */
+/** Builds the compact /dialogdemo store canvas from assets/store_ui. */
 public final class GenerateStoreDialogAssets {
     private static final int WIDTH = 730;
     private static final int HEIGHT = 350;
     private static final int CHUNK = 240;
     private static final int LINE = 9;
 
+    private static final int LEFT_X = 32;
+    private static final int[] SMALL_X = {LEFT_X, LEFT_X + 134, LEFT_X + 268};
+    private static final int[] WIDE_X = {LEFT_X, LEFT_X + 205};
+    private static final int TOP_Y = 40;
+    private static final int BOTTOM_Y = 188;
+    private static final int RAIL_X = 453;
+    private static final int CART_Y = 176;
+
     public static void main(String[] args) throws Exception {
+        if (args.length != 3) {
+            throw new IllegalArgumentException("Usage: GenerateStoreDialogAssets <assets/store_ui> <slice-output> <glyph-yml>");
+        }
         Path source = Path.of(args[0]);
         Path textures = Path.of(args[1]);
         Path glyphs = Path.of(args[2]);
         Files.createDirectories(textures);
+
         BufferedImage canvas = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g = canvas.createGraphics();
         g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
 
-        // Tabs.
-        draw(g, source, "buttons/tab_active_green.png", 0, 0);
-        draw(g, source, "buttons/tab_inactive_gray.png", 105, 0);
+        // The v3 assets are authored at 2x Minecraft GUI resolution.
+        drawHalf(g, source, "buttons/tab_active_green.png", LEFT_X, 0);
+        drawHalf(g, source, "buttons/tab_inactive_gray.png", LEFT_X + 82, 0);
 
         // Three compact offers.
         String[] compact = {"1000", "2000", "5000"};
-        for (int i = 0; i < compact.length; i++) {
-            int x = i * 151;
-            draw(g, source, "backgrounds/panel_card_small.png", x, 40);
-            draw(g, source, "backgrounds/gem_image_background_small.png", x + 6, 46);
-            drawCentered(g, source, "gems/gems_" + compact[i] + ".png", x + 6, 46, 129, 80);
-            draw(g, source, "buttons/button_price_small.png", x + 7, 152);
+        for (int i = 0; i < SMALL_X.length; i++) {
+            int x = SMALL_X[i];
+            drawHalf(g, source, "backgrounds/panel_card_small.png", x, TOP_Y);
+            drawHalf(g, source, "backgrounds/gem_image_background_small.png", x + 5, TOP_Y + 5);
+            drawCentered(g, source, "gems/gems_" + compact[i] + ".png", x + 5, TOP_Y + 5, 118, 72);
+            drawHalf(g, source, "buttons/button_price_small.png", x + 30, 153);
         }
+        drawHalf(g, source, "cart/cart_icon.png", 76, 157);
+        drawHalf(g, source, "cart/cart_icon.png", 210, 157);
+        drawHalf(g, source, "cart/cart_icon.png", 341, 157);
+        drawHalf(g, source, "gems/gem_icon_small.png", 101, 122);
+        drawHalf(g, source, "gems/gem_icon_small.png", 235, 122);
+        drawHalf(g, source, "gems/gem_icon_small.png", 369, 122);
 
-        // Two wide offers.
+        // Two compact wide offers.
         String[] wide = {"13000", "30000"};
-        for (int i = 0; i < wide.length; i++) {
-            int x = i * 225;
-            draw(g, source, "backgrounds/panel_card_wide.png", x, 200);
-            draw(g, source, "backgrounds/gem_image_background_wide.png", x + 6, 206);
-            drawCentered(g, source, "gems/gems_" + wide[i] + ".png", x + 6, 206, 208, 80);
-            draw(g, source, "buttons/button_price_wide.png", x + 7, 312);
-            draw(g, source, i == 0 ? "buttons/tag_popular_blank.png" : "buttons/tag_value_blank.png",
-                    x + (i == 0 ? 140 : 157), 196);
+        for (int i = 0; i < WIDE_X.length; i++) {
+            int x = WIDE_X[i];
+            drawHalf(g, source, "backgrounds/panel_card_wide.png", x, BOTTOM_Y);
+            drawHalf(g, source, "backgrounds/gem_image_background_wide.png", x + 5, BOTTOM_Y + 5);
+            drawCentered(g, source, "gems/gems_" + wide[i] + ".png", x + 5, BOTTOM_Y + 5, 190, 72);
+            drawHalf(g, source, "buttons/button_price_wide.png", x + 39, 301);
         }
+        drawHalf(g, source, "buttons/tag_popular_blank.png", WIDE_X[0] + 124, BOTTOM_Y - 4);
+        drawHalf(g, source, "buttons/tag_value_blank.png", WIDE_X[1] + 141, BOTTOM_Y - 4);
+        drawHalf(g, source, "cart/cart_icon.png", 109, 305);
+        drawHalf(g, source, "cart/cart_icon.png", 314, 305);
+        drawHalf(g, source, "gems/gem_icon_small.png", 107, 266);
+        drawHalf(g, source, "gems/gem_icon_small.png", 312, 266);
 
         // Account and cart rail.
-        draw(g, source, "backgrounds/panel_info_rectangle.png", 457, 40);
-        draw(g, source, "backgrounds/square_icon_background.png", 466, 71);
-        draw(g, source, "gems/gems_5000.png", 469, 74, 76, 82);
-        draw(g, source, "backgrounds/panel_cart_rectangle.png", 457, 184);
-        draw(g, source, "buttons/button_checkout.png", 464, 288);
-        draw(g, source, "cart/cart_remove_button.png", 694, 218);
-        draw(g, source, "cart/cart_remove_button.png", 694, 247);
+        drawHalf(g, source, "backgrounds/panel_info_rectangle.png", RAIL_X, TOP_Y);
+        drawHalf(g, source, "backgrounds/square_icon_background.png", RAIL_X + 9, 71);
+        draw(g, source, "gems/gems_5000.png", RAIL_X + 12, 74, 68, 74);
+        drawHalf(g, source, "gems/gem_icon_small.png", 585, 59);
+        drawHalf(g, source, "backgrounds/panel_cart_rectangle.png", RAIL_X, CART_Y);
+        drawHalf(g, source, "buttons/button_checkout.png", RAIL_X + 21, 283);
+        drawHalf(g, source, "cart/cart_icon.png", 546, 287);
+        drawHalf(g, source, "cart/cart_remove_button.png", RAIL_X + 217, 211);
+        drawHalf(g, source, "cart/cart_remove_button.png", RAIL_X + 217, 240);
         g.dispose();
 
+        writeSlices(canvas, textures, glyphs);
+    }
+
+    private static void writeSlices(BufferedImage canvas, Path textures, Path glyphs) throws IOException {
         StringBuilder yaml = new StringBuilder("# GENERATED by scratchpad/GenerateStoreDialogAssets.java - do not hand-edit.\n");
         int rows = (HEIGHT + LINE - 1) / LINE;
         int chunks = (WIDTH + CHUNK - 1) / CHUNK;
@@ -93,21 +121,30 @@ public final class GenerateStoreDialogAssets {
         }
     }
 
-    private static void draw(Graphics2D g, Path root, String path, int x, int y) throws IOException {
-        BufferedImage image = ImageIO.read(root.resolve(path).toFile());
-        draw(g, root, path, x, y, image.getWidth() / 2, image.getHeight() / 2);
+    private static BufferedImage read(Path path) throws IOException {
+        BufferedImage image = ImageIO.read(path.toFile());
+        if (image == null) throw new IOException("Unsupported or missing image: " + path);
+        return image;
     }
 
-    private static void draw(Graphics2D g, Path root, String path, int x, int y, int w, int h) throws IOException {
-        BufferedImage image = ImageIO.read(root.resolve(path).toFile());
-        g.drawImage(image, x, y, w, h, null);
+    private static void drawHalf(Graphics2D g, Path root, String path, int x, int y) throws IOException {
+        BufferedImage image = read(root.resolve(path));
+        g.drawImage(image, x, y, image.getWidth() / 2, image.getHeight() / 2, null);
     }
 
-    private static void drawCentered(Graphics2D g, Path root, String path, int x, int y, int w, int h) throws IOException {
-        BufferedImage image = ImageIO.read(root.resolve(path).toFile());
-        double scale = Math.min(w / (double) image.getWidth(), h / (double) image.getHeight());
-        int dw = (int) Math.round(image.getWidth() * scale);
-        int dh = (int) Math.round(image.getHeight() * scale);
-        g.drawImage(image, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh, null);
+    private static void draw(Graphics2D g, Path root, String path,
+                             int x, int y, int width, int height) throws IOException {
+        BufferedImage image = read(root.resolve(path));
+        g.drawImage(image, x, y, width, height, null);
+    }
+
+    private static void drawCentered(Graphics2D g, Path root, String path,
+                                     int x, int y, int width, int height) throws IOException {
+        BufferedImage image = read(root.resolve(path));
+        double scale = Math.min(width / (double) image.getWidth(), height / (double) image.getHeight());
+        int drawnWidth = (int) Math.round(image.getWidth() * scale);
+        int drawnHeight = (int) Math.round(image.getHeight() * scale);
+        g.drawImage(image, x + (width - drawnWidth) / 2, y + (height - drawnHeight) / 2,
+                drawnWidth, drawnHeight, null);
     }
 }
