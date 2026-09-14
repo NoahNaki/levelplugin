@@ -1,15 +1,19 @@
 # Environment Area Building Setup Guide
 
-This document captures the current environment-area instancing workflow so a fresh conversation can still add new buildings correctly.
+This document captures the current shared-world plot workflow so a fresh conversation can still add new buildings correctly.
 
 ## Scope
 - Main class: `EnvironmentAreaInstanceManager`
 - Source world: `flatland`
 - System flow:
-  1. Copy full **empty world** area into player instance (`AREA`).
-  2. For each building upgrade, capture a **finished world** selection and project it into empty-world coordinate space.
-  3. Paste projected building blocks with layered animation.
-  4. Hologram positions are also supplied in **finished-world coordinates** and projected with the same anchor offset.
+  1. Capture the full **empty world** area (`AREA`) into a chunk-indexed memory template during startup.
+  2. Allocate each active kingdom a collision-free plot in the disposable shared world.
+  3. Generate only the spawn radius and mine initially; generate other chunks from the template on demand.
+  4. For each building upgrade, capture a **finished world** selection and project it into empty-world coordinate space.
+  5. Paste projected building blocks with layered animation.
+  6. Hologram positions are also supplied in **finished-world coordinates** and projected with the same anchor offset.
+
+Saved buildings are overlaid inside the chunk generator, so restoring progress must not perform a second full block paste.
 
 ## Critical Coordinates
 Defined in `EnvironmentAreaInstanceManager`:
@@ -66,7 +70,7 @@ new BuildingTemplate(
 After changes:
 1. Compile: `mvn -q -DskipTests compile`
 2. In game:
-   - Run `/debug area initialize <player>`
+   - Run the kingdom initialization command for a player.
    - Confirm hologram appears at expected location.
    - Purchase build and verify replacement appears in correct empty-world counterpart region.
 3. Check the `[KingdomGeneration]` console timings after a kingdom is initialized.
@@ -77,7 +81,7 @@ After changes:
   - Hologram point provided from empty world while code expects finished-world point before projection.
 - Build appears shifted:
   - Anchor mismatch (not same relative corner between worlds).
-- Partial paste:
+- Partial generation:
   - Incorrect selection volume (wrong `pos1/pos2` Y or swapped area from another structure).
 
 ## UX/Behavior Notes

@@ -15,6 +15,7 @@ import org.bukkit.block.BlockFace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.BoundingBox;
@@ -70,6 +71,8 @@ public final class CuboidTemplate {
     private final int[] positions;
     private final int[] paletteIds;
     private final int blockCount;
+    private final int relativeChunkColumns;
+    private final int[] relativeChunkOffsets;
     private final List<NexoBlockCopy> nexoBlocks;
     private final List<NexoFurnitureCopy> nexoFurniture;
 
@@ -94,9 +97,12 @@ public final class CuboidTemplate {
         this.height = height;
         this.depth = depth;
         this.palette = palette;
-        this.positions = positions;
-        this.paletteIds = paletteIds;
+        ChunkOrderedBlocks ordered = orderByRelativeChunk(width, height, depth, positions, paletteIds, blockCount);
+        this.positions = ordered.positions();
+        this.paletteIds = ordered.paletteIds();
         this.blockCount = blockCount;
+        this.relativeChunkColumns = (width + 15) >> 4;
+        this.relativeChunkOffsets = ordered.offsets();
         this.nexoBlocks = Collections.unmodifiableList(new ArrayList<>(nexoBlocks == null ? List.of() : nexoBlocks));
         this.nexoFurniture = Collections.unmodifiableList(new ArrayList<>(nexoFurniture == null ? List.of() : nexoFurniture));
     }
@@ -576,6 +582,88 @@ public final class CuboidTemplate {
                 .setBlockData(palette[paletteIds[index]], false);
     }
 
+    /**
+     * Writes only the portion of this template intersecting one generated chunk.
+     * The template is chunk-indexed once when captured, so lazy world generation
+     * never scans the millions of blocks that belong to other chunks.
+     */
+    public void populateChunk(ChunkGenerator.ChunkData chunkData,
+                              int targetChunkX,
+                              int targetChunkZ,
+                              int baseX,
+                              int baseY,
+                              int baseZ) {
+        Objects.requireNonNull(chunkData, "chunkData");
+        int targetMinX = targetChunkX << 4;
+        int targetMinZ = targetChunkZ << 4;
+        int relMinX = Math.max(0, targetMinX - baseX);
+        int relMaxX = Math.min(width - 1, targetMinX + 15 - baseX);
+        int relMinZ = Math.max(0, targetMinZ - baseZ);
+        int relMaxZ = Math.min(depth - 1, targetMinZ + 15 - baseZ);
+        if (relMinX > relMaxX || relMinZ > relMaxZ) {
+            return;
+        }
+
+        int minRelativeChunkX = relMinX >> 4;
+        int maxRelativeChunkX = relMaxX >> 4;
+        int minRelativeChunkZ = relMinZ >> 4;
+        int maxRelativeChunkZ = relMaxZ >> 4;
+        for (int relativeChunkX = minRelativeChunkX; relativeChunkX <= maxRelativeChunkX; relativeChunkX++) {
+            for (int relativeChunkZ = minRelativeChunkZ; relativeChunkZ <= maxRelativeChunkZ; relativeChunkZ++) {
+                int relativeChunkIndex = relativeChunkZ * relativeChunkColumns + relativeChunkX;
+                int start = relativeChunkOffsets[relativeChunkIndex];
+                int end = relativeChunkOffsets[relativeChunkIndex + 1];
+                for (int i = start; i < end; i++) {
+                    int linear = positions[i];
+                    int relZ = linear % depth;
+                    int rest = linear / depth;
+                    int relY = rest % height;
+                    int relX = rest / height;
+                    int worldX = baseX + relX;
+                    int worldY = baseY + relY;
+                    int worldZ = baseZ + relZ;
+                    if ((worldX >> 4) != targetChunkX || (worldZ >> 4) != targetChunkZ
+                            || worldY < chunkData.getMinHeight() || worldY >= chunkData.getMaxHeight()) {
+                        continue;
+                    }
+                    chunkData.setBlock(worldX & 15, worldY, worldZ & 15, palette[paletteIds[i]]);
+                }
+            }
+        }
+    }
+
+    /** Places the Nexo metadata/entities from this template that belong to one loaded chunk. */
+    public void pasteNexoInChunk(World world,
+                                 int targetChunkX,
+                                 int targetChunkZ,
+                                 int baseX,
+                                 int baseY,
+                                 int baseZ) {
+        if (world == null) {
+            return;
+        }
+        for (NexoBlockCopy block : nexoBlocks) {
+            int worldX = baseX + block.x();
+            int worldZ = baseZ + block.z();
+            if ((worldX >> 4) != targetChunkX || (worldZ >> 4) != targetChunkZ) {
+                continue;
+            }
+            NexoBlocks.place(block.itemId(), new Location(world, worldX, baseY + block.y(), worldZ));
+        }
+        for (NexoFurnitureCopy furniture : nexoFurniture) {
+            double worldX = baseX + furniture.x();
+            double worldZ = baseZ + furniture.z();
+            if (((int) Math.floor(worldX) >> 4) != targetChunkX
+                    || ((int) Math.floor(worldZ) >> 4) != targetChunkZ) {
+                continue;
+            }
+            Location target = new Location(world, worldX, baseY + furniture.y(), worldZ,
+                    furniture.yaw(), 0.0F);
+            NexoFurniture.remove(target);
+            NexoFurniture.place(furniture.itemId(), target, furniture.yaw(), furniture.facing());
+        }
+    }
+
     private void pasteNexo(World world, int baseX, int baseY, int baseZ) {
         for (NexoBlockCopy block : nexoBlocks) {
             Location target = new Location(world, baseX + block.x(), baseY + block.y(), baseZ + block.z());
@@ -744,6 +832,40 @@ public final class CuboidTemplate {
         return (relX * height + relY) * depth + relZ;
     }
 
+    private static ChunkOrderedBlocks orderByRelativeChunk(int width,
+                                                            int height,
+                                                            int depth,
+                                                            int[] positions,
+                                                            int[] paletteIds,
+                                                            int blockCount) {
+        int columns = (width + 15) >> 4;
+        int rows = (depth + 15) >> 4;
+        int[] counts = new int[columns * rows];
+        for (int i = 0; i < blockCount; i++) {
+            int linear = positions[i];
+            int relZ = linear % depth;
+            int relX = (linear / depth) / height;
+            counts[(relZ >> 4) * columns + (relX >> 4)]++;
+        }
+
+        int[] offsets = new int[counts.length + 1];
+        for (int i = 0; i < counts.length; i++) {
+            offsets[i + 1] = offsets[i] + counts[i];
+        }
+        int[] cursors = java.util.Arrays.copyOf(offsets, counts.length);
+        int[] orderedPositions = new int[blockCount];
+        int[] orderedPaletteIds = new int[blockCount];
+        for (int i = 0; i < blockCount; i++) {
+            int linear = positions[i];
+            int relZ = linear % depth;
+            int relX = (linear / depth) / height;
+            int target = cursors[(relZ >> 4) * columns + (relX >> 4)]++;
+            orderedPositions[target] = linear;
+            orderedPaletteIds[target] = paletteIds[i];
+        }
+        return new ChunkOrderedBlocks(orderedPositions, orderedPaletteIds, offsets);
+    }
+
     private static Optional<NexoFurnitureCopy> captureNexoFurniture(ItemDisplay baseEntity,
                                                                     int minX,
                                                                     int minY,
@@ -821,6 +943,8 @@ public final class CuboidTemplate {
                               int blockCount,
                               int[] nexoCandidates,
                               int nexoCandidateCount) { }
+
+    private record ChunkOrderedBlocks(int[] positions, int[] paletteIds, int[] offsets) { }
 
     /** Growable primitive int list; avoids boxing millions of coordinates. */
     private static final class IntBuffer {

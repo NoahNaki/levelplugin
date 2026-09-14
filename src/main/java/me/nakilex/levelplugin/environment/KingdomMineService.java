@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Recreates an X-PrivateMines-style private mine inside a kingdom instance world.
+ * Recreates an X-PrivateMines-style private mine inside a kingdom plot.
  *
  * <p>XPrivateMines cannot be told where to place a mine - {@code createPrivateMine} takes no
  * location and its offsets are read-only - so a kingdom mine is assembled from the same parts
@@ -26,10 +26,9 @@ import java.util.UUID;
  *   <li><b>the X-Prison mine</b> itself, registered over the ore cuboid.</li>
  * </ul>
  *
- * <p>Kingdom instance worlds are ephemeral - {@code onQuit} and {@code removeKingdom} unload
- * the world <em>and delete its folder</em> - but X-Prison persists mines and reloads them at
- * boot, so everything created here is torn down with its world. {@link #sweepOrphans()} clears
- * whatever survived a crash.</p>
+ * <p>Kingdom plots share one ephemeral runtime world, while X-Prison persists mines and
+ * reloads them at boot. Each plot's mine and regions are therefore removed with its session;
+ * {@link #sweepOrphans()} clears whatever survived a crash.</p>
  *
  * <p>X-Prison and WorldGuard are soft dependencies: every call into them is guarded and
  * wrapped, so LevelPlugin still loads on a server without the prison core.</p>
@@ -216,7 +215,7 @@ public final class KingdomMineService {
                 + " is not registered; prison enchants may not fire in " + name);
     }
 
-    /** Deletes the owner's mine and regions. Must run before the instance world is unloaded. */
+    /** Deletes the owner's mine and regions without touching other plots in the shared world. */
     public void removeFor(UUID ownerId, World world) {
         if (!isAvailable() || ownerId == null) {
             return;
@@ -252,8 +251,8 @@ public final class KingdomMineService {
     }
 
     /**
-     * Removes kingdom mines left behind by a crash. Their instance worlds are deleted on quit,
-     * so any that exist at startup are dangling by definition.
+     * Removes kingdom mines left behind by a crash. The shared world is rebuilt at startup,
+     * so any persisted mine is dangling by definition.
      */
     public void sweepOrphans() {
         if (!isAvailable()) {

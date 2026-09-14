@@ -196,21 +196,19 @@ fishing-mini-games:
     zone-width: 0.22
     bars: [BAR_1, BAR_2, BAR_3, BAR_4, BAR_5, BAR_6, BAR_7, BAR_8, BAR_9]
 
-# Per-player kingdom mine, registered with X-Prison over the kingdom's mine cuboid.
-# The mine is created when the kingdom finishes pasting and deleted when the instance
-# world goes away, because X-Prison persists mines but the instance worlds do not.
+# Per-player kingdom mine, registered with X-Prison over each plot's mine cuboid.
+# Mines are deleted with their sessions because X-Prison persists them while the shared
+# kingdom world is a disposable runtime cache.
 environment:
   kingdom-generation:
-    # Destination chunks are generated asynchronously before the block paste begins.
-    # Higher values use more concurrent chunk-generation work during preparation.
+    # Plots share one disposable world. 4096 leaves more than 3500 blocks of void
+    # between kingdom edges and is aligned to chunk/region boundaries.
+    plot-spacing-blocks: 4096
+    # Only this radius around the kingdom spawn (plus the mine chunks) is generated
+    # before teleporting. Everything else is generated from the cached template on demand.
+    initial-chunk-radius: 6
+    # Higher values allow more initial chunks to generate concurrently.
     chunk-preload-concurrency: 16
-    paste:
-      # The paste adapts its block count to spend approximately this much main-thread
-      # time per tick. Keep this below 50ms to leave room for the rest of the server tick.
-      target-milliseconds-per-tick: 20.0
-      initial-blocks-per-tick: 20000
-      minimum-blocks-per-tick: 2000
-      maximum-blocks-per-tick: 50000
   kingdom-mine:
     enabled: true
     # Name of an existing X-Prison mine to copy the block composition from. Tune that
