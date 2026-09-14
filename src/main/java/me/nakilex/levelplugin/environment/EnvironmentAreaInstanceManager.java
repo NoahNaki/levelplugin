@@ -135,10 +135,16 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final WorldPoint EMPTY_WORLD_SPAWN = projectFinishedToEmpty(FINISHED_WORLD_SPAWN);
     private static final WorldPoint KINGDOM_ANIMATED_LB = new WorldPoint(3810, 105, -3377);
     // Authored against the finished kingdom template, then projected into each pasted empty-world instance.
+    // The mining stand cycles through everything X-Prison tracks server-side now, not LevelPlugin's Kingdom
+    // Mine life skill (dead on this migration - see PlayerStatsLeaderboardDataProvider.getPickaxeLevelTop).
+    private static final List<BoardType> MINING_STAND_PAGES = List.of(
+            BoardType.MINING, BoardType.XPRISON_RANK, BoardType.XPRISON_PRESTIGE,
+            BoardType.XPRISON_REBIRTH, BoardType.XPRISON_TOKENS
+    );
     private static final List<KingdomLeaderboardPlacement> LIFE_SKILL_LEADERBOARDS = List.of(
-            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3858, 73, -3006)), -90.0F, BoardType.MINING),
-            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3800, 98, -3018)), -90.0F, BoardType.FARMING),
-            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3664, 82, -3026)), 45.0F, BoardType.FISHING)
+            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3858, 73, -3006)), -90.0F, MINING_STAND_PAGES),
+            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3800, 98, -3018)), -90.0F, List.of(BoardType.FARMING)),
+            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3664, 82, -3026)), 45.0F, List.of(BoardType.FISHING))
     );
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
@@ -2992,7 +2998,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         float configuredYaw = (float) plugin.getConfig().getDouble("animatedlb.yaw", 0.0D);
         addAnimatedLeaderboard(session, provider, boards, KINGDOM_ANIMATED_LB, configuredYaw + 180.0F, null);
         for (KingdomLeaderboardPlacement placement : LIFE_SKILL_LEADERBOARDS) {
-            addAnimatedLeaderboard(session, provider, boards, placement.point(), placement.yaw(), List.of(placement.type()));
+            addAnimatedLeaderboard(session, provider, boards, placement.point(), placement.yaw(), placement.types());
         }
         animatedLeaderboardsByOwner.put(session.ownerId(), boards);
     }
@@ -3493,7 +3499,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return String.format(Locale.ROOT, "%.2fms", Math.max(0L, elapsedNanos) / 1_000_000.0D);
     }
 
-    private record KingdomLeaderboardPlacement(WorldPoint point, float yaw, BoardType type) {
+    private record KingdomLeaderboardPlacement(WorldPoint point, float yaw, List<BoardType> types) {
     }
 
 }

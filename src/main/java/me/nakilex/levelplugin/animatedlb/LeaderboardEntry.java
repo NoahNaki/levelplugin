@@ -1,4 +1,6 @@
 package me.nakilex.levelplugin.animatedlb;
 
-public record LeaderboardEntry(String name, double primaryValue, double secondaryValue) {
+import java.util.UUID;
+
+public record LeaderboardEntry(UUID playerId, String name, double primaryValue, double secondaryValue) {
 }

@@ -9,6 +9,7 @@ import me.nakilex.levelplugin.utils.GuiUtil;
 import org.bukkit.inventory.ItemStack;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public final class PetGuiUtil {
@@ -28,7 +29,7 @@ public final class PetGuiUtil {
         lore.add(TooltipUtil.selectionLine(equipped, equipped ? "Equipped" : "Select to equip"));
         lore.addAll(TooltipUtil.clickInstructions(equipped ? "to unequip" : "to equip", "to invest tier"));
         String name = PetDisplayUtil.formatDisplayName(definition);
-        ItemStack item = GuiUtil.getRarityPetIconItem(definition.rarity(), name, lore);
+        ItemStack item = createDefinitionIcon(definition, name, lore);
         ItemUtil.applyRarityTooltipStyle(item, definition.rarity());
         ItemUtil.setVisualEnchanted(item, equipped);
         TooltipUtil.centerItemName(item);
@@ -36,9 +37,31 @@ public final class PetGuiUtil {
     }
 
     public static ItemStack createRarityPetIcon(PetDefinition definition, String name, List<String> lore) {
-        ItemStack item = GuiUtil.getRarityPetIconItem(definition.rarity(), name, lore);
+        ItemStack item = createDefinitionIcon(definition, name, lore);
         ItemUtil.applyRarityTooltipStyle(item, definition.rarity());
         TooltipUtil.centerItemName(item);
         return item;
+    }
+
+    private static ItemStack createDefinitionIcon(PetDefinition definition, String name, List<String> lore) {
+        for (String modelId : definition.modelIds()) {
+            String nexoIconId = cubeesIconId(modelId);
+            ItemStack icon = GuiUtil.getNexoItemIfPresent(nexoIconId, name, lore);
+            if (icon != null) {
+                return icon;
+            }
+        }
+        return GuiUtil.getRarityPetIconItem(definition.rarity(), name, lore);
+    }
+
+    private static String cubeesIconId(String modelId) {
+        if (modelId == null) {
+            return null;
+        }
+        String normalized = modelId.trim().toLowerCase(Locale.ROOT);
+        if (!normalized.startsWith("cubee-") || normalized.length() == "cubee-".length()) {
+            return null;
+        }
+        return "cubees-icon-" + normalized.substring("cubee-".length());
     }
 }

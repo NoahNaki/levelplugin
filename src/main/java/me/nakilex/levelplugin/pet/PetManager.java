@@ -60,7 +60,9 @@ public class PetManager {
             "crystal_gremlin",
             "gilded_treasurer",
             "sweep_scarab",
-            "stronghold_pathfinder"
+            "stronghold_pathfinder",
+            "dungeon_packrat",
+            "ender_pearl_runner"
     );
     /** Definitions intentionally replaced by the X-Prison pet rework through config version 3. */
     private static final Set<String> PRISON_REWORK_PET_IDS = Set.of(
@@ -71,8 +73,7 @@ public class PetManager {
             "ender_chest_keeper",
             "light_dragon",
             "earth_dragon",
-            "vault_hound",
-            "dungeon_packrat"
+            "vault_hound"
     );
     private static final List<ItemRarity> GACHA_RARITIES = List.of(
             ItemRarity.COMMON,

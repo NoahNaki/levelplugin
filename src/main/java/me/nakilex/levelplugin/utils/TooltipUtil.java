@@ -24,6 +24,17 @@ public final class TooltipUtil {
     public static final String GLYPH_RIGHT_CLICK = "<glyph:mouse_right>";
 
     /**
+     * Same left-click icon as {@link #GLYPH_LEFT_CLICK}, as a literal character instead of a Nexo tag.
+     * Item lore goes through Nexo's MiniMessage-style parser, which resolves {@code <glyph:mouse_left>} to
+     * this exact texture - but text sent straight to an entity (e.g. a TextDisplay hologram) never passes
+     * through that parser, so the tag would render as literal text. This codepoint is registered directly in
+     * {@code resourcepack/assets/minecraft/font/default.json} at the same "small" mouse-click texture, so it
+     * renders identically anywhere a raw String is sent to the client - no tag resolution needed.
+     */
+    public static final String GLYPH_LEFT_CLICK_RAW = "";
+    public static final String GLYPH_RIGHT_CLICK_RAW = "";
+
+    /**
      * Join glyph tokens into a lore line that renders upright.
      *
      * A legacy lore line whose first character is a formatting code gets an explicit style, but a

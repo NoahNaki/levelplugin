@@ -281,6 +281,8 @@ public class PluginBootstrap {
     private CookingModule cookingModule;
     private BlockGlowUtil blockGlowUtil;
     private me.nakilex.levelplugin.xprison.XPrisonEnchantsIntegration xPrisonEnchantsIntegration;
+    private me.nakilex.levelplugin.xprison.XPrisonPickaxeLevelTracker xPrisonPickaxeLevelTracker;
+    private me.nakilex.levelplugin.serverboard.ServerTabListManager serverTabListManager;
     private boolean dungeonsEnabled;
 
     public PluginBootstrap(Main plugin) {
@@ -297,11 +299,19 @@ public class PluginBootstrap {
         initializePacketEvents();
         loadConfigFiles();
         FishingResourcePackManager.initialize(plugin);
+        me.nakilex.levelplugin.playerhead.PlayerHeadResourcePackManager.install(plugin);
+        plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.playerhead.PlayerHeadPrefetchListener(plugin), plugin);
+        serverTabListManager = new me.nakilex.levelplugin.serverboard.ServerTabListManager(plugin);
+        plugin.getServer().getPluginManager().registerEvents(serverTabListManager, plugin);
+        serverTabListManager.start();
         setupCustomConfig();
         playerConfig = new PlayerConfig(plugin);
         initializeManagers();
         xPrisonEnchantsIntegration = new me.nakilex.levelplugin.xprison.XPrisonEnchantsIntegration(plugin);
         xPrisonEnchantsIntegration.enable();
+        xPrisonPickaxeLevelTracker = new me.nakilex.levelplugin.xprison.XPrisonPickaxeLevelTracker(plugin);
+        xPrisonPickaxeLevelTracker.enable();
         HologramUtil.removeMobHolograms();
         playerConfig.loadAllPlayers();
         itemConfig = new ItemConfig(plugin);
@@ -546,6 +556,8 @@ public class PluginBootstrap {
         calendarManager = new me.nakilex.levelplugin.calendar.CalendarManager(plugin);
         duelStatsManager = new me.nakilex.levelplugin.leaderboards.DuelStatsManager(plugin);
         animatedLbManager = new me.nakilex.levelplugin.animatedlb.LeaderboardManager(plugin);
+        plugin.getServer().getPluginManager().registerEvents(
+                new me.nakilex.levelplugin.animatedlb.AnimatedLeaderboardClickListener(), plugin);
         partyGlowManager = new PartyGlowManager(plugin, partyManager, scoreboardManager::getBoard);
         friendGlowManager = new FriendGlowManager(plugin, friendManager, scoreboardManager::getBoard);
         visibilityManager = new PlayerVisibilityManager(plugin, friendManager, settingsManager);
@@ -971,6 +983,7 @@ public class PluginBootstrap {
     }
 
     public void disable() {
+        if (serverTabListManager != null) serverTabListManager.stop();
         if (xPrisonEnchantsIntegration != null) {
             xPrisonEnchantsIntegration.disable();
             xPrisonEnchantsIntegration = null;

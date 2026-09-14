@@ -1,5 +1,7 @@
 package me.nakilex.levelplugin.utils;
 
+import me.nakilex.levelplugin.Main;
+import me.nakilex.levelplugin.playerhead.PlayerHeadRenderer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.minimessage.MiniMessage;
@@ -78,6 +80,7 @@ public final class ChatUtil {
         message = applyEmojis(message);
         if (!message.toLowerCase().contains("[item]")) {
             return Component.text()
+                    .append(chatHead(player))
                     .append(player.displayName())
                     .append(Component.text(": " + message))
                     .build();
@@ -88,6 +91,7 @@ public final class ChatUtil {
             player.sendMessage(ChatColor.RED + "You must hold an item to use [item].");
             String stripped = message.replaceAll("(?i)\\[item\\]", "");
             return Component.text()
+                    .append(chatHead(player))
                     .append(player.displayName())
                     .append(Component.text(": " + stripped))
                     .build();
@@ -103,10 +107,16 @@ public final class ChatUtil {
                 .build());
 
         return Component.text()
+                .append(chatHead(player))
                 .append(player.displayName())
                 .append(Component.text(": "))
                 .append(combined)
                 .build();
+    }
+
+    /** The speaker's face, plus a space, to sit in front of their display name. */
+    private static Component chatHead(Player player) {
+        return PlayerHeadRenderer.getHead(Main.getInstance(), player).append(Component.text(" "));
     }
 
     /**

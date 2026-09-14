@@ -240,20 +240,6 @@ pets:
     - type: MERGE_SUCCESS_BONUS
       base: 0.025
       per-level: 0.0006
-  ender_pearl_runner:
-    name: §aEnder Pearl Runner
-    rarity: UNCOMMON
-    models:
-    - cubee-ender_pearl
-    max-level: 90
-    xp-per-level: 110
-    owned-stats:
-      agi: 3
-      int: 1
-    effects:
-    - type: HIGH_HEALTH_DAMAGE
-      base: 0.035
-      per-level: 0.0007
   ender_flame_orb:
     name: §cEnder Flame Orb
     rarity: RARE
@@ -484,20 +470,3 @@ pets:
     - type: ITEM_MAGNET
       base: 4.5
       per-level: 0.035
-  dungeon_packrat:
-    name: §dDungeon Packrat
-    rarity: EPIC
-    models:
-    - rpg_rat
-    max-level: 120
-    xp-per-level: 180
-    owned-stats:
-      dex: 4
-      tec: 4
-    effects:
-    - type: ITEM_MAGNET
-      base: 3.0
-      per-level: 0.025
-    - type: STAGED_DUNGEON_SWEEP_ATTEMPTS
-      base: 1
-      per-level: 0

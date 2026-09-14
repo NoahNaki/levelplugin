@@ -7,6 +7,8 @@ import org.bukkit.World;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.List;
+
 public class LeaderboardManager {
     private final JavaPlugin plugin;
     private AnimatedLeaderboard board;
@@ -30,7 +32,17 @@ public class LeaderboardManager {
                 (float) cfg.getDouble("animatedlb.scale", 0.85),
                 cfg.getInt("animatedlb.cycle-duration", 200),
                 cfg.getInt("animatedlb.row-count", 10),
-                cfg.getDouble("animatedlb.animation-speed", 1.0));
+                cfg.getDouble("animatedlb.animation-speed", 1.0),
+                List.of(
+                        BoardType.STRONGHOLD_STAGE,
+                        BoardType.POWER,
+                        BoardType.MINING,
+                        BoardType.XPRISON_RANK,
+                        BoardType.XPRISON_PRESTIGE,
+                        BoardType.XPRISON_REBIRTH,
+                        BoardType.XPRISON_TOKENS,
+                        BoardType.FARMING,
+                        BoardType.FISHING));
         board.spawn();
         return true;
     }

@@ -69,6 +69,31 @@ public final class GuiUtil {
         return item;
     }
 
+    /**
+     * Build a Nexo item when the id is registered, otherwise return {@code null}.
+     * This is intended for optional per-entry GUI artwork that has a safe fallback.
+     */
+    public static ItemStack getNexoItemIfPresent(String id, String name, List<String> lore) {
+        if (id == null || id.isBlank()) {
+            return null;
+        }
+        ItemBuilder builder = NexoItems.itemFromId(id);
+        if (builder == null) {
+            return null;
+        }
+        ItemStack item = builder.build();
+        ItemMeta meta = item.getItemMeta();
+        if (meta != null) {
+            meta.setDisplayName(name);
+            if (lore != null) {
+                meta.setLore(lore);
+            }
+            meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            item.setItemMeta(meta);
+        }
+        return item;
+    }
+
     /** Build a standard GUI item with the provided display name and lore. */
     public static ItemStack createGuiItem(Material material, String name, List<String> lore) {
         ItemStack item = new ItemStack(material);

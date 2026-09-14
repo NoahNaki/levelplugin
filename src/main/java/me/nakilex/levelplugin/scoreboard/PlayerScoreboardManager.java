@@ -271,14 +271,8 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                 stagedDungeonManager == null ? null : stagedDungeonManager.getStageStatus(id);
         boolean stagedDungeonActive = stagedDungeonStatus != null;
 
-        boolean showBoard = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || strongholdQueueing || strongholdActive || catacombsActive || stagedDungeonActive;
+        boolean anyContextual = siegeActive || hasQuest || hasGuildQuest || inParty || queueing || strongholdQueueing || strongholdActive || catacombsActive || stagedDungeonActive;
         Scoreboard board = boards.get(id);
-        if (!showBoard) {
-            if (board != null) {
-                removeBoard(player);
-            }
-            return;
-        }
         if (board == null) {
             createBoard(player);
             return;
@@ -288,7 +282,9 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
 
         Objective obj = board.getObjective("stats");
         if (obj == null) return;
-        obj.setDisplayName(ChatColor.YELLOW.toString() + ChatColor.BOLD + "Objectives");
+        obj.setDisplayName(anyContextual
+                ? ChatColor.YELLOW.toString() + ChatColor.BOLD + "Objectives"
+                : me.nakilex.levelplugin.serverboard.IdlePrisonBoard.TITLE);
 
         String[] prev = lastLines.computeIfAbsent(id, k -> new String[entries.length]);
         String[] current = new String[entries.length];
@@ -598,6 +594,17 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
                     }
                     idx++; line--;
                 }
+                if (line <= 1) break;
+            }
+        }
+
+        if (!anyContextual) {
+            for (String text : me.nakilex.levelplugin.serverboard.IdlePrisonBoard.buildLines(player)) {
+                current[idx] = text;
+                if (!current[idx].equals(prev[idx])) {
+                    setLine(board, obj, idx, line, current[idx]);
+                }
+                idx++; line--;
                 if (line <= 1) break;
             }
         }

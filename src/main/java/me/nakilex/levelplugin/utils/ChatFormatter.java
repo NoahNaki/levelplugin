@@ -171,10 +171,23 @@ public class ChatFormatter {
      * @param lines the messages to center between the dividers
      */
     public static void sendBoxedCenteredMessages(Player player, String dividerColor, String... lines) {
-        constructDivider(player, dividerColor + "§l-", 45);
+        sendBoxedCenteredMessages(player, dividerColor, false, lines);
+    }
+
+    /**
+     * Send multiple centered lines wrapped in a colored divider.
+     *
+     * @param player the target player
+     * @param dividerColor the color code for the divider (e.g. "§a")
+     * @param strikethroughDivider whether the divider dashes render with strikethrough
+     * @param lines the messages to center between the dividers
+     */
+    public static void sendBoxedCenteredMessages(Player player, String dividerColor, boolean strikethroughDivider, String... lines) {
+        String dividerChar = dividerColor + "§l" + (strikethroughDivider ? "§m" : "") + "-";
+        constructDivider(player, dividerChar, 45);
         for (String line : lines) {
             sendCenteredMessage(player, line);
         }
-        constructDivider(player, dividerColor + "§l-", 45);
+        constructDivider(player, dividerChar, 45);
     }
 }

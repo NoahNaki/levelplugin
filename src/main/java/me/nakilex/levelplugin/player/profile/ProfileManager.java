@@ -207,6 +207,9 @@ public class ProfileManager {
 
     public void setActiveSlot(UUID uuid, int slot) {
         activeSlot.put(uuid, slot);
+        me.nakilex.levelplugin.player.config.PlayerConfig cfg =
+                me.nakilex.levelplugin.Main.getInstance().getPlayerConfig();
+        cfg.setLastActiveSlot(uuid, slot);
     }
 
     public void clearActiveSlot(UUID uuid) {

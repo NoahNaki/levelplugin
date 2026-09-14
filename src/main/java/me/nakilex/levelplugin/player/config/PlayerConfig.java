@@ -516,6 +516,31 @@ public class PlayerConfig {
         LifeSkillProfileDataUtil.resetRuntime(uuid);
     }
 
+    /** Persists which profile slot a player was last using, so offline lookups (e.g. leaderboards) know where to read. */
+    public void setLastActiveSlot(UUID uuid, int slot) {
+        config.set("players." + uuid + ".last_active_slot", slot);
+    }
+
+    /** The profile slot a player was last using, for offline lookups. Defaults to 0 (the first profile). */
+    public int getLastActiveSlot(UUID uuid) {
+        return config.getInt("players." + uuid + ".last_active_slot", 0);
+    }
+
+    /**
+     * Persists the last-known X-Prison pickaxe level for a player. X-Prison stores pickaxe level/exp on the
+     * item itself (NBT), not per-account, so it has no offline lookup of its own - LevelPlugin snapshots it
+     * here (on join and on level-up) so the animated leaderboard can show offline players too.
+     */
+    public void setXPrisonPickaxeLevel(UUID uuid, int level) {
+        config.set("players." + uuid + ".xprison_pickaxe_level", level);
+        saveConfigFile();
+    }
+
+    /** The last-known X-Prison pickaxe level for a player, from the most recent snapshot. Defaults to 0. */
+    public int getXPrisonPickaxeLevel(UUID uuid) {
+        return config.getInt("players." + uuid + ".xprison_pickaxe_level", 0);
+    }
+
     private boolean hasLegacyLifeSkillData(UUID uuid) {
         String root = "players." + uuid;
         return config.contains(root + ".mining") || config.contains(root + ".farming")

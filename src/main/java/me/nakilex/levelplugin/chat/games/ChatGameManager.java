@@ -204,7 +204,7 @@ public class ChatGameManager {
             if (!shouldShowTo(player)) {
                 continue;
             }
-            ChatFormatter.sendBoxedCenteredMessages(player, "§b", payload);
+            ChatFormatter.sendBoxedCenteredMessages(player, "§b", true, payload);
         }
     }
 

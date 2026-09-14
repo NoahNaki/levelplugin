@@ -1,0 +1,76 @@
+{
+  "providers": [
+    {
+      "type": "bitmap",
+      "file": "playerhead/pixel1.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "playerhead/pixel2.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "playerhead/pixel3.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "playerhead/pixel4.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "playerhead/pixel5.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "playerhead/pixel6.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "playerhead/pixel7.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        ""
+      ]
+    },
+    {
+      "type": "bitmap",
+      "file": "playerhead/pixel8.png",
+      "ascent": 8,
+      "height": 8,
+      "chars": [
+        ""
+      ]
+    }
+  ]
+}
