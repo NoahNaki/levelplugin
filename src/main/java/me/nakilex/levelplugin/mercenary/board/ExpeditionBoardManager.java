@@ -64,8 +64,8 @@ public class ExpeditionBoardManager {
         if (meta != null) {
             meta.setDisplayName(ChatColor.GOLD + "" + ChatColor.BOLD + "Expedition Board Wand");
             List<String> lore = new ArrayList<>();
-            lore.add(ChatColor.GRAY + "Right-click a block to place an expedition board");
-            lore.add(ChatColor.GRAY + "Left-click a block to delete the nearest board");
+            lore.add(TooltipUtil.rightClickLine("a block to place an expedition board"));
+            lore.add(TooltipUtil.leftClickLine("a block to delete the nearest board"));
             lore.addAll(TooltipUtil.clickInstructions(null, "to save the location"));
             meta.getPersistentDataContainer().set(wandKey, PersistentDataType.INTEGER, 1);
             meta.setLore(lore);

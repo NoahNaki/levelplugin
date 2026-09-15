@@ -16,6 +16,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -666,6 +667,71 @@ public class StaticItemListener implements Listener {
         player.setItemOnCursor(null);
         clearCraftingMenu(player, event.getView());
         queueCraftingMenuRefresh(player);
+    }
+
+    /**
+     * Block recipe-book placement while the 2x2 grid is showing the navigation menu.
+     *
+     * Placing a recipe overwrites the crafting matrix and returns whatever was in it to the player's
+     * inventory - and what is in it here is the navigation menu, so any recipe-book click handed the
+     * player real Quest Book / Codex / Settings items. The grid is a menu, not a crafting station,
+     * so the click has nothing legitimate to do; a crafting table opens its own 3x3 view and is
+     * unaffected.
+     */
+    @SuppressWarnings("deprecation") // The modern event is not cancellable; this one still fires.
+    @EventHandler(ignoreCancelled = true)
+    public void onRecipeBookClick(com.destroystokyo.paper.event.player.PlayerRecipeBookClickEvent event) {
+        Player player = event.getPlayer();
+        if (!isCraftingMenuContext(player.getOpenInventory())
+                || !hasCraftingShortcutItems(player.getOpenInventory())) {
+            return;
+        }
+        event.setCancelled(true);
+        queueCraftingMenuRefresh(player);
+    }
+
+    /**
+     * Safety net for the same leak, in case the cancellable event above stops being fired.
+     *
+     * The modern event carries no cancellation, so instead of preventing the placement we undo it -
+     * but synchronously, in this same handler, not a tick later. MONITOR priority runs after Bukkit
+     * has finished mutating the crafting grid for this click but before the resulting inventory state
+     * goes out to the client, so restoring here is the last chance to correct it before the player
+     * ever sees it empty; a {@code runTask} scheduled a tick later let the clear render for a frame
+     * first, which is the flicker this replaces.
+     * <p>
+     * Two things get undone: the crafting grid's shortcut slots (wiped or refilled with real
+     * ingredients by the recipe placement) go back to the menu icons, and any menu item the
+     * placement scattered into the player's real inventory - the original leak this handler was
+     * written for - is stripped back out. No before/after snapshot is needed for that second part:
+     * every managed item except the hub compass only ever belongs in the crafting-grid shortcut
+     * slots (see {@link #giveHubItems}, the compass's one legitimate spot), so any of the others
+     * found anywhere in the player's real inventory is a leak unconditionally, this click or any
+     * earlier one.
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onRecipeBookClickCleanup(org.bukkit.event.player.PlayerRecipeBookClickEvent event) {
+        Player player = event.getPlayer();
+        InventoryView view = player.getOpenInventory();
+        if (!isCraftingMenuContext(view)) {
+            return;
+        }
+        if (shouldDisableCraftingShortcuts(player)) {
+            clearInventoryDebugSession(player, view);
+            return;
+        }
+        ItemStack[] contents = player.getInventory().getContents();
+        for (int slot = 0; slot < contents.length; slot++) {
+            ItemStack item = contents[slot];
+            if (isManagedStaticItem(item) && !item.isSimilar(STATIC_COMPASS)) {
+                player.getInventory().setItem(slot, null);
+            }
+        }
+        player.setItemOnCursor(null);
+        applyInventoryDebugSession(player, view);
+        // The client may still have queued its own optimistic redraw for this same click; chase it
+        // down a tick later too so a slow round-trip can't leave the grid wrong regardless.
+        applyInventoryDebugSessionNextTick(player);
     }
 
     @EventHandler

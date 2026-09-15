@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.player.classes.essence.gui;
 
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.economy.managers.EconomyManager;
 import me.nakilex.levelplugin.items.data.ItemRarity;
@@ -342,7 +343,7 @@ public class ClassEssenceUpgradeGUI implements Listener {
                     ChatColor.GRAY + "from your inventory into",
                     ChatColor.GRAY + "the target for EXP.",
                     "",
-                    ChatColor.YELLOW + "Left Click" + ChatColor.GRAY + " while the target",
+                    TooltipUtil.leftClickLine("while the target"),
                     ChatColor.GRAY + "slot is filled to consume",
                     ChatColor.GRAY + "all duplicates."));
             button.setItemMeta(meta);

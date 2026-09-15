@@ -68,7 +68,7 @@ public class ProfileSelectionGUI implements Listener {
                     "",
                     ChatColor.GRAY + "Mark this profile for permanent deletion.",
                     "",
-                    ChatColor.RED + "Click to delete"
+                    TooltipUtil.leftClickLine(ChatColor.RED, "to delete")
             ));
             cauldron.setItemMeta(cm);
         }

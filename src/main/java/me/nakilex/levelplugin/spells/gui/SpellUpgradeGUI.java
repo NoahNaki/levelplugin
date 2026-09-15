@@ -316,7 +316,7 @@ public class SpellUpgradeGUI implements Listener {
 
     private String clickLine(String action, String target) {
         ChatColor targetColor = "this spell".equalsIgnoreCase(target) ? ChatColor.GRAY : SPELL_ACCENT;
-        return ChatColor.WHITE + "Left-click " + ChatColor.GRAY + action + " " + targetColor + target;
+        return TooltipUtil.leftClickLine(action + " " + targetColor + target);
     }
 
     private String formatEffectLine(String line) {

@@ -283,7 +283,7 @@ public class SettingsGUI implements Listener {
     private ItemStack createSpellUpgradesItem() {
         return GuiUtil.createGuiItem(Material.ENCHANTED_BOOK, ChatColor.AQUA + "Spells",
                 List.of(" ", ChatColor.GRAY + "View your class spells and scaling.", " ",
-                        ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to open"));
+                        TooltipUtil.leftClickLine("to open")));
     }
 
     private String formatRarityLabel(ItemRarity rarity) {

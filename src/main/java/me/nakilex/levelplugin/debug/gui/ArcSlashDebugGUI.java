@@ -404,9 +404,9 @@ public class ArcSlashDebugGUI implements Listener {
         if (meta != null) {
             List<String> lore = TooltipUtil.bulletList(
                     "Use /debug particlepreset arc",
-                    "Left-click to spawn the arc.",
                     "Save to apply new values."
             );
+            lore.add(1, TooltipUtil.bulletLine(TooltipUtil.leftClickLine("to spawn the arc.")));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             info.setItemMeta(meta);

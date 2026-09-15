@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.stronghold;
 
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.spells.SpellEffectUtil;
 import me.nakilex.levelplugin.stronghold.utils.StrongholdMobSpawnUtil;
@@ -123,7 +124,7 @@ public class StrongholdShrineManager implements Listener {
         });
         org.bukkit.entity.TextDisplay subtitle = world.spawn(shrineBase.clone().add(0.0, 2.1, 0.0), org.bukkit.entity.TextDisplay.class, td -> {
             td.setBillboard(org.bukkit.entity.Display.Billboard.CENTER);
-            td.setText(ChatColor.GRAY + "Right-click to begin defense");
+            td.setText(TooltipUtil.rightClickLineRaw("to begin defense"));
             td.addScoreboardTag(SHRINE_HOLOGRAM_TAG);
             td.setMetadata(SHRINE_ID_META, new FixedMetadataValue(plugin, "pending"));
         });

@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.environment;
 
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.utils.GuiUtil;
 import me.nakilex.levelplugin.utils.gui.widgets.ActionWidget;
 import me.nakilex.levelplugin.utils.gui.widgets.GuiContext;
@@ -84,7 +85,7 @@ public class UpgradeGUI implements Listener {
         return GuiUtil.createGuiItem(Material.OAK_LOG,
                 ChatColor.GREEN + "Invest 1 Oak Log",
                 List.of(
-                        ChatColor.GRAY + "Click to invest towards",
+                        TooltipUtil.leftClickLine("to invest towards"),
                         ChatColor.GRAY + "the next upgrade."
                 ));
     }

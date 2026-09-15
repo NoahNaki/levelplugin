@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.stronghold.run;
 
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.mercenary.MercenaryExpeditionManager;
 import me.nakilex.levelplugin.storage.PersonalStorage;
@@ -318,7 +319,7 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
                         ChatColor.GRAY + "Move all possible result items to inventory.",
                         ChatColor.GRAY + "If inventory is full, leftovers stay here.",
                         " ",
-                        ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to claim all"
+                        TooltipUtil.leftClickLine("to claim all")
                 ));
     }
 
@@ -339,7 +340,7 @@ public class StrongholdResultsStorageGUI extends StorageGUI {
                         ChatColor.GRAY + "into your personal storage.",
                         ChatColor.GRAY + "Estimated free storage slots: " + ChatColor.WHITE + freeSlots,
                         " ",
-                        ChatColor.WHITE + "Left-click " + ChatColor.GRAY + "to send items"
+                        TooltipUtil.leftClickLine("to send items")
                 ));
     }
 

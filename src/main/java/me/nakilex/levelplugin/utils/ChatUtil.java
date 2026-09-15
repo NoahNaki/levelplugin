@@ -2,8 +2,10 @@ package me.nakilex.levelplugin.utils;
 
 import me.nakilex.levelplugin.Main;
 import me.nakilex.levelplugin.playerhead.PlayerHeadRenderer;
+import me.nakilex.levelplugin.playerhead.PlayerModelTooltip;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.ChatColor;
@@ -80,8 +82,7 @@ public final class ChatUtil {
         message = applyEmojis(message);
         if (!message.toLowerCase().contains("[item]")) {
             return Component.text()
-                    .append(chatHead(player))
-                    .append(player.displayName())
+                    .append(speaker(player))
                     .append(Component.text(": " + message))
                     .build();
         }
@@ -91,8 +92,7 @@ public final class ChatUtil {
             player.sendMessage(ChatColor.RED + "You must hold an item to use [item].");
             String stripped = message.replaceAll("(?i)\\[item\\]", "");
             return Component.text()
-                    .append(chatHead(player))
-                    .append(player.displayName())
+                    .append(speaker(player))
                     .append(Component.text(": " + stripped))
                     .build();
         }
@@ -107,10 +107,23 @@ public final class ChatUtil {
                 .build());
 
         return Component.text()
-                .append(chatHead(player))
-                .append(player.displayName())
+                .append(speaker(player))
                 .append(Component.text(": "))
                 .append(combined)
+                .build();
+    }
+
+    /**
+     * The speaker's face and display name, carrying the player-model hover card.
+     *
+     * The hover sits on the whole prefix rather than the name alone so the face is hoverable too -
+     * it is the part of the line people actually aim at.
+     */
+    private static Component speaker(Player player) {
+        return Component.text()
+                .append(chatHead(player))
+                .append(player.displayName())
+                .hoverEvent(HoverEvent.showText(PlayerModelTooltip.create(player)))
                 .build();
     }
 

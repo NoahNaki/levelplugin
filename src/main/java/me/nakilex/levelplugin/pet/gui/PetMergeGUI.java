@@ -306,7 +306,8 @@ public class PetMergeGUI implements Listener {
         int selected = selectedEntryKeys.getOrDefault(player.getUniqueId(), new LinkedHashSet<>()).size();
         List<String> lore = new ArrayList<>();
         lore.add(" ");
-        lore.addAll(TooltipUtil.bulletList("Selected: " + selected + "/5", "Shift + Right-click to lock/unlock pets"));
+        lore.addAll(TooltipUtil.bulletList("Selected: " + selected + "/5"));
+        lore.add(TooltipUtil.bulletLine(TooltipUtil.sneakRightClickLine("to lock/unlock pets")));
         return GuiUtil.getNexoItem("info", "§eSelection Info", lore);
     }
 

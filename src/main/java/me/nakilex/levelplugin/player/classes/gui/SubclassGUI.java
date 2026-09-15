@@ -215,7 +215,7 @@ public class SubclassGUI implements Listener {
 
             lore.add(" ");
             lore.add(ChatColor.YELLOW.toString() + ChatColor.BOLD + "Basic Attack" + ChatColor.RESET
-                    + ChatColor.WHITE + " - " + ChatColor.GRAY + "Left Click");
+                    + ChatColor.WHITE + " - " + TooltipUtil.GLYPH_LEFT_CLICK);
 
             Rating r = rating(pc);
             lore.add(" ");
@@ -224,7 +224,7 @@ public class SubclassGUI implements Listener {
             lore.add(ratingLine(ChatColor.GREEN, "Mobility", r.mob));
             lore.add(ratingLine(ChatColor.YELLOW, "Utility", r.util));
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Click " + ChatColor.GRAY + "to select this class!");
+            lore.add(TooltipUtil.leftClickLine("to select this class!"));
 
             meta.setLore(lore);
             item.setItemMeta(meta);

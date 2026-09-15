@@ -390,12 +390,12 @@ public class CookingRecipeSelectionGUI implements Listener {
         if (searchTerm != null && !searchTerm.isBlank()) {
             lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + searchTerm);
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to change search");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to clear search");
+            lore.add(TooltipUtil.leftClickLine("to change search"));
+            lore.add(TooltipUtil.rightClickLine("to clear search"));
         } else {
             lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + "None");
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to enter a term");
+            lore.add(TooltipUtil.leftClickLine("to enter a term"));
         }
         return GuiUtil.getNexoItem("search", ChatColor.GOLD + "Search", lore);
     }
@@ -458,8 +458,8 @@ public class CookingRecipeSelectionGUI implements Listener {
         }
         addRequiredIngredientsLore(player, recipe, lore, displayedAmount);
         lore.add(" ");
-        lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to start cooking");
-        lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to double quantity");
+        lore.add(TooltipUtil.leftClickLine("to start cooking"));
+        lore.add(TooltipUtil.rightClickLine("to double quantity"));
         lore.add(ChatColor.DARK_GRAY + "Max x64 wraps back to base.");
         ItemStack item = recipe.displayItem();
         item.setAmount(Math.max(1, Math.min(64, displayedAmount)));

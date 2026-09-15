@@ -191,8 +191,10 @@ public class PotionMerchantGUI implements Listener {
         ItemStack potionItem = instance.toItemStack((JavaPlugin) plugin);
         ItemMeta meta = potionItem.getItemMeta();
         List<String> lore = meta != null && meta.hasLore() ? new ArrayList<>(meta.getLore()) : new ArrayList<>();
-        lore.removeIf(line -> ChatColor.stripColor(line).startsWith("Left-click")
-                || ChatColor.stripColor(line).startsWith("Right-click"));
+        // Strip the item's own use instructions; the shop replaces them with a purchase line.
+        // These are mouse-glyph lines now, so match on the glyph tokens rather than the old wording.
+        lore.removeIf(line -> line != null
+                && (line.contains(TooltipUtil.GLYPH_LEFT_CLICK) || line.contains(TooltipUtil.GLYPH_RIGHT_CLICK)));
         lore.add("");
         int cost = potionCosts.getOrDefault(slot, potion.getCooldownSeconds());
         lore.add(ChatColor.GOLD + "Price: " + ChatColor.GREEN + cost + " <glyph:coins_icon>");

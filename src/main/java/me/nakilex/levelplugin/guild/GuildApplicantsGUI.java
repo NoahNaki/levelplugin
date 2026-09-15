@@ -157,7 +157,7 @@ public class GuildApplicantsGUI implements Listener {
                 lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + term);
                 lore.addAll(TooltipUtil.clickInstructions(null, "to clear"));
             } else {
-                lore.add(ChatColor.GRAY + "Click to enter a term");
+                lore.add(TooltipUtil.leftClickLine("to enter a term"));
             }
             meta.setLore(lore);
             it.setItemMeta(meta);

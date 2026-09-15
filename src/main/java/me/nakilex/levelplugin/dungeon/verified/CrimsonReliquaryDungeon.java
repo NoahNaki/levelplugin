@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.dungeon.verified;
 
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -617,7 +618,7 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
             MultiLineHologram holo = new MultiLineHologram(yellow.clone().add(0.5, 1.25, 0.5), "crimson_flower_pluck");
             holo.spawn(List.of(
                     legacy.serialize(Component.text(choice.display, NamedTextColor.GOLD)),
-                    legacy.serialize(Component.text("Right-click to pluck", NamedTextColor.GRAY))));
+                    TooltipUtil.rightClickLineRaw("to pluck")));
             state.pluckHolograms.put(yellow, holo);
         }
         Map<FlowerType, Long> flowerCounts = state.pluckable.values().stream()
@@ -819,10 +820,10 @@ public class CrimsonReliquaryDungeon implements VerifiedDungeonDefinition {
         List<String> lines = placed
                 ? List.of(
                     legacy.serialize(Component.text("Flower Placed", NamedTextColor.AQUA)),
-                    legacy.serialize(Component.text("Right-click to remove the flower", NamedTextColor.GRAY)))
+                    TooltipUtil.rightClickLineRaw("to remove the flower"))
                 : List.of(
                     legacy.serialize(Component.text("Place Flower", NamedTextColor.AQUA)),
-                    legacy.serialize(Component.text("Right-click with a flower", NamedTextColor.GRAY)));
+                    TooltipUtil.rightClickLineRaw("with a flower"));
         holo.setLines(lines);
     }
 

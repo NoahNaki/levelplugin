@@ -263,14 +263,15 @@ public class WieldStyleDebugGUI implements Listener {
         if (meta != null) {
             List<String> lore = TooltipUtil.bulletList(
                     "/debug wield gui opens this editor.",
-                    "Left-click increases, right-click decreases.",
-                    "Sneak-click changes by five steps.",
                     "Changes apply live to idle preview; Test Swing plays the arc.",
                     "Preview: " + (wieldStyleDebugManager.isEnabled(player) ? "enabled" : "disabled"),
                     "Hand cloak: " + wieldStyleDebugManager.getHandVisibilityMode().displayName(),
                     "Weapon trail particles: disabled",
                     "Forward particles: arc slash preset"
             );
+            lore.add(1, TooltipUtil.bulletLine(TooltipUtil.leftClickLine("increases, " + org.bukkit.ChatColor.WHITE
+                    + TooltipUtil.GLYPH_RIGHT_CLICK + org.bukkit.ChatColor.GRAY + " decreases.")));
+            lore.add(2, TooltipUtil.bulletLine(TooltipUtil.sneakLeftClickLine("changes by five steps.")));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             info.setItemMeta(meta);

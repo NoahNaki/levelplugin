@@ -189,7 +189,7 @@ public class EnchantGUI implements Listener {
             lore.add(ChatColor.GRAY + "Place item to enchant");
         }
         if (!freeEnchant && state.cost() > 0 && SharpestSecretQuest.hasEnchantToken(player)) {
-            lore.add(ChatColor.DARK_GRAY + "• " + ChatColor.GRAY + "Shift-click to spend an Enchant Token.");
+            lore.add(TooltipUtil.bulletLine(TooltipUtil.sneakLeftClickLine("to spend an Enchant Token.")));
         }
         meta.setLore(lore);
         item.setItemMeta(meta);

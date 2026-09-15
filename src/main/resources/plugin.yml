@@ -2,7 +2,7 @@ name: LevelPlugin
 main: me.nakilex.levelplugin.Main
 version: 1.0
 author: Nakilex
-api-version: 1.21
+api-version: '1.21.11'
 description: A simple MMORPG leveling system plugin for Minecraft
 depend: [ProtocolLib, Citizens, PlaceholderAPI, Nexo, ModelEngine, packetevents]
 softdepend: [LuxDialogues, X-Prison, WorldGuard]
@@ -485,8 +485,15 @@ commands:
     usage: /lpadvancement <list|grant|reset> [player] [namespace:key]
     permission: levelplugin.admin
 
+  playermodel:
+    description: Preview a live animated player model inside hover text
+    usage: /playermodel [player] [head|bust|full] [offset 0-15] [scale 1-15] [speed 0.0-4.0] [animation]
+    permission: levelplugin.playermodel
+
 permissions:
   levelplugin.animatedlb:
     default: op
   levelplugin.leaderboards.admin:
+    default: op
+  levelplugin.playermodel:
     default: op

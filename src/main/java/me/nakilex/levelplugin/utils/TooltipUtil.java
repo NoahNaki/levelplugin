@@ -73,6 +73,85 @@ public final class TooltipUtil {
     }
 
     /**
+     * A single left-click instruction line, e.g. "&lt;icon&gt; to go forward".
+     *
+     * {@link #clickInstructions(String, String)} covers the common pair; these exist for the many
+     * buttons that only describe one button, or that interleave click lines with other lore and so
+     * cannot take a whole list at once.
+     */
+    public static String leftClickLine(String action) {
+        return clickLine(GLYPH_LEFT_CLICK, null, action);
+    }
+
+    /** A single right-click instruction line. */
+    public static String rightClickLine(String action) {
+        return clickLine(GLYPH_RIGHT_CLICK, null, action);
+    }
+
+    /**
+     * A left-click instruction line in a colour other than the default grey, for prompts that carry
+     * their own emphasis (a red "to cancel", a gold "to claim").
+     */
+    public static String leftClickLine(ChatColor actionColor, String action) {
+        return ChatColor.WHITE + GLYPH_LEFT_CLICK + " "
+                + (actionColor == null ? ChatColor.GRAY : actionColor) + action;
+    }
+
+    /**
+     * Render a click combo such as {@code "LRL"} as a row of mouse glyphs.
+     *
+     * Ability lore writes combos as L/R letters; this turns them into the same icons the click
+     * instructions use, so a combo reads the way it is performed. Any character that is not L or R
+     * (a "+" separator, a space) is passed through unchanged.
+     *
+     * @param combo combo string, e.g. {@code "LRL"}
+     * @return glyph row, white so the icons keep their own colours
+     */
+    public static String comboGlyphs(String combo) {
+        if (combo == null || combo.isBlank()) {
+            return "";
+        }
+        StringBuilder row = new StringBuilder(ChatColor.WHITE.toString());
+        for (char c : combo.toCharArray()) {
+            switch (Character.toUpperCase(c)) {
+                case 'L' -> row.append(GLYPH_LEFT_CLICK);
+                case 'R' -> row.append(GLYPH_RIGHT_CLICK);
+                default -> row.append(c);
+            }
+        }
+        return row.toString();
+    }
+
+    /** A right-click instruction line in a custom colour. See {@link #leftClickLine(ChatColor, String)}. */
+    public static String rightClickLine(ChatColor actionColor, String action) {
+        return ChatColor.WHITE + GLYPH_RIGHT_CLICK + " "
+                + (actionColor == null ? ChatColor.GRAY : actionColor) + action;
+    }
+
+    /** A single sneak (shift) + left-click instruction line. */
+    public static String sneakLeftClickLine(String action) {
+        return clickLine(GLYPH_LEFT_CLICK, "Sneak +", action);
+    }
+
+    /** A single sneak (shift) + right-click instruction line. */
+    public static String sneakRightClickLine(String action) {
+        return clickLine(GLYPH_RIGHT_CLICK, "Sneak +", action);
+    }
+
+    /**
+     * The raw-codepoint left-click line, for text sent straight to the client without passing
+     * through Nexo's tag parser - holograms, text displays and chat messages.
+     */
+    public static String leftClickLineRaw(String action) {
+        return clickLine(GLYPH_LEFT_CLICK_RAW, null, action);
+    }
+
+    /** The raw-codepoint right-click line. See {@link #leftClickLineRaw(String)}. */
+    public static String rightClickLineRaw(String action) {
+        return clickLine(GLYPH_RIGHT_CLICK_RAW, null, action);
+    }
+
+    /**
      * Create a textual progress bar for the given values using the standard
      * colours defined in {@link GuiUtil}.
      *

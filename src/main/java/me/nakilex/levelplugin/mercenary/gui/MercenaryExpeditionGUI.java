@@ -499,7 +499,7 @@ public class MercenaryExpeditionGUI implements Listener {
                 lore.addAll(activeLore(active, definition.id().equals(activeId)));
             }
             lore.add(" ");
-            lore.add(ChatColor.YELLOW + "Click to start with current party");
+            lore.add(TooltipUtil.leftClickLine(ChatColor.YELLOW, "to start with current party"));
             meta.setLore(lore);
             item.setItemMeta(meta);
         }

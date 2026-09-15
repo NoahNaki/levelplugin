@@ -119,7 +119,7 @@ public class AuctionHouseGUI implements Listener {
                 lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Duration" + ChatColor.WHITE + ": " + mins + "m");
                 lore.add("");
                 if (ai.getSeller().equals(player.getUniqueId())) {
-                    lore.add(ChatColor.RED + "Click to cancel listing");
+                    lore.add(TooltipUtil.leftClickLine(ChatColor.RED, "to cancel listing"));
                 } else {
                     lore.add("");
                     lore.addAll(TooltipUtil.clickInstructions("to buy", "to bid"));
@@ -383,7 +383,7 @@ public class AuctionHouseGUI implements Listener {
             if (term != null && !term.isEmpty()) {
                 lore.add(ChatColor.GRAY + "Current: " + ChatColor.WHITE + term);
             } else {
-                lore.add(ChatColor.GRAY + "Click to enter a term");
+                lore.add(TooltipUtil.leftClickLine("to enter a term"));
             }
             meta.setLore(lore);
             it.setItemMeta(meta);
@@ -430,8 +430,8 @@ public class AuctionHouseGUI implements Listener {
             }
             lore.add(rangeLine(arr.length, filter, "Show All"));
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            lore.add(TooltipUtil.leftClickLine("to go forward"));
+            lore.add(TooltipUtil.rightClickLine("to go backward"));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -452,8 +452,8 @@ public class AuctionHouseGUI implements Listener {
                 lore.add(rangeLine(i, mode, opts[i]));
             }
             lore.add(" ");
-            lore.add(ChatColor.WHITE + "Left-Click " + ChatColor.GRAY + "to go forward");
-            lore.add(ChatColor.WHITE + "Right-Click " + ChatColor.GRAY + "to go backward");
+            lore.add(TooltipUtil.leftClickLine("to go forward"));
+            lore.add(TooltipUtil.rightClickLine("to go backward"));
             meta.setLore(lore);
             it.setItemMeta(meta);
         }
@@ -522,7 +522,7 @@ public class AuctionHouseGUI implements Listener {
                 long mins = left / 60;
                 lore.add(ChatColor.GOLD + "" + ChatColor.BOLD + "Duration" + ChatColor.WHITE + ": " + mins + "m");
                 lore.add("");
-                lore.add(ChatColor.RED + "Click to cancel listing");
+                lore.add(TooltipUtil.leftClickLine(ChatColor.RED, "to cancel listing"));
                 meta.setLore(lore);
                 meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
                 meta.getPersistentDataContainer().set(

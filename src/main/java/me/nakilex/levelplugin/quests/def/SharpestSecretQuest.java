@@ -77,7 +77,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
     private static final long BLOOM_TASK_INTERVAL = 100L;
     private static final String ORCHID_HOLOGRAM_TAG = "sharpsecret_orchid";
     private static final List<String> ORCHID_HOLOGRAM_LINES = List.of(
-            ChatColor.GRAY + "Right-click to pluck"
+            TooltipUtil.rightClickLineRaw("to pluck")
     );
 
     private static final List<String> INTRO_DIALOG = List.of(
@@ -576,7 +576,7 @@ public class SharpestSecretQuest extends Quest implements QuestScript, QuestComp
             meta.setDisplayName(ChatColor.LIGHT_PURPLE + "Enchant Token");
             List<String> lore = new ArrayList<>();
             lore.add(ChatColor.GRAY + "Redeem with Osiris for a complimentary enchant.");
-            lore.addAll(TooltipUtil.bulletList("Shift-click the Enchant button to spend one."));
+            lore.add(TooltipUtil.bulletLine(TooltipUtil.sneakLeftClickLine("the Enchant button to spend one.")));
             meta.setLore(lore);
             meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
             meta.getPersistentDataContainer().set(ENCHANT_TOKEN_KEY, PersistentDataType.BYTE, (byte) 1);

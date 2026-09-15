@@ -112,7 +112,7 @@ public final class StrongholdTemplateDebugGUI implements Listener {
             return Material.COBBLESTONE_WALL;
         }
         if (id.startsWith("t_section")) {
-            return Material.CHAIN;
+            return Material.IRON_CHAIN;
         }
         if (id.startsWith("gate")) {
             return Material.IRON_BARS;

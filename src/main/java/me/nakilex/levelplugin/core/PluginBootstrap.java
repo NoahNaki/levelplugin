@@ -743,6 +743,10 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.animatedlb.AnimatedLeaderboardPlugin(animatedLbManager);
         plugin.getCommand("animatedlb").setExecutor(animatedLbCmd);
         plugin.getCommand("animatedlb").setTabCompleter(animatedLbCmd);
+        me.nakilex.levelplugin.playerhead.PlayerModelCommand playerModelCommand =
+                new me.nakilex.levelplugin.playerhead.PlayerModelCommand();
+        plugin.getCommand("playermodel").setExecutor(playerModelCommand);
+        plugin.getCommand("playermodel").setTabCompleter(playerModelCommand);
         me.nakilex.levelplugin.leaderboards.compat.LeaderboardCommand leaderboardCommand =
                 new me.nakilex.levelplugin.leaderboards.compat.LeaderboardCommand(leaderboardSystem);
         plugin.getCommand("ajleaderboards").setExecutor(leaderboardCommand);

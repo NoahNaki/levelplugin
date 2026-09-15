@@ -1239,7 +1239,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     ChatColor.GOLD + "" + ChatColor.BOLD + "UPGRADING " + ChatColor.WHITE + building.displayName().toUpperCase(Locale.ROOT),
                     ChatColor.YELLOW + "Time Remaining: " + ChatColor.WHITE + SpeedUpScrollUtil.formatDuration(remaining),
                     " ",
-                    ChatColor.WHITE + "Right Click " + ChatColor.GRAY + "to speed up"
+                    TooltipUtil.rightClickLineRaw("to speed up")
             );
         }
         String actionText = isBuilt ? "Level Up " : "Build ";
@@ -1277,7 +1277,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         lines.add((hasCoins ? ChatColor.GREEN + "✔ " : ChatColor.RED + "✘ ")
                 + ChatColor.WHITE + cost + ChatColor.DARK_GRAY + "x " + ChatColor.GOLD + "<glyph:coins_icon>");
         lines.add(" ");
-        lines.add(ChatColor.WHITE + "Right Click " + ChatColor.GRAY + clickAction);
+        lines.add(TooltipUtil.rightClickLineRaw(clickAction));
         return lines;
     }
 
@@ -1324,8 +1324,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         int requirementsEndIndex = requirementsStartIndex - 1;
         for (int i = requirementsStartIndex; i < lines.size(); i++) {
             String stripped = ChatColor.stripColor(lines.get(i) == null ? "" : lines.get(i)).trim();
-            if (stripped.isEmpty() || stripped.equalsIgnoreCase("right click to build")
-                    || stripped.equalsIgnoreCase("right click to level up")) {
+            if (stripped.isEmpty() || isClickFooterLine(stripped)) {
                 break;
             }
             requirementsEndIndex = i;
@@ -1338,6 +1337,16 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         entities.addAll(spawnHologramSegment(base, tag, lines, requirementsEndIndex + 1, lines.size(), 0, lineStep, false, sharedLeftAnchor));
         return entities;
+    }
+
+    /**
+     * Whether a stripped hologram line is the trailing click prompt.
+     *
+     * The prompt is now a mouse glyph plus the action rather than the words "right click", so match
+     * on the action text the prompt was built from instead of the old wording.
+     */
+    private boolean isClickFooterLine(String stripped) {
+        return stripped.endsWith("to build") || stripped.endsWith("to level up");
     }
 
     private int countInInventory(Player player, Material material) {

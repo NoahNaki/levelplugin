@@ -91,7 +91,7 @@ public final class KingdomGUI implements Listener {
         } else if (preparing) {
             inventory.setItem(PRIMARY_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Preparing Kingdom",
                     List.of(ChatColor.GRAY + "Your kingdom is currently being generated.", "",
-                            ChatColor.WHITE + "Click " + ChatColor.GRAY + "to refresh status")));
+                            TooltipUtil.leftClickLine("to refresh status"))));
         } else {
             List<String> createLore = new ArrayList<>();
             createLore.add(ChatColor.GRAY + "Generate your personal kingdom.");
@@ -102,25 +102,25 @@ public final class KingdomGUI implements Listener {
         inventory.setItem(BUILDINGS_SLOT, active
                 ? GuiUtil.getNexoItem("settings", ChatColor.GOLD + "Buildings",
                 List.of(ChatColor.GRAY + "Inspect every building and its level.", "",
-                        ChatColor.WHITE + "Click " + ChatColor.GRAY + "to browse"))
+                        TooltipUtil.leftClickLine("to browse")))
                 : locked("Buildings", "Create your kingdom first."));
         inventory.setItem(MEMBERS_SLOT, active
                 ? GuiUtil.getNexoItem("server_icon", ChatColor.AQUA + "Members",
                 List.of(ChatColor.GRAY + "View, invite, or remove members.", "",
-                        ChatColor.WHITE + "Click " + ChatColor.GRAY + "to manage"))
+                        TooltipUtil.leftClickLine("to manage")))
                 : locked("Members", "Create your kingdom first."));
         inventory.setItem(VISIT_SLOT, GuiUtil.getNexoItem("search", ChatColor.YELLOW + "Visit Kingdoms",
                 List.of(ChatColor.GRAY + "Browse kingdoms that are online now.", "",
-                        ChatColor.WHITE + "Click " + ChatColor.GRAY + "to browse")));
+                        TooltipUtil.leftClickLine("to browse"))));
         inventory.setItem(REBUILD_SLOT, active && owner
                 ? GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Rebuild Instance",
                 List.of(ChatColor.GRAY + "Reload the kingdom world while keeping", ChatColor.GRAY + "all saved building progress.", "",
-                        ChatColor.WHITE + "Click " + ChatColor.GRAY + "to continue"))
+                        TooltipUtil.leftClickLine("to continue")))
                 : locked("Rebuild Instance", active ? "Only the owner can rebuild." : "Create your kingdom first."));
         inventory.setItem(DELETE_SLOT, active && owner
                 ? GuiUtil.getNexoItem("cross", ChatColor.RED + "Delete Kingdom",
                 List.of(ChatColor.GRAY + "Permanently reset all building progress", ChatColor.GRAY + "for your active profile.", "",
-                        ChatColor.RED + "This cannot be undone.", ChatColor.WHITE + "Click " + ChatColor.GRAY + "to continue"))
+                        ChatColor.RED + "This cannot be undone.", TooltipUtil.leftClickLine("to continue")))
                 : locked("Delete Kingdom", active ? "Only the owner can delete it." : "No active kingdom to delete."));
         player.openInventory(inventory);
     }
@@ -142,7 +142,7 @@ public final class KingdomGUI implements Listener {
                         + formatDuration((building.finishAtMs() - System.currentTimeMillis()) / 1000L));
             }
             lore.add("");
-            lore.add(ChatColor.WHITE + "Click " + ChatColor.GRAY + "to visit its build marker");
+            lore.add(TooltipUtil.leftClickLine("to visit its build marker"));
             inventory.setItem(BUILDING_SLOTS[index], GuiUtil.createGuiItem(building.icon(),
                     (building.built() ? ChatColor.GREEN : ChatColor.RED) + building.displayName(), lore));
         }
@@ -172,7 +172,7 @@ public final class KingdomGUI implements Listener {
             lore.add(ChatColor.GRAY + "Status: " + onlineStatus(partner));
             if (isOwner) {
                 lore.add("");
-                lore.add(ChatColor.WHITE + "Click " + ChatColor.GRAY + "to remove member");
+                lore.add(TooltipUtil.leftClickLine("to remove member"));
             }
             inventory.setItem(24, playerHead(partner, ChatColor.AQUA + safeName(partner), lore, ownerKey));
         } else {
@@ -204,7 +204,7 @@ public final class KingdomGUI implements Listener {
             lore.add(ChatColor.GRAY + "Owner: " + ChatColor.WHITE + safeName(owner));
             lore.add(ChatColor.GRAY + "Members: " + ChatColor.WHITE + (partner == null ? 1 : 2));
             lore.add("");
-            lore.add(ChatColor.WHITE + "Click " + ChatColor.GRAY + "to visit");
+            lore.add(TooltipUtil.leftClickLine("to visit"));
             inventory.setItem(GuiUtil.PAGED_SLOTS[index++],
                     playerHead(owner, ChatColor.GREEN + safeName(owner) + "'s Kingdom", lore, ownerKey));
         }
@@ -228,7 +228,7 @@ public final class KingdomGUI implements Listener {
         Inventory inventory = menu(27, DELETE_TITLE);
         inventory.setItem(11, GuiUtil.getNexoItem("check", ChatColor.RED + "Permanently Delete",
                 List.of(ChatColor.RED + "All buildings and building levels on", ChatColor.RED + "this profile will be reset.", "",
-                        ChatColor.WHITE + "Click " + ChatColor.GRAY + "to confirm")));
+                        TooltipUtil.leftClickLine("to confirm"))));
         inventory.setItem(15, GuiUtil.getNexoItem("cross", ChatColor.GREEN + "Cancel",
                 TooltipUtil.clickInstructions("to return", null)));
         player.openInventory(inventory);
@@ -240,7 +240,7 @@ public final class KingdomGUI implements Listener {
         Inventory inventory = menu(27, REBUILD_TITLE);
         inventory.setItem(11, GuiUtil.getNexoItem("check", ChatColor.YELLOW + "Rebuild Instance",
                 List.of(ChatColor.GRAY + "The world will be reloaded, but all", ChatColor.GRAY + "saved buildings and levels are kept.", "",
-                        ChatColor.WHITE + "Click " + ChatColor.GRAY + "to confirm")));
+                        TooltipUtil.leftClickLine("to confirm"))));
         inventory.setItem(15, GuiUtil.getNexoItem("cross", ChatColor.RED + "Cancel",
                 TooltipUtil.clickInstructions("to return", null)));
         player.openInventory(inventory);
@@ -262,7 +262,7 @@ public final class KingdomGUI implements Listener {
             inventory.setItem(GuiUtil.PAGED_SLOTS[index++], playerHead(candidate,
                     ChatColor.GREEN + candidate.getName(),
                     List.of(ChatColor.GRAY + "Invite this player to your kingdom.", "",
-                            ChatColor.WHITE + "Click " + ChatColor.GRAY + "to invite"), ownerKey));
+                            TooltipUtil.leftClickLine("to invite")), ownerKey));
         }
         if (candidates.isEmpty()) {
             inventory.setItem(22, GuiUtil.getNexoItem("info", ChatColor.YELLOW + "Nobody Available",

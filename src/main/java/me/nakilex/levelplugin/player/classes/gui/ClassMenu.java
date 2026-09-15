@@ -1,5 +1,6 @@
 package me.nakilex.levelplugin.player.classes.gui;
 
+import me.nakilex.levelplugin.utils.TooltipUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -32,17 +33,17 @@ public class ClassMenu {
                 ChatColor.DARK_RED + "BARBARIAN" + ChatColor.GRAY + "! Your starting item will be a shovel.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Rageblade " + ChatColor.GRAY + "(Combo: Left Click)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Rageblade " + ChatColor.GRAY + "(Combo: " + ChatColor.WHITE + TooltipUtil.GLYPH_LEFT_CLICK + ChatColor.GRAY + ")",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Primal Axe " + ChatColor.GRAY + "(Combo: LRL)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Primal Axe " + ChatColor.GRAY + "(Combo: " + TooltipUtil.comboGlyphs("LRL") + ChatColor.GRAY + ")",
                 ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "ULTIMATE:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Eternal Fury " + ChatColor.GRAY + "(Combo: RRR)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Eternal Fury " + ChatColor.GRAY + "(Combo: " + TooltipUtil.comboGlyphs("RRR") + ChatColor.GRAY + ")",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.BARBARIAN.getRequiredLevel(),
                 "",
-                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+                TooltipUtil.leftClickLine(ChatColor.WHITE, "" + ChatColor.BOLD + "To Begin Your Adventure!")
             )));
 
         // Warrior (using wooden shovel as icon)
@@ -54,22 +55,22 @@ public class ClassMenu {
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Charge " + ChatColor.GRAY +
-                    "(Combo: LRL)",
+                    "(Combo: " + TooltipUtil.comboGlyphs("LRL") + ChatColor.GRAY + ")",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Vortex Pull " + ChatColor.GRAY +
-                    "(Combo: LRR)",
+                    "(Combo: " + TooltipUtil.comboGlyphs("LRR") + ChatColor.GRAY + ")",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Shield Barrier " + ChatColor.GRAY +
                     "(Combo: Sneak)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
             ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Rampage " + ChatColor.GRAY +
-                "(Combo: Sneak + Left Click)",
+                "(Combo: Sneak + " + ChatColor.WHITE + TooltipUtil.GLYPH_LEFT_CLICK + ChatColor.GRAY + ")",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.WARRIOR.getRequiredLevel(),
                 "",
-            ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+            TooltipUtil.leftClickLine(ChatColor.WHITE, "" + ChatColor.BOLD + "To Begin Your Adventure!")
         )));
 
         // Paladin (using wooden sword as icon)
@@ -80,17 +81,17 @@ public class ClassMenu {
                 ChatColor.GOLD + "PALADIN" + ChatColor.GRAY + "! Your starting item will be a sword.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Holy Strike " + ChatColor.GRAY + "(Combo: Left Click)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Holy Strike " + ChatColor.GRAY + "(Combo: " + ChatColor.WHITE + TooltipUtil.GLYPH_LEFT_CLICK + ChatColor.GRAY + ")",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Bound Seal " + ChatColor.GRAY + "(Combo: LRL)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Bound Seal " + ChatColor.GRAY + "(Combo: " + TooltipUtil.comboGlyphs("LRL") + ChatColor.GRAY + ")",
                 ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "ULTIMATE:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Last Stand " + ChatColor.GRAY + "(Combo: RRR)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Last Stand " + ChatColor.GRAY + "(Combo: " + TooltipUtil.comboGlyphs("RRR") + ChatColor.GRAY + ")",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.PALADIN.getRequiredLevel(),
                 "",
-                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+                TooltipUtil.leftClickLine(ChatColor.WHITE, "" + ChatColor.BOLD + "To Begin Your Adventure!")
             )));
 
         // Archer class (using crossbow as icon)
@@ -101,19 +102,19 @@ public class ClassMenu {
                 ChatColor.AQUA + "ARCHER" + ChatColor.GRAY + "! Your starting item will be a crossbow.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Backstep " + ChatColor.GRAY + "(Combo: Left Click)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Backstep " + ChatColor.GRAY + "(Combo: " + ChatColor.WHITE + TooltipUtil.GLYPH_LEFT_CLICK + ChatColor.GRAY + ")",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Bow Drone " + ChatColor.GRAY + "(Combo: Sneak + Left Click)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Bow Drone " + ChatColor.GRAY + "(Combo: Sneak + " + ChatColor.WHITE + TooltipUtil.GLYPH_LEFT_CLICK + ChatColor.GRAY + ")",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Arrow Barrage " + ChatColor.GRAY + "(Combo: Sneak)",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Dragon Piercer " + ChatColor.GRAY + "(Combo: Sneak + Right Click)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Dragon Piercer " + ChatColor.GRAY + "(Combo: Sneak + " + ChatColor.WHITE + TooltipUtil.GLYPH_RIGHT_CLICK + ChatColor.GRAY + ")",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.ARCHER.getRequiredLevel(),
                 "",
-                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+                TooltipUtil.leftClickLine(ChatColor.WHITE, "" + ChatColor.BOLD + "To Begin Your Adventure!")
             )));
 
         // PhoenixHunter class (using blaze rod as icon)
@@ -124,21 +125,21 @@ public class ClassMenu {
                 ChatColor.GOLD + "PHOENIXHUNTER" + ChatColor.GRAY + "! Master fiery bow skills.",
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Ashdance " + ChatColor.GRAY + "(Combo: LRL)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Ashdance " + ChatColor.GRAY + "(Combo: " + TooltipUtil.comboGlyphs("LRL") + ChatColor.GRAY + ")",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Flameburst Convergence " + ChatColor.GRAY + "(Combo: LRR)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Flameburst Convergence " + ChatColor.GRAY + "(Combo: " + TooltipUtil.comboGlyphs("LRR") + ChatColor.GRAY + ")",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Phoenix Totem " + ChatColor.GRAY + "(Combo: LLR)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Phoenix Totem " + ChatColor.GRAY + "(Combo: " + TooltipUtil.comboGlyphs("LLR") + ChatColor.GRAY + ")",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Pyroclasmic Barrage " + ChatColor.GRAY + "(Combo: LLL)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Pyroclasmic Barrage " + ChatColor.GRAY + "(Combo: " + TooltipUtil.comboGlyphs("LLL") + ChatColor.GRAY + ")",
                 ChatColor.DARK_AQUA + "" + ChatColor.BOLD + "ULTIMATE:",
-                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Phoenix Rebirth " + ChatColor.GRAY + "(Combo: RRR)",
+                ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Phoenix Rebirth " + ChatColor.GRAY + "(Combo: " + TooltipUtil.comboGlyphs("RRR") + ChatColor.GRAY + ")",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.PHOENIXHUNTER.getRequiredLevel(),
                 "",
-                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+                TooltipUtil.leftClickLine(ChatColor.WHITE, "" + ChatColor.BOLD + "To Begin Your Adventure!")
             )));
 
         // Mage (using stick as icon)
@@ -150,22 +151,22 @@ public class ClassMenu {
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Meteor " + ChatColor.GRAY +
-                    "(Combo: RLL)",
+                    "(Combo: " + TooltipUtil.comboGlyphs("RLL") + ChatColor.GRAY + ")",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Blackhole " + ChatColor.GRAY +
-                    "(Combo: RRL)",
+                    "(Combo: " + TooltipUtil.comboGlyphs("RRL") + ChatColor.GRAY + ")",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Heal " + ChatColor.GRAY +
-                    "(Combo: RLR)",
+                    "(Combo: " + TooltipUtil.comboGlyphs("RLR") + ChatColor.GRAY + ")",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Teleport " + ChatColor.GRAY +
-                    "(Combo: RRR)",
+                    "(Combo: " + TooltipUtil.comboGlyphs("RRR") + ChatColor.GRAY + ")",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.MAGE.getRequiredLevel(),
                 "",
-                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+                TooltipUtil.leftClickLine(ChatColor.WHITE, "" + ChatColor.BOLD + "To Begin Your Adventure!")
             )));
 
         // Rogue (using iron sword as icon)
@@ -177,22 +178,22 @@ public class ClassMenu {
                 "",
                 ChatColor.RED + "" + ChatColor.BOLD + "ABILITY 1:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Crescent Slash " + ChatColor.GRAY +
-                    "(Combo: RLL)",
+                    "(Combo: " + TooltipUtil.comboGlyphs("RLL") + ChatColor.GRAY + ")",
                 ChatColor.YELLOW + "" + ChatColor.BOLD + "ABILITY 2:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Multihit " + ChatColor.GRAY +
-                    "(Combo: RRL)",
+                    "(Combo: " + TooltipUtil.comboGlyphs("RRL") + ChatColor.GRAY + ")",
                 ChatColor.BLUE + "" + ChatColor.BOLD + "ABILITY 3:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Smoke Bomb " + ChatColor.GRAY +
-                    "(Combo: RLR)",
+                    "(Combo: " + TooltipUtil.comboGlyphs("RLR") + ChatColor.GRAY + ")",
                 ChatColor.LIGHT_PURPLE + "" + ChatColor.BOLD + "ABILITY 4:",
                 ChatColor.WHITE + "" + ChatColor.UNDERLINE + "Vanish " + ChatColor.GRAY +
-                    "(Combo: RRR)",
+                    "(Combo: " + TooltipUtil.comboGlyphs("RRR") + ChatColor.GRAY + ")",
                 "",
                 ChatColor.GOLD + "" + ChatColor.BOLD + "Notice! " + ChatColor.GOLD + "You can switch your class at any time.",
                 ChatColor.GRAY + "Switch Cost: " + ChatColor.GOLD + "<glyph:coins_icon> " + cost,
                 ChatColor.GRAY + "Requires Level: " + ChatColor.YELLOW + PlayerClass.ROGUE.getRequiredLevel(),
                 "",
-                ChatColor.WHITE + "" + ChatColor.BOLD + "Click To Begin Your Adventure!"
+                TooltipUtil.leftClickLine(ChatColor.WHITE, "" + ChatColor.BOLD + "To Begin Your Adventure!")
             )));
 
         // Fill borders with gray stained glass panes
