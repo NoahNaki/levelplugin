@@ -350,6 +350,10 @@ commands:
   fireballdebug:
     description: Debug placement and rotation for the mage fireball model
     usage: /fireballdebug <spawn|move|rotate|face|info|diagnose|trace|remove>
+  waypointdebug:
+    description: Create and edit directional text waypoint previews
+    usage: /waypointdebug <set|move|show|hide|delete|list|clear>
+    permission: levelplugin.admin
   custommob:
     description: Manage mobs
     usage: /custommob <list|spawn|info|reload|gui|kill|killall|cast|spawner>

@@ -35,6 +35,7 @@ import me.nakilex.levelplugin.debug.BeaconEntityDebugManager;
 import me.nakilex.levelplugin.debug.commands.DebugCommand;
 import me.nakilex.levelplugin.debug.commands.SpawnEntityModelCommand;
 import me.nakilex.levelplugin.debug.commands.MageFireballDebugCommand;
+import me.nakilex.levelplugin.debug.commands.WaypointDebugCommand;
 import me.nakilex.levelplugin.player.attributes.commands.AddPointsCommand;
 import me.nakilex.levelplugin.player.attributes.commands.LifeSkillCommand;
 import me.nakilex.levelplugin.player.attributes.commands.StatsCommand;
@@ -420,6 +421,9 @@ public class CommandRegistry {
         MageFireballDebugCommand mageFireballDebugCommand = new MageFireballDebugCommand(plugin);
         plugin.getCommand("fireballdebug").setExecutor(mageFireballDebugCommand);
         plugin.getCommand("fireballdebug").setTabCompleter(mageFireballDebugCommand);
+        WaypointDebugCommand waypointDebugCommand = new WaypointDebugCommand(plugin.getDirectionalWaypointService());
+        plugin.getCommand("waypointdebug").setExecutor(waypointDebugCommand);
+        plugin.getCommand("waypointdebug").setTabCompleter(waypointDebugCommand);
         CustomMobCommand customMobCommand = new CustomMobCommand(customMobManager);
         plugin.getCommand("custommob").setExecutor(customMobCommand);
         plugin.getCommand("custommob").setTabCompleter(customMobCommand);
