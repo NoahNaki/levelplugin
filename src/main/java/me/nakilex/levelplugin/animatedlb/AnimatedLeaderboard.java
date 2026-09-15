@@ -86,7 +86,11 @@ public class AnimatedLeaderboard {
             double y = 1.2 - (i * 0.24);
             Vector leftBase = new Vector(localX(-0.95), y, localZ(-0.95));
             Vector rightBase = new Vector(localX(0.95), y, localZ(0.95));
-            RowDisplay row = new RowDisplay(spawnText(-0.95, y, ""), spawnText(0.95, y, ""), leftBase, rightBase, i);
+            TextDisplay leftText = spawnText(-0.95, y, "");
+            leftText.setAlignment(TextDisplay.TextAlignment.LEFT);
+            TextDisplay rightText = spawnText(0.95, y, "");
+            rightText.setAlignment(TextDisplay.TextAlignment.RIGHT);
+            RowDisplay row = new RowDisplay(leftText, rightText, leftBase, rightBase, i);
             row.setOpacity(VISIBLE_OPACITY);
             rows.add(row);
         }

@@ -142,7 +142,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             BoardType.XPRISON_REBIRTH, BoardType.XPRISON_TOKENS
     );
     private static final List<KingdomLeaderboardPlacement> LIFE_SKILL_LEADERBOARDS = List.of(
-            new KingdomLeaderboardPlacement(new WorldPoint(3858, 74, -3467), -79.2F, MINING_STAND_PAGES),
+            new KingdomLeaderboardPlacement(new WorldPoint(3859, 74, -3466), -91.8F, MINING_STAND_PAGES),
             new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3800, 98, -3018)), -90.0F, List.of(BoardType.FARMING)),
             new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3664, 82, -3026)), 45.0F, List.of(BoardType.FISHING))
     );
