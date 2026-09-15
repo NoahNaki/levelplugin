@@ -81,6 +81,35 @@ public final class SpellEffectUtil {
         return targets;
     }
 
+    /**
+     * Push valid combat targets radially away from a point. Keeping the velocity calculation here
+     * gives shockwaves, wind skills, and future area effects one consistent implementation.
+     *
+     * @return the targets whose velocity was changed
+     */
+    public static List<LivingEntity> applyRadialKnockback(Location center,
+                                                          double radius,
+                                                          double horizontalStrength,
+                                                          double verticalStrength,
+                                                          double retainedVelocity,
+                                                          Predicate<LivingEntity> filter) {
+        if (center == null || center.getWorld() == null) {
+            return List.of();
+        }
+        double retained = Math.max(0.0, Math.min(1.0, retainedVelocity));
+        List<LivingEntity> affected = new ArrayList<>();
+        for (LivingEntity target : getLivingTargets(center, radius, filter)) {
+            Vector away = target.getLocation().toVector().subtract(center.toVector()).setY(0.0);
+            if (horizontalStrength > 0.0 && away.lengthSquared() >= 0.0001) {
+                Vector push = away.normalize().multiply(horizontalStrength)
+                        .setY(Math.max(0.0, verticalStrength));
+                target.setVelocity(target.getVelocity().multiply(retained).add(push));
+            }
+            affected.add(target);
+        }
+        return affected;
+    }
+
     public static void applyStun(LivingEntity target, int durationTicks) {
         applyStun(target, durationTicks, true);
     }

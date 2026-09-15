@@ -34,6 +34,12 @@ public enum WeaponType {
         Material.WOODEN_SHOVEL, Material.STONE_SHOVEL,
         Material.IRON_SHOVEL, Material.GOLDEN_SHOVEL,
         Material.DIAMOND_SHOVEL, Material.NETHERITE_SHOVEL
+    )),
+    SPEAR(Arrays.asList(
+        Material.WOODEN_SPEAR, Material.STONE_SPEAR,
+        Material.COPPER_SPEAR, Material.IRON_SPEAR,
+        Material.GOLDEN_SPEAR, Material.DIAMOND_SPEAR,
+        Material.NETHERITE_SPEAR
     ));
 
     private final List<Material> materials;
@@ -85,7 +91,7 @@ public enum WeaponType {
 
     public static boolean isValidWarriorWeapon(ItemStack item) {
         WeaponType type = matchType(item);
-        return type == SWORD || type == AXE || type == SHOVEL;
+        return type == SWORD || type == AXE || type == SHOVEL || type == SPEAR;
     }
 
     public static boolean isValidMageWeapon(ItemStack item) {

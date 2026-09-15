@@ -11,7 +11,6 @@ import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.util.Vector;
 
 public class WarriorEarthquakeSpell implements SpellHandler {
     private final Main plugin;
@@ -38,13 +37,9 @@ public class WarriorEarthquakeSpell implements SpellHandler {
         world.spawnParticle(Particle.CLOUD, center, 26, radius * 0.25, 0.15, radius * 0.25, 0.02);
         WarriorCombatUtil.runGroundRippleWave(plugin, world, center, radius, 0.7, 1L);
         world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 0.65f, 0.75f);
-        for (LivingEntity target : SpellEffectUtil.getLivingTargets(center, radius, living -> !living.equals(caster))) {
+        for (LivingEntity target : SpellEffectUtil.applyRadialKnockback(center, radius, knockback, 0.24, 0.6,
+                living -> !living.equals(caster))) {
             SpellEffectUtil.applyDirectSpellDamage(plugin, caster, target, damage, true);
-            Vector away = target.getLocation().toVector().subtract(center.toVector());
-            away.setY(0.0);
-            if (away.lengthSquared() > 0.0001 && knockback > 0.0) {
-                target.setVelocity(target.getVelocity().multiply(0.6).add(away.normalize().multiply(knockback)).setY(0.24));
-            }
         }
     }
 }

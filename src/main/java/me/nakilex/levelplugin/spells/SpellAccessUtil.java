@@ -36,7 +36,8 @@ public final class SpellAccessUtil {
         return type == WeaponType.BOW
                 || type == WeaponType.WAND
                 || type == WeaponType.SWORD
-                || type == WeaponType.AXE;
+                || type == WeaponType.AXE
+                || type == WeaponType.SPEAR;
     }
 
     public static boolean isBasicAttackWeapon(ItemStack item) {
@@ -51,9 +52,15 @@ public final class SpellAccessUtil {
         return WeaponType.matchType(item) == WeaponType.WAND;
     }
 
-    public static boolean isBladeOrAxeWeapon(ItemStack item) {
+    public static boolean isMeleeWeapon(ItemStack item) {
         WeaponType type = WeaponType.matchType(item);
-        return type == WeaponType.SWORD || type == WeaponType.AXE;
+        return type == WeaponType.SWORD || type == WeaponType.AXE || type == WeaponType.SPEAR;
+    }
+
+    /** @deprecated use {@link #isMeleeWeapon(ItemStack)} for all supported melee families. */
+    @Deprecated
+    public static boolean isBladeOrAxeWeapon(ItemStack item) {
+        return isMeleeWeapon(item);
     }
 
     public static boolean isHoldingLifeSkillTool(Player player) {

@@ -317,7 +317,7 @@ public class ItemUtil {
                 cls = switch (wType) {
                     case WAND -> "MAGE";
                     case BOW -> "ARCHER";
-                    case SHOVEL, AXE -> "WARRIOR";
+                    case SHOVEL, AXE, SPEAR -> "WARRIOR";
                     case SWORD -> "ROGUE";
                 };
             }
@@ -334,7 +334,7 @@ public class ItemUtil {
                 cls = switch (wType) {
                     case WAND -> "MAGE";
                     case BOW -> "ARCHER";
-                    case SHOVEL, AXE -> "WARRIOR";
+                    case SHOVEL, AXE, SPEAR -> "WARRIOR";
                     case SWORD -> "ROGUE";
                 };
             }

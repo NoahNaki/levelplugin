@@ -679,14 +679,17 @@ public class StaticItemListener implements Listener {
      * unaffected.
      */
     @SuppressWarnings("deprecation") // The modern event is not cancellable; this one still fires.
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onRecipeBookClick(com.destroystokyo.paper.event.player.PlayerRecipeBookClickEvent event) {
         Player player = event.getPlayer();
-        if (!isCraftingMenuContext(player.getOpenInventory())
-                || !hasCraftingShortcutItems(player.getOpenInventory())) {
+        if (!isCraftingMenuContext(player.getOpenInventory()) || shouldDisableCraftingShortcuts(player)) {
             return;
         }
+        // Deliberately not gated on the grid still holding the menu icons: an earlier click in this
+        // same recipe-book session may already have wiped them, and those follow-up clicks are
+        // exactly the ones that were leaking menu items into the real inventory.
         event.setCancelled(true);
+        applyInventoryDebugSession(player, player.getOpenInventory());
         queueCraftingMenuRefresh(player);
     }
 

@@ -22,6 +22,8 @@ public class ItemNameDisplayListener implements Listener {
         Material.DIAMOND_SWORD, Material.IRON_SWORD, Material.GOLDEN_SWORD, Material.NETHERITE_SWORD, Material.WOODEN_SWORD, Material.STONE_SWORD,
         Material.DIAMOND_AXE, Material.IRON_AXE, Material.GOLDEN_AXE, Material.NETHERITE_AXE, Material.WOODEN_AXE, Material.STONE_AXE,
         Material.BOW, Material.CROSSBOW, Material.TRIDENT,
+        Material.WOODEN_SPEAR, Material.STONE_SPEAR, Material.COPPER_SPEAR, Material.IRON_SPEAR,
+        Material.GOLDEN_SPEAR, Material.DIAMOND_SPEAR, Material.NETHERITE_SPEAR,
         Material.LEATHER_HELMET, Material.LEATHER_CHESTPLATE, Material.LEATHER_LEGGINGS, Material.LEATHER_BOOTS,
         Material.IRON_HELMET, Material.IRON_CHESTPLATE, Material.IRON_LEGGINGS, Material.IRON_BOOTS,
         Material.DIAMOND_HELMET, Material.DIAMOND_CHESTPLATE, Material.DIAMOND_LEGGINGS, Material.DIAMOND_BOOTS,
