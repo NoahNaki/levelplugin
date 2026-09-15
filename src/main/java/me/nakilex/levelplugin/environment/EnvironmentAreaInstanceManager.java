@@ -142,10 +142,16 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             BoardType.XPRISON_REBIRTH, BoardType.XPRISON_TOKENS
     );
     private static final List<KingdomLeaderboardPlacement> LIFE_SKILL_LEADERBOARDS = List.of(
-            new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3858, 73, -3006)), -90.0F, MINING_STAND_PAGES),
+            new KingdomLeaderboardPlacement(new WorldPoint(3858, 74, -3467), -79.2F, MINING_STAND_PAGES),
             new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3800, 98, -3018)), -90.0F, List.of(BoardType.FARMING)),
             new KingdomLeaderboardPlacement(projectFinishedToEmpty(new WorldPoint(3664, 82, -3026)), 45.0F, List.of(BoardType.FISHING))
     );
+
+    /** Every animated leaderboard's template point, so their chunks can be force-preloaded on kingdom generation. */
+    private static final List<WorldPoint> ANIMATED_LEADERBOARD_CHUNK_ANCHORS = java.util.stream.Stream.concat(
+            java.util.stream.Stream.of(KINGDOM_ANIMATED_LB),
+            LIFE_SKILL_LEADERBOARDS.stream().map(KingdomLeaderboardPlacement::point)
+    ).toList();
 
     private static final List<BuildingTemplate> BUILDINGS = List.of(
             new BuildingTemplate(1, "bar", "Bar", Material.BRICKS,
@@ -630,6 +636,18 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         for (int chunkX = mineShell.minX() >> 4; chunkX <= mineShell.maxX() >> 4; chunkX++) {
             for (int chunkZ = mineShell.minZ() >> 4; chunkZ <= mineShell.maxZ() >> 4; chunkZ++) {
                 chunkKeys.add(chunkKey(chunkX, chunkZ));
+            }
+        }
+
+        // Animated leaderboards can sit well outside the spawn radius too (the mining stand in
+        // particular). Their chunk must be loaded before the 1-tick-later cosmetics pass spawns
+        // their display entities, or the board comes up broken until something else forces the
+        // chunk to load (e.g. moving it).
+        for (WorldPoint boardPoint : ANIMATED_LEADERBOARD_CHUNK_ANCHORS) {
+            WorldPoint resolved = resolveKingdomTemplatePoint(boardPoint);
+            Location pasted = toPastedLocation(world, resolved, originX, originY, originZ);
+            if (pasted != null) {
+                chunkKeys.add(chunkKey(pasted.getBlockX() >> 4, pasted.getBlockZ() >> 4));
             }
         }
 
@@ -3037,6 +3055,57 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 plugin.getConfig().getDouble("animatedlb.animation-speed", 1.0D), boardTypes);
         board.spawn();
         boards.add(board);
+    }
+
+    private static final List<String> ANIMATED_LEADERBOARD_IDS = List.of("kingdom", "mining", "farming", "fishing");
+
+    /**
+     * Moves one of the player's kingdom animated leaderboards to their current position/facing.
+     * Repositions it live for their session and returns the template WorldPoint + yaw to paste
+     * into {@code LIFE_SKILL_LEADERBOARDS}/{@code KINGDOM_ANIMATED_LB} so the move survives a restart.
+     */
+    public String moveAnimatedLeaderboardHere(Player player, String boardIdRaw) {
+        if (player == null) {
+            return "Only players can use this command.";
+        }
+        String boardId = boardIdRaw == null ? "" : boardIdRaw.toLowerCase(Locale.ROOT);
+        int index = ANIMATED_LEADERBOARD_IDS.indexOf(boardId);
+        if (index < 0) {
+            return "Unknown board id. Use one of: " + String.join(", ", ANIMATED_LEADERBOARD_IDS);
+        }
+        UUID ownerId = resolveAreaOwner(player.getUniqueId());
+        EnvironmentAreaSession session = ownerId == null ? null : sessions.get(ownerId);
+        if (session == null || session.world() == null || !session.world().equals(player.getWorld())) {
+            return "You must be standing in your kingdom instance to move its leaderboards.";
+        }
+        List<AnimatedLeaderboard> boards = animatedLeaderboardsByOwner.get(ownerId);
+        if (boards == null || boards.size() <= index) {
+            return "That leaderboard hasn't spawned yet.";
+        }
+
+        AnimatedLeaderboard old = boards.get(index);
+        List<BoardType> types = old.getBoardTypes();
+        old.remove();
+
+        Location origin = player.getLocation().clone();
+        origin.setPitch(0f);
+        LeaderboardDataProvider provider = plugin instanceof Main main
+                ? new PlayerStatsLeaderboardDataProvider(main)
+                : new MockLeaderboardDataProvider();
+        AnimatedLeaderboard fresh = new AnimatedLeaderboard(plugin, provider, origin,
+                (float) plugin.getConfig().getDouble("animatedlb.scale", 0.85D),
+                plugin.getConfig().getInt("animatedlb.cycle-duration", 200),
+                plugin.getConfig().getInt("animatedlb.row-count", 10),
+                plugin.getConfig().getDouble("animatedlb.animation-speed", 1.0D), types);
+        fresh.spawn();
+        boards.set(index, fresh);
+
+        int px = origin.getBlockX() - session.originX() + AREA.minX();
+        int py = origin.getBlockY() - session.originY() + AREA.minY();
+        int pz = origin.getBlockZ() - session.originZ() + AREA.minZ();
+        return String.format(Locale.ROOT,
+                "Moved '%s' board here. To persist across restarts, update EnvironmentAreaInstanceManager.java with point=(%d, %d, %d) yaw=%.1f",
+                boardId, px, py, pz, origin.getYaw());
     }
 
     private void removeAnimatedLeaderboard(UUID ownerId) {

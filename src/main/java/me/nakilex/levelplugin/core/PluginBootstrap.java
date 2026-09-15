@@ -745,6 +745,10 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.animatedlb.AnimatedLeaderboardPlugin(animatedLbManager);
         plugin.getCommand("animatedlb").setExecutor(animatedLbCmd);
         plugin.getCommand("animatedlb").setTabCompleter(animatedLbCmd);
+        me.nakilex.levelplugin.environment.LeaderboardMoveCommand lbMoveCmd =
+                new me.nakilex.levelplugin.environment.LeaderboardMoveCommand(plugin);
+        plugin.getCommand("lbmove").setExecutor(lbMoveCmd);
+        plugin.getCommand("lbmove").setTabCompleter(lbMoveCmd);
         me.nakilex.levelplugin.playerhead.PlayerModelCommand playerModelCommand =
                 new me.nakilex.levelplugin.playerhead.PlayerModelCommand();
         plugin.getCommand("playermodel").setExecutor(playerModelCommand);

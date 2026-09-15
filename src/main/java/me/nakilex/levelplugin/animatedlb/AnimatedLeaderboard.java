@@ -69,6 +69,10 @@ public class AnimatedLeaderboard {
         this.boardType = this.boardTypes.get(0);
     }
 
+    public List<BoardType> getBoardTypes() {
+        return boardTypes;
+    }
+
     public void spawn() {
         remove();
         removeOrphanedDisplays();

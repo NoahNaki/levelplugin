@@ -147,7 +147,7 @@ public class FastTravelManager {
         if (loc == null) return null;
         for (FastTravelPoint pt : points.values()) {
             Location pLoc = pt.getLocation();
-            if (pLoc.getWorld().equals(loc.getWorld()) && loc.distance(pLoc) <= pt.getRadius()) {
+            if (pLoc.getWorld() != null && pLoc.getWorld().equals(loc.getWorld()) && loc.distance(pLoc) <= pt.getRadius()) {
                 return pt;
             }
         }

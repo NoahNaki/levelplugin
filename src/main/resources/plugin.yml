@@ -479,6 +479,10 @@ commands:
     description: Manage animated world leaderboard
     usage: /animatedlb <spawn|remove|reload|next>
     permission: levelplugin.animatedlb
+  lbmove:
+    description: Move a kingdom animated leaderboard to your current position/facing
+    usage: /lbmove <kingdom|mining|farming|fishing>
+    permission: levelplugin.lbmove
 
   lpadvancement:
     description: Manage custom LevelPlugin advancements
@@ -492,6 +496,8 @@ commands:
 
 permissions:
   levelplugin.animatedlb:
+    default: op
+  levelplugin.lbmove:
     default: op
   levelplugin.leaderboards.admin:
     default: op
