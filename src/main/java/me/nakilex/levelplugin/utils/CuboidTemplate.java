@@ -59,6 +59,8 @@ public final class CuboidTemplate {
     private static final int CHUNK_LOADS_IN_FLIGHT = 16;
     private static final int PASTE_BLOCKS_PER_TICK = 20_000;
     private static final int PASTE_TIME_CHECK_INTERVAL = 256;
+    /** Each of relX/relY/relZ/runLength occupies 16 bits of the packed run. */
+    private static final int MAX_PACKED_EXTENT = 0xFFFF;
 
     private final String sourceWorldName;
     private final int minX;
@@ -68,10 +70,18 @@ public final class CuboidTemplate {
     private final int height;
     private final int depth;
     private final BlockData[] palette;
-    private final int[] positions;
-    private final int[] paletteIds;
+    /**
+     * Vertical runs, grouped by relative chunk. Capture scans {@code x -> z -> y}, so
+     * consecutive stored blocks in a column share an X/Z and differ by one Y, which lets
+     * a solid column collapse into a single entry. Each long packs
+     * {@code relX | relY << 16 | relZ << 32 | length << 48}.
+     */
+    private final long[] runs;
+    private final int[] runPaletteIds;
+    private final int runCount;
     private final int blockCount;
     private final int relativeChunkColumns;
+    /** Indexes into {@link #runs}, not into individual blocks. */
     private final int[] relativeChunkOffsets;
     private final List<NexoBlockCopy> nexoBlocks;
     private final List<NexoFurnitureCopy> nexoFurniture;
@@ -89,6 +99,10 @@ public final class CuboidTemplate {
                            int blockCount,
                            List<NexoBlockCopy> nexoBlocks,
                            List<NexoFurnitureCopy> nexoFurniture) {
+        if (width > MAX_PACKED_EXTENT || height > MAX_PACKED_EXTENT || depth > MAX_PACKED_EXTENT) {
+            throw new IllegalArgumentException("Template extent exceeds " + MAX_PACKED_EXTENT
+                    + " blocks on an axis: " + width + "x" + height + "x" + depth);
+        }
         this.sourceWorldName = sourceWorldName;
         this.minX = minX;
         this.minY = minY;
@@ -97,12 +111,13 @@ public final class CuboidTemplate {
         this.height = height;
         this.depth = depth;
         this.palette = palette;
-        ChunkOrderedBlocks ordered = orderByRelativeChunk(width, height, depth, positions, paletteIds, blockCount);
-        this.positions = ordered.positions();
-        this.paletteIds = ordered.paletteIds();
+        RunIndex index = buildRunIndex(width, height, depth, positions, paletteIds, blockCount);
+        this.runs = index.runs();
+        this.runPaletteIds = index.paletteIds();
+        this.runCount = index.runCount();
         this.blockCount = blockCount;
         this.relativeChunkColumns = (width + 15) >> 4;
-        this.relativeChunkOffsets = ordered.offsets();
+        this.relativeChunkOffsets = index.offsets();
         this.nexoBlocks = Collections.unmodifiableList(new ArrayList<>(nexoBlocks == null ? List.of() : nexoBlocks));
         this.nexoFurniture = Collections.unmodifiableList(new ArrayList<>(nexoFurniture == null ? List.of() : nexoFurniture));
     }
@@ -345,8 +360,8 @@ public final class CuboidTemplate {
         if (world == null) {
             return;
         }
-        for (int i = 0; i < blockCount; i++) {
-            writeBlock(world, baseX, baseY, baseZ, i);
+        for (int runIndex = 0; runIndex < runCount; runIndex++) {
+            writeRun(world, baseX, baseY, baseZ, runIndex, 0, runLength(runs[runIndex]));
         }
         pasteNexo(world, baseX, baseY, baseZ);
     }
@@ -363,15 +378,12 @@ public final class CuboidTemplate {
             return;
         }
         new BukkitRunnable() {
-            private int index;
+            private final RunCursor cursor = new RunCursor();
 
             @Override
             public void run() {
-                int end = Math.min(blockCount, index + PASTE_BLOCKS_PER_TICK);
-                for (; index < end; index++) {
-                    writeBlock(world, baseX, baseY, baseZ, index);
-                }
-                if (index < blockCount) {
+                cursor.write(world, baseX, baseY, baseZ, PASTE_BLOCKS_PER_TICK);
+                if (!cursor.done()) {
                     return;
                 }
                 cancel();
@@ -428,7 +440,7 @@ public final class CuboidTemplate {
                                     CompletableFuture<PasteStats> result) {
         long pasteStarted = System.nanoTime();
         new BukkitRunnable() {
-            private int index;
+            private final RunCursor cursor = new RunCursor();
             private int batchSize = options.initialBlocksPerTick();
             private int batches;
             private int smallestBatch = Integer.MAX_VALUE;
@@ -439,21 +451,18 @@ public final class CuboidTemplate {
             @Override
             public void run() {
                 long batchStarted = System.nanoTime();
-                int batchStartIndex = index;
+                int written = 0;
                 try {
-                    int hardEnd = Math.min(blockCount, index + batchSize);
-                    while (index < hardEnd) {
-                        writeBlock(world, baseX, baseY, baseZ, index++);
-                        int written = index - batchStartIndex;
+                    while (written < batchSize && !cursor.done()) {
+                        int slice = Math.min(PASTE_TIME_CHECK_INTERVAL, batchSize - written);
+                        written += cursor.write(world, baseX, baseY, baseZ, slice);
                         if (written >= options.minimumBlocksPerTick()
-                                && written % PASTE_TIME_CHECK_INTERVAL == 0
                                 && System.nanoTime() - batchStarted >= options.targetNanosPerTick()) {
                             break;
                         }
                     }
 
                     long batchNanos = System.nanoTime() - batchStarted;
-                    int written = index - batchStartIndex;
                     if (written > 0) {
                         batches++;
                         activeNanos += batchNanos;
@@ -463,7 +472,7 @@ public final class CuboidTemplate {
                         batchSize = nextBatchSize(options, batchSize, written, batchNanos);
                     }
 
-                    if (index < blockCount) {
+                    if (!cursor.done()) {
                         return;
                     }
 
@@ -572,14 +581,46 @@ public final class CuboidTemplate {
         return result;
     }
 
-    private void writeBlock(World world, int baseX, int baseY, int baseZ, int index) {
-        int linear = positions[index];
-        int relZ = linear % depth;
-        int rest = linear / depth;
-        int relY = rest % height;
-        int relX = rest / height;
-        world.getBlockAt(baseX + relX, baseY + relY, baseZ + relZ)
-                .setBlockData(palette[paletteIds[index]], false);
+    /** Writes part of one vertical run, from {@code fromOffset} up to (excluding) {@code toOffset}. */
+    private void writeRun(World world, int baseX, int baseY, int baseZ, int runIndex, int fromOffset, int toOffset) {
+        long run = runs[runIndex];
+        int worldX = baseX + runRelX(run);
+        int worldZ = baseZ + runRelZ(run);
+        int worldY = baseY + runRelY(run);
+        BlockData data = palette[runPaletteIds[runIndex]];
+        for (int offset = fromOffset; offset < toOffset; offset++) {
+            world.getBlockAt(worldX, worldY + offset, worldZ).setBlockData(data, false);
+        }
+    }
+
+    /**
+     * Resumable position within the run list, so a multi-tick paste can stop mid-column
+     * and pick the same column back up on the next tick.
+     */
+    private final class RunCursor {
+        private int runIndex;
+        private int offset;
+
+        private boolean done() {
+            return runIndex >= runCount;
+        }
+
+        /** Writes at most {@code budget} blocks and returns how many it actually wrote. */
+        private int write(World world, int baseX, int baseY, int baseZ, int budget) {
+            int written = 0;
+            while (written < budget && runIndex < runCount) {
+                int length = runLength(runs[runIndex]);
+                int take = Math.min(length - offset, budget - written);
+                writeRun(world, baseX, baseY, baseZ, runIndex, offset, offset + take);
+                written += take;
+                offset += take;
+                if (offset >= length) {
+                    runIndex++;
+                    offset = 0;
+                }
+            }
+            return written;
+        }
     }
 
     /**
@@ -608,25 +649,42 @@ public final class CuboidTemplate {
         int maxRelativeChunkX = relMaxX >> 4;
         int minRelativeChunkZ = relMinZ >> 4;
         int maxRelativeChunkZ = relMaxZ >> 4;
+        int worldMinY = chunkData.getMinHeight();
+        int worldMaxY = chunkData.getMaxHeight();
         for (int relativeChunkX = minRelativeChunkX; relativeChunkX <= maxRelativeChunkX; relativeChunkX++) {
             for (int relativeChunkZ = minRelativeChunkZ; relativeChunkZ <= maxRelativeChunkZ; relativeChunkZ++) {
                 int relativeChunkIndex = relativeChunkZ * relativeChunkColumns + relativeChunkX;
                 int start = relativeChunkOffsets[relativeChunkIndex];
                 int end = relativeChunkOffsets[relativeChunkIndex + 1];
                 for (int i = start; i < end; i++) {
-                    int linear = positions[i];
-                    int relZ = linear % depth;
-                    int rest = linear / depth;
-                    int relY = rest % height;
-                    int relX = rest / height;
-                    int worldX = baseX + relX;
-                    int worldY = baseY + relY;
-                    int worldZ = baseZ + relZ;
-                    if ((worldX >> 4) != targetChunkX || (worldZ >> 4) != targetChunkZ
-                            || worldY < chunkData.getMinHeight() || worldY >= chunkData.getMaxHeight()) {
+                    long run = runs[i];
+                    int worldX = baseX + runRelX(run);
+                    if ((worldX >> 4) != targetChunkX) {
                         continue;
                     }
-                    chunkData.setBlock(worldX & 15, worldY, worldZ & 15, palette[paletteIds[i]]);
+                    int worldZ = baseZ + runRelZ(run);
+                    if ((worldZ >> 4) != targetChunkZ) {
+                        continue;
+                    }
+                    int fromY = baseY + runRelY(run);
+                    int toY = fromY + runLength(run); // exclusive
+                    if (toY <= worldMinY || fromY >= worldMaxY) {
+                        continue;
+                    }
+                    if (fromY < worldMinY) {
+                        fromY = worldMinY;
+                    }
+                    if (toY > worldMaxY) {
+                        toY = worldMaxY;
+                    }
+                    int localX = worldX & 15;
+                    int localZ = worldZ & 15;
+                    BlockData data = palette[runPaletteIds[i]];
+                    if (toY - fromY == 1) {
+                        chunkData.setBlock(localX, fromY, localZ, data);
+                    } else {
+                        chunkData.setRegion(localX, fromY, localZ, localX + 1, toY, localZ + 1, data);
+                    }
                 }
             }
         }
@@ -685,14 +743,13 @@ public final class CuboidTemplate {
         if (material == null) {
             return Optional.empty();
         }
-        for (int i = 0; i < blockCount; i++) {
-            if (palette[paletteIds[i]].getMaterial() != material) {
+        for (int runIndex = 0; runIndex < runCount; runIndex++) {
+            BlockData data = palette[runPaletteIds[runIndex]];
+            if (data.getMaterial() != material) {
                 continue;
             }
-            int linear = positions[i];
-            int relZ = linear % depth;
-            int rest = linear / depth;
-            return Optional.of(new BlockCopy(rest / height, rest % height, relZ, palette[paletteIds[i]]));
+            long run = runs[runIndex];
+            return Optional.of(new BlockCopy(runRelX(run), runRelY(run), runRelZ(run), data));
         }
         return Optional.empty();
     }
@@ -703,12 +760,20 @@ public final class CuboidTemplate {
         }
         IntBuffer keptPositions = new IntBuffer();
         IntBuffer keptIds = new IntBuffer();
-        for (int i = 0; i < blockCount; i++) {
-            if (palette[paletteIds[i]].getMaterial() == material) {
+        for (int runIndex = 0; runIndex < runCount; runIndex++) {
+            int paletteId = runPaletteIds[runIndex];
+            if (palette[paletteId].getMaterial() == material) {
                 continue;
             }
-            keptPositions.add(positions[i]);
-            keptIds.add(paletteIds[i]);
+            long run = runs[runIndex];
+            int relX = runRelX(run);
+            int relY = runRelY(run);
+            int relZ = runRelZ(run);
+            int length = runLength(run);
+            for (int offset = 0; offset < length; offset++) {
+                keptPositions.add(linear(relX, relY + offset, relZ, height, depth));
+                keptIds.add(paletteId);
+            }
         }
         return new CuboidTemplate(sourceWorldName, minX, minY, minZ, width, height, depth,
                 palette, keptPositions.trimmed(), keptIds.trimmed(), keptPositions.size(),
@@ -754,13 +819,26 @@ public final class CuboidTemplate {
      */
     public List<BlockCopy> blocks() {
         List<BlockCopy> out = new ArrayList<>(blockCount);
-        for (int i = 0; i < blockCount; i++) {
-            int linear = positions[i];
-            int relZ = linear % depth;
-            int rest = linear / depth;
-            out.add(new BlockCopy(rest / height, rest % height, relZ, palette[paletteIds[i]]));
+        for (int runIndex = 0; runIndex < runCount; runIndex++) {
+            long run = runs[runIndex];
+            BlockData data = palette[runPaletteIds[runIndex]];
+            int relX = runRelX(run);
+            int relY = runRelY(run);
+            int relZ = runRelZ(run);
+            int length = runLength(run);
+            for (int offset = 0; offset < length; offset++) {
+                out.add(new BlockCopy(relX, relY + offset, relZ, data));
+            }
         }
         return out;
+    }
+
+    /**
+     * Number of stored vertical runs. Compared against {@link #blockCount()} this is the
+     * compression the chunk generator actually benefits from.
+     */
+    public int runCount() {
+        return runCount;
     }
 
     public List<NexoBlockCopy> nexoBlocks() {
@@ -832,12 +910,21 @@ public final class CuboidTemplate {
         return (relX * height + relY) * depth + relZ;
     }
 
-    private static ChunkOrderedBlocks orderByRelativeChunk(int width,
-                                                            int height,
-                                                            int depth,
-                                                            int[] positions,
-                                                            int[] paletteIds,
-                                                            int blockCount) {
+    /**
+     * Groups blocks by the relative chunk they fall in, then collapses each vertical
+     * column of identical block data into one run.
+     *
+     * <p>Grouping uses a stable counting sort, so the capture order ({@code x -> z -> y})
+     * survives inside every bucket and a solid column arrives as consecutive entries.
+     * Collapsing them turns a paste from one API call per block into one per column,
+     * and shrinks a captured landscape template several-fold in memory.</p>
+     */
+    private static RunIndex buildRunIndex(int width,
+                                          int height,
+                                          int depth,
+                                          int[] positions,
+                                          int[] paletteIds,
+                                          int blockCount) {
         int columns = (width + 15) >> 4;
         int rows = (depth + 15) >> 4;
         int[] counts = new int[columns * rows];
@@ -848,11 +935,11 @@ public final class CuboidTemplate {
             counts[(relZ >> 4) * columns + (relX >> 4)]++;
         }
 
-        int[] offsets = new int[counts.length + 1];
+        int[] blockOffsets = new int[counts.length + 1];
         for (int i = 0; i < counts.length; i++) {
-            offsets[i + 1] = offsets[i] + counts[i];
+            blockOffsets[i + 1] = blockOffsets[i] + counts[i];
         }
-        int[] cursors = java.util.Arrays.copyOf(offsets, counts.length);
+        int[] cursors = java.util.Arrays.copyOf(blockOffsets, counts.length);
         int[] orderedPositions = new int[blockCount];
         int[] orderedPaletteIds = new int[blockCount];
         for (int i = 0; i < blockCount; i++) {
@@ -863,7 +950,76 @@ public final class CuboidTemplate {
             orderedPositions[target] = linear;
             orderedPaletteIds[target] = paletteIds[i];
         }
-        return new ChunkOrderedBlocks(orderedPositions, orderedPaletteIds, offsets);
+
+        long[] runs = new long[Math.max(1, blockCount)];
+        int[] runPaletteIds = new int[Math.max(1, blockCount)];
+        int[] runOffsets = new int[counts.length + 1];
+        int runCount = 0;
+        for (int bucket = 0; bucket < counts.length; bucket++) {
+            runOffsets[bucket] = runCount;
+            int start = blockOffsets[bucket];
+            int end = blockOffsets[bucket + 1];
+            int i = start;
+            while (i < end) {
+                int linear = orderedPositions[i];
+                int paletteId = orderedPaletteIds[i];
+                int relZ = linear % depth;
+                int rest = linear / depth;
+                int relY = rest % height;
+                int relX = rest / height;
+
+                int length = 1;
+                // Extend while the next entry is the same block one step higher in the
+                // same column. Comparing decoded coordinates rather than the linear index
+                // keeps a column from merging across an X boundary at the top of the region.
+                while (i + length < end && orderedPaletteIds[i + length] == paletteId) {
+                    int nextLinear = orderedPositions[i + length];
+                    int nextRelZ = nextLinear % depth;
+                    int nextRest = nextLinear / depth;
+                    int nextRelY = nextRest % height;
+                    int nextRelX = nextRest / height;
+                    if (nextRelX != relX || nextRelZ != relZ || nextRelY != relY + length) {
+                        break;
+                    }
+                    length++;
+                }
+
+                runs[runCount] = packRun(relX, relY, relZ, length);
+                runPaletteIds[runCount] = paletteId;
+                runCount++;
+                i += length;
+            }
+        }
+        runOffsets[counts.length] = runCount;
+
+        return new RunIndex(
+                java.util.Arrays.copyOf(runs, runCount),
+                java.util.Arrays.copyOf(runPaletteIds, runCount),
+                runOffsets,
+                runCount);
+    }
+
+    private static long packRun(int relX, int relY, int relZ, int length) {
+        return (relX & 0xFFFFL)
+                | ((relY & 0xFFFFL) << 16)
+                | ((relZ & 0xFFFFL) << 32)
+                | ((long) length << 48);
+    }
+
+    private static int runRelX(long run) {
+        return (int) (run & 0xFFFFL);
+    }
+
+    private static int runRelY(long run) {
+        return (int) ((run >>> 16) & 0xFFFFL);
+    }
+
+    private static int runRelZ(long run) {
+        return (int) ((run >>> 32) & 0xFFFFL);
+    }
+
+    private static int runLength(long run) {
+        return (int) (run >>> 48);
     }
 
     private static Optional<NexoFurnitureCopy> captureNexoFurniture(ItemDisplay baseEntity,
@@ -944,7 +1100,7 @@ public final class CuboidTemplate {
                               int[] nexoCandidates,
                               int nexoCandidateCount) { }
 
-    private record ChunkOrderedBlocks(int[] positions, int[] paletteIds, int[] offsets) { }
+    private record RunIndex(long[] runs, int[] paletteIds, int[] offsets, int runCount) { }
 
     /** Growable primitive int list; avoids boxing millions of coordinates. */
     private static final class IntBuffer {

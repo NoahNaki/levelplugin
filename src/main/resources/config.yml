@@ -214,11 +214,20 @@ environment:
     # Plots share one disposable world. 4096 leaves more than 3500 blocks of void
     # between kingdom edges and is aligned to chunk/region boundaries.
     plot-spacing-blocks: 4096
-    # Only this radius around the kingdom spawn (plus the mine chunks) is generated
-    # before teleporting. Everything else is generated from the cached template on demand.
-    initial-chunk-radius: 6
+    # Only this radius around the kingdom spawn is generated before teleporting - just
+    # enough ground to stand on. The mine, the leaderboards and the rest of the plot are
+    # generated after the player arrives, or streamed in by their view distance.
+    initial-chunk-radius: 2
     # Higher values allow more initial chunks to generate concurrently.
     chunk-preload-concurrency: 16
+    # Keep the instance world's region files between restarts, so a returning player's
+    # plot is read back from disk instead of being rebuilt from the template. The stored
+    # chunks are discarded automatically whenever the kingdom layout changes. Set to
+    # false to go back to a throwaway world that is rebuilt from scratch every startup.
+    persist-instance-world: true
+    # How many upcoming plots to generate ahead of demand, so a first-time /kingdom finds
+    # its chunks already built. 0 disables warming.
+    warm-plot-pool-size: 1
   kingdom-mine:
     enabled: true
     # Name of an existing X-Prison mine to copy the block composition from. Tune that

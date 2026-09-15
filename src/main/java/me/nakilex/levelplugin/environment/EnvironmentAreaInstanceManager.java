@@ -27,6 +27,7 @@ import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
@@ -50,7 +51,9 @@ import org.bukkit.event.block.FluidLevelChangeEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.generator.BiomeProvider;
 import org.bukkit.generator.ChunkGenerator;
+import org.bukkit.generator.WorldInfo;
 import org.bukkit.util.Transformation;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -90,6 +93,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private static final int PASTE_Z = 0;
     private static final String SHARED_WORLD_NAME = "environment_kingdoms";
     private static final int DEFAULT_PLOT_SPACING_BLOCKS = 4096;
+    private static final Biome KINGDOM_BIOME = Biome.PLAINS;
     private static final int MIN_PLOT_SPACING_BLOCKS = 4096;
     /**
      * Runtime movement border should be anchored to the pasted instance area
@@ -218,6 +222,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     private final Main plugin;
     private final Map<UUID, EnvironmentAreaSession> sessions = new HashMap<>();
     private int nextPlotIndex = 1; // Keep 0,0 empty because Bukkit prepares the world spawn there.
+    private final Map<UUID, Integer> plotIndexByProfile = new ConcurrentHashMap<>();
+    /** Plot slots generated ahead of demand, and the ones currently being generated. */
+    private final Set<Integer> warmedPlotIndexes = ConcurrentHashMap.newKeySet();
+    private final Set<Integer> warmingPlotIndexes = ConcurrentHashMap.newKeySet();
     private World sharedKingdomWorld;
     private KingdomPlotGenerator sharedKingdomGenerator;
     private final Map<UUID, BukkitTask> activeBuildTasks = new HashMap<>();
@@ -417,6 +425,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
 
         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.INFO, "Preparing your kingdom...");
+        // Held until the teleport clears it, so the wait reads as loading rather than as a
+        // frozen command. Fade-out covers the teleport itself.
+        target.sendTitle(ChatColor.GOLD + "Preparing your kingdom",
+                ChatColor.GRAY + "Shaping the land...", 5, 200, 10);
         CompletableFuture.allOf(pending.toArray(new CompletableFuture[0]))
                 .whenComplete((ignored, error) -> Bukkit.getScheduler().runTask(plugin, () -> {
                     timing.stage("template-capture", templateCaptureStarted, templateTiming.summary());
@@ -427,6 +439,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                         if (target.isOnline()) {
                             ChatMessageUtil.send(target, ChatMessageUtil.MessageType.ERROR,
                                     "Could not prepare the kingdom templates.");
+                            target.resetTitle();
                         }
                         return;
                     }
@@ -478,6 +491,9 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     plugin.getLogger().info("[KingdomTemplateCache] Prewarm complete duration="
                             + duration + " sharedWorld=" + formatElapsed(System.nanoTime() - worldStarted)
                             + " " + timing.summary());
+                    // Build the next plot now, so the first /kingdom of the session is not
+                    // the one that pays for it.
+                    warmUpcomingPlots(areaFuture.join(), buildingTemplates);
                 }));
     }
 
@@ -494,11 +510,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             timing.failed("shared-world-ready");
             ChatMessageUtil.send(target, ChatMessageUtil.MessageType.ERROR,
                     "Could not create environment instance world.");
+            target.resetTitle();
             return;
         }
 
         long sessionSetupStarted = System.nanoTime();
-        SlotOffset offset = allocatePlotOffset();
+        UUID scopedProfile = resolveProfileScopedId(target);
+        SlotOffset offset = allocatePlotOffset(scopedProfile);
         int originX = PASTE_X + offset.dx();
         int originY = PASTE_Y;
         int originZ = PASTE_Z + offset.dz();
@@ -513,10 +531,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         removeAnimatedLeaderboard(target.getUniqueId());
 
-        UUID scopedProfile = resolveProfileScopedId(target);
         Set<Integer> builtSlots = new HashSet<>(loadBuiltSlots(scopedProfile));
         sharedKingdomGenerator.registerPlot(target.getUniqueId(), originX, originZ,
                 areaTemplate, buildingTemplates, builtSlots);
+        boolean claimedWarmPlot = warmedPlotIndexes.remove(plotIndexFor(scopedProfile));
 
         // Register before chunk generation so visits and the movement border see the plot
         // throughout its short initial preload.
@@ -541,7 +559,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
         Location finalSpawn = spawn;
         long generationStarted = System.nanoTime();
-        preloadInitialPlotChunks(world, finalSpawn, originX, originY, originZ)
+        GeneratorStats generatorBefore = sharedKingdomGenerator.stats();
+        preloadChunks(world, spawnChunkKeys(finalSpawn))
                 .whenComplete((chunkLease, generationError) -> {
             Runnable finish = () -> {
                 if (generationError != null) {
@@ -551,6 +570,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     if (target.isOnline()) {
                         ChatMessageUtil.send(target, ChatMessageUtil.MessageType.ERROR,
                                 "Could not generate your kingdom terrain.");
+                        target.resetTitle();
                     }
                     removeKingdom(target.getUniqueId());
                     return;
@@ -564,23 +584,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     }
                     timing.stage("template-chunk-generation", generationStarted,
                             "chunks=" + chunkLease.chunkCount()
-                                    + " fullPlotChunks=" + (((AREA.width() + 15) >> 4) * ((AREA.depth() + 15) >> 4)));
-                    // X-Prison may reset the mine as part of registration, so its chunks
-                    // remain ticketed through this step.
-                    long mineSetupStarted = System.nanoTime();
-                    WorldCuboid ore = toPastedCuboid(resolveKingdomTemplateCuboid(kingdomMineArea),
-                            originX, originY, originZ);
-                    WorldCuboid shell = toPastedCuboid(resolveKingdomTemplateCuboid(kingdomMineShell),
-                            originX, originY, originZ);
-                    mineService.createFor(target.getUniqueId(), world,
-                            new int[]{ore.minX(), ore.minY(), ore.minZ(), ore.maxX(), ore.maxY(), ore.maxZ()},
-                            new int[]{shell.minX(), shell.minY(), shell.minZ(), shell.maxX(), shell.maxY(), shell.maxZ()});
-                    timing.stage("mine-registration", mineSetupStarted, null);
-
-                    long savedBuildsStarted = System.nanoTime();
-                    int restoredBuilds = applySavedBuilds(target, session, timing);
-                    timing.stage("saved-build-index", savedBuildsStarted,
-                            "buildings=" + restoredBuilds);
+                                    + " fullPlotChunks=" + (((AREA.width() + 15) >> 4) * ((AREA.depth() + 15) >> 4))
+                                    + " " + sharedKingdomGenerator.stats().since(generatorBefore).summary());
 
                     long completionStarted = System.nanoTime();
                     initializing.remove(target.getUniqueId());
@@ -589,13 +594,17 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                         return;
                     }
                     // Teleport only once the ground exists, otherwise the player drops through it.
+                    // The mine, the saved builds and the cosmetics all follow from here; none of
+                    // them are things the player has to stand and wait for.
                     target.teleport(finalSpawn);
+                    target.resetTitle();
                     currentPlotOwnerByPlayer.put(target.getUniqueId(), session.ownerId());
                     ChatMessageUtil.send(target, ChatMessageUtil.MessageType.SUCCESS,
                             "Initialized environment area in " + ChatColor.WHITE + world.getName() + ChatColor.GREEN + ".");
                     timing.stage("teleport-and-notify", completionStarted, null);
                     timing.ready();
-                    scheduleDeferredKingdomCosmetics(session, timing);
+                    finishPlotAfterTeleport(target, session, world, originX, originY, originZ,
+                            areaTemplate, buildingTemplates, builtSlots, claimedWarmPlot, timing);
                 } catch (Throwable throwable) {
                     initializing.remove(target.getUniqueId());
                     plugin.getLogger().severe("[EnvironmentArea] Plot finalization failed: " + throwable);
@@ -613,13 +622,93 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         });
     }
 
-    private CompletableFuture<PlotChunkLease> preloadInitialPlotChunks(World world,
-                                                                        Location spawn,
-                                                                        int originX,
-                                                                        int originY,
-                                                                        int originZ) {
-        int radius = Math.max(2, Math.min(16, plugin.getConfig().getInt(
-                "environment.kingdom-generation.initial-chunk-radius", 6)));
+    /**
+     * Everything that used to sit between chunk generation and the teleport. The player is
+     * already standing in their kingdom by the time any of this runs, so the mine chunks
+     * are generated here rather than being waited on up front.
+     */
+    private void finishPlotAfterTeleport(Player target,
+                                         EnvironmentAreaSession session,
+                                         World world,
+                                         int originX,
+                                         int originY,
+                                         int originZ,
+                                         CuboidTemplate areaTemplate,
+                                         Map<Integer, CuboidTemplate> buildingTemplates,
+                                         Set<Integer> builtSlots,
+                                         boolean claimedWarmPlot,
+                                         KingdomGenerationTiming timing) {
+        long supportStarted = System.nanoTime();
+        GeneratorStats generatorBefore = sharedKingdomGenerator.stats();
+        preloadChunks(world, supportChunkKeys(world, originX, originY, originZ))
+                .whenComplete((supportLease, supportError) -> {
+            Runnable finish = () -> {
+                if (supportError != null) {
+                    plugin.getLogger().severe("[EnvironmentArea] Support chunk generation failed: " + supportError);
+                    timing.failed("support-chunk-generation");
+                    return;
+                }
+                try {
+                    if (sessions.get(session.ownerId()) != session) {
+                        return;
+                    }
+                    timing.stage("support-chunk-generation", supportStarted,
+                            "chunks=" + supportLease.chunkCount()
+                                    + " " + sharedKingdomGenerator.stats().since(generatorBefore).summary());
+
+                    // X-Prison may reset the mine as part of registration, so its chunks
+                    // remain ticketed through this step.
+                    long mineSetupStarted = System.nanoTime();
+                    WorldCuboid ore = toPastedCuboid(resolveKingdomTemplateCuboid(kingdomMineArea),
+                            originX, originY, originZ);
+                    WorldCuboid shell = toPastedCuboid(resolveKingdomTemplateCuboid(kingdomMineShell),
+                            originX, originY, originZ);
+                    mineService.createFor(session.ownerId(), world,
+                            new int[]{ore.minX(), ore.minY(), ore.minZ(), ore.maxX(), ore.maxY(), ore.maxZ()},
+                            new int[]{shell.minX(), shell.minY(), shell.minZ(), shell.maxX(), shell.maxY(), shell.maxZ()});
+                    timing.stage("mine-registration", mineSetupStarted, null);
+
+                    if (target.isOnline()) {
+                        long savedBuildsStarted = System.nanoTime();
+                        int restoredBuilds = applySavedBuilds(target, session, timing);
+                        timing.stage("saved-build-index", savedBuildsStarted,
+                                "buildings=" + restoredBuilds);
+                    }
+
+                    // A warm plot was generated before this profile's buildings were known.
+                    if (claimedWarmPlot && !builtSlots.isEmpty()) {
+                        pasteMissingWarmPlotBuildings(session, buildingTemplates, builtSlots);
+                    }
+
+                    scheduleDeferredKingdomCosmetics(session, timing);
+                    // Refill the pool for whoever runs /kingdom next.
+                    warmUpcomingPlots(areaTemplate, buildingTemplates);
+                } catch (Throwable throwable) {
+                    plugin.getLogger().severe("[EnvironmentArea] Post-teleport finalization failed: " + throwable);
+                    timing.failed("post-teleport-finalization");
+                } finally {
+                    supportLease.release();
+                }
+            };
+            if (Bukkit.isPrimaryThread()) {
+                finish.run();
+            } else {
+                Bukkit.getScheduler().runTask(plugin, finish);
+            }
+        });
+    }
+
+    /**
+     * The chunks the player must be standing on before the teleport, and nothing else.
+     *
+     * <p>Everything that merely has to exist <em>eventually</em> — the mine, the
+     * leaderboard anchors, the rest of the plot — is generated after the teleport by
+     * {@link #supportChunkKeys}, or streamed in by the player's own view distance. Only
+     * the ground under their feet is worth making them wait for.</p>
+     */
+    private Set<Long> spawnChunkKeys(Location spawn) {
+        int radius = Math.max(1, Math.min(16, plugin.getConfig().getInt(
+                "environment.kingdom-generation.initial-chunk-radius", 2)));
         Set<Long> chunkKeys = new LinkedHashSet<>();
         int spawnChunkX = spawn.getBlockX() >> 4;
         int spawnChunkZ = spawn.getBlockZ() >> 4;
@@ -628,6 +717,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 chunkKeys.add(chunkKey(spawnChunkX + dx, spawnChunkZ + dz));
             }
         }
+        return chunkKeys;
+    }
+
+    /** Chunks the post-teleport finishing pass needs, but the player does not wait on. */
+    private Set<Long> supportChunkKeys(World world, int originX, int originY, int originZ) {
+        Set<Long> chunkKeys = new LinkedHashSet<>();
 
         // X-Prison may inspect/reset the complete mine immediately after registration,
         // so ensure those chunks exist even when the mine is outside the spawn radius.
@@ -640,8 +735,8 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
 
         // Animated leaderboards can sit well outside the spawn radius too (the mining stand in
-        // particular). Their chunk must be loaded before the 1-tick-later cosmetics pass spawns
-        // their display entities, or the board comes up broken until something else forces the
+        // particular). Their chunk must be loaded before the cosmetics pass spawns their
+        // display entities, or the board comes up broken until something else forces the
         // chunk to load (e.g. moving it).
         for (WorldPoint boardPoint : ANIMATED_LEADERBOARD_CHUNK_ANCHORS) {
             WorldPoint resolved = resolveKingdomTemplatePoint(boardPoint);
@@ -650,7 +745,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 chunkKeys.add(chunkKey(pasted.getBlockX() >> 4, pasted.getBlockZ() >> 4));
             }
         }
+        return chunkKeys;
+    }
 
+    private CompletableFuture<PlotChunkLease> preloadChunks(World world, Set<Long> chunkKeys) {
         int concurrency = Math.max(1, Math.min(64, plugin.getConfig().getInt(
                 "environment.kingdom-generation.chunk-preload-concurrency", 16)));
         List<Long> orderedKeys = new ArrayList<>(chunkKeys);
@@ -1129,7 +1227,12 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         boolean cached = templateCache.containsKey(worldScopedKey);
         long started = System.nanoTime();
         CompletableFuture<CuboidTemplate> future = getOrCaptureTemplate(source, templateKey, cuboid, skipAir);
-        return future.whenComplete((template, error) -> timing.record(templateKey, started, cached));
+        return future.whenComplete((template, error) -> {
+            timing.record(templateKey, started, cached);
+            if (template != null) {
+                timing.recordSize(templateKey, template.blockCount(), template.runCount());
+            }
+        });
     }
 
 
@@ -1146,9 +1249,19 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 return null;
             }
         }
-        // This world is a runtime cache, not player storage. Removing a stale copy here
-        // and at shutdown keeps its disk use bounded to the current server process.
-        deleteWorldFolder(SHARED_WORLD_NAME);
+        // Keeping the region files means a returning player's plot is read back from disk
+        // instead of being rebuilt from the template, which is much cheaper than generating
+        // it. That is only safe while the layout that produced those chunks still matches,
+        // so a changed template or plot spacing discards them.
+        boolean persist = persistInstanceWorld();
+        String layout = instanceWorldLayoutFingerprint(areaTemplate);
+        if (!persist || !layout.equals(readInstanceWorldLayout())) {
+            if (persist) {
+                plugin.getLogger().info("[KingdomGeneration] Instance world layout changed; "
+                        + "discarding stored kingdom chunks so they regenerate from the template.");
+            }
+            deleteWorldFolder(SHARED_WORLD_NAME);
+        }
 
         sharedKingdomGenerator = new KingdomPlotGenerator(plotSpacingBlocks());
         WorldCreator creator = new WorldCreator(SHARED_WORLD_NAME);
@@ -1158,7 +1271,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         if (world == null) {
             return null;
         }
-        world.setAutoSave(false);
+        if (persist) {
+            writeInstanceWorldLayout(layout);
+        }
+        world.setAutoSave(persist);
         world.setKeepSpawnInMemory(false);
         world.setGameRule(GameRule.DO_MOB_SPAWNING, false);
         world.setGameRule(GameRule.DO_DAYLIGHT_CYCLE, false);
@@ -1168,6 +1284,62 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         world.setSpawnLocation(0, Math.max(world.getMinHeight(), PASTE_Y + 1), 0);
         sharedKingdomWorld = world;
         return sharedKingdomWorld;
+    }
+
+    private boolean persistInstanceWorld() {
+        return plugin.getConfig().getBoolean(
+                "environment.kingdom-generation.persist-instance-world", true);
+    }
+
+    private Path instanceWorldLayoutFile() {
+        return Bukkit.getWorldContainer().toPath()
+                .resolve(SHARED_WORLD_NAME)
+                .resolve("levelplugin-kingdom-layout.txt");
+    }
+
+    /**
+     * Identifies the layout that produced the stored chunks. Any change that would make the
+     * generator emit different blocks has to change this string, or players would be left
+     * standing on terrain from an older template that will never be rebuilt.
+     */
+    private String instanceWorldLayoutFingerprint(CuboidTemplate areaTemplate) {
+        StringBuilder fingerprint = new StringBuilder()
+                .append("v1")
+                .append("|area=").append(AREA)
+                .append("|paste=").append(PASTE_X).append(',').append(PASTE_Y).append(',').append(PASTE_Z)
+                .append("|spacing=").append(plotSpacingBlocks());
+        if (areaTemplate != null) {
+            fingerprint.append("|template=")
+                    .append(areaTemplate.width()).append('x')
+                    .append(areaTemplate.height()).append('x')
+                    .append(areaTemplate.depth())
+                    .append(':').append(areaTemplate.blockCount())
+                    .append('/').append(areaTemplate.runCount());
+        }
+        for (BuildingTemplate building : BUILDINGS) {
+            fingerprint.append("|b=").append(building.slot()).append(':').append(building.placement());
+        }
+        return fingerprint.toString();
+    }
+
+    private String readInstanceWorldLayout() {
+        Path path = instanceWorldLayoutFile();
+        try {
+            return Files.exists(path) ? Files.readString(path).trim() : null;
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Could not read kingdom layout marker: " + ex.getMessage());
+            return null;
+        }
+    }
+
+    private void writeInstanceWorldLayout(String layout) {
+        Path path = instanceWorldLayoutFile();
+        try {
+            Files.createDirectories(path.getParent());
+            Files.writeString(path, layout);
+        } catch (IOException ex) {
+            plugin.getLogger().warning("Could not write kingdom layout marker: " + ex.getMessage());
+        }
     }
 
     private void deleteWorldFolder(String worldName) {
@@ -3207,8 +3379,163 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
     }
 
-    private SlotOffset allocatePlotOffset() {
-        int index = nextPlotIndex++;
+    /**
+     * Resolves the plot slot for a profile, allocating and persisting one on first use.
+     *
+     * <p>The slot is stable for the life of the profile, which is what lets the instance
+     * world keep its region files: a returning player lands on chunks that already exist
+     * on disk and are simply read back, instead of being generated from the template
+     * again. It also keeps their mine and terrain edits where they left them.</p>
+     */
+    private synchronized int plotIndexFor(UUID scopedProfile) {
+        Integer cached = plotIndexByProfile.get(scopedProfile);
+        if (cached != null) {
+            return cached;
+        }
+        String path = "players." + scopedProfile + ".environment.area.plot-index";
+        int stored = plugin.getPlayerConfig().getConfig().getInt(path, 0);
+        if (stored <= 0) {
+            stored = claimNextPlotIndex();
+            plugin.getPlayerConfig().getConfig().set(path, stored);
+            plugin.getPlayerConfig().saveConfigFile();
+        }
+        plotIndexByProfile.put(scopedProfile, stored);
+        return stored;
+    }
+
+    /**
+     * First slot index not already claimed by a stored profile. The high-water mark is
+     * recovered by scanning the player config once, so a restart cannot hand two profiles
+     * the same patch of the instance world.
+     */
+    private synchronized int peekNextPlotIndex() {
+        if (nextPlotIndex <= 0) {
+            nextPlotIndex = 1; // Keep 0,0 empty because Bukkit prepares the world spawn there.
+        }
+        var players = plugin.getPlayerConfig().getConfig().getConfigurationSection("players");
+        if (players != null) {
+            for (String key : players.getKeys(false)) {
+                int stored = players.getInt(key + ".environment.area.plot-index", 0);
+                if (stored >= nextPlotIndex) {
+                    nextPlotIndex = stored + 1;
+                }
+            }
+        }
+        for (Integer claimed : plotIndexByProfile.values()) {
+            if (claimed != null && claimed >= nextPlotIndex) {
+                nextPlotIndex = claimed + 1;
+            }
+        }
+        return nextPlotIndex;
+    }
+
+    private synchronized int claimNextPlotIndex() {
+        int index = peekNextPlotIndex();
+        nextPlotIndex = index + 1;
+        return index;
+    }
+
+    /**
+     * Generates the plots that the next new profiles will be given, before they ask.
+     *
+     * <p>A first-time {@code /kingdom} is the slow case: nothing of that plot exists yet.
+     * Warming runs the same generation while the server is otherwise idle, so the player's
+     * own request finds the chunks already built.</p>
+     */
+    private void warmUpcomingPlots(CuboidTemplate areaTemplate,
+                                   Map<Integer, CuboidTemplate> buildingTemplates) {
+        if (areaTemplate == null || sharedKingdomGenerator == null || sharedKingdomWorld == null) {
+            return;
+        }
+        int poolSize = Math.max(0, Math.min(4, plugin.getConfig().getInt(
+                "environment.kingdom-generation.warm-plot-pool-size", 1)));
+        if (poolSize <= 0) {
+            return;
+        }
+        World world = sharedKingdomWorld;
+        int firstIndex = peekNextPlotIndex();
+        for (int offset = 0; offset < poolSize; offset++) {
+            int plotIndex = firstIndex + offset;
+            // Check "already warm" before claiming the "warming" marker, or a plot that is
+            // warm but still unclaimed would leave its marker set and never warm again.
+            if (warmedPlotIndexes.contains(plotIndex) || !warmingPlotIndexes.add(plotIndex)) {
+                continue;
+            }
+            SlotOffset slot = allocatePlotOffsetForIndex(plotIndex);
+            int originX = PASTE_X + slot.dx();
+            int originZ = PASTE_Z + slot.dz();
+            sharedKingdomGenerator.registerWarmPlot(originX, originZ, areaTemplate, buildingTemplates);
+
+            Location spawn = toPastedLocation(world, EMPTY_WORLD_SPAWN, originX, PASTE_Y, originZ);
+            if (spawn == null) {
+                spawn = new Location(world,
+                        originX + (AREA.width() / 2.0),
+                        PASTE_Y + 1.0,
+                        originZ + (AREA.depth() / 2.0));
+            }
+            Set<Long> keys = new LinkedHashSet<>(spawnChunkKeys(spawn));
+            keys.addAll(supportChunkKeys(world, originX, PASTE_Y, originZ));
+
+            long started = System.nanoTime();
+            preloadChunks(world, keys).whenComplete((lease, error) -> {
+                Runnable done = () -> {
+                    warmingPlotIndexes.remove(plotIndex);
+                    if (error != null) {
+                        plugin.getLogger().warning("[KingdomGeneration] Warm plot " + plotIndex
+                                + " failed: " + error);
+                        return;
+                    }
+                    warmedPlotIndexes.add(plotIndex);
+                    plugin.getLogger().info("[KingdomGeneration] warm plot=" + plotIndex
+                            + " chunks=" + lease.chunkCount()
+                            + " duration=" + formatElapsed(System.nanoTime() - started));
+                    // Released straight away: the chunks only need to have been generated,
+                    // not stay resident until somebody claims them.
+                    lease.release();
+                };
+                if (Bukkit.isPrimaryThread()) {
+                    done.run();
+                } else {
+                    Bukkit.getScheduler().runTask(plugin, done);
+                }
+            });
+        }
+    }
+
+    /**
+     * A warm plot was generated with no buildings, because the profile that would claim it
+     * was not known yet. If the claimant turns out to have saved builds, those blocks are
+     * missing from the generated chunks and are pasted in now.
+     */
+    private void pasteMissingWarmPlotBuildings(EnvironmentAreaSession session,
+                                               Map<Integer, CuboidTemplate> buildingTemplates,
+                                               Set<Integer> builtSlots) {
+        for (Integer slot : builtSlots) {
+            BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
+            CuboidTemplate template = buildingTemplates.get(slot);
+            if (building == null || template == null) {
+                continue;
+            }
+            Cuboid placement = building.placement();
+            template.pasteBatchedAdaptive(plugin, session.world(),
+                            session.originX() + placement.minX() - AREA.minX(),
+                            session.originY() + placement.minY() - AREA.minY(),
+                            session.originZ() + placement.minZ() - AREA.minZ(),
+                            CuboidTemplate.PasteOptions.defaults())
+                    .whenComplete((stats, error) -> {
+                        if (error != null) {
+                            plugin.getLogger().warning("[KingdomGeneration] Could not restore building "
+                                    + building.id() + " onto a warm plot: " + error);
+                        }
+                    });
+        }
+    }
+
+    private SlotOffset allocatePlotOffset(UUID scopedProfile) {
+        return allocatePlotOffsetForIndex(plotIndexFor(scopedProfile));
+    }
+
+    private SlotOffset allocatePlotOffsetForIndex(int index) {
         int ring = (int) Math.ceil((Math.sqrt(index + 1.0D) - 1.0D) / 2.0D);
         int side = ring * 2;
         int maxIndex = (ring * 2 + 1) * (ring * 2 + 1) - 1;
@@ -3248,9 +3575,22 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         private final int spacing;
         private final Map<Long, PlotGeneration> plotsByGrid = new ConcurrentHashMap<>();
         private final Map<UUID, PlotGeneration> plotsByOwner = new ConcurrentHashMap<>();
+        private final BiomeProvider biomeProvider = new SingleBiomeProvider(KINGDOM_BIOME);
+        // Generator-side cost only. Comparing this against the wall time of the preload
+        // separates our template blit from Paper's own chunk pipeline (lighting, status
+        // progression, I/O), which is what decides whether tuning the blit is worthwhile.
+        private final java.util.concurrent.atomic.AtomicLong generateNanos = new java.util.concurrent.atomic.AtomicLong();
+        private final java.util.concurrent.atomic.AtomicLong generatedChunks = new java.util.concurrent.atomic.AtomicLong();
+        private final java.util.concurrent.atomic.AtomicLong emptyChunks = new java.util.concurrent.atomic.AtomicLong();
+        private final java.util.concurrent.atomic.AtomicLong maxChunkNanos = new java.util.concurrent.atomic.AtomicLong();
 
         private KingdomPlotGenerator(int spacing) {
             this.spacing = spacing;
+        }
+
+        private GeneratorStats stats() {
+            return new GeneratorStats(generateNanos.get(), generatedChunks.get(),
+                    emptyChunks.get(), maxChunkNanos.get());
         }
 
         private void registerPlot(UUID ownerId,
@@ -3265,6 +3605,21 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     areaTemplate, buildingTemplates, builtSlots);
             plotsByGrid.put(gridKey(gridX, gridZ), plot);
             plotsByOwner.put(ownerId, plot);
+        }
+
+        /**
+         * Registers a plot that has no owner yet, so its chunks can be generated before
+         * anyone asks for them. A later {@link #registerPlot} for the same grid cell
+         * replaces this entry with the real owner's, including their built slots.
+         */
+        private void registerWarmPlot(int originX,
+                                      int originZ,
+                                      CuboidTemplate areaTemplate,
+                                      Map<Integer, CuboidTemplate> buildingTemplates) {
+            int gridX = Math.floorDiv(originX - PASTE_X, spacing);
+            int gridZ = Math.floorDiv(originZ - PASTE_Z, spacing);
+            plotsByGrid.putIfAbsent(gridKey(gridX, gridZ), new PlotGeneration(originX, originZ,
+                    areaTemplate, buildingTemplates, Set.of()));
         }
 
         private void markBuilt(UUID ownerId, int slot) {
@@ -3299,32 +3654,47 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                     || blockZ + 15 < plot.originZ || blockZ > maxZ ? null : plot;
         }
 
+        // The modern staged API rather than the deprecated generateChunkData: the legacy
+        // path is an adapter Paper has to wrap, and it is the one place where the
+        // shouldGenerate* flags and parallel generation are least predictable.
         @Override
-        public ChunkData generateChunkData(World world,
-                                           Random random,
-                                           int chunkX,
-                                           int chunkZ,
-                                           BiomeGrid biome) {
-            ChunkData data = createChunkData(world);
+        public void generateNoise(WorldInfo worldInfo,
+                                  Random random,
+                                  int chunkX,
+                                  int chunkZ,
+                                  ChunkData chunkData) {
+            long started = System.nanoTime();
             PlotGeneration plot = plotForChunk(chunkX, chunkZ);
             if (plot == null) {
-                return data;
+                emptyChunks.incrementAndGet();
+                return;
             }
-            plot.areaTemplate.populateChunk(data, chunkX, chunkZ,
-                    plot.originX, PASTE_Y, plot.originZ);
-            for (Integer slot : plot.builtSlots) {
-                BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
-                CuboidTemplate template = plot.buildingTemplates.get(slot);
-                if (building == null || template == null) {
-                    continue;
+            try {
+                plot.areaTemplate.populateChunk(chunkData, chunkX, chunkZ,
+                        plot.originX, PASTE_Y, plot.originZ);
+                for (Integer slot : plot.builtSlots) {
+                    BuildingTemplate building = BUILDINGS_BY_SLOT.get(slot);
+                    CuboidTemplate template = plot.buildingTemplates.get(slot);
+                    if (building == null || template == null) {
+                        continue;
+                    }
+                    Cuboid placement = building.placement();
+                    template.populateChunk(chunkData, chunkX, chunkZ,
+                            plot.originX + placement.minX() - AREA.minX(),
+                            PASTE_Y + placement.minY() - AREA.minY(),
+                            plot.originZ + placement.minZ() - AREA.minZ());
                 }
-                Cuboid placement = building.placement();
-                template.populateChunk(data, chunkX, chunkZ,
-                        plot.originX + placement.minX() - AREA.minX(),
-                        PASTE_Y + placement.minY() - AREA.minY(),
-                        plot.originZ + placement.minZ() - AREA.minZ());
+            } finally {
+                long elapsed = System.nanoTime() - started;
+                generateNanos.addAndGet(elapsed);
+                generatedChunks.incrementAndGet();
+                maxChunkNanos.accumulateAndGet(elapsed, Math::max);
             }
-            return data;
+        }
+
+        @Override
+        public BiomeProvider getDefaultBiomeProvider(WorldInfo worldInfo) {
+            return biomeProvider;
         }
 
         @Override public boolean isParallelCapable() { return true; }
@@ -3338,6 +3708,46 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
         private long gridKey(int gridX, int gridZ) {
             return ((long) gridX << 32) ^ (gridZ & 0xffffffffL);
+        }
+    }
+
+    /** Fixed biome for the whole instance world, so nothing samples a biome source per chunk. */
+    private static final class SingleBiomeProvider extends BiomeProvider {
+        private final Biome biome;
+        private final List<Biome> biomes;
+
+        private SingleBiomeProvider(Biome biome) {
+            this.biome = biome;
+            this.biomes = List.of(biome);
+        }
+
+        @Override
+        public Biome getBiome(WorldInfo worldInfo, int x, int y, int z) {
+            return biome;
+        }
+
+        @Override
+        public List<Biome> getBiomes(WorldInfo worldInfo) {
+            return biomes;
+        }
+    }
+
+    private record GeneratorStats(long generateNanos, long chunks, long emptyChunks, long maxChunkNanos) {
+        private GeneratorStats since(GeneratorStats before) {
+            return new GeneratorStats(
+                    generateNanos - before.generateNanos,
+                    chunks - before.chunks,
+                    emptyChunks - before.emptyChunks,
+                    // Only ever grows, so this stays a server-lifetime figure rather than a delta.
+                    maxChunkNanos);
+        }
+
+        private String summary() {
+            return "generatorChunks=" + chunks
+                    + " generatorEmptyChunks=" + emptyChunks
+                    + " generatorTime=" + formatElapsed(generateNanos)
+                    + " generatorPerChunk=" + (chunks == 0L ? "n/a" : formatElapsed(generateNanos / chunks))
+                    + " generatorSlowestChunkEver=" + formatElapsed(maxChunkNanos);
         }
     }
 
@@ -3468,8 +3878,10 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         }
         if (sharedWorldUnloaded) {
             sharedKingdomGenerator = null;
-            deleteWorldFolder(SHARED_WORLD_NAME);
-        } else {
+            if (!persistInstanceWorld()) {
+                deleteWorldFolder(SHARED_WORLD_NAME);
+            }
+        } else if (!persistInstanceWorld()) {
             plugin.getLogger().warning("[KingdomGeneration] Shared world could not be unloaded; "
                     + "its disposable files will be removed safely on the next startup.");
         }
@@ -3552,6 +3964,7 @@ public final class EnvironmentAreaInstanceManager implements Listener {
 
     private static final class TemplateCaptureTiming {
         private final Map<String, Long> elapsedByTemplate = new ConcurrentHashMap<>();
+        private final Map<String, long[]> sizeByTemplate = new ConcurrentHashMap<>();
         private final java.util.concurrent.atomic.AtomicInteger reused = new java.util.concurrent.atomic.AtomicInteger();
 
         private void record(String templateKey, long started, boolean wasReused) {
@@ -3561,15 +3974,34 @@ public final class EnvironmentAreaInstanceManager implements Listener {
             }
         }
 
+        private void recordSize(String templateKey, int blockCount, int runCount) {
+            sizeByTemplate.put(templateKey, new long[]{blockCount, runCount});
+        }
+
         private String summary() {
             String slowest = elapsedByTemplate.entrySet().stream()
                     .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
                     .limit(3)
                     .map(entry -> entry.getKey() + "=" + formatElapsed(entry.getValue()))
                     .collect(java.util.stream.Collectors.joining(","));
+            long totalBlocks = 0L;
+            long totalRuns = 0L;
+            for (long[] size : sizeByTemplate.values()) {
+                totalBlocks += size[0];
+                totalRuns += size[1];
+            }
+            String biggest = sizeByTemplate.entrySet().stream()
+                    .sorted(Comparator.comparingLong((Map.Entry<String, long[]> entry) -> entry.getValue()[0]).reversed())
+                    .limit(3)
+                    .map(entry -> entry.getKey() + "=" + entry.getValue()[0] + "b/" + entry.getValue()[1] + "r")
+                    .collect(java.util.stream.Collectors.joining(","));
             return "templates=" + elapsedByTemplate.size()
                     + " reused=" + reused.get()
-                    + (slowest.isBlank() ? "" : " slowest=[" + slowest + "]");
+                    + (slowest.isBlank() ? "" : " slowest=[" + slowest + "]")
+                    + " blocks=" + totalBlocks
+                    + " runs=" + totalRuns
+                    + (totalRuns == 0L ? "" : String.format(Locale.ROOT, " compression=%.1fx", totalBlocks / (double) totalRuns))
+                    + (biggest.isBlank() ? "" : " biggest=[" + biggest + "]");
         }
     }
 
