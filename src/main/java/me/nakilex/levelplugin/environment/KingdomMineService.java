@@ -3,12 +3,19 @@ package me.nakilex.levelplugin.environment;
 import me.nakilex.levelplugin.Main;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -23,6 +30,8 @@ import java.util.UUID;
  *       and {@code upc-enchants: ALLOW} so prison enchants and autosell fire inside it;</li>
  *   <li><b>protected shell</b> - the whole build, flagged {@code build: DENY} and
  *       {@code block-break: DENY} so only the ore volume is mineable;</li>
+ *   <li><b>locked envelope</b> - future tiers are visible as protected bedrock around the
+ *       centered active mine and are converted to ore as the owner's pickaxe levels up;</li>
  *   <li><b>the X-Prison mine</b> itself, registered over the ore cuboid.</li>
  * </ul>
  *
@@ -33,7 +42,7 @@ import java.util.UUID;
  * <p>X-Prison and WorldGuard are soft dependencies: every call into them is guarded and
  * wrapped, so LevelPlugin still loads on a server without the prison core.</p>
  */
-public final class KingdomMineService {
+public final class KingdomMineService implements Listener {
 
     /** Mines and regions owned by this system; the suffix is the owner's short uuid. */
     private static final String MINE_NAME_PREFIX = "kingdom_";
@@ -41,17 +50,23 @@ public final class KingdomMineService {
     private static final String SHELL_SUFFIX = "_area";
     /** X-Prison's own flag gating enchants and autosell to mine regions. */
     private static final String ENCHANTS_FLAG = "upc-enchants";
+    /** X-Prison's WorldGuard flag allowing mine bombs in mine regions. */
+    private static final String BOMBS_FLAG = "mine-bombs";
 
     private final Main plugin;
     private final boolean enabled;
-    private final String paletteSourceMineName;
     private final int resetIntervalSeconds;
+    private final List<MineLevel> levels;
+    private final Map<UUID, ActiveMine> activeMines = new HashMap<>();
 
     public KingdomMineService(Main plugin) {
         this.plugin = plugin;
         this.enabled = plugin.getConfig().getBoolean("environment.kingdom-mine.enabled", true);
-        this.paletteSourceMineName = plugin.getConfig().getString("environment.kingdom-mine.palette-source", "A");
         this.resetIntervalSeconds = plugin.getConfig().getInt("environment.kingdom-mine.reset-interval-seconds", 300);
+        this.levels = loadLevels();
+        if (Bukkit.getPluginManager().isPluginEnabled("X-Prison")) {
+            Bukkit.getPluginManager().registerEvents(this, plugin);
+        }
     }
 
     /** @return whether kingdom mines are enabled and the prison core is present */
@@ -77,12 +92,12 @@ public final class KingdomMineService {
         if (!isAvailable() || ownerId == null || world == null || ore == null) {
             return;
         }
-        String name = mineName(ownerId);
-        createRegions(world, name, ore, shell);
-        createMine(world, name, ore);
+        ActiveMine active = new ActiveMine(world, normalized(ore), shell == null ? null : normalized(shell), -1);
+        activeMines.put(ownerId, active);
+        applyLevel(ownerId, active, levelFor(ownerId), false);
     }
 
-    private void createMine(World world, String name, int[] ore) {
+    private void createMine(World world, String name, int[] ore, MineLevel level) {
         try {
             var minesApi = dev.drawethree.xprison.api.XPrisonAPI.getInstance().getMinesApi();
 
@@ -100,7 +115,7 @@ public final class KingdomMineService {
                 return;
             }
 
-            applyPalette(minesApi, mine, name);
+            mine.getBlockPalette().setPaletteByIds(level.palette());
             if (resetIntervalSeconds > 0) {
                 minesApi.setMineResetInterval(mine, resetIntervalSeconds);
             }
@@ -110,45 +125,154 @@ public final class KingdomMineService {
         }
     }
 
-    /** Copies the block composition from the configured source mine onto the new mine. */
-    private void applyPalette(dev.drawethree.xprison.api.mines.XPrisonMinesAPI minesApi,
-                              dev.drawethree.xprison.api.mines.model.Mine mine,
-                              String name) {
-        var source = minesApi.getMineByName(paletteSourceMineName);
-        if (source == null) {
-            // Mines are stored under their exact name (A, not a), so retry ignoring case
-            // before giving up on the configured value.
-            source = minesApi.getMines().stream()
-                    .filter(candidate -> candidate.getName() != null
-                            && candidate.getName().equalsIgnoreCase(paletteSourceMineName))
-                    .findFirst()
-                    .orElse(null);
-        }
-        if (source == null) {
-            source = minesApi.getMines().stream()
-                    .filter(candidate -> !candidate.getName().startsWith(MINE_NAME_PREFIX))
-                    .findFirst()
-                    .orElse(null);
-            if (source == null) {
-                plugin.getLogger().warning("[KingdomMine] No source mine to copy a palette from; "
-                        + name + " will be empty. Set environment.kingdom-mine.palette-source.");
-                return;
-            }
-            plugin.getLogger().warning("[KingdomMine] Palette source " + paletteSourceMineName
-                    + " not found; using " + source.getName() + " instead.");
-        }
-
-        var sourcePalette = source.getBlockPalette();
-        Map<String, Double> byId = new LinkedHashMap<>();
-        for (var block : sourcePalette.getBlocks()) {
-            byId.put(block.getId(), sourcePalette.getPercentage(block));
-        }
-        if (byId.isEmpty()) {
-            plugin.getLogger().warning("[KingdomMine] Source mine " + source.getName()
-                    + " has an empty palette; " + name + " will not fill.");
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onPickaxeLevelUp(dev.drawethree.xprison.api.pickaxelevels.event.PlayerPickaxeLevelUpEvent event) {
+        if (event.getNewLevel() == null) {
             return;
         }
-        mine.getBlockPalette().setPaletteByIds(byId);
+        UUID ownerId = event.getPlayer().getUniqueId();
+        ActiveMine active = activeMines.get(ownerId);
+        if (active == null) {
+            return;
+        }
+        MineLevel level = levelForPickaxeLevel(event.getNewLevel().getLevel());
+        if (level.number() == active.levelNumber()) {
+            return;
+        }
+        applyLevel(ownerId, active, level, true);
+    }
+
+    private void applyLevel(UUID ownerId, ActiveMine active, MineLevel level, boolean announce) {
+        String name = mineName(ownerId);
+        int[] unlocked = centeredFootprint(active.maximumOre(), level.size());
+        fillMaximumWithBedrock(active.world(), active.maximumOre());
+        createMine(active.world(), name, unlocked, level);
+        createRegions(active.world(), name, unlocked, active.shell());
+        activeMines.put(ownerId, active.withLevelNumber(level.number()));
+
+        if (announce) {
+            Player player = Bukkit.getPlayer(ownerId);
+            if (player != null && player.isOnline()) {
+                player.sendMessage("\u00a76\u00a7lKINGDOM MINE \u00a78\u00bb \u00a7aUnlocked tier " + level.number()
+                        + " \u00a77(" + level.size() + "x" + height(active.maximumOre()) + "x" + level.size() + ").");
+            }
+        }
+        plugin.getLogger().info("[KingdomMine] " + name + " is tier " + level.number()
+                + " at pickaxe level " + level.minimumPickaxeLevel() + "+, size "
+                + level.size() + "x" + height(active.maximumOre()) + "x" + level.size() + ".");
+    }
+
+    private MineLevel levelFor(UUID ownerId) {
+        int pickaxeLevel = plugin.getPlayerConfig() == null
+                ? 1
+                : Math.max(1, plugin.getPlayerConfig().getXPrisonPickaxeLevel(ownerId));
+        Player player = Bukkit.getPlayer(ownerId);
+        if (player != null && player.isOnline()) {
+            try {
+                Optional<dev.drawethree.xprison.api.pickaxelevels.model.PickaxeLevel> live =
+                        dev.drawethree.xprison.api.XPrisonAPI.getInstance().getPickaxeLevelsApi().getPickaxeLevel(player);
+                if (live.isPresent()) {
+                    pickaxeLevel = Math.max(pickaxeLevel, live.get().getLevel());
+                }
+            } catch (RuntimeException | LinkageError ignored) {
+                // The persisted snapshot is deliberately the fallback for an absent/unequipped pickaxe.
+            }
+        }
+        return levelForPickaxeLevel(pickaxeLevel);
+    }
+
+    private MineLevel levelForPickaxeLevel(int pickaxeLevel) {
+        MineLevel selected = levels.getFirst();
+        for (MineLevel candidate : levels) {
+            if (pickaxeLevel < candidate.minimumPickaxeLevel()) {
+                break;
+            }
+            selected = candidate;
+        }
+        return selected;
+    }
+
+    private List<MineLevel> loadLevels() {
+        var section = plugin.getConfig().getConfigurationSection("environment.kingdom-mine.levels");
+        List<MineLevel> loaded = new ArrayList<>();
+        if (section != null) {
+            for (String key : section.getKeys(false)) {
+                var levelSection = section.getConfigurationSection(key);
+                if (levelSection == null) {
+                    continue;
+                }
+                int number;
+                try {
+                    number = Integer.parseInt(key);
+                } catch (NumberFormatException ignored) {
+                    plugin.getLogger().warning("[KingdomMine] Ignoring non-numeric mine tier '" + key + "'.");
+                    continue;
+                }
+                int minimum = Math.max(1, levelSection.getInt("minimum-pickaxe-level", 1));
+                int size = Math.max(1, levelSection.getInt("size", 10));
+                Map<String, Double> palette = new LinkedHashMap<>();
+                var paletteSection = levelSection.getConfigurationSection("blocks");
+                if (paletteSection != null) {
+                    for (String blockId : paletteSection.getKeys(false)) {
+                        double percentage = paletteSection.getDouble(blockId);
+                        if (percentage > 0.0D) {
+                            palette.put(blockId.toUpperCase(Locale.ROOT), percentage);
+                        }
+                    }
+                }
+                if (palette.isEmpty()) {
+                    plugin.getLogger().warning("[KingdomMine] Ignoring tier " + number + " because its palette is empty.");
+                    continue;
+                }
+                double total = palette.values().stream().mapToDouble(Double::doubleValue).sum();
+                if (Math.abs(total - 100.0D) > 0.001D) {
+                    plugin.getLogger().warning("[KingdomMine] Tier " + number + " block percentages total "
+                            + total + " instead of 100; X-Prison will normalize the palette.");
+                }
+                loaded.add(new MineLevel(number, minimum, size, Map.copyOf(palette)));
+            }
+        }
+        loaded.sort(Comparator.comparingInt(MineLevel::minimumPickaxeLevel)
+                .thenComparingInt(MineLevel::number));
+        if (loaded.isEmpty()) {
+            plugin.getLogger().warning("[KingdomMine] No progression tiers configured; using a 10x10 stone mine.");
+            return List.of(new MineLevel(1, 1, 10, Map.of("STONE", 100.0D)));
+        }
+        return List.copyOf(loaded);
+    }
+
+    private void fillMaximumWithBedrock(World world, int[] maximum) {
+        try (var session = com.sk89q.worldedit.WorldEdit.getInstance()
+                .newEditSession(com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(world))) {
+            var region = new com.sk89q.worldedit.regions.CuboidRegion(
+                    com.sk89q.worldedit.math.BlockVector3.at(maximum[0], maximum[1], maximum[2]),
+                    com.sk89q.worldedit.math.BlockVector3.at(maximum[3], maximum[4], maximum[5]));
+            session.setBlocks((com.sk89q.worldedit.regions.Region) region,
+                    com.sk89q.worldedit.world.block.BlockTypes.BEDROCK.getDefaultState());
+            session.flushQueue();
+        } catch (Throwable throwable) {
+            plugin.getLogger().warning("[KingdomMine] Could not place locked bedrock area: " + throwable);
+        }
+    }
+
+    private static int[] centeredFootprint(int[] maximum, int requestedSize) {
+        int width = maximum[3] - maximum[0] + 1;
+        int depth = maximum[5] - maximum[2] + 1;
+        int size = Math.max(1, Math.min(requestedSize, Math.min(width, depth)));
+        int minX = maximum[0] + (width - size) / 2;
+        int minZ = maximum[2] + (depth - size) / 2;
+        return new int[]{minX, maximum[1], minZ, minX + size - 1, maximum[4], minZ + size - 1};
+    }
+
+    private static int[] normalized(int[] box) {
+        return new int[]{
+                Math.min(box[0], box[3]), Math.min(box[1], box[4]), Math.min(box[2], box[5]),
+                Math.max(box[0], box[3]), Math.max(box[1], box[4]), Math.max(box[2], box[5])
+        };
+    }
+
+    private static int height(int[] box) {
+        return box[4] - box[1] + 1;
     }
 
     /**
@@ -186,7 +310,10 @@ public final class KingdomMineService {
                     com.sk89q.worldguard.protection.flags.StateFlag.State.ALLOW);
             oreRegion.setFlag(com.sk89q.worldguard.protection.flags.Flags.BUILD,
                     com.sk89q.worldguard.protection.flags.StateFlag.State.ALLOW);
-            applyEnchantsFlag(oreRegion, name);
+            applyStateFlag(oreRegion, ENCHANTS_FLAG, name,
+                    "prison enchants and autosell may not fire in ");
+            applyStateFlag(oreRegion, BOMBS_FLAG, name,
+                    "mine bombs may not fire in ");
             manager.addRegion(oreRegion);
         } catch (Throwable throwable) {
             plugin.getLogger().warning("[KingdomMine] Could not create regions for " + name + ": " + throwable);
@@ -204,15 +331,17 @@ public final class KingdomMineService {
      * X-Prison registers upc-enchants at runtime, so it is looked up by name rather than
      * referenced statically - the constant does not exist in its API jar.
      */
-    private void applyEnchantsFlag(com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion region,
-                                   String name) {
-        var flag = com.sk89q.worldguard.WorldGuard.getInstance().getFlagRegistry().get(ENCHANTS_FLAG);
+    private void applyStateFlag(com.sk89q.worldguard.protection.regions.ProtectedCuboidRegion region,
+                                String flagName,
+                                String mineName,
+                                String missingImpact) {
+        var flag = com.sk89q.worldguard.WorldGuard.getInstance().getFlagRegistry().get(flagName);
         if (flag instanceof com.sk89q.worldguard.protection.flags.StateFlag stateFlag) {
             region.setFlag(stateFlag, com.sk89q.worldguard.protection.flags.StateFlag.State.ALLOW);
             return;
         }
-        plugin.getLogger().warning("[KingdomMine] Flag " + ENCHANTS_FLAG
-                + " is not registered; prison enchants may not fire in " + name);
+        plugin.getLogger().warning("[KingdomMine] Flag " + flagName
+                + " is not registered; " + missingImpact + mineName);
     }
 
     /** Deletes the owner's mine and regions without touching other plots in the shared world. */
@@ -221,6 +350,7 @@ public final class KingdomMineService {
             return;
         }
         String name = mineName(ownerId);
+        activeMines.remove(ownerId);
         try {
             var minesApi = dev.drawethree.xprison.api.XPrisonAPI.getInstance().getMinesApi();
             var mine = minesApi.getMineByName(name);
@@ -274,6 +404,15 @@ public final class KingdomMineService {
             }
         } catch (Throwable throwable) {
             plugin.getLogger().warning("[KingdomMine] Orphan sweep failed: " + throwable);
+        }
+    }
+
+    private record MineLevel(int number, int minimumPickaxeLevel, int size, Map<String, Double> palette) {
+    }
+
+    private record ActiveMine(World world, int[] maximumOre, int[] shell, int levelNumber) {
+        private ActiveMine withLevelNumber(int value) {
+            return new ActiveMine(world, maximumOre, shell, value);
         }
     }
 }

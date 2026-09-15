@@ -25,10 +25,12 @@ import java.util.Optional;
 public final class XPrisonPickaxeLevelTracker implements Listener {
 
     private final Main plugin;
+    private final PickaxeLevelUpTotemAnimator levelUpTotemAnimator;
     private boolean enabled;
 
     public XPrisonPickaxeLevelTracker(Main plugin) {
         this.plugin = plugin;
+        this.levelUpTotemAnimator = new PickaxeLevelUpTotemAnimator(plugin);
     }
 
     public void enable() {
@@ -62,6 +64,7 @@ public final class XPrisonPickaxeLevelTracker implements Listener {
             return;
         }
         plugin.getPlayerConfig().setXPrisonPickaxeLevel(event.getPlayer().getUniqueId(), newLevel.getLevel());
+        levelUpTotemAnimator.play(event.getPlayer());
     }
 
     @EventHandler

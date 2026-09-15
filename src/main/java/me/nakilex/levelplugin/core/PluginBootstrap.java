@@ -301,6 +301,7 @@ public class PluginBootstrap {
         initializePacketEvents();
         loadConfigFiles();
         FishingResourcePackManager.initialize(plugin);
+        me.nakilex.levelplugin.xprison.LevelUpTotemResourcePackManager.install(plugin);
         me.nakilex.levelplugin.playerhead.PlayerHeadResourcePackManager.install(plugin);
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.playerhead.PlayerHeadPrefetchListener(plugin), plugin);

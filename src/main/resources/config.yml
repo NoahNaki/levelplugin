@@ -2,6 +2,14 @@
 # dungeons, catacombs, and dungeon-backed expeditions).
 enable-dungeons: false
 
+xprison:
+  pickaxe-level-up-totem:
+    enabled: true
+    # Modern item-model key supplied through Nexo's generated resource pack.
+    item-model: "levelplugin:level_up_totem_v3"
+    sound-volume: 1.0
+    sound-pitch: 1.2
+
 features:
   profiles: true
   environment: true
@@ -230,16 +238,217 @@ environment:
     warm-plot-pool-size: 1
   kingdom-mine:
     enabled: true
-    # Name of an existing X-Prison mine to copy the block composition from. Tune that
-    # mine in X-Prison's own GUI and every new kingdom mine picks the change up.
-    palette-source: 'A'
     # 0 disables the timed reset and leaves the mine on percentage-based resets only.
     reset-interval-seconds: 300
+    # Kingdom mines progress with the owner's X-Prison pickaxe. Every tier has its own
+    # square horizontal size and block palette; the configured region below is the maximum
+    # 29x95x29 envelope. Space outside the unlocked tier is filled with protected bedrock.
+    levels:
+      '1':
+        minimum-pickaxe-level: 1
+        size: 10
+        blocks: { STONE: 90, COAL_ORE: 10 }
+      '2':
+        minimum-pickaxe-level: 16
+        size: 11
+        blocks: { STONE: 78, COAL_ORE: 15, IRON_ORE: 7 }
+      '3':
+        minimum-pickaxe-level: 31
+        size: 12
+        blocks: { STONE: 65, COAL_ORE: 15, IRON_ORE: 12, COPPER_ORE: 8 }
+      '4':
+        minimum-pickaxe-level: 46
+        size: 13
+        blocks: { STONE: 55, COAL_ORE: 12, IRON_ORE: 15, COPPER_ORE: 12, GOLD_ORE: 6 }
+      '5':
+        minimum-pickaxe-level: 61
+        size: 14
+        blocks: { STONE: 45, DEEPSLATE: 10, COAL_ORE: 10, IRON_ORE: 15, COPPER_ORE: 12, GOLD_ORE: 8 }
+      '6':
+        minimum-pickaxe-level: 76
+        size: 15
+        blocks: { DEEPSLATE: 45, COAL_ORE: 8, IRON_ORE: 17, COPPER_ORE: 12, GOLD_ORE: 10, REDSTONE_ORE: 8 }
+      '7':
+        minimum-pickaxe-level: 91
+        size: 16
+        blocks: { DEEPSLATE: 40, IRON_ORE: 16, COPPER_ORE: 10, GOLD_ORE: 12, REDSTONE_ORE: 12, LAPIS_ORE: 10 }
+      '8':
+        minimum-pickaxe-level: 106
+        size: 17
+        blocks: { DEEPSLATE: 35, IRON_ORE: 12, COPPER_ORE: 8, GOLD_ORE: 14, REDSTONE_ORE: 14, LAPIS_ORE: 12, DIAMOND_ORE: 2, EMERALD_ORE: 3 }
+      '9':
+        minimum-pickaxe-level: 121
+        size: 18
+        blocks: { DEEPSLATE: 30, IRON_ORE: 10, COPPER_ORE: 5, GOLD_ORE: 15, REDSTONE_ORE: 15, LAPIS_ORE: 15, DIAMOND_ORE: 5, EMERALD_ORE: 5 }
+      '10':
+        minimum-pickaxe-level: 136
+        size: 19
+        blocks: { DEEPSLATE: 25, IRON_ORE: 8, COPPER_ORE: 7, GOLD_ORE: 15, REDSTONE_ORE: 15, LAPIS_ORE: 15, DIAMOND_ORE: 8, EMERALD_ORE: 7 }
+      '11':
+        minimum-pickaxe-level: 151
+        size: 20
+        blocks: { DEEPSLATE: 20, IRON_ORE: 5, GOLD_ORE: 13, REDSTONE_ORE: 14, LAPIS_ORE: 14, DIAMOND_ORE: 12, EMERALD_ORE: 10, NETHER_QUARTZ_ORE: 12 }
+      '12':
+        minimum-pickaxe-level: 166
+        size: 21
+        blocks: { DEEPSLATE: 18, GOLD_ORE: 12, REDSTONE_ORE: 12, LAPIS_ORE: 12, DIAMOND_ORE: 15, EMERALD_ORE: 13, NETHER_QUARTZ_ORE: 10, NETHER_GOLD_ORE: 8 }
+      '13':
+        minimum-pickaxe-level: 181
+        size: 22
+        blocks: { DEEPSLATE: 15, GOLD_ORE: 10, REDSTONE_ORE: 10, LAPIS_ORE: 10, DIAMOND_ORE: 17, EMERALD_ORE: 15, NETHER_QUARTZ_ORE: 10, NETHER_GOLD_ORE: 10, ANCIENT_DEBRIS: 3 }
+      '14':
+        minimum-pickaxe-level: 196
+        size: 23
+        blocks: { DEEPSLATE: 12, GOLD_ORE: 8, REDSTONE_ORE: 8, LAPIS_ORE: 8, DIAMOND_ORE: 18, EMERALD_ORE: 16, NETHER_QUARTZ_ORE: 10, NETHER_GOLD_ORE: 10, ANCIENT_DEBRIS: 5, DIAMOND_BLOCK: 2, EMERALD_BLOCK: 3 }
+      '15':
+        minimum-pickaxe-level: 211
+        size: 24
+        blocks: { DEEPSLATE: 10, GOLD_ORE: 6, REDSTONE_ORE: 7, LAPIS_ORE: 7, DIAMOND_ORE: 18, EMERALD_ORE: 17, NETHER_QUARTZ_ORE: 8, NETHER_GOLD_ORE: 8, ANCIENT_DEBRIS: 7, DIAMOND_BLOCK: 4, EMERALD_BLOCK: 4, GOLD_BLOCK: 4 }
+      '16':
+        minimum-pickaxe-level: 226
+        size: 25
+        blocks: { DEEPSLATE: 8, DIAMOND_ORE: 18, EMERALD_ORE: 18, ANCIENT_DEBRIS: 10, DIAMOND_BLOCK: 8, EMERALD_BLOCK: 8, GOLD_BLOCK: 8, REDSTONE_BLOCK: 7, LAPIS_BLOCK: 7, IRON_BLOCK: 4, COPPER_BLOCK: 4 }
+      '17':
+        minimum-pickaxe-level: 241
+        size: 26
+        blocks: { DEEPSLATE: 5, DIAMOND_ORE: 15, EMERALD_ORE: 15, ANCIENT_DEBRIS: 12, DIAMOND_BLOCK: 12, EMERALD_BLOCK: 12, GOLD_BLOCK: 10, REDSTONE_BLOCK: 8, LAPIS_BLOCK: 8, NETHERITE_BLOCK: 1, COAL_BLOCK: 2 }
+      '18':
+        minimum-pickaxe-level: 256
+        size: 27
+        blocks: { DEEPSLATE: 4, DIAMOND_ORE: 12, EMERALD_ORE: 12, ANCIENT_DEBRIS: 15, DIAMOND_BLOCK: 15, EMERALD_BLOCK: 14, GOLD_BLOCK: 10, REDSTONE_BLOCK: 8, LAPIS_BLOCK: 8, NETHERITE_BLOCK: 2 }
+      '19':
+        minimum-pickaxe-level: 271
+        size: 28
+        blocks: { DIAMOND_ORE: 10, EMERALD_ORE: 10, ANCIENT_DEBRIS: 18, DIAMOND_BLOCK: 18, EMERALD_BLOCK: 16, GOLD_BLOCK: 10, REDSTONE_BLOCK: 8, LAPIS_BLOCK: 7, NETHERITE_BLOCK: 3 }
+      '20':
+        minimum-pickaxe-level: 286
+        size: 29
+        blocks: { DIAMOND_ORE: 8, EMERALD_ORE: 8, ANCIENT_DEBRIS: 20, DIAMOND_BLOCK: 20, EMERALD_BLOCK: 18, GOLD_BLOCK: 10, REDSTONE_BLOCK: 7, LAPIS_BLOCK: 5, NETHERITE_BLOCK: 4 }
+      '21':
+        minimum-pickaxe-level: 301
+        size: 29
+        blocks: { DIAMOND_ORE: 5, EMERALD_ORE: 5, ANCIENT_DEBRIS: 22, DIAMOND_BLOCK: 20, EMERALD_BLOCK: 18, GOLD_BLOCK: 10, REDSTONE_BLOCK: 8, LAPIS_BLOCK: 7, NETHERITE_BLOCK: 5 }
+      '22':
+        minimum-pickaxe-level: 316
+        size: 29
+        blocks: { DIAMOND_ORE: 5, EMERALD_ORE: 5, ANCIENT_DEBRIS: 23, DIAMOND_BLOCK: 20, EMERALD_BLOCK: 18, GOLD_BLOCK: 10, REDSTONE_BLOCK: 7, LAPIS_BLOCK: 5, NETHERITE_BLOCK: 7 }
+      '23':
+        minimum-pickaxe-level: 331
+        size: 29
+        blocks: { DIAMOND_ORE: 4, EMERALD_ORE: 4, ANCIENT_DEBRIS: 25, DIAMOND_BLOCK: 20, EMERALD_BLOCK: 17, GOLD_BLOCK: 10, REDSTONE_BLOCK: 6, LAPIS_BLOCK: 4, NETHERITE_BLOCK: 10 }
+      '24':
+        minimum-pickaxe-level: 346
+        size: 29
+        blocks: { DIAMOND_ORE: 3, EMERALD_ORE: 3, ANCIENT_DEBRIS: 26, DIAMOND_BLOCK: 20, EMERALD_BLOCK: 16, GOLD_BLOCK: 10, REDSTONE_BLOCK: 5, LAPIS_BLOCK: 4, NETHERITE_BLOCK: 13 }
+      '25':
+        minimum-pickaxe-level: 361
+        size: 29
+        blocks: { DIAMOND_ORE: 3, EMERALD_ORE: 2, ANCIENT_DEBRIS: 27, DIAMOND_BLOCK: 20, EMERALD_BLOCK: 15, GOLD_BLOCK: 10, REDSTONE_BLOCK: 4, LAPIS_BLOCK: 3, NETHERITE_BLOCK: 16 }
+      '26':
+        minimum-pickaxe-level: 376
+        size: 29
+        blocks: { DIAMOND_ORE: 3, EMERALD_ORE: 2, ANCIENT_DEBRIS: 28, DIAMOND_BLOCK: 20, EMERALD_BLOCK: 14, GOLD_BLOCK: 8, REDSTONE_BLOCK: 3, LAPIS_BLOCK: 2, NETHERITE_BLOCK: 20 }
+      '27':
+        minimum-pickaxe-level: 391
+        size: 29
+        blocks: { DIAMOND_ORE: 2, EMERALD_ORE: 2, ANCIENT_DEBRIS: 28, DIAMOND_BLOCK: 20, EMERALD_BLOCK: 13, GOLD_BLOCK: 7, REDSTONE_BLOCK: 2, LAPIS_BLOCK: 2, NETHERITE_BLOCK: 24 }
+      '28':
+        minimum-pickaxe-level: 406
+        size: 29
+        blocks: { DIAMOND_ORE: 2, EMERALD_ORE: 2, ANCIENT_DEBRIS: 28, DIAMOND_BLOCK: 19, EMERALD_BLOCK: 12, GOLD_BLOCK: 6, REDSTONE_BLOCK: 2, LAPIS_BLOCK: 1, NETHERITE_BLOCK: 28 }
+      '29':
+        minimum-pickaxe-level: 421
+        size: 29
+        blocks: { DIAMOND_ORE: 2, EMERALD_ORE: 2, ANCIENT_DEBRIS: 28, DIAMOND_BLOCK: 18, EMERALD_BLOCK: 11, GOLD_BLOCK: 5, REDSTONE_BLOCK: 1, LAPIS_BLOCK: 1, NETHERITE_BLOCK: 32 }
+      '30':
+        minimum-pickaxe-level: 436
+        size: 29
+        blocks: { DIAMOND_ORE: 2, EMERALD_ORE: 1, ANCIENT_DEBRIS: 27, DIAMOND_BLOCK: 18, EMERALD_BLOCK: 10, GOLD_BLOCK: 4, REDSTONE_BLOCK: 1, LAPIS_BLOCK: 1, NETHERITE_BLOCK: 36 }
+      '31':
+        minimum-pickaxe-level: 451
+        size: 29
+        blocks: { DIAMOND_ORE: 1, EMERALD_ORE: 1, ANCIENT_DEBRIS: 26, DIAMOND_BLOCK: 17, EMERALD_BLOCK: 9, GOLD_BLOCK: 4, REDSTONE_BLOCK: 1, LAPIS_BLOCK: 1, NETHERITE_BLOCK: 40 }
+      '32':
+        minimum-pickaxe-level: 466
+        size: 29
+        blocks: { DIAMOND_ORE: 1, EMERALD_ORE: 1, ANCIENT_DEBRIS: 25, DIAMOND_BLOCK: 16, EMERALD_BLOCK: 8, GOLD_BLOCK: 3, REDSTONE_BLOCK: 1, LAPIS_BLOCK: 1, NETHERITE_BLOCK: 44 }
+      '33':
+        minimum-pickaxe-level: 481
+        size: 29
+        blocks: { DIAMOND_ORE: 1, EMERALD_ORE: 1, ANCIENT_DEBRIS: 24, DIAMOND_BLOCK: 15, EMERALD_BLOCK: 7, GOLD_BLOCK: 3, REDSTONE_BLOCK: 1, NETHERITE_BLOCK: 48 }
+      '34':
+        minimum-pickaxe-level: 496
+        size: 29
+        blocks: { DIAMOND_ORE: 1, EMERALD_ORE: 1, ANCIENT_DEBRIS: 23, DIAMOND_BLOCK: 14, EMERALD_BLOCK: 6, GOLD_BLOCK: 3, NETHERITE_BLOCK: 52 }
+      '35':
+        minimum-pickaxe-level: 511
+        size: 29
+        blocks: { DIAMOND_ORE: 1, EMERALD_ORE: 1, ANCIENT_DEBRIS: 22, DIAMOND_BLOCK: 13, EMERALD_BLOCK: 5, GOLD_BLOCK: 2, NETHERITE_BLOCK: 56 }
+      '36':
+        minimum-pickaxe-level: 526
+        size: 29
+        blocks: { DIAMOND_ORE: 1, ANCIENT_DEBRIS: 21, DIAMOND_BLOCK: 12, EMERALD_BLOCK: 4, GOLD_BLOCK: 2, NETHERITE_BLOCK: 60 }
+      '37':
+        minimum-pickaxe-level: 541
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 20, DIAMOND_BLOCK: 10, EMERALD_BLOCK: 4, GOLD_BLOCK: 2, NETHERITE_BLOCK: 64 }
+      '38':
+        minimum-pickaxe-level: 556
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 18, DIAMOND_BLOCK: 10, EMERALD_BLOCK: 3, GOLD_BLOCK: 1, NETHERITE_BLOCK: 68 }
+      '39':
+        minimum-pickaxe-level: 571
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 17, DIAMOND_BLOCK: 8, EMERALD_BLOCK: 2, GOLD_BLOCK: 1, NETHERITE_BLOCK: 72 }
+      '40':
+        minimum-pickaxe-level: 586
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 15, DIAMOND_BLOCK: 7, EMERALD_BLOCK: 2, NETHERITE_BLOCK: 76 }
+      '41':
+        minimum-pickaxe-level: 601
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 13, DIAMOND_BLOCK: 6, EMERALD_BLOCK: 1, NETHERITE_BLOCK: 80 }
+      '42':
+        minimum-pickaxe-level: 616
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 11, DIAMOND_BLOCK: 5, EMERALD_BLOCK: 1, NETHERITE_BLOCK: 83 }
+      '43':
+        minimum-pickaxe-level: 631
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 9, DIAMOND_BLOCK: 4, EMERALD_BLOCK: 1, NETHERITE_BLOCK: 86 }
+      '44':
+        minimum-pickaxe-level: 646
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 7, DIAMOND_BLOCK: 3, EMERALD_BLOCK: 1, NETHERITE_BLOCK: 89 }
+      '45':
+        minimum-pickaxe-level: 661
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 5, DIAMOND_BLOCK: 2, EMERALD_BLOCK: 1, NETHERITE_BLOCK: 92 }
+      '46':
+        minimum-pickaxe-level: 676
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 4, DIAMOND_BLOCK: 1, EMERALD_BLOCK: 1, NETHERITE_BLOCK: 94 }
+      '47':
+        minimum-pickaxe-level: 691
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 3, DIAMOND_BLOCK: 1, NETHERITE_BLOCK: 96 }
+      '48':
+        minimum-pickaxe-level: 706
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 2, NETHERITE_BLOCK: 98 }
+      '49':
+        minimum-pickaxe-level: 721
+        size: 29
+        blocks: { ANCIENT_DEBRIS: 1, NETHERITE_BLOCK: 99 }
+      '50':
+        minimum-pickaxe-level: 736
+        size: 29
+        blocks: { NETHERITE_BLOCK: 100 }
     # The mine plot, in 'flatland' template coordinates (the same space the kingdom build
     # is authored in). Tune it in-game with /kingdom minearea pos1 / pos2 rather than by
     # hand; the values below are the built-in default.
-    # The ORE cuboid only - the volume X-Prison refills. Mirrors the 'mine:' block of an
-    # X-PrivateMines schematic. Tune with /kingdom minearea pos1 / pos2.
+    # The maximum ORE cuboid. The active X-Prison region is centered inside it at the
+    # current tier's size. Tune with /kingdom minearea pos1 / pos2.
     region:
       x1: 3814
       y1: -44
