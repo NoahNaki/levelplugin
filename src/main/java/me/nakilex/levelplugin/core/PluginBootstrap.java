@@ -219,6 +219,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager questDialogueManager;
     private me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager scoreboardManager;
     private me.nakilex.levelplugin.quests.managers.BeaconManager beaconManager;
+    private me.nakilex.levelplugin.waypoints.bukkit.DirectionalWaypointService directionalWaypointService;
     private me.nakilex.levelplugin.fasttravel.FastTravelManager fastTravelManager;
     private me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI fastTravelGUI;
     private me.nakilex.levelplugin.music.LocationMusicManager locationMusicManager;
@@ -564,6 +565,8 @@ public class PluginBootstrap {
         ignoreManager = new IgnoreManager(plugin);
         friendRequestListener = new FriendRequestListener(friendManager);
         beaconManager = new me.nakilex.levelplugin.quests.managers.BeaconManager();
+        directionalWaypointService = new me.nakilex.levelplugin.waypoints.bukkit.DirectionalWaypointService(plugin);
+        directionalWaypointService.start();
         fastTravelManager = new me.nakilex.levelplugin.fasttravel.FastTravelManager(plugin);
         modelGateManager = new me.nakilex.levelplugin.fakeblock.ModelGateManager(plugin);
         fastTravelGUI = new me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI(fastTravelManager, economyManager, modelGateManager);
@@ -895,6 +898,7 @@ public class PluginBootstrap {
                 new me.nakilex.levelplugin.settings.listeners.PersonalEnvironmentJoinListener(plugin, playerEnvironmentService),
                 plugin);
         plugin.getServer().getPluginManager().registerEvents(beaconManager, plugin);
+        plugin.getServer().getPluginManager().registerEvents(directionalWaypointService, plugin);
         if (chatGameManager != null) {
             chatGameManager.start();
         }
@@ -1054,6 +1058,7 @@ public class PluginBootstrap {
         if (buildingStageManager != null) buildingStageManager.despawnAll();
         if (wanderingMerchantManager != null) wanderingMerchantManager.despawn();
         if (beaconManager != null) beaconManager.removeAll();
+        if (directionalWaypointService != null) directionalWaypointService.shutdown();
         if (beaconEntityDebugManager != null) beaconEntityDebugManager.removeAll();
         if (serverSelectionManager != null) serverSelectionManager.shutdown();
         if (questDialogueManager != null) questDialogueManager.shutdown();
@@ -1164,6 +1169,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.quests.dialogue.QuestDialogueManager getQuestDialogueManager() { return questDialogueManager; }
     public me.nakilex.levelplugin.scoreboard.PlayerScoreboardManager getScoreboardManager() { return scoreboardManager; }
     public me.nakilex.levelplugin.quests.managers.BeaconManager getBeaconManager() { return beaconManager; }
+    public me.nakilex.levelplugin.waypoints.bukkit.DirectionalWaypointService getDirectionalWaypointService() { return directionalWaypointService; }
     public me.nakilex.levelplugin.fasttravel.FastTravelManager getFastTravelManager() { return fastTravelManager; }
     public me.nakilex.levelplugin.fasttravel.gui.FastTravelGUI getFastTravelGUI() { return fastTravelGUI; }
     public me.nakilex.levelplugin.music.LocationMusicManager getLocationMusicManager() { return locationMusicManager; }
