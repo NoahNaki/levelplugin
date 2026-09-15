@@ -283,6 +283,7 @@ public class PluginBootstrap {
     private me.nakilex.levelplugin.xprison.XPrisonEnchantsIntegration xPrisonEnchantsIntegration;
     private me.nakilex.levelplugin.xprison.XPrisonPickaxeLevelTracker xPrisonPickaxeLevelTracker;
     private me.nakilex.levelplugin.serverboard.ServerTabListManager serverTabListManager;
+    private me.nakilex.levelplugin.playerhead.PlayerModelResourcePackServer playerModelResourcePackServer;
     private boolean dungeonsEnabled;
 
     public PluginBootstrap(Main plugin) {
@@ -302,6 +303,7 @@ public class PluginBootstrap {
         me.nakilex.levelplugin.playerhead.PlayerHeadResourcePackManager.install(plugin);
         plugin.getServer().getPluginManager().registerEvents(
                 new me.nakilex.levelplugin.playerhead.PlayerHeadPrefetchListener(plugin), plugin);
+        setupPlayerModelResourcePack();
         serverTabListManager = new me.nakilex.levelplugin.serverboard.ServerTabListManager(plugin);
         plugin.getServer().getPluginManager().registerEvents(serverTabListManager, plugin);
         serverTabListManager.start();
@@ -905,6 +907,25 @@ public class PluginBootstrap {
         TaskRegistry.startTasks(plugin, horseConfigManager, horseManager, wanderingMerchantManager);
     }
 
+    private void setupPlayerModelResourcePack() {
+        if (!plugin.getConfig().getBoolean("playermodel-pack.enabled", true)) return;
+        try {
+            me.nakilex.levelplugin.playerhead.PlayerModelResourcePack pack =
+                    new me.nakilex.levelplugin.playerhead.PlayerModelResourcePack(plugin);
+            String bindHost = plugin.getConfig().getString("playermodel-pack.bind-host", "127.0.0.1");
+            int port = plugin.getConfig().getInt("playermodel-pack.port", 8083);
+            String publicAddress = plugin.getConfig().getString("playermodel-pack.public-address", "127.0.0.1");
+            playerModelResourcePackServer = new me.nakilex.levelplugin.playerhead.PlayerModelResourcePackServer(
+                    plugin, pack, bindHost, port, publicAddress);
+            plugin.getServer().getPluginManager().registerEvents(
+                    new me.nakilex.levelplugin.playerhead.PlayerModelResourcePackDispatcher(
+                            plugin, playerModelResourcePackServer.publicUrl(), pack.sha1Hex()),
+                    plugin);
+        } catch (java.io.IOException exception) {
+            plugin.getLogger().warning("Could not start the player-model shader pack server: " + exception.getMessage());
+        }
+    }
+
     private void initializePacketEvents() {
         try {
             PacketEvents.setAPI(SpigotPacketEventsBuilder.build(plugin));
@@ -988,6 +1009,7 @@ public class PluginBootstrap {
 
     public void disable() {
         if (serverTabListManager != null) serverTabListManager.stop();
+        if (playerModelResourcePackServer != null) playerModelResourcePackServer.stop();
         if (xPrisonEnchantsIntegration != null) {
             xPrisonEnchantsIntegration.disable();
             xPrisonEnchantsIntegration = null;

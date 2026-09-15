@@ -110,6 +110,16 @@ animatedlb:
   row-count: 10
   animation-speed: 1.0
 
+# Standalone shader pack for the chat hover-card player model. Sent separately from Nexo's own pack
+# (after it) because Nexo's per-version overlay would otherwise shadow the override - see
+# PlayerModelResourcePack. bind-host is what the plugin's HTTP server listens on; public-address is
+# what gets embedded in the URL sent to clients (change it if the server isn't reachable at localhost).
+playermodel-pack:
+  enabled: true
+  bind-host: 127.0.0.1
+  port: 8083
+  public-address: 127.0.0.1
+
 # Interactive challenge selected when a fish bites. Difficulty scales with level, fish rarity, and rod tier.
 fishing-mini-games:
   enabled: true

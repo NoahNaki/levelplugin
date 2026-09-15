@@ -12,17 +12,20 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Copies the player-head font and its pixel textures out of the jar and into Nexo's pack, so the
- * glyphs {@link PlayerHeadRenderer} emits actually reach the client.
+ * Copies the player-head font, its pixel textures, and the {@code rendertype_text} shader override
+ * out of the jar and into Nexo's pack, so the glyphs {@link PlayerHeadRenderer} emits and the 3D
+ * model {@link PlayerModelComponent} draws actually reach the client.
  * <p>
  * Targets {@code Nexo/pack/assets/minecraft/...} rather than {@code external_packs/}: Nexo merges
  * that directory into the pack it generates (verified - the repo's own {@code space.json} and mouse
- * textures come out the other side), and these two paths belong to this feature alone, so nothing
+ * textures come out the other side), and these paths belong to this feature alone, so nothing
  * else can be overwritten. Nexo still has to regenerate its pack before changes reach players.
  */
 public final class PlayerHeadResourcePackManager {
-    private static final String SOURCE_ROOT = "resourcepack/assets/minecraft/";
+    static final String SOURCE_ROOT = "resourcepack/assets/minecraft/";
     private static final String FONT = "font/playerhead.json";
+    static final String VERTEX_SHADER = "shaders/core/rendertype_text.vsh";
+    static final String FRAGMENT_SHADER = "shaders/core/rendertype_text.fsh";
 
     private PlayerHeadResourcePackManager() {
     }
@@ -33,7 +36,7 @@ public final class PlayerHeadResourcePackManager {
         if (pluginsDirectory == null) return;
         Path target = pluginsDirectory.resolve("Nexo/pack/assets/minecraft");
 
-        List<String> assets = new ArrayList<>(List.of(FONT));
+        List<String> assets = new ArrayList<>(List.of(FONT, VERTEX_SHADER, FRAGMENT_SHADER));
         for (int i = 1; i <= 8; i++) {
             assets.add("textures/playerhead/pixel" + i + ".png");
         }
