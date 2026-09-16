@@ -283,6 +283,8 @@ public class PluginBootstrap {
     private BlockGlowUtil blockGlowUtil;
     private me.nakilex.levelplugin.xprison.XPrisonEnchantsIntegration xPrisonEnchantsIntegration;
     private me.nakilex.levelplugin.xprison.XPrisonPickaxeLevelTracker xPrisonPickaxeLevelTracker;
+    private me.nakilex.levelplugin.xprison.rebirth.XPrisonRebirthManager xPrisonRebirthManager;
+    private me.nakilex.levelplugin.xprison.rebirth.RebirthGUI rebirthGUI;
     private me.nakilex.levelplugin.serverboard.ServerTabListManager serverTabListManager;
     private me.nakilex.levelplugin.playerhead.PlayerModelResourcePackServer playerModelResourcePackServer;
     private boolean dungeonsEnabled;
@@ -316,6 +318,10 @@ public class PluginBootstrap {
         xPrisonEnchantsIntegration.enable();
         xPrisonPickaxeLevelTracker = new me.nakilex.levelplugin.xprison.XPrisonPickaxeLevelTracker(plugin);
         xPrisonPickaxeLevelTracker.enable();
+        xPrisonRebirthManager = new me.nakilex.levelplugin.xprison.rebirth.XPrisonRebirthManager(plugin);
+        xPrisonRebirthManager.enable();
+        rebirthGUI = new me.nakilex.levelplugin.xprison.rebirth.RebirthGUI(plugin, xPrisonRebirthManager);
+        plugin.getServer().getPluginManager().registerEvents(rebirthGUI, plugin);
         HologramUtil.removeMobHolograms();
         playerConfig.loadAllPlayers();
         itemConfig = new ItemConfig(plugin);
@@ -729,6 +735,11 @@ public class PluginBootstrap {
         );
         plugin.getCommand("pweather").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalWeatherCommand(playerEnvironmentService));
         plugin.getCommand("ptime").setExecutor(new me.nakilex.levelplugin.settings.commands.PersonalTimeCommand(playerEnvironmentService));
+        me.nakilex.levelplugin.xprison.rebirth.RebirthCommand rebirthCommand =
+                new me.nakilex.levelplugin.xprison.rebirth.RebirthCommand(xPrisonRebirthManager, rebirthGUI);
+        plugin.getCommand("rebirth").setExecutor(rebirthCommand);
+        plugin.getCommand("rebirth").setTabCompleter(rebirthCommand);
+        plugin.getServer().getPluginManager().registerEvents(rebirthCommand, plugin);
         if (dungeonsEnabled) {
             me.nakilex.levelplugin.catacombs.CatacombsCommand catacombsCommand =
                     new me.nakilex.levelplugin.catacombs.CatacombsCommand(catacombsManager, catacombsGUI);
@@ -1019,6 +1030,10 @@ public class PluginBootstrap {
     public void disable() {
         if (serverTabListManager != null) serverTabListManager.stop();
         if (playerModelResourcePackServer != null) playerModelResourcePackServer.stop();
+        if (xPrisonRebirthManager != null) {
+            xPrisonRebirthManager.disable();
+            xPrisonRebirthManager = null;
+        }
         if (xPrisonEnchantsIntegration != null) {
             xPrisonEnchantsIntegration.disable();
             xPrisonEnchantsIntegration = null;

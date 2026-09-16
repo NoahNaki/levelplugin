@@ -135,11 +135,15 @@ public final class KingdomMineService implements Listener {
         if (active == null) {
             return;
         }
-        MineLevel level = levelForPickaxeLevel(event.getNewLevel().getLevel());
+        int newPickaxeLevel = event.getNewLevel().getLevel();
+        int oldPickaxeLevel = event.getOldLevel() == null ? newPickaxeLevel : event.getOldLevel().getLevel();
+        MineLevel level = levelForPickaxeLevel(newPickaxeLevel);
         if (level.number() == active.levelNumber()) {
             return;
         }
-        applyLevel(ownerId, active, level, true);
+        // Rebirth intentionally downgrades the mine back to its early tiers. Only upward progression
+        // should display the normal "Unlocked tier" announcement.
+        applyLevel(ownerId, active, level, newPickaxeLevel > oldPickaxeLevel);
     }
 
     private void applyLevel(UUID ownerId, ActiveMine active, MineLevel level, boolean announce) {

@@ -15,7 +15,7 @@ public enum BoardType {
     XPRISON_PRESTIGE("PRESTIGE", "★", ChatColor.DARK_PURPLE,
             (e, type) -> "PR " + (int) e.primaryValue()),
     XPRISON_REBIRTH("REBIRTH", "♻", ChatColor.RED,
-            (e, type) -> "RB " + (int) e.primaryValue()),
+            (e, type) -> "RB " + (int) e.primaryValue() + " • LV " + (int) e.secondaryValue()),
     XPRISON_TOKENS("TOP TOKENS", "⛃", ChatColor.GOLD, BoardType::formatXPrisonTokens),
     FARMING("FARMING XP", "✿", ChatColor.GREEN, BoardType::formatLifeSkill),
     FISHING("FISHING XP", "≈", ChatColor.AQUA, BoardType::formatLifeSkill);

@@ -395,6 +395,10 @@ commands:
   kingdom:
     description: Enter or manage your kingdom
     usage: /kingdom [menu|create|visit <player>|buildings|members|delete]
+  rebirth:
+    description: Open the X-Prison rebirth progression menu
+    usage: /rebirth [info|debug]
+    aliases: [rb]
   palace:
     description: Open the palace production and claim menu
     usage: /palace
@@ -506,4 +510,6 @@ permissions:
   levelplugin.leaderboards.admin:
     default: op
   levelplugin.playermodel:
+    default: op
+  levelplugin.rebirth.debug:
     default: op

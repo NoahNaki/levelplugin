@@ -465,3 +465,37 @@ environment:
       x2: 3869
       y2: 76
       z2: -3344
+
+# LevelPlugin-owned infinite rebirth progression layered on top of X-Prison.
+# X-Prison remains the source of truth for pickaxe level/XP, money, tokens, gems and enchants.
+xprison-rebirth:
+  enabled: true
+  # Level required before a rebirth becomes available. Eligibility never caps the pickaxe;
+  # players can keep leveling and receive extra Gem reward for overshooting the requirement.
+  requirement:
+    start-level: 10
+    levels-per-rebirth: 5
+  multiplier:
+    base: 1.0
+    per-rebirth: 0.5
+  currencies:
+    money: money
+    tokens: tokens
+    gems: gems
+  # Gem reward = base + rebirth bonus + logarithmic run-income bonuses + extra-level bonus.
+  # Only money/tokens received from X-Prison MINING/MINING_OTHERS causes are tracked.
+  gem-reward:
+    base: 10
+    per-rebirth: 1.0
+    money-scale: 100000.0
+    money-log10-weight: 8.0
+    token-scale: 10000.0
+    token-log10-weight: 6.0
+    per-extra-level: 1
+    extra-level-cap: 25
+    max-per-rebirth: 1000000
+  persistence-save-interval-seconds: 30
+  # This does not rewrite X-Prison's config. It is used for startup/debug warnings so the
+  # server can keep a practical "infinite" ceiling. Set the matching X-Prison
+  # levels-formula.max-level to this value in plugins/X-Prison/pickaxe-levels.yml.
+  practical-pickaxe-max-level: 10000

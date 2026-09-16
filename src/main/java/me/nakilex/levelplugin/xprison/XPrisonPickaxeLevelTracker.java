@@ -64,7 +64,10 @@ public final class XPrisonPickaxeLevelTracker implements Listener {
             return;
         }
         plugin.getPlayerConfig().setXPrisonPickaxeLevel(event.getPlayer().getUniqueId(), newLevel.getLevel());
-        levelUpTotemAnimator.play(event.getPlayer());
+        PickaxeLevel oldLevel = event.getOldLevel();
+        if (oldLevel == null || newLevel.getLevel() > oldLevel.getLevel()) {
+            levelUpTotemAnimator.play(event.getPlayer());
+        }
     }
 
     @EventHandler

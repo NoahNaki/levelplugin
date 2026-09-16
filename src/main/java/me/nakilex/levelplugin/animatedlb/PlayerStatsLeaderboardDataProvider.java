@@ -29,7 +29,7 @@ public class PlayerStatsLeaderboardDataProvider implements LeaderboardDataProvid
             case MINING -> getPickaxeLevelTop(limit);
             case XPRISON_RANK -> getXPrisonTop(limit, "ranks", api -> api.getRanksApi().getTopByRank(limit));
             case XPRISON_PRESTIGE -> getXPrisonTop(limit, "prestiges", api -> api.getPrestigesApi().getTopByPrestige(limit));
-            case XPRISON_REBIRTH -> getXPrisonTop(limit, "rebirths", api -> api.getRebirthApi().getTopByRebirth(limit));
+            case XPRISON_REBIRTH -> getRebirthTop(limit);
             case XPRISON_TOKENS -> getXPrisonTop(limit, "token balances", api -> api.getCurrencyApi().getTopByBalance("tokens", limit));
             case FARMING -> getLifeSkill(ToolDiscipline.FARMING, limit);
             case FISHING -> getLifeSkill(ToolDiscipline.FISHING, limit);
@@ -97,12 +97,25 @@ public class PlayerStatsLeaderboardDataProvider implements LeaderboardDataProvid
         return out.subList(0, Math.min(limit, out.size()));
     }
 
+    /** LevelPlugin owns the infinite rebirth count; current pickaxe level breaks ties. */
+    private List<LeaderboardEntry> getRebirthTop(int limit) {
+        List<LeaderboardEntry> out = new ArrayList<>();
+        for (UUID id : getKnownPlayers()) {
+            int rebirths = plugin.getPlayerConfig().getXPrisonRebirthCount(id);
+            int pickaxeLevel = plugin.getPlayerConfig().getXPrisonPickaxeLevel(id);
+            out.add(new LeaderboardEntry(id, getPlayerName(id), rebirths, pickaxeLevel));
+        }
+        out.sort(Comparator.comparingDouble(LeaderboardEntry::primaryValue).reversed()
+                .thenComparing(Comparator.comparingDouble(LeaderboardEntry::secondaryValue).reversed()));
+        return out.subList(0, Math.min(limit, out.size()));
+    }
+
     private boolean xPrisonEnabled() {
         return Bukkit.getPluginManager().isPluginEnabled("X-Prison");
     }
 
     /**
-     * Rank, prestige, rebirth and currency balances are all stored server-side by X-Prison (unlike pickaxe
+     * Rank, prestige and currency balances are stored server-side by X-Prison (unlike pickaxe
      * level, which lives on the item's NBT), so their top-N lookups already cover offline players with no
      * bridge/snapshot needed - just call straight through.
      */

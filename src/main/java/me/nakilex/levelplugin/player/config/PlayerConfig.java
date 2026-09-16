@@ -541,6 +541,59 @@ public class PlayerConfig {
         return config.getInt("players." + uuid + ".xprison_pickaxe_level", 0);
     }
 
+    /** Persistent LevelPlugin-owned rebirth count used by the X-Prison infinite progression loop. */
+    public int getXPrisonRebirthCount(UUID uuid) {
+        return Math.max(0, config.getInt("players." + uuid + ".xprison_rebirth.count", 0));
+    }
+
+    /** Stable ID of the X-Prison pickaxe bound to this account's rebirth progression. */
+    public String getXPrisonRebirthPickaxeId(UUID uuid) {
+        return config.getString("players." + uuid + ".xprison_rebirth.pickaxe_id");
+    }
+
+    public void setXPrisonRebirthPickaxeId(UUID uuid, String pickaxeId) {
+        config.set("players." + uuid + ".xprison_rebirth.pickaxe_id",
+                pickaxeId == null || pickaxeId.isBlank() ? null : pickaxeId);
+        saveConfigFile();
+    }
+
+    /** Mining-generated money earned during the player's current rebirth run. */
+    public java.math.BigDecimal getXPrisonRebirthRunMoney(UUID uuid) {
+        return getBigDecimal("players." + uuid + ".xprison_rebirth.run_money_earned");
+    }
+
+    /** Mining-generated tokens earned during the player's current rebirth run. */
+    public java.math.BigDecimal getXPrisonRebirthRunTokens(UUID uuid) {
+        return getBigDecimal("players." + uuid + ".xprison_rebirth.run_tokens_earned");
+    }
+
+    /**
+     * Saves the complete rebirth state in one disk write. Currency events are cached by the rebirth manager
+     * and periodically flushed here so normal mining never writes player_data.yml once per reward event.
+     */
+    public void setXPrisonRebirthState(UUID uuid, int rebirths,
+                                       java.math.BigDecimal runMoney, java.math.BigDecimal runTokens) {
+        String root = "players." + uuid + ".xprison_rebirth";
+        config.set(root + ".count", Math.max(0, rebirths));
+        config.set(root + ".run_money_earned", normalizeBigDecimal(runMoney).toPlainString());
+        config.set(root + ".run_tokens_earned", normalizeBigDecimal(runTokens).toPlainString());
+        saveConfigFile();
+    }
+
+    private java.math.BigDecimal getBigDecimal(String path) {
+        Object raw = config.get(path);
+        if (raw == null) return java.math.BigDecimal.ZERO;
+        try {
+            return normalizeBigDecimal(new java.math.BigDecimal(String.valueOf(raw)));
+        } catch (NumberFormatException ignored) {
+            return java.math.BigDecimal.ZERO;
+        }
+    }
+
+    private static java.math.BigDecimal normalizeBigDecimal(java.math.BigDecimal value) {
+        return value == null || value.signum() < 0 ? java.math.BigDecimal.ZERO : value;
+    }
+
     private boolean hasLegacyLifeSkillData(UUID uuid) {
         String root = "players." + uuid;
         return config.contains(root + ".mining") || config.contains(root + ".farming")
