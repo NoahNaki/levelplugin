@@ -68,6 +68,9 @@ public final class KingdomGUI implements Listener {
         boolean active = manager.hasAccessibleKingdom(player.getUniqueId());
         boolean preparing = manager.isInitializing(player.getUniqueId());
         boolean owner = manager.hasSession(player.getUniqueId());
+        boolean dormant = !active && !preparing && manager.hasExistingKingdom(player);
+        boolean unlocked = active || dormant;
+        boolean canManageOwnKingdom = (active && owner) || dormant;
         Inventory inventory = menu(45, MAIN_TITLE);
 
         UUID ownerId = active ? manager.resolveAreaOwner(player.getUniqueId()) : player.getUniqueId();
@@ -78,7 +81,8 @@ public final class KingdomGUI implements Listener {
         List<String> summary = new ArrayList<>();
         summary.add(ChatColor.GRAY + "Owner: " + ChatColor.WHITE + safeName(kingdomOwner));
         summary.add(ChatColor.GRAY + "Status: " + (active ? ChatColor.GREEN + "Active"
-                : preparing ? ChatColor.YELLOW + "Preparing" : ChatColor.RED + "Not active"));
+                : preparing ? ChatColor.YELLOW + "Preparing"
+                : dormant ? ChatColor.YELLOW + "Dormant" : ChatColor.RED + "Not active"));
         summary.add(ChatColor.GRAY + "Buildings: " + ChatColor.WHITE + built + ChatColor.DARK_GRAY + "/" + buildings.size());
         summary.add(ChatColor.GRAY + "Members: " + ChatColor.WHITE + (partner == null ? 1 : 2));
         if (!owner && active) summary.add(ChatColor.AQUA + "You are a co-op member.");
@@ -92,6 +96,12 @@ public final class KingdomGUI implements Listener {
             inventory.setItem(PRIMARY_SLOT, GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Preparing Kingdom",
                     List.of(ChatColor.GRAY + "Your kingdom is currently being generated.", "",
                             TooltipUtil.leftClickLine("to refresh status"))));
+        } else if (dormant) {
+            List<String> enterLore = new ArrayList<>();
+            enterLore.add(ChatColor.GRAY + "Reconnect to your existing kingdom.");
+            enterLore.add("");
+            enterLore.addAll(TooltipUtil.clickInstructions("to enter", null));
+            inventory.setItem(PRIMARY_SLOT, GuiUtil.getNexoItem("home", ChatColor.GREEN + "Enter Kingdom", enterLore));
         } else {
             List<String> createLore = new ArrayList<>();
             createLore.add(ChatColor.GRAY + "Generate your personal kingdom.");
@@ -99,12 +109,12 @@ public final class KingdomGUI implements Listener {
             createLore.addAll(TooltipUtil.clickInstructions("to create", null));
             inventory.setItem(PRIMARY_SLOT, GuiUtil.getNexoItem("plus", ChatColor.GREEN + "Create Kingdom", createLore));
         }
-        inventory.setItem(BUILDINGS_SLOT, active
+        inventory.setItem(BUILDINGS_SLOT, unlocked
                 ? GuiUtil.getNexoItem("settings", ChatColor.GOLD + "Buildings",
                 List.of(ChatColor.GRAY + "Inspect every building and its level.", "",
                         TooltipUtil.leftClickLine("to browse")))
                 : locked("Buildings", "Create your kingdom first."));
-        inventory.setItem(MEMBERS_SLOT, active
+        inventory.setItem(MEMBERS_SLOT, unlocked
                 ? GuiUtil.getNexoItem("server_icon", ChatColor.AQUA + "Members",
                 List.of(ChatColor.GRAY + "View, invite, or remove members.", "",
                         TooltipUtil.leftClickLine("to manage")))
@@ -116,12 +126,13 @@ public final class KingdomGUI implements Listener {
                 ? GuiUtil.getNexoItem("refresh", ChatColor.YELLOW + "Rebuild Instance",
                 List.of(ChatColor.GRAY + "Reload the kingdom world while keeping", ChatColor.GRAY + "all saved building progress.", "",
                         TooltipUtil.leftClickLine("to continue")))
-                : locked("Rebuild Instance", active ? "Only the owner can rebuild." : "Create your kingdom first."));
-        inventory.setItem(DELETE_SLOT, active && owner
+                : locked("Rebuild Instance", active ? "Only the owner can rebuild."
+                        : dormant ? "Enter your kingdom first." : "Create your kingdom first."));
+        inventory.setItem(DELETE_SLOT, canManageOwnKingdom
                 ? GuiUtil.getNexoItem("cross", ChatColor.RED + "Delete Kingdom",
                 List.of(ChatColor.GRAY + "Permanently reset all building progress", ChatColor.GRAY + "for your active profile.", "",
                         ChatColor.RED + "This cannot be undone.", TooltipUtil.leftClickLine("to continue")))
-                : locked("Delete Kingdom", active ? "Only the owner can delete it." : "No active kingdom to delete."));
+                : locked("Delete Kingdom", active ? "Only the owner can delete it." : "No kingdom to delete."));
         player.openInventory(inventory);
     }
 
@@ -220,9 +231,9 @@ public final class KingdomGUI implements Listener {
     }
 
     public void openDeleteConfirmation(Player player) {
-        if (!manager.hasSession(player.getUniqueId())
-                || !manager.hasAccessibleKingdom(player.getUniqueId())) {
-            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "You do not own an active kingdom.");
+        boolean ownsActive = manager.hasSession(player.getUniqueId()) && manager.hasAccessibleKingdom(player.getUniqueId());
+        if (!ownsActive && !manager.hasExistingKingdom(player)) {
+            ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "You do not own a kingdom.");
             return;
         }
         Inventory inventory = menu(27, DELETE_TITLE);
@@ -325,15 +336,18 @@ public final class KingdomGUI implements Listener {
             } else if (!manager.isInitializing(player.getUniqueId())) {
                 manager.initialize(player);
             }
-        } else if (slot == BUILDINGS_SLOT && manager.hasAccessibleKingdom(player.getUniqueId())) {
+        } else if (slot == BUILDINGS_SLOT && (manager.hasAccessibleKingdom(player.getUniqueId())
+                || manager.hasExistingKingdom(player))) {
             openBuildings(player);
-        } else if (slot == MEMBERS_SLOT && manager.hasAccessibleKingdom(player.getUniqueId())) {
+        } else if (slot == MEMBERS_SLOT && (manager.hasAccessibleKingdom(player.getUniqueId())
+                || manager.hasExistingKingdom(player))) {
             openMembers(player);
         } else if (slot == VISIT_SLOT) {
             openVisitBrowser(player);
         } else if (slot == REBUILD_SLOT && manager.hasSession(player.getUniqueId())) {
             openRebuildConfirmation(player);
-        } else if (slot == DELETE_SLOT && manager.hasSession(player.getUniqueId())) {
+        } else if (slot == DELETE_SLOT && (manager.hasSession(player.getUniqueId())
+                || manager.hasExistingKingdom(player))) {
             openDeleteConfirmation(player);
         }
     }
@@ -445,8 +459,8 @@ public final class KingdomGUI implements Listener {
     }
 
     private boolean requireKingdom(Player player) {
-        if (manager.hasAccessibleKingdom(player.getUniqueId())) return true;
-        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "You do not have an active kingdom.");
+        if (manager.hasAccessibleKingdom(player.getUniqueId()) || manager.hasExistingKingdom(player)) return true;
+        ChatMessageUtil.send(player, ChatMessageUtil.MessageType.ERROR, "You do not have a kingdom yet.");
         open(player);
         return false;
     }
