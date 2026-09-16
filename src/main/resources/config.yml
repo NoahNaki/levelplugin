@@ -11,7 +11,7 @@ xprison:
     sound-pitch: 1.2
 
 features:
-  profiles: true
+  profiles: false
   environment: true
   trade: true
   auction-house: true

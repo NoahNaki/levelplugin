@@ -23,9 +23,7 @@ public final class KingdomCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!(sender instanceof Player player)) return true;
         if (args.length == 0) {
-            if (!manager.teleportToKingdom(player)) {
-                gui.open(player);
-            }
+            gui.open(player);
             return true;
         }
         if ("menu".equalsIgnoreCase(args[0]) || "gui".equalsIgnoreCase(args[0])) {

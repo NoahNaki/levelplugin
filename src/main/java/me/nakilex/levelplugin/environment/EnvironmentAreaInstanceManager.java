@@ -2017,6 +2017,22 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         return scopedProfileId(resolveAreaOwner(player), safeSlot);
     }
 
+    /**
+     * True once this profile has generated a kingdom before (a plot-index was persisted),
+     * regardless of whether an in-memory session currently exists for it. {@link #sessions}
+     * is empty on every boot until a player runs /kingdom, so {@link #teleportToKingdom}
+     * alone can't tell a returning owner from a brand-new one - that distinction is what
+     * decides whether bare /kingdom should quietly reconnect them or offer to create one.
+     */
+    public boolean hasExistingKingdom(Player player) {
+        if (player == null) {
+            return false;
+        }
+        UUID scopedProfile = resolveProfileScopedId(player);
+        String path = "players." + scopedProfile + ".environment.area.plot-index";
+        return plugin.getPlayerConfig().getConfig().getInt(path, 0) > 0;
+    }
+
     private UUID scopedProfileId(UUID ownerId, int slot) {
         String key = ownerId + ":" + Math.max(0, slot);
         return UUID.nameUUIDFromBytes(key.getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -3871,7 +3887,13 @@ public final class EnvironmentAreaInstanceManager implements Listener {
         boolean sharedWorldUnloaded = true;
         if (sharedKingdomWorld != null) {
             movePlayersOutOfSessionWorld(sharedKingdomWorld);
-            sharedWorldUnloaded = Bukkit.unloadWorld(sharedKingdomWorld, false);
+            // Must save when the instance world is meant to persist - unloading with
+            // save=false was silently discarding everything since the last periodic
+            // autosave (new plot allocations, building/mining progress) on every clean
+            // shutdown, which is why a persisted kingdom still looked stale/recreated
+            // on the next boot. Throwaway mode (persist off) can skip the save since the
+            // folder is deleted right after anyway.
+            sharedWorldUnloaded = Bukkit.unloadWorld(sharedKingdomWorld, persistInstanceWorld());
             if (sharedWorldUnloaded) {
                 sharedKingdomWorld = null;
             }

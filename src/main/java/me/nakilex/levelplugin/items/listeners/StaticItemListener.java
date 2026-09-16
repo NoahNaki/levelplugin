@@ -138,7 +138,19 @@ public class StaticItemListener implements Listener {
         return isManagedStaticItem(item);
     }
 
+    // Archived 2026-09-16: the horse-saddle static item was being handed out on every join/
+    // world-change regardless of whether the player wanted it, which read as an unwanted
+    // "horse spawning saddle" appearing out of nowhere. false = giveStaticItems is a no-op;
+    // nothing else here (crafting-menu icons, hub compass, etc.) is affected.
+    private static boolean staticItemsEnabled() {
+        Main main = Main.getInstance();
+        return main == null || main.getCustomConfig().getBoolean("features.static-items", true);
+    }
+
     public static void giveStaticItems(Player player) {
+        if (!staticItemsEnabled()) {
+            return;
+        }
         ensureHorseSaddle(player);
     }
 

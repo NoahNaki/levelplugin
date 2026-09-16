@@ -51,6 +51,7 @@ public class ServerSelectionManager {
     private String buildWorld;
     private String buildPermission;
     private int buildMinWeight;
+    private boolean hubEnabled;
 
     public ServerSelectionManager(Main plugin) {
         this.plugin = plugin;
@@ -61,6 +62,12 @@ public class ServerSelectionManager {
 
     public void reload() {
         FileConfiguration config = plugin.getCustomConfig();
+        // Archived 2026-09-16: hub-first join was wiping every player's inventory into a
+        // lobby kit on every login, and only restored their real gear/profile once they
+        // manually clicked through the hub's "Alpha" selector - easy to miss on a dev
+        // server with frequent restarts, which read as "my pickaxe keeps disappearing".
+        // false = join goes straight to sendToAlpha(), loading the real profile immediately.
+        hubEnabled = config != null && config.getBoolean("server.hub-enabled", true);
         hubWorld = getConfigValue(config, "server.hub-world", "hub");
         alphaWorld = getConfigValue(config, "server.alpha-world", "world");
         buildWorld = getConfigValue(config, "server.build-world", "flatland");
@@ -75,6 +82,10 @@ public class ServerSelectionManager {
 
     public void handleJoin(Player player) {
         if (player == null) {
+            return;
+        }
+        if (!hubEnabled) {
+            sendToAlpha(player);
             return;
         }
         sendToHub(player, false);
@@ -264,6 +275,11 @@ public class ServerSelectionManager {
             if (value != null && !value.isBlank()) {
                 npc.destroy();
             }
+        }
+        // Archived along with the hub join flow: don't even load (and thereby regenerate)
+        // the hub world or spawn its selector NPCs while the hub is disabled.
+        if (!hubEnabled) {
+            return;
         }
         worldManager.ensureWorldsLoaded(hubWorld);
         World world = Bukkit.getWorld(hubWorld);

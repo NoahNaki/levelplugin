@@ -402,10 +402,13 @@ public class PluginBootstrap {
         // before other managers are initialized.
         worldManager = new me.nakilex.levelplugin.world.WorldManager(plugin);
         me.nakilex.levelplugin.debug.StrongholdDebugGenerator.cleanupGeneratedWorlds(plugin);
-        String hubWorld = customConfig != null
-                ? customConfig.getString("server.hub-world", "hub")
-                : "hub";
-        worldManager.ensureWorldsLoaded("flatland", "redrocks", "spawn", hubWorld);
+        // Archived 2026-09-16: this used to eagerly (re)create "redrocks", "spawn" and the
+        // hub world on every boot even after they were deleted by hand, since
+        // ensureWorldsLoaded generates a fresh world when the folder is missing. Only
+        // "flatland" is actually load-bearing here (kingdom/stronghold template source);
+        // the hub world is now loaded on demand by ServerSelectionManager itself, gated on
+        // server.hub-enabled.
+        worldManager.ensureWorldsLoaded("flatland");
         dungeonsEnabled = customConfig.getBoolean("enable-dungeons", false);
         NpcApi.initialize(new NpcRegistry(plugin));
         serverSelectionManager = new me.nakilex.levelplugin.server.ServerSelectionManager(plugin);
