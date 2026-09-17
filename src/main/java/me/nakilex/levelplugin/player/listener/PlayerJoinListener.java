@@ -67,8 +67,19 @@ public class PlayerJoinListener implements Listener {
             player.setHealthScaled(true);
             player.setHealthScale(20.0);
 
-            if (serverSelectionManager != null) {
-                serverSelectionManager.handleJoin(player);
+            // No more hub-first join: the hub/selector/instance system sent every player to a
+            // lobby world and wiped their inventory into a "profile slot" on every login,
+            // restoring it only once they manually clicked back through to Alpha - see the
+            // 2026-09-17 fix. A first-time or hub-less returning player is simply left where
+            // Bukkit's own persisted location/inventory already puts them (playworld, with
+            // whatever they had). A returning player who owns a kingdom is sent there instead,
+            // exactly as they left it - no inventory clear, no profile snapshot involved.
+            me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager kingdomManager =
+                    me.nakilex.levelplugin.environment.EnvironmentAreaInstanceManager.getInstance(Main.getInstance());
+            if (kingdomManager.hasAccessibleKingdom(pid)) {
+                kingdomManager.teleportToKingdom(player);
+            } else if (kingdomManager.hasExistingKingdom(player) && !kingdomManager.isInitializing(pid)) {
+                kingdomManager.initialize(player);
             }
 
             me.nakilex.levelplugin.quests.managers.QuestManager qm = Main.getInstance().getQuestManager();

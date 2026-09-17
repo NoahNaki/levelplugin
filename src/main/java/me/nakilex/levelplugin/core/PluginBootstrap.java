@@ -282,6 +282,9 @@ public class PluginBootstrap {
     private CookingModule cookingModule;
     private BlockGlowUtil blockGlowUtil;
     private me.nakilex.levelplugin.xprison.XPrisonEnchantsIntegration xPrisonEnchantsIntegration;
+    private me.nakilex.levelplugin.xprison.XPrisonPickaxeDefaultsListener xPrisonPickaxeDefaultsListener;
+    private me.nakilex.levelplugin.xprison.PrivateMineDropShaftManager privateMineDropShaftManager;
+    private me.nakilex.levelplugin.serverboard.PrisonMiningActionBar prisonMiningActionBar;
     private me.nakilex.levelplugin.xprison.XPrisonPickaxeLevelTracker xPrisonPickaxeLevelTracker;
     private me.nakilex.levelplugin.xprison.rebirth.XPrisonRebirthManager xPrisonRebirthManager;
     private me.nakilex.levelplugin.xprison.rebirth.RebirthGUI rebirthGUI;
@@ -316,6 +319,13 @@ public class PluginBootstrap {
         initializeManagers();
         xPrisonEnchantsIntegration = new me.nakilex.levelplugin.xprison.XPrisonEnchantsIntegration(plugin);
         xPrisonEnchantsIntegration.enable();
+        xPrisonPickaxeDefaultsListener = new me.nakilex.levelplugin.xprison.XPrisonPickaxeDefaultsListener(plugin);
+        xPrisonPickaxeDefaultsListener.enable();
+        privateMineDropShaftManager = new me.nakilex.levelplugin.xprison.PrivateMineDropShaftManager(plugin);
+        privateMineDropShaftManager.enable();
+        prisonMiningActionBar = new me.nakilex.levelplugin.serverboard.PrisonMiningActionBar();
+        prisonMiningActionBar.enable(plugin);
+        plugin.getServer().getPluginManager().registerEvents(prisonMiningActionBar, plugin);
         xPrisonPickaxeLevelTracker = new me.nakilex.levelplugin.xprison.XPrisonPickaxeLevelTracker(plugin);
         xPrisonPickaxeLevelTracker.enable();
         xPrisonRebirthManager = new me.nakilex.levelplugin.xprison.rebirth.XPrisonRebirthManager(plugin);
@@ -1041,6 +1051,18 @@ public class PluginBootstrap {
             xPrisonEnchantsIntegration.disable();
             xPrisonEnchantsIntegration = null;
         }
+        if (xPrisonPickaxeDefaultsListener != null) {
+            xPrisonPickaxeDefaultsListener.disable();
+            xPrisonPickaxeDefaultsListener = null;
+        }
+        if (privateMineDropShaftManager != null) {
+            privateMineDropShaftManager.disable();
+            privateMineDropShaftManager = null;
+        }
+        if (prisonMiningActionBar != null) {
+            prisonMiningActionBar.disable();
+            prisonMiningActionBar = null;
+        }
         TaskRegistry.stopTasks();
         if (chatGameManager != null) chatGameManager.stop();
         if (mercenaryManager != null) mercenaryManager.unbindAll();
@@ -1266,6 +1288,7 @@ public class PluginBootstrap {
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionGUI getMercenaryExpeditionGUI() { return mercenaryExpeditionGUI; }
     public me.nakilex.levelplugin.mercenary.gui.MercenaryExpeditionRewardsGUI getMercenaryExpeditionRewardsGUI() { return mercenaryExpeditionRewardsGUI; }
     public me.nakilex.levelplugin.transmog.TransmogManager getTransmogManager() { return transmogManager; }
+    public me.nakilex.levelplugin.xprison.rebirth.XPrisonRebirthManager getXPrisonRebirthManager() { return xPrisonRebirthManager; }
 
     public void reloadPluginConfig() {
         plugin.reloadConfig();

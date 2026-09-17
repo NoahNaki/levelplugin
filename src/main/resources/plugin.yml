@@ -5,7 +5,7 @@ author: Nakilex
 api-version: '1.21.11'
 description: A simple MMORPG leveling system plugin for Minecraft
 depend: [ProtocolLib, Citizens, PlaceholderAPI, Nexo, ModelEngine, packetevents]
-softdepend: [LuxDialogues, X-Prison, WorldGuard]
+softdepend: [LuxDialogues, X-Prison, X-PrivateMines, WorldGuard]
 
 commands:
   addpoints:

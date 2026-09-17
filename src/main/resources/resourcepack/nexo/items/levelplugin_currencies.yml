@@ -1,0 +1,21 @@
+# Currency items used by the X-Prison pickaxe menu.
+levelplugin_coins:
+  itemname: <gold>Coins
+  material: PAPER
+  Pack:
+    parent_model: item/generated
+    texture: icons_pack/coins.png
+
+levelplugin_tokens:
+  itemname: <green>Tokens
+  material: PAPER
+  Pack:
+    parent_model: item/generated
+    texture: icons_pack/tokens.png
+
+levelplugin_gems:
+  itemname: <light_purple>Gems
+  material: PAPER
+  Pack:
+    parent_model: item/generated
+    texture: icons_pack/purple_orb.png

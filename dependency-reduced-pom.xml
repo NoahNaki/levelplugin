@@ -161,6 +161,13 @@
       <systemPath>${project.basedir}/lib/WorldGuard.jar</systemPath>
     </dependency>
     <dependency>
+      <groupId>dev.drawethree</groupId>
+      <artifactId>x-privatemines</artifactId>
+      <version>2026.3.0.13</version>
+      <scope>system</scope>
+      <systemPath>${project.basedir}/lib/X-PrivateMines.jar</systemPath>
+    </dependency>
+    <dependency>
       <groupId>me.lucko</groupId>
       <artifactId>helper</artifactId>
       <version>5.6.14</version>

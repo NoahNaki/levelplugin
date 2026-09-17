@@ -58,12 +58,23 @@ public final class KingdomMineService implements Listener {
     private final int resetIntervalSeconds;
     private final List<MineLevel> levels;
     private final Map<UUID, ActiveMine> activeMines = new HashMap<>();
+    private final boolean dropShaftEnabled;
+    private final int gapWidth;
+    private final int floorDepth;
+    private final int clearAboveLayers;
+    private final boolean cancelFallDamage;
 
     public KingdomMineService(Main plugin) {
         this.plugin = plugin;
         this.enabled = plugin.getConfig().getBoolean("environment.kingdom-mine.enabled", true);
         this.resetIntervalSeconds = plugin.getConfig().getInt("environment.kingdom-mine.reset-interval-seconds", 300);
         this.levels = loadLevels();
+        String shaft = "environment.kingdom-mine.drop-shaft.";
+        this.dropShaftEnabled = plugin.getConfig().getBoolean(shaft + "enabled", true);
+        this.gapWidth = Math.max(1, plugin.getConfig().getInt(shaft + "gap-width", 1));
+        this.floorDepth = Math.max(1, plugin.getConfig().getInt(shaft + "floor-depth", 6));
+        this.clearAboveLayers = Math.max(1, plugin.getConfig().getInt(shaft + "clear-above-layers", 2));
+        this.cancelFallDamage = plugin.getConfig().getBoolean(shaft + "cancel-fall-damage", true);
         if (Bukkit.getPluginManager().isPluginEnabled("X-Prison")) {
             Bukkit.getPluginManager().registerEvents(this, plugin);
         }
@@ -150,6 +161,9 @@ public final class KingdomMineService implements Listener {
         String name = mineName(ownerId);
         int[] unlocked = centeredFootprint(active.maximumOre(), level.size());
         fillMaximumWithBedrock(active.world(), active.maximumOre());
+        if (dropShaftEnabled) {
+            carveDropShaft(active.world(), active.maximumOre(), unlocked);
+        }
         createMine(active.world(), name, unlocked, level);
         createRegions(active.world(), name, unlocked, active.shell());
         activeMines.put(ownerId, active.withLevelNumber(level.number()));
@@ -256,6 +270,127 @@ public final class KingdomMineService implements Listener {
             session.flushQueue();
         } catch (Throwable throwable) {
             plugin.getLogger().warning("[KingdomMine] Could not place locked bedrock area: " + throwable);
+        }
+    }
+
+    /**
+     * Opens a drop shaft around the unlocked mine: an air ring directly around it, so a player
+     * can step off any edge and fall to the floor. Inside the envelope the locked bedrock is the
+     * wall. Near the top tiers the ring reaches past the envelope into the build's own bedrock
+     * ring, so there the tub (floor, wall, stair lip) is rebuilt one ring further out, like
+     * private mines do. Runs right after the envelope was refilled with bedrock, which already
+     * undid the previous tier's ring inside it.
+     */
+    private void carveDropShaft(World world, int[] envelope, int[] unlocked) {
+        int minY = unlocked[1];
+        int maxY = unlocked[4];
+        int floorBottom = minY - floorDepth;
+        int wallRing = gapWidth + 1;
+        var air = com.sk89q.worldedit.world.block.BlockTypes.AIR.getDefaultState();
+        var bedrock = com.sk89q.worldedit.world.block.BlockTypes.BEDROCK.getDefaultState();
+        var stone = com.sk89q.worldedit.world.block.BlockTypes.STONE.getDefaultState();
+        try (var session = com.sk89q.worldedit.WorldEdit.getInstance()
+                .newEditSession(com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(world))) {
+            // Undo a larger tier's shell outside the envelope (a rebirth shrinks the mine): the
+            // build's own ring directly around the envelope is bedrock with a stair lip, and
+            // the ring we moved it to goes back to plain surface.
+            int reach = wallRing;
+            for (int x = envelope[0] - reach; x <= envelope[3] + reach; x++) {
+                for (int z = envelope[2] - reach; z <= envelope[5] + reach; z++) {
+                    int ring = ringDistance(envelope, x, z);
+                    if (ring == 0) {
+                        continue;
+                    }
+                    if (ring == 1) {
+                        if (!session.getBlock(at(x, (minY + maxY) / 2, z)).getBlockType()
+                                .equals(com.sk89q.worldedit.world.block.BlockTypes.AIR)) {
+                            continue;
+                        }
+                        for (int y = minY; y <= maxY; y++) {
+                            session.setBlock(at(x, y, z), bedrock);
+                        }
+                        session.setBlock(at(x, maxY + 1, z), rim(envelope, x, z, 1));
+                    } else if (session.getBlock(at(x, maxY + 1, z)).getBlockType()
+                            .equals(com.sk89q.worldedit.world.block.BlockTypes.STONE_STAIRS)) {
+                        session.setBlock(at(x, maxY + 1, z), stone);
+                    }
+                }
+            }
+
+            for (int x = unlocked[0] - wallRing; x <= unlocked[3] + wallRing; x++) {
+                for (int z = unlocked[2] - wallRing; z <= unlocked[5] + wallRing; z++) {
+                    int ring = ringDistance(unlocked, x, z);
+                    if (ring == 0) {
+                        continue;
+                    }
+                    boolean outside = ringDistance(envelope, x, z) > 0;
+                    if (outside) {
+                        for (int y = floorBottom; y < minY; y++) {
+                            session.setBlock(at(x, y, z), bedrock);
+                        }
+                    }
+                    if (ring <= gapWidth) {
+                        for (int y = minY; y <= maxY + clearAboveLayers; y++) {
+                            session.setBlock(at(x, y, z), air);
+                        }
+                    } else if (outside) {
+                        for (int y = minY; y <= maxY; y++) {
+                            session.setBlock(at(x, y, z), bedrock);
+                        }
+                        session.setBlock(at(x, maxY + 1, z), rim(unlocked, x, z, wallRing));
+                    }
+                }
+            }
+            session.flushQueue();
+        } catch (Throwable throwable) {
+            plugin.getLogger().warning("[KingdomMine] Could not carve the drop shaft: " + throwable);
+        }
+    }
+
+    /** Stair lip facing away from the box on straight sides, plain stone on the corners. */
+    private static com.sk89q.worldedit.world.block.BlockState rim(int[] box, int x, int z, int ring) {
+        boolean west = x == box[0] - ring;
+        boolean east = x == box[3] + ring;
+        boolean north = z == box[2] - ring;
+        boolean south = z == box[5] + ring;
+        if ((west || east) && (north || south)) {
+            return com.sk89q.worldedit.world.block.BlockTypes.STONE.getDefaultState();
+        }
+        var stairs = (org.bukkit.block.data.type.Stairs) org.bukkit.Material.STONE_STAIRS.createBlockData();
+        stairs.setFacing(west ? org.bukkit.block.BlockFace.WEST : east ? org.bukkit.block.BlockFace.EAST
+                : north ? org.bukkit.block.BlockFace.NORTH : org.bukkit.block.BlockFace.SOUTH);
+        return com.sk89q.worldedit.bukkit.BukkitAdapter.adapt(stairs);
+    }
+
+    private static com.sk89q.worldedit.math.BlockVector3 at(int x, int y, int z) {
+        return com.sk89q.worldedit.math.BlockVector3.at(x, y, z);
+    }
+
+    /** Horizontal ring index around a box: 0 inside, 1 for the first ring outside, and so on. */
+    private static int ringDistance(int[] box, int x, int z) {
+        int dx = x < box[0] ? box[0] - x : x > box[3] ? x - box[3] : 0;
+        int dz = z < box[2] ? box[2] - z : z > box[5] ? z - box[5] : 0;
+        return Math.max(dx, dz);
+    }
+
+    /** The drop into the shaft is the full mine height; landing there should not kill. */
+    @EventHandler(ignoreCancelled = true)
+    public void onFallDamage(org.bukkit.event.entity.EntityDamageEvent event) {
+        if (!dropShaftEnabled || !cancelFallDamage
+                || event.getCause() != org.bukkit.event.entity.EntityDamageEvent.DamageCause.FALL
+                || !(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        var loc = player.getLocation();
+        int reach = gapWidth + 1;
+        for (ActiveMine active : activeMines.values()) {
+            int[] e = active.maximumOre();
+            if (active.world().equals(loc.getWorld())
+                    && ringDistance(e, loc.getBlockX(), loc.getBlockZ()) <= reach
+                    && loc.getBlockY() >= e[1] - floorDepth && loc.getBlockY() <= e[4] + clearAboveLayers + 1) {
+                event.setCancelled(true);
+                return;
+            }
         }
     }
 

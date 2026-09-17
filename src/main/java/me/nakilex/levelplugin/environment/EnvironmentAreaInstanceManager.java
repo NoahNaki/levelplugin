@@ -2319,6 +2319,11 @@ public final class EnvironmentAreaInstanceManager implements Listener {
     public void clearProfileKingdomProgress(UUID playerId, int slot) {
         if (playerId == null) return;
         UUID scoped = scopedProfileId(playerId, slot);
+        // The instance world keeps each plot's chunks on disk, buildings included, and the
+        // generator only runs for chunks that were never generated. Reusing this plot would
+        // hand the old buildings straight back, so retire it and let a new kingdom claim a
+        // fresh, never-generated slot.
+        retirePlotIndex(scoped);
         builtSlotsByProfile.remove(scoped);
         buildFinishAtByProfile.remove(scoped);
         farmBuildingLevelByProfile.remove(scoped);
@@ -3442,7 +3447,35 @@ public final class EnvironmentAreaInstanceManager implements Listener {
                 nextPlotIndex = claimed + 1;
             }
         }
+        for (Integer retired : plugin.getPlayerConfig().getConfig().getIntegerList(RETIRED_PLOT_INDEXES_PATH)) {
+            if (retired != null && retired >= nextPlotIndex) {
+                nextPlotIndex = retired + 1;
+            }
+        }
         return nextPlotIndex;
+    }
+
+    /** Persisted plot slots of deleted kingdoms; never handed out again. */
+    private static final String RETIRED_PLOT_INDEXES_PATH = "kingdom-retired-plot-indexes";
+
+    private synchronized void retirePlotIndex(UUID scopedProfile) {
+        Integer index = plotIndexByProfile.remove(scopedProfile);
+        if (index == null) {
+            index = plugin.getPlayerConfig().getConfig()
+                    .getInt("players." + scopedProfile + ".environment.area.plot-index", 0);
+        }
+        if (index <= 0) {
+            return;
+        }
+        List<Integer> retired = new ArrayList<>(
+                plugin.getPlayerConfig().getConfig().getIntegerList(RETIRED_PLOT_INDEXES_PATH));
+        if (!retired.contains(index)) {
+            retired.add(index);
+            plugin.getPlayerConfig().getConfig().set(RETIRED_PLOT_INDEXES_PATH, retired);
+        }
+        if (index >= nextPlotIndex) {
+            nextPlotIndex = index + 1;
+        }
     }
 
     private synchronized int claimNextPlotIndex() {

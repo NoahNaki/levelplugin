@@ -7,8 +7,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 /**
- * Per-player numbers for the idle prison scoreboard: Vault money plus X-Prison's gems, tokens, rank
- * and prestige. All the X-Prison getters used here (getBalance, getPlayerRank, getPlayerPrestige) read
+ * Per-player numbers for the idle prison scoreboard: Vault money (shown as Coins) plus X-Prison's
+ * gems, tokens and prestige, and LevelPlugin's own rebirth count (ranks are unused - this prison
+ * doesn't use X-Prison's rank-up-through-mines progression). All the X-Prison getters used here
+ * (getBalance, getPlayerPrestige) read
  * an in-memory per-online-player cache rather than the database - verified by decompiling the plugin
  * jar (see the [[xprison-leaderboard-data]] memory, which found the opposite for the *top-N* lookups
  * the animated leaderboard uses). Safe to call every scoreboard tick.
@@ -37,24 +39,27 @@ public final class PrisonScoreboardStats {
         return currencyBalance(player, "tokens");
     }
 
+    /**
+     * Strips the currency's own prefix/suffix (e.g. its icon glyph) back off the formatted
+     * string - {@link IdlePrisonBoard} already shows one icon per row itself, so leaving the
+     * currency's own baked-in prefix in would double it up.
+     */
     private static String currencyBalance(Player player, String currencyId) {
         if (!xPrisonEnabled()) return null;
         try {
             XPrisonCurrency currency = XPrisonAPI.getInstance().getCurrencyApi().getCurrency(currencyId);
             if (currency == null) return null;
             double balance = XPrisonAPI.getInstance().getCurrencyApi().getBalance(player, currencyId);
-            return currency.format(balance);
-        } catch (RuntimeException | LinkageError ex) {
-            return null;
-        }
-    }
-
-    /** The player's current rank prefix (e.g. "&7[A]"), or null if X-Prison ranks aren't available. */
-    public static String rankPrefix(Player player) {
-        if (!xPrisonEnabled()) return null;
-        try {
-            var rank = XPrisonAPI.getInstance().getRanksApi().getPlayerRank(player);
-            return rank == null ? null : rank.getPrefix();
+            String formatted = currency.format(balance);
+            String prefix = currency.getPrefix();
+            String suffix = currency.getSuffix();
+            if (prefix != null && !prefix.isEmpty() && formatted.startsWith(prefix)) {
+                formatted = formatted.substring(prefix.length());
+            }
+            if (suffix != null && !suffix.isEmpty() && formatted.endsWith(suffix)) {
+                formatted = formatted.substring(0, formatted.length() - suffix.length());
+            }
+            return formatted;
         } catch (RuntimeException | LinkageError ex) {
             return null;
         }
@@ -71,8 +76,19 @@ public final class PrisonScoreboardStats {
         }
     }
 
+    /** LevelPlugin's own infinite rebirth count layered on top of X-Prison; see XPrisonRebirthManager. */
+    public static String rebirths(Player player) {
+        try {
+            var manager = me.nakilex.levelplugin.Main.getInstance().getXPrisonRebirthManager();
+            if (manager == null) return null;
+            return String.valueOf(manager.getRebirths(player.getUniqueId()));
+        } catch (RuntimeException ex) {
+            return null;
+        }
+    }
+
     /** Abbreviates a raw number as 1.2K / 3.4M / 5.6B / 7.8T, matching X-Prison's own currency style. */
-    private static String formatShort(double value) {
+    static String formatShort(double value) {
         double abs = Math.abs(value);
         String suffix = "";
         double scaled = value;

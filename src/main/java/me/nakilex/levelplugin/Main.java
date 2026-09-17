@@ -91,6 +91,7 @@ public class Main extends JavaPlugin {
         }
     }
     public LevelManager getLevelManager() { return bootstrap.getLevelManager(); }
+    public me.nakilex.levelplugin.xprison.rebirth.XPrisonRebirthManager getXPrisonRebirthManager() { return bootstrap.getXPrisonRebirthManager(); }
     public me.nakilex.levelplugin.player.mining.managers.MiningManager getMiningManager() { return bootstrap.getMiningManager(); }
     public me.nakilex.levelplugin.player.farming.managers.FarmingManager getFarmingManager() { return bootstrap.getFarmingManager(); }
     public me.nakilex.levelplugin.player.fishing.managers.FishingManager getFishingManager() { return bootstrap.getFishingManager(); }

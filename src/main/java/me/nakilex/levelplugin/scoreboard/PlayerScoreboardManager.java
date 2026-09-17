@@ -216,6 +216,30 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         obj.getScore(entry).setScore(score);
     }
 
+    /**
+     * Same as {@link #setLine(Scoreboard, Objective, int, int, String)} but for a line that needs
+     * a custom font (e.g. IdlePrisonBoard's Nexo icon glyphs) - {@code Team.setPrefix(String)} is
+     * legacy-text-only and cannot carry a font, so this uses Paper's Adventure overload instead.
+     */
+    private void setLineComponent(Scoreboard board, Objective obj, int index, int score,
+                                   net.kyori.adventure.text.Component component) {
+        if (index < 0 || index >= entries.length) return;
+
+        String entry = entries[index];
+        if (entry == null) {
+            entry = ChatColor.values()[index].toString();
+            entries[index] = entry;
+        }
+
+        Team team = board.getTeam("line" + index);
+        if (team == null) {
+            team = board.registerNewTeam("line" + index);
+            team.addEntry(entry);
+        }
+        team.prefix(component);
+        obj.getScore(entry).setScore(score);
+    }
+
     public void updateBoard(Player player) {
         UUID id = player.getUniqueId();
         if (me.nakilex.levelplugin.utils.WorldExclusionUtil.isExcluded(player)) {
@@ -599,10 +623,14 @@ public class PlayerScoreboardManager implements org.bukkit.event.Listener {
         }
 
         if (!anyContextual) {
-            for (String text : me.nakilex.levelplugin.serverboard.IdlePrisonBoard.buildLines(player)) {
-                current[idx] = text;
+            for (net.kyori.adventure.text.Component component : me.nakilex.levelplugin.serverboard.IdlePrisonBoard.buildLines(player)) {
+                // IdlePrisonBoard's icons need a custom font (Team.setPrefix(String) can't carry
+                // one), so these lines render via the Adventure/Component path. The plain-text
+                // serialization is only a cache key here, to keep the existing "only push a line
+                // when it actually changed" behaviour shared with every other String-based line.
+                current[idx] = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(component);
                 if (!current[idx].equals(prev[idx])) {
-                    setLine(board, obj, idx, line, current[idx]);
+                    setLineComponent(board, obj, idx, line, component);
                 }
                 idx++; line--;
                 if (line <= 1) break;

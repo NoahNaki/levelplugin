@@ -219,6 +219,18 @@
             <scope>system</scope>
             <systemPath>${project.basedir}/lib/WorldGuard.jar</systemPath>
         </dependency>
+        <!--
+            X-PrivateMines ships its own API classes inside the plugin jar too, referenced from
+            disk the same way as X-Prison above. Used to gate pickaxe Fly to inside a player's
+            private mine in addition to the public X-Prison mines.
+        -->
+        <dependency>
+            <groupId>dev.drawethree</groupId>
+            <artifactId>x-privatemines</artifactId>
+            <version>2026.3.0.13</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/X-PrivateMines.jar</systemPath>
+        </dependency>
         <dependency>
             <groupId>me.lucko</groupId>
             <artifactId>helper</artifactId>

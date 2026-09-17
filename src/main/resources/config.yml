@@ -9,6 +9,24 @@ xprison:
     item-model: "levelplugin:level_up_totem_v3"
     sound-volume: 1.0
     sound-pitch: 1.2
+  # Drop shaft around private mines: an air ring around the mining box with the schematic's
+  # bedrock tub (walls, floor, stair lip) rebuilt one ring further out, so players can step off
+  # any edge and fall to the floor. Rebuilt automatically whenever a mine expands.
+  private-mine-drop-shaft:
+    enabled: true
+    # X-PrivateMines schematic names to shape. Other schematics have a different layout.
+    schematics: [mine]
+    gap-width: 1
+    # Bedrock floor thickness under the mine, gap and wall.
+    floor-depth: 6
+    # Layers above the mine top opened to air over the mine and gap (surface + head room).
+    clear-above-layers: 2
+    wall-material: BEDROCK
+    rim-stairs-material: STONE_STAIRS
+    rim-corner-material: STONE
+    cancel-fall-damage: true
+    check-interval-ticks: 40
+    blocks-per-tick: 4000
 
 features:
   profiles: false
@@ -240,6 +258,15 @@ environment:
     enabled: true
     # 0 disables the timed reset and leaves the mine on percentage-based resets only.
     reset-interval-seconds: 300
+    # Air ring around the unlocked mine so players can step off any edge and drop to the
+    # floor. The locked bedrock acts as the wall; at the largest tiers the build's own
+    # bedrock ring, floor and stair lip are moved one ring outward.
+    drop-shaft:
+      enabled: true
+      gap-width: 1
+      floor-depth: 6
+      clear-above-layers: 2
+      cancel-fall-damage: true
     # Kingdom mines progress with the owner's X-Prison pickaxe. Every tier has its own
     # square horizontal size and block palette; the configured region below is the maximum
     # 29x95x29 envelope. Space outside the unlocked tier is filled with protected bedrock.
