@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 public final class XPrisonEnchantTooltipColorListener implements Listener {
 
     private static final String PICKAXE_MENU_TITLE = "Pickaxe Menu";
-    private static final String DISENCHANT_MENU_TITLE = "Disenchant Menu";
+    private static final String DISENCHANT_MENU_TITLE = "Enchant Refund";
 
     /** The colour X-Prison's shipped tooltip template uses for every header, bar and number. */
     private static final TextColor TEMPLATE_COLOR = NamedTextColor.YELLOW;
@@ -91,7 +91,8 @@ public final class XPrisonEnchantTooltipColorListener implements Listener {
             // Only re-check that the player is still looking at an enchant menu. Comparing the
             // Inventory objects is not reliable: the API can hand back a different wrapper object
             // for the same underlying inventory, and that comparison silently skipped every item.
-            if (!player.isOnline() || !isEnchantMenu(player.getOpenInventory().getTitle())) {
+            if (!player.isOnline() || !isEnchantMenu(player.getOpenInventory().getTitle())
+                    || PickaxeMenuGUI.isPickaxeMenu(player.getOpenInventory().getTopInventory())) {
                 return;
             }
             Map<String, String> currencies = currencyByEnchantName();

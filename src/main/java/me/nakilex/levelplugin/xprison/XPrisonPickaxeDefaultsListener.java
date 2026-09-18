@@ -61,6 +61,9 @@ import java.util.UUID;
  */
 public final class XPrisonPickaxeDefaultsListener implements Listener {
 
+    /** Raw names of the enchants baked in here as free defaults; menus must never offer them for sale. */
+    public static final Set<String> HIDDEN_DEFAULT_ENCHANTS = Set.of("fly", "autosell", "efficiency");
+
     private static final int TARGET_EFFICIENCY_LEVEL = 1500;
     private static final int TARGET_FLY_LEVEL = 1;
 
