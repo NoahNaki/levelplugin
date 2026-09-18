@@ -339,6 +339,9 @@ public class ListenerRegistry {
         if (pm.isPluginEnabled("X-Prison") && pm.isPluginEnabled("Nexo")) {
             pm.registerEvents(new me.nakilex.levelplugin.xprison.XPrisonCurrencyMenuIconListener(plugin), plugin);
         }
+        if (pm.isPluginEnabled("X-Prison")) {
+            pm.registerEvents(new me.nakilex.levelplugin.xprison.XPrisonEnchantTooltipColorListener(plugin), plugin);
+        }
         pm.registerEvents(new QuestKillListener(questManager), plugin);
         pm.registerEvents(new QuestCraftListener(questManager), plugin);
         pm.registerEvents(new QuestGUIListener(questManager), plugin);

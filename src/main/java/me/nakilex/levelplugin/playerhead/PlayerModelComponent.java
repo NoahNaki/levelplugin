@@ -3,6 +3,7 @@ package me.nakilex.levelplugin.playerhead;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.object.ObjectContents;
+import net.kyori.adventure.text.object.PlayerHeadObjectContents;
 
 import java.util.UUID;
 
@@ -73,11 +74,37 @@ public final class PlayerModelComponent {
             throw new IllegalArgumentException("speedMultiplier must be between 0.0 and 4.0");
         }
 
+        return Component.object(ObjectContents.playerHead(playerId))
+                .color(TextColor.color(marker(type, verticalOffset, scale, speedMultiplier, animation)));
+    }
+
+    /**
+     * The same portrait built from a skin we hold directly rather than from the account behind
+     * {@code playerId}. Spoofed players wear a donor account's skin, so resolving the skin from
+     * their UUID would show a different face in the card than the one standing in the world.
+     */
+    public static Component create(UUID playerId, String name, String skinTexture, String skinSignature,
+                                   Type type, int verticalOffset, int scale,
+                                   double speedMultiplier, Animation animation) {
+        if (skinTexture == null || skinTexture.isBlank()) {
+            return create(playerId, type, verticalOffset, scale, speedMultiplier, animation);
+        }
+        PlayerHeadObjectContents contents = ObjectContents.playerHead()
+                .id(playerId)
+                .name(name)
+                .profileProperty(PlayerHeadObjectContents.property("textures", skinTexture, skinSignature))
+                .build();
+        return Component.object(contents)
+                .color(TextColor.color(marker(type, verticalOffset, scale, speedMultiplier, animation)));
+    }
+
+    /** Packs the render settings into the marker colour the resource pack's shader reads. */
+    private static int marker(Type type, int verticalOffset, int scale,
+                              double speedMultiplier, Animation animation) {
         int speedStep = Math.min(15, (int) Math.round(speedMultiplier * SPEED_STEPS_PER_MULTIPLIER));
         int red = MARKER_RED_HIGH_NIBBLE | speedStep;
         int green = (type.id << 4) | verticalOffset;
         int blue = (scale << 4) | animation.id;
-        int marker = (red << 16) | (green << 8) | blue;
-        return Component.object(ObjectContents.playerHead(playerId)).color(TextColor.color(marker));
+        return (red << 16) | (green << 8) | blue;
     }
 }

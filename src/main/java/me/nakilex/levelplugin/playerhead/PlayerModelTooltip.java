@@ -54,9 +54,20 @@ public final class PlayerModelTooltip {
                                    PlayerModelComponent.Animation animation) {
         Component portrait = PlayerModelComponent.create(
                 target.getUniqueId(), type, offset, scale, speed, animation);
+        return card(portrait, profileLines(target), type, offset, scale);
+    }
 
+    /**
+     * The same card for a subject that is not a real {@link Player} - a spoofed player, which has a
+     * portrait and a few profile lines but no live server state to read.
+     */
+    public static Component card(Component portrait, List<Component> profileLines) {
+        return card(portrait, new ArrayList<>(profileLines), DEFAULT_TYPE, DEFAULT_OFFSET, DEFAULT_SCALE);
+    }
+
+    private static Component card(Component portrait, List<Component> lines,
+                                  PlayerModelComponent.Type type, int offset, int scale) {
         int columnStart = type.pixelWidth(scale) + GUTTER_PIXELS;
-        List<Component> lines = profileLines(target);
 
         // The model hangs below its own line; keep adding blank rows until the card is tall enough.
         int rowsCovered = (int) Math.ceil((type.pixelHeight(scale) + offset) / (double) DialogPixels.LINE_HEIGHT);

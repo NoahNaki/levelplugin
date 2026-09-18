@@ -142,12 +142,19 @@
             <scope>provided</scope>
         </dependency>
 
-        <!-- Citizens -->
+        <!--
+            Citizens, referenced from disk rather than a repository so the build and the server
+            cannot drift apart. The 2.0.35 artifact this used to compile against still had
+            ProfileFetchHandler, which Citizens has since replaced with Consumer<ProfileRequest>:
+            that compiled fine and then failed at runtime on every skin lookup. lib/Citizens.jar
+            is a copy of the jar the server actually runs (2.0.41-b4138).
+        -->
         <dependency>
             <groupId>net.citizensnpcs</groupId>
             <artifactId>citizens-main</artifactId>
-            <version>2.0.35-SNAPSHOT</version>
-            <scope>provided</scope>
+            <version>2.0.41-b4138</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/Citizens.jar</systemPath>
         </dependency>
 
         <!-- Nexo -->
@@ -191,6 +198,17 @@
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>33.2.1-jre</version>
+        </dependency>
+
+        <!--
+            Provided by the server at runtime (Paper bundles it). Needed at compile time only so
+            javac can resolve the GameProfile in Citizens' skin-fetch API, used by PlayerSpoofer.
+        -->
+        <dependency>
+            <groupId>com.mojang</groupId>
+            <artifactId>authlib</artifactId>
+            <version>6.0.57</version>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>

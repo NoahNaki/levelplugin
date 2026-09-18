@@ -84,11 +84,13 @@ public class AnimatedLeaderboard {
         }
         for (int i = 0; i < rowCount; i++) {
             double y = 1.2 - (i * 0.24);
-            Vector leftBase = new Vector(localX(-0.95), y, localZ(-0.95));
-            Vector rightBase = new Vector(localX(0.95), y, localZ(0.95));
-            TextDisplay leftText = spawnText(-0.95, y, "");
+            double leftX = -0.95 + rowShift();
+            double rightX = 0.95 + rowShift();
+            Vector leftBase = new Vector(localX(leftX), y, localZ(leftX));
+            Vector rightBase = new Vector(localX(rightX), y, localZ(rightX));
+            TextDisplay leftText = spawnText(leftX, y, "");
             leftText.setAlignment(TextDisplay.TextAlignment.LEFT);
-            TextDisplay rightText = spawnText(0.95, y, "");
+            TextDisplay rightText = spawnText(rightX, y, "");
             rightText.setAlignment(TextDisplay.TextAlignment.RIGHT);
             RowDisplay row = new RowDisplay(leftText, rightText, leftBase, rightBase, i);
             row.setOpacity(VISIBLE_OPACITY);
@@ -351,6 +353,19 @@ public class AnimatedLeaderboard {
      */
     private static final int RANK_WIDTH = 20;
     private static final int NAME_WIDTH = 100;
+
+    /**
+     * Both columns are centred on their own entity, and the rank/head/name column (~133px) is far
+     * wider than the score column (~55px), so the rows as a whole sit left of the centred title and
+     * footer. Shifting both columns right by about half that difference re-centres the block.
+     */
+    private static final int ROW_SHIFT_PX = 26;
+    /** A TextDisplay renders one font pixel as 1/40 of a block before its own scale. */
+    private static final double BLOCKS_PER_PIXEL = 0.025;
+
+    private double rowShift() {
+        return ROW_SHIFT_PX * BLOCKS_PER_PIXEL * scale;
+    }
 
     private static Component padded(String legacyText, int targetWidth) {
         Component text = LegacyComponentSerializer.legacySection().deserialize(legacyText);

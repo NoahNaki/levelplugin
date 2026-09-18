@@ -12,7 +12,13 @@ import org.bukkit.profile.PlayerTextures;
 
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
+import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -57,6 +63,8 @@ public final class PlayerHeadRenderer {
 
     private static final Component DEFAULT_HEAD = buildFace(DEFAULT_FACE);
 
+    private static final Pattern SKIN_URL = Pattern.compile("\"url\"\s*:\s*\"([^\"]+)\"");
+
     private static final long REFRESH_INTERVAL_MILLIS = TimeUnit.MINUTES.toMillis(10);
 
     private static final Map<UUID, Component> CACHE = new ConcurrentHashMap<>();
@@ -83,12 +91,42 @@ public final class PlayerHeadRenderer {
         return cached == null ? DEFAULT_HEAD : cached;
     }
 
+    /**
+     * The face for a skin we already hold as a Mojang {@code textures} property, keyed by
+     * {@code id}. Spoofed players wear a donor account's skin rather than the skin belonging to
+     * their own name, so looking them up as an OfflinePlayer would render the wrong face.
+     */
+    public static Component getHead(JavaPlugin plugin, UUID id, String base64Texture) {
+        if (id == null || base64Texture == null || base64Texture.isBlank()) return DEFAULT_HEAD;
+        Component cached = CACHE.get(id);
+        long lastFetched = LAST_FETCHED.getOrDefault(id, 0L);
+        if (cached == null || System.currentTimeMillis() - lastFetched > REFRESH_INTERVAL_MILLIS) {
+            requestRender(plugin, id, () -> skinUrlFromTexture(base64Texture));
+        }
+        return cached == null ? DEFAULT_HEAD : cached;
+    }
+
+    /** Pulls the skin URL out of a base64-encoded Mojang textures property. */
+    private static URL skinUrlFromTexture(String base64Texture) {
+        try {
+            String json = new String(Base64.getDecoder().decode(base64Texture), StandardCharsets.UTF_8);
+            Matcher matcher = SKIN_URL.matcher(json);
+            // Mojang's JSON escapes the slashes in the texture URL.
+            return matcher.find() ? URI.create(matcher.group(1).replace("\\/", "/")).toURL() : null;
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
     private static void requestRender(JavaPlugin plugin, OfflinePlayer player) {
-        UUID id = player.getUniqueId();
+        requestRender(plugin, player.getUniqueId(), () -> resolveSkinUrl(player));
+    }
+
+    private static void requestRender(JavaPlugin plugin, UUID id, Supplier<URL> skinUrl) {
         if (!PENDING.add(id)) return;
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                Component glyphs = render(player);
+                Component glyphs = render(skinUrl.get());
                 if (glyphs != null) {
                     CACHE.put(id, glyphs);
                     LAST_FETCHED.put(id, System.currentTimeMillis());
@@ -99,8 +137,7 @@ public final class PlayerHeadRenderer {
         });
     }
 
-    private static Component render(OfflinePlayer player) {
-        URL skinUrl = resolveSkinUrl(player);
+    private static Component render(URL skinUrl) {
         if (skinUrl == null) return null;
         BufferedImage skin;
         try {

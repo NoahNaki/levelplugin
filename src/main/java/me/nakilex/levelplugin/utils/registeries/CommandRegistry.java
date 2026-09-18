@@ -203,6 +203,10 @@ public class CommandRegistry {
         plugin.getCommand("spells").setExecutor(spellsCommand);
         plugin.getCommand("spellupgrade").setExecutor(spellsCommand);
 
+        var spooferCommand = new me.nakilex.levelplugin.playerspoofer.SpooferCommand(plugin);
+        plugin.getCommand("spoofer").setExecutor(spooferCommand);
+        plugin.getCommand("spoofer").setTabCompleter(spooferCommand);
+
         AddXPCommand addXpCmd = new AddXPCommand(levelManager);
         plugin.getCommand("addxp").setExecutor(addXpCmd);
         plugin.getCommand("addxp").setTabCompleter(addXpCmd);

@@ -995,6 +995,8 @@ public class DebugCommand implements TabExecutor, Listener {
                 return undisguiseNpcModel(sender, args);
             case "npcorphanprune":
                 return pruneOrphanCitizensNpcs(sender);
+            case "currency":
+                return resetCurrencies(sender, args);
             case "farmgrowthspeed":
                 if (args.length < 2) {
                     ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
@@ -1494,13 +1496,68 @@ public class DebugCommand implements TabExecutor, Listener {
     }
 
 
+    /**
+     * /debug currency reset &lt;player&gt;: our coins and gem items go to zero, every X-Prison
+     * currency goes back to its configured starting amount (what a brand-new player gets).
+     * Gems are inventory items, so they can only be cleared while the player is online.
+     */
+    private boolean resetCurrencies(CommandSender sender, String[] args) {
+        if (args.length < 3 || !args[1].equalsIgnoreCase("reset")) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Usage: /debug currency reset <player>");
+            return true;
+        }
+        org.bukkit.OfflinePlayer target = Bukkit.getPlayerExact(args[2]);
+        if (target == null) {
+            target = Bukkit.getOfflinePlayerIfCached(args[2]);
+        }
+        if (target == null) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR, "Unknown player: " + args[2]);
+            return true;
+        }
+
+        List<String> reset = new ArrayList<>();
+        Main plugin = Main.getInstance();
+        if (plugin.getEconomyManager() != null) {
+            plugin.getEconomyManager().setBalance(target.getUniqueId(), 0);
+            reset.add("coins");
+        }
+        Player online = target.getPlayer();
+        if (plugin.getGemsManager() != null && online != null) {
+            plugin.getGemsManager().setTotalUnits(online, 0);
+            reset.add("gem items");
+        }
+        try {
+            var currencyApi = dev.drawethree.xprison.api.XPrisonAPI.getInstance().getCurrencyApi();
+            for (var currency : currencyApi.getAllCurrencies()) {
+                if (currencyApi.setBalance(target, currency.getName(), currency.getStartingAmountExact())) {
+                    reset.add(currency.getName() + " (" + currency.getStartingAmountExact().toPlainString() + ")");
+                } else {
+                    ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                            "X-Prison refused to reset " + currency.getName() + ".");
+                }
+            }
+        } catch (RuntimeException | LinkageError ex) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.ERROR,
+                    "X-Prison currencies not reset: " + ex.getMessage());
+        }
+
+        ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.SUCCESS,
+                "Reset currencies of " + ChatColor.WHITE + target.getName() + ChatColor.GREEN + ": "
+                        + ChatColor.WHITE + String.join(", ", reset));
+        if (online == null) {
+            ChatMessageUtil.send(sender, ChatMessageUtil.MessageType.INFO,
+                    "Player is offline, so their gem items were left untouched.");
+        }
+        return true;
+    }
+
     @Override
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 1) {
             List<String> subs = new ArrayList<>(List.of("mobinfo", "tps", "siege", "buildmat", "buildspeed", "speedupscroll", "cityowner", "kingdommax", "area", "autocast",
                     "hand", "wield", "chatgame", "expedition", "dungeonexpedition", "rewardbomb", "drops", "coindrops", "coinpull", "beaconentity",
                     "spellinput", "spellcooldown", "spellmanacost", "stunstick", "poisonstick", "tauntstick", "fearstick", "slowstick", "petpull", "spellpull",
-                    "particle", "particlepath", "particlepreset", "inventorydebug", "farmgrowthspeed", "fishingspeed", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune"));
+                    "particle", "particlepath", "particlepreset", "inventorydebug", "farmgrowthspeed", "fishingspeed", "warriorcyclone", "stronghold", "strongholdxp", "gemdungeonsweep", "lootchestanimation", "npcmodel", "npcundisguise", "npcorphanprune", "currency"));
             subs.addAll(Arrays.stream(StatType.values()).map(StatType::getAbbrev).toList());
             return subs.stream()
                     .filter(s -> s.startsWith(args[0].toLowerCase()))
@@ -1508,6 +1565,13 @@ public class DebugCommand implements TabExecutor, Listener {
         } else if (args.length == 2 && args[0].equalsIgnoreCase("fishingspeed")) {
             return List.of("1", "2", "5", "10", "reset").stream()
                     .filter(opt -> opt.startsWith(args[1].toLowerCase()))
+                    .toList();
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("currency")) {
+            return "reset".startsWith(args[1].toLowerCase()) ? List.of("reset") : List.of();
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("currency")) {
+            return Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .toList();
         } else if (args.length == 2 && args[0].equalsIgnoreCase("area")) {
             return List.of("initialize", "scanblocks").stream()

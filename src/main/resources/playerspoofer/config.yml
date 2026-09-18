@@ -1,0 +1,429 @@
+# PlayerSpoofer configuration format version.
+config-version: 11
+
+# Persisted fake players. Managed by the plugin.
+fake-players: []
+# Internal persistent position format: name|world|x|y|z|yaw|pitch
+fake-player-locations: []
+# Internal metadata: skin, connection profile, bot origin, session/personality state, etc.
+fake-player-meta: {}
+
+# Ping personalities. Most fake players have healthy stable connections; only a very small
+# minority are poor. SPIKY players usually look healthy but occasionally have a short spike.
+ping-jitter-interval-ticks: 600
+
+# Citizens/Mojang lookup pacing.
+profile-retry-delay-ticks: 100
+bulk-verification-spacing-ticks: 2
+existing-validation-spacing-ticks: 4
+
+# Random unique-skin cache. No two active fake players are allowed to use the same texture.
+skin-cache-target: 64
+skin-prewarm-spacing-ticks: 6
+
+# Automatic population simulation. target-total=0 disables it.
+# The target means REAL + VISIBLE FAKE players, so real joins cause target-managed fakes
+# to leave gradually and real quits cause replacements to join gradually.
+population:
+  target-total: 0
+  startup-delay-seconds: 8
+  join-delay-seconds-min: 3
+  join-delay-seconds-max: 10
+  leave-delay-seconds-min: 4
+  leave-delay-seconds-max: 12
+  failed-add-retry-seconds: 15
+  # Only target-managed fakes use automatic sessions. Manual additions stay until removed.
+  session-minutes-min: 10
+  session-minutes-max: 120
+
+  # The number set by /spoofer target is now a BASELINE. The live desired total slowly
+  # wanders around it, causing small natural waves of joins/leaves instead of a frozen count.
+  variation:
+    enabled: true
+    max-deviation-players: 6
+    max-deviation-percent: 0.12
+    max-step: 3
+    interval-seconds-min: 35
+    interval-seconds-max: 95
+
+  # Even while the count is correct, occasionally let one target-managed player leave and
+  # replace them after a short gap. This is separate from normal session expiry.
+  churn:
+    enabled: true
+    interval-seconds-min: 35
+    interval-seconds-max: 100
+    chance-percent: 82
+    minimum-managed-players: 4
+    replacement-gap-seconds-min: 5
+    replacement-gap-seconds-max: 14
+
+# Real-account collision protection. A real login immediately retires an identically named
+# spoof, and usernames that have genuinely played on this server are permanently excluded
+# from automatic selection. Pre-login reservations also close the small login race window.
+collision-protection:
+  enabled: true
+  import-existing-server-history: true
+  exclude-real-player-history: true
+  history-excludes-manual: true
+  prelogin-reservation-minutes: 1440
+
+# Managed by the plugin. Names/UUIDs are added only for genuine Bukkit/Paper players.
+real-player-history:
+  names: []
+  uuids: []
+
+# Selection rules for automatically chosen usernames and skin donors.
+# A non-empty whitelist becomes an allow-list. Blacklist always wins.
+selection:
+  player-blacklist: []
+  player-whitelist: []
+  skin-blacklist: []
+  skin-whitelist: []
+
+# Candidate names used by /spoofer add multi <quantity>.
+# Seeded from the public NameMC skin catalogue. IMPORTANT: a NameMC entry can become historical,
+# so PlayerSpoofer verifies every candidate through Citizens/Mojang before it can appear in TAB.
+username-pool:
+  - yibbu
+  - manyero
+  - koakumaris
+  - prettysadtoday
+  - yeowun
+  - undespairing
+  - nx9_msmc_nzh
+  - xWeyzow
+  - Nospu
+  - 0NLYTOBY
+  - EMPR7
+  - qRose_
+  - Conetic
+  - Niflu
+  - Frostivn
+  - 4alex_
+  - cwsy
+  - roobay
+  - Luvcie
+  - WBBM
+  - Esoteric_Artist
+  - orphicparadox
+  - femboykittycat
+  - HD1
+  - LA_Lemons
+  - vtja
+  - Dcape07
+  - Whimzzical
+  - lack_of_skill
+  - z3nr
+  - Allyish
+  - samwqq
+  - Sebro35
+  - Thiago_Riv01
+  - _Unicorn_08
+  - SkinEditor
+  - hotcrime
+  - Levylzz
+  - sieqgewinnt
+  - strawberrycreaam
+  - Stefanio2014
+  - Kaelyn
+  - lordimtired
+  - kiireeiiu
+  - ITSPANDASAMA
+  - SCAMP1013
+  - SupremeStar_
+  - hugoisaura
+  - omri_real
+  - mwrder
+  - James_gamer_mc
+  - Squiggles_000
+  - PlasticBaggies
+  - ahxgi
+  - Snnowy
+  - torci
+  - Ce1estina
+  - Gewy
+  - Aeuros
+  - Anyes
+  - SCNNLD
+  - WoodlandHydra37
+  - youner
+  - _HisLily
+  - nobodylov3su
+  - cyw
+  - tedzillaa
+  - JinFrog2
+  - LittleVet
+  - IamStormz
+  - snuush
+  - Seumm
+  - M1dnightM1st
+  - Ym7_
+  - Ledion77
+  - D3xDSnow
+  - Anglestitch15
+  - blqckbear
+  - m_gp
+  - noeluv_zanny
+  - Ziiruk
+  - German
+  - _Hxlcyon
+  - Blubbery_Muffin
+  - Purrfectttt
+  - jeltude
+  - andwh
+  - _Wex__
+  - Ryoomen
+  - ryderds
+  - Kiramark
+  - OxyMoxy84
+  - vealentines
+  - suawa
+  - NycuS
+  - nevadaah
+  - SecretWadyy
+
+# Skin donors. A donor is only cached when Citizens returns a real profile with a texture property.
+# The displayed fake username and its randomly selected donor skin are intentionally independent.
+skin-donor-pool:
+  - yibbu
+  - manyero
+  - koakumaris
+  - prettysadtoday
+  - yeowun
+  - undespairing
+  - nx9_msmc_nzh
+  - xWeyzow
+  - Nospu
+  - 0NLYTOBY
+  - EMPR7
+  - qRose_
+  - Conetic
+  - Niflu
+  - Frostivn
+  - 4alex_
+  - cwsy
+  - roobay
+  - Luvcie
+  - WBBM
+  - Esoteric_Artist
+  - orphicparadox
+  - femboykittycat
+  - HD1
+  - LA_Lemons
+  - vtja
+  - Dcape07
+  - Whimzzical
+  - lack_of_skill
+  - z3nr
+  - Allyish
+  - samwqq
+  - Sebro35
+  - Thiago_Riv01
+  - _Unicorn_08
+  - SkinEditor
+  - hotcrime
+  - Levylzz
+  - sieqgewinnt
+  - strawberrycreaam
+  - Stefanio2014
+  - Kaelyn
+  - lordimtired
+  - kiireeiiu
+  - ITSPANDASAMA
+  - SCAMP1013
+  - SupremeStar_
+  - hugoisaura
+  - omri_real
+  - mwrder
+  - James_gamer_mc
+  - Squiggles_000
+  - PlasticBaggies
+  - ahxgi
+  - Snnowy
+  - torci
+  - Ce1estina
+  - Gewy
+  - Aeuros
+  - Anyes
+  - SCNNLD
+  - WoodlandHydra37
+  - youner
+  - _HisLily
+  - nobodylov3su
+  - cyw
+  - tedzillaa
+  - JinFrog2
+  - LittleVet
+  - IamStormz
+  - snuush
+  - Seumm
+  - M1dnightM1st
+  - Ym7_
+  - Ledion77
+  - D3xDSnow
+  - Anglestitch15
+  - blqckbear
+  - m_gp
+  - noeluv_zanny
+  - Ziiruk
+  - German
+  - _Hxlcyon
+  - Blubbery_Muffin
+  - Purrfectttt
+  - jeltude
+  - andwh
+  - _Wex__
+  - Ryoomen
+  - ryderds
+  - Kiramark
+  - OxyMoxy84
+  - vealentines
+  - suawa
+  - NycuS
+  - nevadaah
+  - SecretWadyy
+
+
+# ---------------------------------------------------------------------------
+# Spoofed-player chat / personality simulation (1.7.0 prison-log-informed)
+# ---------------------------------------------------------------------------
+# HYBRID tries local Ollama first when enabled, then OpenRouter, then templates.
+# TEMPLATE never performs HTTP requests. OPENROUTER and OLLAMA force one provider.
+chat:
+  enabled: true
+  provider: HYBRID
+
+  # Observe chat even when another plugin cancels Paper's AsyncChatEvent to render it itself.
+  # This is common with custom rank/chat-format plugins. PlayerSpoofer never uncancels the event.
+  capture:
+    cancelled-events: true
+    # Paper may expose one message through both modern + legacy compatibility events.
+    dedupe-window-ms: 750
+
+  # A normal message only has a small chance of getting a bot reply. Mentioning a fake
+  # player is much more likely to get that specific fake player to answer.
+  reply-chance: 0.14
+  mention-reply-chance: 0.85
+  conversation-reply-chance: 0.62
+  room-conversation-reply-chance: 0.72
+  conversation-lease-seconds: 90
+  room-conversation-lease-seconds: 75
+  max-response-characters: 120
+
+  # Packet-only fake players cannot enter Paper's real chat renderer. PlayerSpoofer therefore
+  # recreates the visible server style here, optionally pulling prefix/suffix metadata through Vault.
+  # The legacy message-format key remains as a compatibility fallback.
+  message-format: '{prefix}&f{name}{suffix}&7: &f{message}'
+  display:
+    use-vault-prefix: true
+    vault-world: ''
+    fallback-prefix: ''
+    fallback-suffix: ''
+    format: '{prefix}&f{name}{suffix}&7: &f{message}'
+    # Render fake chat as a real player's line: face glyph, LuckPerms rank prefix, then the name.
+    # The rank is display-only - no LuckPerms user is created for a bot, because bots reuse real
+    # verified accounts' UUIDs and a stored rank would follow the real owner if they ever joined.
+    # Set to false to fall back to the plain 'format' string above.
+    match-real-players: true
+    # How bot ranks are spread, by LuckPerms group name. Each bot picks one from its UUID and
+    # keeps it. Any group in your LuckPerms setup works; its configured prefix is what shows.
+    rank-weights:
+      default: 75
+      vip: 8
+      vip+: 5
+      mvp: 4
+      elite: 3
+      titan: 2
+      master: 2
+      legend: 1
+
+  typing:
+    min-delay-ms: 1200
+    max-delay-ms: 6500
+    ms-per-character: 48
+
+  cooldowns:
+    global-seconds: 3
+    per-bot-min-seconds: 8
+    per-bot-max-seconds: 30
+
+  # Hard caps stop a large fake population from flooding chat.
+  density:
+    max-messages-per-minute: 12
+    max-autonomous-per-minute: 8
+
+  llm:
+    fallback-to-templates: true
+
+  # Small social reciprocity rules make bots feel like participants rather than message generators.
+  # A bot that asks a question can thank the player/bot that actually answers it, and a bot that
+  # says "back" can thank someone who says "wb"/"welcome back".
+  social:
+    enabled: true
+    response-window-seconds: 32
+    implicit-response-window-seconds: 18
+    reply-delay-min-ticks: 18
+    reply-delay-max-ticks: 48
+
+  # Short transcript memory is kept in RAM. Relationship familiarity is persisted under
+  # chat-memory.relationships and is intentionally tiny (name/familiarity/message count).
+  memory:
+    enabled: true
+    # Real and spoofed chat are kept together so replies can understand the ongoing room conversation.
+    # Obvious prompt/system/API meta attempts are excluded before anything is sent to an LLM.
+    recent-messages: 24
+    history-size: 60
+    context-max-age-minutes: 10
+
+  # Ambient chat is template-driven so it costs no API calls. Occasionally a second fake
+  # player answers the first one, producing short fake-to-fake conversations.
+  autonomous:
+    enabled: true
+    min-delay-seconds: 20
+    max-delay-seconds: 60
+    quiet-after-real-chat-seconds: 8
+    fake-to-fake-chance: 0.55
+    fake-to-fake-message-count-min: 2
+    fake-to-fake-message-count-max: 5
+    recent-template-memory: 8
+    follow-up-delay-min-ticks: 30
+    follow-up-delay-max-ticks: 100
+
+  http-connect-timeout-seconds: 4
+
+  # OpenRouter uses the OpenAI-compatible /chat/completions endpoint. The default
+  # openrouter/free router is free, but your account/provider rate limits still apply.
+  # Prefer setting OPENROUTER_API_KEY in the environment instead of writing a key here.
+  openrouter:
+    enabled: true
+    endpoint: 'https://openrouter.ai/api/v1/chat/completions'
+    api-key: '${OPENROUTER_API_KEY}'
+    # Used only when api-key/environment resolution is empty. File lives in plugins/PlayerSpoofer/.
+    api-key-file: 'openrouter.key'
+    models:
+      - 'openrouter/free'
+    temperature: 0.9
+    max-tokens: 80
+    timeout-seconds: 12
+    failure-backoff-seconds: 60
+    max-requests-per-minute: 4
+    max-requests-per-hour: 40
+    max-requests-per-day: 45
+    http-referer: ''
+
+  # Local Ollama is off by default. Enable it after installing/pulling the model you want.
+  # Default local Ollama does not need an API key. Hosted Ollama endpoints can use one.
+  ollama:
+    enabled: false
+    endpoint: 'http://127.0.0.1:11434/api/chat'
+    model: 'gemma3:4b'
+    api-key: ''
+    temperature: 0.9
+    max-tokens: 80
+    max-concurrent: 2
+    timeout-seconds: 10
+    failure-backoff-seconds: 30
+
+# Persistent relationship memory. Managed by the plugin; do not edit while running.
+chat-memory:
+  relationships: {}

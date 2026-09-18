@@ -282,6 +282,7 @@ public class PluginBootstrap {
     private CookingModule cookingModule;
     private BlockGlowUtil blockGlowUtil;
     private me.nakilex.levelplugin.xprison.XPrisonEnchantsIntegration xPrisonEnchantsIntegration;
+    private me.nakilex.playerspoofer.PlayerSpooferPlugin playerSpoofer;
     private me.nakilex.levelplugin.xprison.XPrisonPickaxeDefaultsListener xPrisonPickaxeDefaultsListener;
     private me.nakilex.levelplugin.xprison.PrivateMineDropShaftManager privateMineDropShaftManager;
     private me.nakilex.levelplugin.serverboard.PrisonMiningActionBar prisonMiningActionBar;
@@ -319,6 +320,7 @@ public class PluginBootstrap {
         initializeManagers();
         xPrisonEnchantsIntegration = new me.nakilex.levelplugin.xprison.XPrisonEnchantsIntegration(plugin);
         xPrisonEnchantsIntegration.enable();
+        startPlayerSpoofer();
         xPrisonPickaxeDefaultsListener = new me.nakilex.levelplugin.xprison.XPrisonPickaxeDefaultsListener(plugin);
         xPrisonPickaxeDefaultsListener.enable();
         privateMineDropShaftManager = new me.nakilex.levelplugin.xprison.PrivateMineDropShaftManager(plugin);
@@ -1040,6 +1042,35 @@ public class PluginBootstrap {
         }
     }
 
+    /**
+     * Starts the merged PlayerSpoofer module. It was a standalone plugin; it needs PacketEvents and
+     * Citizens, so it is skipped rather than failing startup when either is missing.
+     */
+    private void startPlayerSpoofer() {
+        org.bukkit.plugin.PluginManager pluginManager = plugin.getServer().getPluginManager();
+        if (!pluginManager.isPluginEnabled("packetevents") || !pluginManager.isPluginEnabled("Citizens")) {
+            plugin.getLogger().info("PlayerSpoofer needs PacketEvents and Citizens; it stays disabled.");
+            return;
+        }
+        if (pluginManager.isPluginEnabled("PlayerSpoofer")) {
+            plugin.getLogger().warning("The standalone PlayerSpoofer plugin is still installed. "
+                    + "LevelPlugin's built-in copy stays disabled to avoid two sets of fake players - "
+                    + "delete plugins/PlayerSpoofer.jar to use the built-in one.");
+            return;
+        }
+        try {
+            playerSpoofer = new me.nakilex.playerspoofer.PlayerSpooferPlugin(plugin);
+            playerSpoofer.enable();
+        } catch (RuntimeException | LinkageError ex) {
+            plugin.getLogger().warning("PlayerSpoofer failed to start: " + ex);
+            playerSpoofer = null;
+        }
+    }
+
+    public me.nakilex.playerspoofer.PlayerSpooferPlugin getPlayerSpoofer() {
+        return playerSpoofer;
+    }
+
     public void disable() {
         if (serverTabListManager != null) serverTabListManager.stop();
         if (playerModelResourcePackServer != null) playerModelResourcePackServer.stop();
@@ -1050,6 +1081,10 @@ public class PluginBootstrap {
         if (xPrisonEnchantsIntegration != null) {
             xPrisonEnchantsIntegration.disable();
             xPrisonEnchantsIntegration = null;
+        }
+        if (playerSpoofer != null) {
+            playerSpoofer.disable();
+            playerSpoofer = null;
         }
         if (xPrisonPickaxeDefaultsListener != null) {
             xPrisonPickaxeDefaultsListener.disable();

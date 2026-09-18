@@ -44,10 +44,9 @@ public class ActionBarTask extends BukkitRunnable {
             CooldownIndicatorManager.Info info = CooldownIndicatorManager.getInstance().get(player);
             String cooldownMessage = cooldownMessage(info, now);
             String statusMessage = statusMessage(player, statsManager);
-            String resourceMessage = resourceMessage(player, statsManager);
             String cookingMessage = cookingMessage(player);
 
-            String message = joinSegments(cooldownMessage, statusMessage, resourceMessage, cookingMessage);
+            String message = joinSegments(cooldownMessage, statusMessage, cookingMessage);
             if (message.isEmpty()) {
                 clearActionBarStatus(player);
             } else {
@@ -107,30 +106,6 @@ public class ActionBarTask extends BukkitRunnable {
         String consistency = me.nakilex.levelplugin.player.farming.managers.FarmingManager.getInstance()
                 .getConsistencyIndicator(player);
         return consistency == null ? "" : consistency;
-    }
-
-    private String resourceMessage(Player player, StatsManager statsManager) {
-        String health = healthSegment(player, statsManager);
-        String mana = manaSegment(player, statsManager);
-        return joinSegments(health, mana);
-    }
-
-    private String healthSegment(Player player, StatsManager statsManager) {
-        if (!statsManager.isHealthBelowMax(player)) {
-            return "";
-        }
-        double maxHealth = statsManager.getMaxHealth(player);
-        return ChatColor.RED + "HP " + ChatColor.WHITE + (int) Math.ceil(player.getHealth())
-                + ChatColor.GRAY + "/" + ChatColor.WHITE + (int) Math.ceil(maxHealth);
-    }
-
-    private String manaSegment(Player player, StatsManager statsManager) {
-        if (!statsManager.isManaBelowMax(player)) {
-            return "";
-        }
-        StatsManager.PlayerStats stats = statsManager.getPlayerStats(player.getUniqueId());
-        return ChatColor.AQUA + "Mana " + ChatColor.WHITE + stats.currentMana
-                + ChatColor.GRAY + "/" + ChatColor.WHITE + stats.maxMana;
     }
 
     private String joinSegments(String... segments) {

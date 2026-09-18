@@ -60,6 +60,7 @@ public class Main extends JavaPlugin {
     @Override
     public FileConfiguration getConfig() { return super.getConfig(); }
     public PlayerConfig getPlayerConfig() { return bootstrap.getPlayerConfig(); }
+    public me.nakilex.playerspoofer.PlayerSpooferPlugin getPlayerSpoofer() { return bootstrap.getPlayerSpoofer(); }
     public FileConfiguration getCustomConfig() { return bootstrap.getCustomConfig(); }
     public PartyManager getPartyManager() { return bootstrap.getPartyManager(); }
     public me.nakilex.levelplugin.arena.ArenaQueueManager getArenaQueueManager() { return bootstrap.getArenaQueueManager(); }
